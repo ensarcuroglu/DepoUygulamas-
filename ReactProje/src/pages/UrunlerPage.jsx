@@ -8,7 +8,7 @@ import {
 import toast from 'react-hot-toast';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
-import { getUrunler, deleteUrun, getKategoriler, createUrun, updateUrun } from '../services/api';
+import { getUrunler, deleteUrun, getKategoriler, createUrun, updateUrun, getUrunByBarkod } from '../services/api';
 import useBarcodeScanner from '../hooks/useBarcodeScanner';
 import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
 
@@ -337,10 +337,16 @@ export default function App() {
 
     // Arka plan klavye dinleyicisi: PC ortamında fiziksel barkod okuyucusu için
     useBarcodeScanner({
-        onScan: (scannedCode) => {
+        isEnabled: !modalOpen && !cameraScannerOpen,
+        onScan: async (scannedCode) => {
             setSearch(scannedCode);
             setPage(0);
-            toast.success(`Okutuldu: ${scannedCode}`, { icon: '🔍' });
+            try {
+                const res = await getUrunByBarkod(scannedCode);
+                toast.success(`Bulundu: ${res.data.isim}`, { icon: '🔍' });
+            } catch {
+                toast.success(`Aranıyor: ${scannedCode}`, { icon: '🔍' });
+            }
         }
     });
 
@@ -676,10 +682,15 @@ export default function App() {
             <ZXingBarcodeScanner
                 isOpen={cameraScannerOpen}
                 onClose={() => setCameraScannerOpen(false)}
-                onScanSuccess={(code) => {
+                onScanSuccess={async (code) => {
                     setSearch(code);
                     setPage(0);
-                    toast.success(`Tarandı: ${code}`, { icon: '📷' });
+                    try {
+                        const res = await getUrunByBarkod(code);
+                        toast.success(`Bulundu: ${res.data.isim}`, { icon: '📷' });
+                    } catch {
+                        toast.success(`Aranıyor: ${code}`, { icon: '📷' });
+                    }
                 }}
             />
         </>

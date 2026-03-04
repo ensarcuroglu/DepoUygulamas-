@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+// Localhost yerine makinenin yerel IP adresini kullanıyoruz ki Zebra terminali veya ağdaki diğer mobil cihazlar ulaşabilsin
+const API_BASE_URL = 'http://192.168.5.151:8000/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -67,6 +68,7 @@ export const getDashboardStats = () => api.get('/dashboard');
 // ========================
 export const getUrunler = (params = {}) => api.get('/urunler/', { params });
 export const getUrun = (id) => api.get(`/urunler/${id}`);
+export const getUrunByBarkod = (barkod) => api.get(`/urunler/barkod/${encodeURIComponent(barkod)}`);
 export const getKritikUrunler = () => api.get('/urunler/kritik');
 export const createUrun = (data) => api.post('/urunler/', data);
 export const updateUrun = (id, data) => api.put(`/urunler/${id}`, data);

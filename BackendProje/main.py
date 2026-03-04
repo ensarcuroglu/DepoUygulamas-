@@ -23,7 +23,7 @@ app = FastAPI(
 # CORS ayarları — React'ın bu sunucuya erişebilmesi için
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://192.168.5.151:5173", "http://192.168.5.151:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

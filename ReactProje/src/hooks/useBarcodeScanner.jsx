@@ -5,24 +5,24 @@ import { useEffect, useCallback, useRef } from 'react';
  * çok hızlı yazılan tuşları (fiziksel barkod okuyucu cihazlardan gelen)
  * algılar ve tarama sonucu olarak döner.
  *
- * @param {Function} onScan - Barkod başarıyla okunduğunda tetiklenecek callback (okunan kodu parametre alır)
- * @param {number} maxTimeBetweenClicks - Okuyucunun iki tuş arası bekleme toleransı (ms). İnsan yazmasını engellemek için düşük tutulur.
+ * @param {Function} onScan - Barkod başarıyla okunduğunda tetiklenecek callback
+ * @param {boolean} isEnabled - Hook'un aktif olup olmadığını kontrol eder (default: true)
+ * @param {number} maxTimeBetweenClicks - Okuyucunun iki tuş arası bekleme toleransı (ms)
  */
-function useBarcodeScanner({ onScan, maxTimeBetweenClicks = 50 }) {
+function useBarcodeScanner({ onScan, isEnabled = true, maxTimeBetweenClicks = 80 }) {
     const barcodeStrRef = useRef('');
     const lastKeyPressTimeRef = useRef(0);
+    const onScanRef = useRef(onScan);
+
+    // onScan callback'ini ref ile güncel tut (stale closure önlemi)
+    useEffect(() => {
+        onScanRef.current = onScan;
+    }, [onScan]);
 
     const handleKeyPress = useCallback(
         (e) => {
-            // Input veya textarea alanındayken global okumayı ezme
-            // (Kullanıcı arama kutusuna kendi eliyle yazıyor olabilir)
-            if (
-                e.target.tagName.toLowerCase() === 'input' ||
-                e.target.tagName.toLowerCase() === 'textarea' ||
-                e.target.isContentEditable
-            ) {
-                return;
-            }
+            // Hook devre dışıysa hiçbir şey yapma
+            if (!isEnabled) return;
 
             const currentTime = Date.now();
 
@@ -30,7 +30,8 @@ function useBarcodeScanner({ onScan, maxTimeBetweenClicks = 50 }) {
             if (e.key === 'Enter') {
                 if (barcodeStrRef.current.length > 3) {
                     // Çok kısa kelimeleri barkod sanmaması için min uzunluk sınırı
-                    onScan(barcodeStrRef.current);
+                    e.preventDefault(); // Enter'ın form submit etmesini engelle
+                    onScanRef.current(barcodeStrRef.current);
                 }
                 barcodeStrRef.current = '';
                 return;
@@ -48,17 +49,21 @@ function useBarcodeScanner({ onScan, maxTimeBetweenClicks = 50 }) {
                 lastKeyPressTimeRef.current = currentTime;
             }
         },
-        [onScan, maxTimeBetweenClicks]
+        [isEnabled, maxTimeBetweenClicks]
     );
 
     useEffect(() => {
+        if (!isEnabled) return;
+
         // Window 'keydown' eventini dinliyoruz
         window.addEventListener('keydown', handleKeyPress);
 
         return () => {
             window.removeEventListener('keydown', handleKeyPress);
+            // Cleanup: Buffer'ı temizle
+            barcodeStrRef.current = '';
         };
-    }, [handleKeyPress]);
+    }, [handleKeyPress, isEnabled]);
 }
 
 export default useBarcodeScanner;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeftRight, TrendingUp, TrendingDown, Plus, X, Filter, Activity, Download, FileSpreadsheet, FileText } from 'lucide-react';
-import { getStokHareketleri, createStokHareketi, getUrunler } from '../services/api';
+import { getStokHareketleri, createStokHareketi, getUrunler, getUrunByBarkod } from '../services/api';
 import toast from 'react-hot-toast';
 import useBarcodeScanner from '../hooks/useBarcodeScanner';
 import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
@@ -18,14 +18,13 @@ export function HareketModal({ isOpen, onClose, onSave, urunler }) {
 
     // Klavye dinleyici Hook (Modal açıkken fiziksel okuyucu ile okutulursa)
     useBarcodeScanner({
-        onScan: (scannedCode) => {
-            if (!isOpen) return; // Sadece modal açıkken çalışsın
-
-            const bulunanUrun = urunler.find(u => u.barkod === scannedCode);
-            if (bulunanUrun) {
-                setForm(prev => ({ ...prev, urun_id: bulunanUrun.id }));
-                toast.success(`${bulunanUrun.isim} seçildi`, { icon: '📦' });
-            } else {
+        isEnabled: isOpen, // Sadece modal açıkken aktif
+        onScan: async (scannedCode) => {
+            try {
+                const res = await getUrunByBarkod(scannedCode);
+                setForm(prev => ({ ...prev, urun_id: res.data.id }));
+                toast.success(`${res.data.isim} seçildi`, { icon: '📦' });
+            } catch {
                 toast.error(`Kayıtlı ürün bulunamadı: ${scannedCode}`);
             }
         }
@@ -133,12 +132,12 @@ export function HareketModal({ isOpen, onClose, onSave, urunler }) {
             <ZXingBarcodeScanner
                 isOpen={cameraScannerOpen}
                 onClose={() => setCameraScannerOpen(false)}
-                onScanSuccess={(code) => {
-                    const bulunanUrun = urunler.find(u => u.barkod === code);
-                    if (bulunanUrun) {
-                        setForm(prev => ({ ...prev, urun_id: bulunanUrun.id }));
-                        toast.success(`${bulunanUrun.isim} eklendi`, { icon: '📷' });
-                    } else {
+                onScanSuccess={async (code) => {
+                    try {
+                        const res = await getUrunByBarkod(code);
+                        setForm(prev => ({ ...prev, urun_id: res.data.id }));
+                        toast.success(`${res.data.isim} eklendi`, { icon: '📷' });
+                    } catch {
                         toast.error(`Kayıtlı ürün bulunamadı: ${code}`);
                     }
                 }}
