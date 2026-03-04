@@ -55,5 +55,5 @@ def dashboard_istatistikleri(
     """Dashboard için toplam ürün, kritik stok, günlük hareket ve toplam değer istatistikleri"""
     return crud.get_dashboard_stats(db)
 
-# uvicorn main:app --reload --host 127.0.0.1 --port 8000
+# uvicorn main:app --reload --host 0.0.0.0 --port 8000
 # uvicorn main:app --reload
