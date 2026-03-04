@@ -195,6 +195,12 @@ class TedarikciBase(BaseModel):
 class TedarikciCreate(TedarikciBase):
     pass
 
+class TedarikciUpdate(BaseModel):
+    firma_adi: Optional[str] = None
+    iletisim_kisi: Optional[str] = None
+    telefon: Optional[str] = None
+    email: Optional[str] = None
+
 class Tedarikci(TedarikciBase):
     id: int
 

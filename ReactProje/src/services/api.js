@@ -90,12 +90,10 @@ export const createStokHareketi = (data) => api.post('/stok-hareketleri/', data)
 // ========================
 // TEDARİKÇİLER
 // ========================
-export const getTedarikciler = async () => {
-    const response = await api.get('/tedarikciler/');
-    return response.data;
-};
-export const addTedarikci = async (tedarikciData) => {
-    const response = await api.post('/tedarikciler/', tedarikciData);
-};
+export const getTedarikciler = () => api.get('/tedarikciler/');
+export const getTedarikci = (id) => api.get(`/tedarikciler/${id}`);
+export const addTedarikci = (data) => api.post('/tedarikciler/', data);
+export const updateTedarikci = (id, data) => api.put(`/tedarikciler/${id}`, data);
+export const deleteTedarikci = (id) => api.delete(`/tedarikciler/${id}`);
 
 export default api;

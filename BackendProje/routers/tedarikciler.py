@@ -1,26 +1,74 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
 import crud
 import schemas
-import models
 from database import get_db
+from auth import get_current_user
+from models import Kullanici
 
 # Router oluştur
 router = APIRouter(prefix="/api/tedarikciler", tags=["Tedarikçiler"])
 
+
 @router.get("/", response_model=List[schemas.Tedarikci])
-def tedarikcileri_getir(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """Kayıtlı tüm tedarikçileri veritabanından çeker ve listeler.
-    """
+def tedarikcileri_getir(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: Kullanici = Depends(get_current_user)
+):
+    """Kayıtlı tüm tedarikçileri veritabanından çeker ve listeler."""
     tedarikciler = crud.get_tedarikciler(db, skip=skip, limit=limit)
     return tedarikciler
 
 
-@router.post("/", response_model=schemas.Tedarikci)
-def tedarikci_olustur(tedarikci: schemas.TedarikciCreate, db: Session = Depends(get_db)):
-    """
-    Yeni bir tedarikçi kaydı oluşturur.
-    """
+@router.get("/{tedarikci_id}", response_model=schemas.Tedarikci)
+def tedarikci_detay(
+    tedarikci_id: int,
+    db: Session = Depends(get_db),
+    current_user: Kullanici = Depends(get_current_user)
+):
+    """Belirli bir tedarikçinin detaylarını getirir."""
+    db_tedarikci = crud.get_tedarikci(db, tedarikci_id)
+    if not db_tedarikci:
+        raise HTTPException(status_code=404, detail="Tedarikçi bulunamadı")
+    return db_tedarikci
+
+
+@router.post("/", response_model=schemas.Tedarikci, status_code=201)
+def tedarikci_olustur(
+    tedarikci: schemas.TedarikciCreate,
+    db: Session = Depends(get_db),
+    current_user: Kullanici = Depends(get_current_user)
+):
+    """Yeni bir tedarikçi kaydı oluşturur."""
     return crud.create_tedarikci(db=db, tedarikci=tedarikci)
+
+
+@router.put("/{tedarikci_id}", response_model=schemas.Tedarikci)
+def tedarikci_guncelle(
+    tedarikci_id: int,
+    tedarikci: schemas.TedarikciUpdate,
+    db: Session = Depends(get_db),
+    current_user: Kullanici = Depends(get_current_user)
+):
+    """Mevcut bir tedarikçiyi günceller."""
+    db_tedarikci = crud.update_tedarikci(db, tedarikci_id, tedarikci)
+    if not db_tedarikci:
+        raise HTTPException(status_code=404, detail="Tedarikçi bulunamadı")
+    return db_tedarikci
+
+
+@router.delete("/{tedarikci_id}")
+def tedarikci_sil(
+    tedarikci_id: int,
+    db: Session = Depends(get_db),
+    current_user: Kullanici = Depends(get_current_user)
+):
+    """Bir tedarikçiyi siler."""
+    success = crud.delete_tedarikci(db, tedarikci_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Tedarikçi bulunamadı")
+    return {"message": "Tedarikçi başarıyla silindi", "id": tedarikci_id}

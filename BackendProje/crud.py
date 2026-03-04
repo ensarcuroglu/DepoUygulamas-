@@ -8,7 +8,7 @@ from schemas import (
     KategoriCreate, KategoriUpdate,
     RafCreate, RafUpdate,
     StokHareketiCreate,
-    KullaniciCreate, TedarikciCreate
+    KullaniciCreate, TedarikciCreate, TedarikciUpdate
 )
 
 
@@ -221,3 +221,28 @@ def create_tedarikci(db: Session, tedarikci: TedarikciCreate):
     db.commit()
     db.refresh(db_tedarikci)
     return db_tedarikci
+
+def get_tedarikci(db: Session, tedarikci_id: int):
+    """Tek bir tedarikçiyi ID ile getirir"""
+    return db.query(Tedarikci).filter(Tedarikci.id == tedarikci_id).first()
+
+def update_tedarikci(db: Session, tedarikci_id: int, tedarikci: TedarikciUpdate):
+    """Mevcut bir tedarikçiyi günceller"""
+    db_tedarikci = db.query(Tedarikci).filter(Tedarikci.id == tedarikci_id).first()
+    if not db_tedarikci:
+        return None
+    update_data = tedarikci.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_tedarikci, key, value)
+    db.commit()
+    db.refresh(db_tedarikci)
+    return db_tedarikci
+
+def delete_tedarikci(db: Session, tedarikci_id: int):
+    """Bir tedarikçiyi siler"""
+    db_tedarikci = db.query(Tedarikci).filter(Tedarikci.id == tedarikci_id).first()
+    if not db_tedarikci:
+        return False
+    db.delete(db_tedarikci)
+    db.commit()
+    return True

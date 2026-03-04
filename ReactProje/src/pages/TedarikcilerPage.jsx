@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { getTedarikciler, addTedarikci } from '../services/api';
-import { 
-  Building2, 
-  User, 
-  Phone, 
-  Mail, 
-  Plus, 
-  Truck, 
-  Loader2, 
-  SearchX 
+import {
+  Building2,
+  User,
+  Phone,
+  Mail,
+  Plus,
+  Truck,
+  Loader2,
+  SearchX
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------------
@@ -17,7 +17,7 @@ const TedarikcilerPage = () => {
   // Durum (State) Yönetimi
   const [tedarikciler, setTedarikciler] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Form Durumu
   const [formData, setFormData] = useState({
     firma_adi: '',
@@ -34,8 +34,8 @@ const TedarikcilerPage = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await getTedarikciler();
-      setTedarikciler(data);
+      const response = await getTedarikciler();
+      setTedarikciler(response.data);
     } catch (error) {
       console.error("Veriler çekilirken hata oluştu:", error);
       alert("Tedarikçiler yüklenirken bir sorun oluştu.");
@@ -61,7 +61,7 @@ const TedarikcilerPage = () => {
     try {
       await addTedarikci(formData);
       setFormData({ firma_adi: '', iletisim_kisi: '', telefon: '', email: '' });
-      fetchData(); 
+      fetchData();
     } catch (error) {
       console.error("Eklerken hata:", error);
       alert("Tedarikçi eklenemedi. Lütfen tekrar deneyin.");
@@ -70,7 +70,7 @@ const TedarikcilerPage = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto min-h-screen bg-slate-50/50">
-      
+
       {/* Sayfa Başlığı */}
       <div className="flex items-center gap-4 mb-8">
         <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center text-indigo-600">
@@ -83,7 +83,7 @@ const TedarikcilerPage = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* SOL TARAF: Ekleme Formu */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -93,90 +93,90 @@ const TedarikcilerPage = () => {
                 Yeni Tedarikçi Ekle
               </h2>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
-  
-                {/* Firma Adı */}
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-slate-400" />
-                    Firma Adı <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                    type="text"
-                    name="firma_adi"
-                    value={formData.firma_adi}
-                    onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
-                    placeholder="Örn: ABC Lojistik A.Ş."
-                    />
-                </div>
 
-                {/* İletişim Kişisi */}
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                    <User className="w-4 h-4 text-slate-400" />
-                    İletişim Kişisi
-                    </label>
-                    <input
-                    type="text"
-                    name="iletisim_kisi"
-                    value={formData.iletisim_kisi}
-                    onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
-                    placeholder="Örn: Ayşe Yılmaz"
-                    />
-                </div>
+              {/* Firma Adı */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-slate-400" />
+                  Firma Adı <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="firma_adi"
+                  value={formData.firma_adi}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
+                  placeholder="Örn: ABC Lojistik A.Ş."
+                />
+              </div>
 
-                {/* Telefon */}
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-slate-400" />
-                    Telefon
-                    </label>
-                    <input
-                    type="text"
-                    name="telefon"
-                    value={formData.telefon}
-                    onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
-                    placeholder="Örn: 0555 123 45 67"
-                    />
-                </div>
+              {/* İletişim Kişisi */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <User className="w-4 h-4 text-slate-400" />
+                  İletişim Kişisi
+                </label>
+                <input
+                  type="text"
+                  name="iletisim_kisi"
+                  value={formData.iletisim_kisi}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
+                  placeholder="Örn: Ayşe Yılmaz"
+                />
+              </div>
 
-                {/* E-posta */}
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-slate-400" />
-                    E-posta
-                    </label>
-                    <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
-                    placeholder="Örn: info@abclojistik.com"
-                    />
-                </div>
+              {/* Telefon */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-slate-400" />
+                  Telefon
+                </label>
+                <input
+                  type="text"
+                  name="telefon"
+                  value={formData.telefon}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
+                  placeholder="Örn: 0555 123 45 67"
+                />
+              </div>
 
-                {/* Kaydet Butonu */}
-                <button
-                    type="submit"
-                    className="group relative w-full mt-4 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all duration-300 hover:bg-indigo-600 hover:shadow-indigo-600/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
-                >
-                    <Plus className="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" />
-                    <span>Tedarikçiyi Kaydet</span>
-                </button>
-                
-                </form>
+              {/* E-posta */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-slate-400" />
+                  E-posta
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
+                  placeholder="Örn: info@abclojistik.com"
+                />
+              </div>
+
+              {/* Kaydet Butonu */}
+              <button
+                type="submit"
+                className="group relative w-full mt-4 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all duration-300 hover:bg-indigo-600 hover:shadow-indigo-600/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+              >
+                <Plus className="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" />
+                <span>Tedarikçiyi Kaydet</span>
+              </button>
+
+            </form>
           </div>
         </div>
 
         {/* SAĞ TARAF: Tedarikçi Listesi (Tablo) */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-full flex flex-col">
-            
+
             <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
                 <Building2 className="w-5 h-5 text-indigo-500" />
@@ -186,7 +186,7 @@ const TedarikcilerPage = () => {
                 {tedarikciler.length} Kayıt
               </span>
             </div>
-            
+
             <div className="p-0 overflow-x-auto flex-1">
               {loading ? (
                 // Yükleniyor Durumu
@@ -216,7 +216,7 @@ const TedarikcilerPage = () => {
                   <tbody className="divide-y divide-slate-100">
                     {tedarikciler.map((t) => (
                       <tr key={t.id} className="hover:bg-slate-50/80 transition-colors group">
-                        
+
                         {/* Firma Sütunu */}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
