@@ -23,7 +23,7 @@ app = FastAPI(
 # CORS ayarları — React'ın bu sunucuya erişebilmesi için
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://192.168.5.151:5173", "http://192.168.5.151:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,5 +55,5 @@ def dashboard_istatistikleri(
     """Dashboard için toplam ürün, kritik stok, günlük hareket ve toplam değer istatistikleri"""
     return crud.get_dashboard_stats(db)
 
-# uvicorn main:app --reload --host 0.0.0.0 --port 8000
+# uvicorn main:app --reload --host 127.0.0.1 --port 8000
 # uvicorn main:app --reload

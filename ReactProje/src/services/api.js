@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-// Localhost yerine makinenin yerel IP adresini kullanıyoruz ki Zebra terminali veya ağdaki diğer mobil cihazlar ulaşabilsin
-const API_BASE_URL = 'http://192.168.5.151:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
