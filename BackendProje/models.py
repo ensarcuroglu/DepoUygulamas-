@@ -130,17 +130,6 @@ class Urun(Base):
     stok_hareketleri = relationship("StokHareketi", back_populates="urun")
 
     @property
-    def stok_miktari(self):
-        """Aktif paletlerdeki toplam koli adedini hesaplar"""
-        toplam = 0
-        for lot in self.lotlar:
-            if lot.aktif:
-                for palet in lot.paletler:
-                    if palet.aktif:
-                        toplam += palet.koli_adedi
-        return toplam
-
-    @property
     def durum(self):
         """Stok durumunu otomatik hesaplar"""
         miktar = self.stok_miktari
@@ -239,3 +228,18 @@ class Kullanici(Base):
 
     # İlişki
     stok_hareketleri = relationship("StokHareketi", back_populates="kullanici")
+
+from sqlalchemy import select, func
+from sqlalchemy.orm import column_property
+
+# N+1 Problemini çözmek için column_property ile veritabanı seviyesinde toplama yapıyoruz.
+Urun.stok_miktari = column_property(
+    select(func.coalesce(func.sum(Palet.koli_adedi), 0))
+    .select_from(Lot)
+    .join(Palet, Lot.id == Palet.lot_id)
+    .where(Lot.urun_id == Urun.id)
+    .where(Lot.aktif == True)
+    .where(Palet.aktif == True)
+    .correlate(Urun)
+    .scalar_subquery()
+)

@@ -13,6 +13,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+import os
 
 from database import get_db
 from models import Kullanici
@@ -21,7 +22,7 @@ from models import Kullanici
 # YAPILANDIRMA
 # ========================
 
-SECRET_KEY = "depo-yonetim-sistemi-gizli-anahtar-2026-uretim-ortaminda-degistirin"
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "depo-yonetim-sistemi-gizli-anahtar-2026-uretim-ortaminda-degistirin")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 saat (bir iş günü)
 

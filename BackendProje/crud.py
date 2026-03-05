@@ -224,8 +224,7 @@ def get_urunler(db: Session, skip: int = 0, limit: int = 50, search: str = None,
                 kategori_id: int = None, marka_id: int = None, sadece_aktif: bool = True):
     query = db.query(Urun).options(
         joinedload(Urun.marka),
-        joinedload(Urun.kategori),
-        joinedload(Urun.lotlar).joinedload(Lot.paletler)
+        joinedload(Urun.kategori)
     )
 
     if sadece_aktif:
@@ -253,15 +252,13 @@ def get_urun(db: Session, urun_id: int):
     return db.query(Urun).options(
         joinedload(Urun.marka),
         joinedload(Urun.kategori),
-        joinedload(Urun.tedarikci),
-        joinedload(Urun.lotlar).joinedload(Lot.paletler)
+        joinedload(Urun.tedarikci)
     ).filter(Urun.id == urun_id).first()
 
 def get_urun_by_barkod(db: Session, barkod: str):
     return db.query(Urun).options(
         joinedload(Urun.marka),
-        joinedload(Urun.kategori),
-        joinedload(Urun.lotlar).joinedload(Lot.paletler)
+        joinedload(Urun.kategori)
     ).filter(
         or_(Urun.barkod == barkod, Urun.ean == barkod)
     ).first()
@@ -295,12 +292,13 @@ def delete_urun(db: Session, urun_id: int):
 
 def get_kritik_urunler(db: Session):
     """Min stok seviyesinin altındaki ürünleri getirir"""
-    urunler = db.query(Urun).options(
+    return db.query(Urun).options(
         joinedload(Urun.marka),
-        joinedload(Urun.kategori),
-        joinedload(Urun.lotlar).joinedload(Lot.paletler)
-    ).filter(Urun.aktif == True).all()
-    return [u for u in urunler if u.stok_miktari <= u.min_stok]
+        joinedload(Urun.kategori)
+    ).filter(
+        Urun.aktif == True,
+        Urun.stok_miktari <= Urun.min_stok
+    ).all()
 
 
 # ========================
@@ -466,19 +464,19 @@ def create_stok_hareketi(db: Session, hareket: StokHareketiCreate, kullanici_id:
 def get_dashboard_stats(db: Session):
     toplam_urun = db.query(func.count(Urun.id)).filter(Urun.aktif == True).scalar()
 
-    # Kritik stok: tüm ürünleri yükle ve hesaplanmış stok_miktari üzerinden filtrele
-    urunler = db.query(Urun).options(
-        joinedload(Urun.lotlar).joinedload(Lot.paletler)
-    ).filter(Urun.aktif == True).all()
-    kritik_stok = sum(1 for u in urunler if u.stok_miktari <= u.min_stok)
+    # Kritik stok: SQL sorgusu ile hesaplanır
+    kritik_stok = db.query(func.count(Urun.id)).filter(
+        Urun.aktif == True,
+        Urun.stok_miktari <= Urun.min_stok
+    ).scalar()
 
     bugun = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     bugunku_hareket = db.query(func.count(StokHareketi.id)).filter(
         StokHareketi.tarih >= bugun
     ).scalar()
 
-    # Toplam değer: ürün fiyatı × aktif palet koli toplamı
-    toplam_deger = sum(u.stok_miktari * u.fiyat for u in urunler)
+    # Toplam değer: SQL fonksiyonu ile sum(fiyat * stok) hesaplanır
+    toplam_deger = db.query(func.coalesce(func.sum(Urun.stok_miktari * Urun.fiyat), 0.0)).filter(Urun.aktif == True).scalar()
 
     return {
         "toplam_urun": toplam_urun,
