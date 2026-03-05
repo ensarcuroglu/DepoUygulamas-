@@ -9,15 +9,18 @@ import crud
 from schemas import DashboardStats
 
 # Router'ları içe aktar
-from routers import urunler, kategoriler, stok_hareketleri, auth, kullanicilar, tedarikciler
+from routers import (
+    urunler, kategoriler, stok_hareketleri, auth,
+    kullanicilar, tedarikciler, markalar, depolar, lotlar, paletler
+)
 
 # Veritabanı tablolarını oluştur (yoksa)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Depo Yönetim Sistemi API",
-    description="Endüstriyel depo ve stok yönetimi için RESTful API",
-    version="1.0.0"
+    description="Endüstriyel depo ve stok yönetimi için RESTful API — LOT/Palet takibli",
+    version="2.0.0"
 )
 
 # CORS ayarları — React'ın bu sunucuya erişebilmesi için
@@ -31,8 +34,12 @@ app.add_middleware(
 
 # Router'ları kaydet
 app.include_router(auth.router)
+app.include_router(markalar.router)
 app.include_router(urunler.router)
 app.include_router(kategoriler.router)
+app.include_router(depolar.router)
+app.include_router(lotlar.router)
+app.include_router(paletler.router)
 app.include_router(stok_hareketleri.router)
 app.include_router(kullanicilar.router)
 app.include_router(tedarikciler.router)
@@ -43,7 +50,7 @@ def ana_sayfa():
     return {
         "mesaj": "Depo Yönetim Sistemi API'sine hoş geldiniz!",
         "docs": "/docs",
-        "versiyon": "1.0.0"
+        "versiyon": "2.0.0"
     }
 
 
@@ -56,4 +63,3 @@ def dashboard_istatistikleri(
     return crud.get_dashboard_stats(db)
 
 # uvicorn main:app --reload --host 127.0.0.1 --port 8000
-# uvicorn main:app --reload

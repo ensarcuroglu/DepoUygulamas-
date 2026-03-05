@@ -1,6 +1,31 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
+
+
+# ========================
+# MARKA ŞEMALARİ
+# ========================
+
+class MarkaBase(BaseModel):
+    isim: str
+    aciklama: Optional[str] = ""
+
+class MarkaCreate(MarkaBase):
+    pass
+
+class MarkaUpdate(BaseModel):
+    isim: Optional[str] = None
+    aciklama: Optional[str] = None
+    aktif: Optional[bool] = None
+
+class MarkaResponse(MarkaBase):
+    id: int
+    aktif: bool
+    olusturma_tarihi: datetime
+
+    class Config:
+        from_attributes = True
 
 
 # ========================
@@ -17,9 +42,39 @@ class KategoriCreate(KategoriBase):
 class KategoriUpdate(BaseModel):
     isim: Optional[str] = None
     aciklama: Optional[str] = None
+    aktif: Optional[bool] = None
 
 class KategoriResponse(KategoriBase):
     id: int
+    aktif: bool
+    olusturma_tarihi: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ========================
+# DEPO ŞEMALARİ
+# ========================
+
+class DepoBase(BaseModel):
+    isim: str
+    adres: Optional[str] = ""
+    aciklama: Optional[str] = ""
+
+class DepoCreate(DepoBase):
+    pass
+
+class DepoUpdate(BaseModel):
+    isim: Optional[str] = None
+    adres: Optional[str] = None
+    aciklama: Optional[str] = None
+    aktif: Optional[bool] = None
+
+class DepoResponse(DepoBase):
+    id: int
+    aktif: bool
+    olusturma_tarihi: datetime
 
     class Config:
         from_attributes = True
@@ -30,6 +85,7 @@ class KategoriResponse(KategoriBase):
 # ========================
 
 class RafBase(BaseModel):
+    depo_id: Optional[int] = None
     kod: str
     bolge: Optional[str] = ""
     kapasite: Optional[int] = 100
@@ -38,12 +94,50 @@ class RafCreate(RafBase):
     pass
 
 class RafUpdate(BaseModel):
+    depo_id: Optional[int] = None
     kod: Optional[str] = None
     bolge: Optional[str] = None
     kapasite: Optional[int] = None
+    aktif: Optional[bool] = None
 
 class RafResponse(RafBase):
     id: int
+    aktif: bool
+    depo: Optional[DepoResponse] = None
+    olusturma_tarihi: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ========================
+# TEDARİKÇİ ŞEMALARİ
+# ========================
+
+class TedarikciBase(BaseModel):
+    firma_adi: str
+    iletisim_kisi: Optional[str] = None
+    telefon: Optional[str] = None
+    email: Optional[str] = None
+    adres: Optional[str] = None
+    vergi_no: Optional[str] = None
+
+class TedarikciCreate(TedarikciBase):
+    pass
+
+class TedarikciUpdate(BaseModel):
+    firma_adi: Optional[str] = None
+    iletisim_kisi: Optional[str] = None
+    telefon: Optional[str] = None
+    email: Optional[str] = None
+    adres: Optional[str] = None
+    vergi_no: Optional[str] = None
+    aktif: Optional[bool] = None
+
+class TedarikciResponse(TedarikciBase):
+    id: int
+    aktif: bool
+    olusturma_tarihi: datetime
 
     class Config:
         from_attributes = True
@@ -55,36 +149,46 @@ class RafResponse(RafBase):
 
 class UrunBase(BaseModel):
     isim: str
-    barkod: Optional[str] = None
-    aciklama: Optional[str] = ""
+    marka_id: Optional[int] = None
     kategori_id: Optional[int] = None
-    raf_id: Optional[int] = None
-    stok_miktari: Optional[int] = 0
-    min_stok: Optional[int] = 10
+    tedarikci_id: Optional[int] = None
+    ean: Optional[str] = None
+    barkod: Optional[str] = None
+    ic_adet: Optional[int] = 1
+    gramaj: Optional[float] = None
     birim: Optional[str] = "Adet"
     fiyat: Optional[float] = 0.0
+    min_stok: Optional[int] = 10
+    aciklama: Optional[str] = ""
 
 class UrunCreate(UrunBase):
     pass
 
 class UrunUpdate(BaseModel):
     isim: Optional[str] = None
-    barkod: Optional[str] = None
-    aciklama: Optional[str] = None
+    marka_id: Optional[int] = None
     kategori_id: Optional[int] = None
-    raf_id: Optional[int] = None
-    stok_miktari: Optional[int] = None
-    min_stok: Optional[int] = None
+    tedarikci_id: Optional[int] = None
+    ean: Optional[str] = None
+    barkod: Optional[str] = None
+    ic_adet: Optional[int] = None
+    gramaj: Optional[float] = None
     birim: Optional[str] = None
     fiyat: Optional[float] = None
+    min_stok: Optional[int] = None
+    aciklama: Optional[str] = None
+    aktif: Optional[bool] = None
 
 class UrunResponse(UrunBase):
     id: int
+    stok_miktari: int
     durum: str
+    aktif: bool
     olusturma_tarihi: datetime
     guncelleme_tarihi: datetime
+    marka: Optional[MarkaResponse] = None
     kategori: Optional[KategoriResponse] = None
-    raf: Optional[RafResponse] = None
+    tedarikci: Optional[TedarikciResponse] = None
 
     class Config:
         from_attributes = True
@@ -93,12 +197,93 @@ class UrunListResponse(BaseModel):
     id: int
     isim: str
     barkod: Optional[str] = None
+    ean: Optional[str] = None
+    ic_adet: Optional[int] = None
+    gramaj: Optional[float] = None
+    marka: Optional[MarkaResponse] = None
     kategori: Optional[KategoriResponse] = None
-    raf: Optional[RafResponse] = None
     stok_miktari: int
     birim: str
     fiyat: float
     durum: str
+    aktif: bool
+
+    class Config:
+        from_attributes = True
+
+
+# ========================
+# LOT ŞEMALARİ
+# ========================
+
+class LotBase(BaseModel):
+    urun_id: int
+    lot_no: Optional[str] = None
+    parti_no: Optional[str] = None
+    uretim_tarihi: Optional[date] = None
+    son_kullanma_tarihi: Optional[date] = None
+    aciklama: Optional[str] = ""
+
+class LotCreate(LotBase):
+    pass
+
+class LotUpdate(BaseModel):
+    lot_no: Optional[str] = None
+    parti_no: Optional[str] = None
+    uretim_tarihi: Optional[date] = None
+    son_kullanma_tarihi: Optional[date] = None
+    aciklama: Optional[str] = None
+    aktif: Optional[bool] = None
+
+class LotResponse(LotBase):
+    id: int
+    aktif: bool
+    olusturma_tarihi: datetime
+
+    class Config:
+        from_attributes = True
+
+class LotDetailResponse(LotResponse):
+    urun: Optional[UrunListResponse] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ========================
+# PALET ŞEMALARİ
+# ========================
+
+class PaletBase(BaseModel):
+    lot_id: int
+    raf_id: Optional[int] = None
+    palet_no: str
+    koli_adedi: int
+    palet_kg: Optional[float] = None
+    vardiya: Optional[str] = None
+
+class PaletCreate(PaletBase):
+    pass
+
+class PaletUpdate(BaseModel):
+    raf_id: Optional[int] = None
+    koli_adedi: Optional[int] = None
+    palet_kg: Optional[float] = None
+    vardiya: Optional[str] = None
+    aktif: Optional[bool] = None
+
+class PaletResponse(PaletBase):
+    id: int
+    tarih: datetime
+    aktif: bool
+    olusturma_tarihi: datetime
+
+    class Config:
+        from_attributes = True
+
+class PaletDetailResponse(PaletResponse):
+    lot: Optional[LotResponse] = None
+    raf: Optional[RafResponse] = None
 
     class Config:
         from_attributes = True
@@ -110,7 +295,9 @@ class UrunListResponse(BaseModel):
 
 class StokHareketiBase(BaseModel):
     urun_id: int
-    hareket_tipi: str          # "giris" veya "cikis"
+    lot_id: Optional[int] = None
+    palet_id: Optional[int] = None
+    hareket_tipi: str              # "giris" veya "cikis"
     miktar: int
     aciklama: Optional[str] = ""
 
@@ -142,7 +329,7 @@ class KullaniciUpdate(BaseModel):
     kullanici_adi: Optional[str] = None
     ad_soyad: Optional[str] = None
     rol: Optional[str] = None
-    sifre: Optional[str] = None  # Boş bırakılırsa şifre değişmez
+    sifre: Optional[str] = None
 
 class KullaniciResponse(KullaniciBase):
     id: int
@@ -153,7 +340,7 @@ class KullaniciResponse(KullaniciBase):
 
 
 # ========================
-# AUTH (KİMLİK DOĞRULAMA) ŞEMALARİ
+# AUTH ŞEMALARİ
 # ========================
 
 class LoginRequest(BaseModel):
@@ -181,28 +368,3 @@ class DashboardStats(BaseModel):
     kritik_stok_sayisi: int
     bugunku_hareket: int
     toplam_deger: float
-
-
-# ========================
-# TEDARİKCİ ŞEMALARİ
-# ========================
-class TedarikciBase(BaseModel):
-    firma_adi: str
-    iletisim_kisi: Optional[str] = None
-    telefon: Optional[str] = None
-    email: Optional[str] = None
-
-class TedarikciCreate(TedarikciBase):
-    pass
-
-class TedarikciUpdate(BaseModel):
-    firma_adi: Optional[str] = None
-    iletisim_kisi: Optional[str] = None
-    telefon: Optional[str] = None
-    email: Optional[str] = None
-
-class Tedarikci(TedarikciBase):
-    id: int
-
-    class Config:
-        from_attributes = True

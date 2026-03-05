@@ -1,13 +1,16 @@
 """
-Başlangıç Verileri (Seed Data)
+Başlangıç Verileri (Seed Data) — Endüstriyel Depo Yönetim Sistemi v2
 Veritabanını örnek verilerle doldurmak için bu scripti çalıştırın:
     python seed.py
 """
 
 from database import SessionLocal, engine
-from models import Base, Kategori, Raf, Urun, StokHareketi, Kullanici
+from models import (
+    Base, Marka, Kategori, Depo, Raf, Tedarikci,
+    Urun, Lot, Palet, StokHareketi, Kullanici
+)
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import random
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -21,91 +24,138 @@ def seed():
 
     try:
         # Mevcut veri varsa işlemi atla
-        if db.query(Kategori).count() > 0:
+        if db.query(Marka).count() > 0:
             print("⚠️  Veritabanında zaten veri var. Seed işlemi atlandı.")
             return
 
-        print("🌱 Başlangıç verileri oluşturuluyor...\n")
+        print("🌱 Endüstriyel başlangıç verileri oluşturuluyor...\n")
+
+        # ==================
+        # MARKALAR
+        # ==================
+        markalar = [
+            Marka(isim="ARBELLA", aciklama="Makarna ve gıda ürünleri"),
+            Marka(isim="PASTAWILLA", aciklama="Premium makarna markası"),
+            Marka(isim="KARTAL", aciklama="Geleneksel makarna"),
+        ]
+        db.add_all(markalar)
+        db.flush()
+        print(f"  ✅ {len(markalar)} marka eklendi")
 
         # ==================
         # KATEGORİLER
         # ==================
         kategoriler = [
-            Kategori(isim="Otomasyon", aciklama="Sensörler, PLC modülleri ve otomasyon bileşenleri"),
-            Kategori(isim="Mekanik", aciklama="Robot kolları, eklemler ve mekanik parçalar"),
-            Kategori(isim="Motor", aciklama="AC/DC motorlar, servo motorlar"),
-            Kategori(isim="Elektronik", aciklama="Kontrol kartları, güç kaynakları, kablolar"),
-            Kategori(isim="Paketleme", aciklama="Bantlama, etiketleme ve paketleme malzemeleri"),
-            Kategori(isim="Hidrolik", aciklama="Hidrolik silindirler, pompalar ve valfler"),
+            Kategori(isim="Makarna", aciklama="Tüm makarna çeşitleri"),
+            Kategori(isim="Şehriye", aciklama="İnce ve kalın şehriye çeşitleri"),
+            Kategori(isim="Küçük Kesme", aciklama="Küçük kesme makarna çeşitleri"),
+            Kategori(isim="Glutensiz", aciklama="Glutensiz ürünler"),
+            Kategori(isim="Özel Seri", aciklama="Premium ve özel üretim serisi"),
         ]
         db.add_all(kategoriler)
         db.flush()
         print(f"  ✅ {len(kategoriler)} kategori eklendi")
 
         # ==================
+        # DEPOLAR
+        # ==================
+        depolar = [
+            Depo(isim="Ana Depo", adres="Organize Sanayi Bölgesi 1. Cadde No:12", aciklama="Ana üretim deposu"),
+            Depo(isim="Sevkiyat Deposu", adres="Organize Sanayi Bölgesi 2. Cadde No:5", aciklama="Sevkiyat ve dağıtım"),
+        ]
+        db.add_all(depolar)
+        db.flush()
+        print(f"  ✅ {len(depolar)} depo eklendi")
+
+        # ==================
         # RAFLAR
         # ==================
         raflar = [
-            Raf(kod="A-01", bolge="Depo-1 Zemin", kapasite=200),
-            Raf(kod="A-05", bolge="Depo-1 Zemin", kapasite=150),
-            Raf(kod="A-12", bolge="Depo-1 Üst Kat", kapasite=100),
-            Raf(kod="B-04", bolge="Depo-2 Zemin", kapasite=80),
-            Raf(kod="B-08", bolge="Depo-2 Zemin", kapasite=120),
-            Raf(kod="C-01", bolge="Depo-3 Motor Alanı", kapasite=50),
-            Raf(kod="C-06", bolge="Depo-3 Motor Alanı", kapasite=60),
-            Raf(kod="D-02", bolge="Dış Alan", kapasite=300),
+            Raf(depo_id=1, kod="A-01", bolge="Zemin Kat", kapasite=200),
+            Raf(depo_id=1, kod="A-05", bolge="Zemin Kat", kapasite=150),
+            Raf(depo_id=1, kod="A-12", bolge="Üst Kat", kapasite=100),
+            Raf(depo_id=1, kod="B-04", bolge="Soğuk Depo", kapasite=80),
+            Raf(depo_id=2, kod="S-01", bolge="Sevkiyat Alanı", kapasite=300),
+            Raf(depo_id=2, kod="S-02", bolge="Sevkiyat Alanı", kapasite=250),
         ]
         db.add_all(raflar)
         db.flush()
         print(f"  ✅ {len(raflar)} raf eklendi")
 
         # ==================
+        # TEDARİKÇİLER
+        # ==================
+        tedarikciler = [
+            Tedarikci(firma_adi="Arbella Gıda A.Ş.", iletisim_kisi="Mehmet Demir",
+                      telefon="0212-555-0001", email="mehmet@arbella.com",
+                      adres="İstanbul, Esenyurt", vergi_no="1234567890"),
+            Tedarikci(firma_adi="PastaWilla Ltd.", iletisim_kisi="Ayşe Yıldız",
+                      telefon="0216-555-0002", email="ayse@pastawilla.com",
+                      adres="İstanbul, Tuzla", vergi_no="0987654321"),
+        ]
+        db.add_all(tedarikciler)
+        db.flush()
+        print(f"  ✅ {len(tedarikciler)} tedarikçi eklendi")
+
+        # ==================
         # ÜRÜNLER
         # ==================
         urunler = [
-            Urun(isim="Optik Sensör (Mesafe)", barkod="OPT-001", kategori_id=1, raf_id=3,
-                 stok_miktari=145, min_stok=20, birim="Adet", fiyat=85.50,
-                 aciklama="Mesafe ölçümü için endüstriyel optik sensör"),
-            Urun(isim="Paletleme Robot Kolu Eklemi", barkod="MKN-002", kategori_id=2, raf_id=4,
-                 stok_miktari=4, min_stok=10, birim="Adet", fiyat=2450.00,
-                 aciklama="6 eksenli paletleme robotu için yedek eklem"),
-            Urun(isim="Koli Bantlama Motoru (AC)", barkod="MTR-003", kategori_id=3, raf_id=6,
-                 stok_miktari=34, min_stok=5, birim="Adet", fiyat=720.00,
-                 aciklama="Otomatik koli bantlama hattı için AC motor"),
-            Urun(isim="PLC Kontrol Modülü", barkod="ELK-004", kategori_id=4, raf_id=2,
-                 stok_miktari=8, min_stok=15, birim="Adet", fiyat=1850.00,
-                 aciklama="Siemens S7-1200 serisi PLC modülü"),
-            Urun(isim="Endüstriyel Etiket Yazıcı Kafası", barkod="PKT-005", kategori_id=5, raf_id=1,
-                 stok_miktari=12, min_stok=5, birim="Adet", fiyat=340.00,
-                 aciklama="Termal transfer etiket yazıcı yedek kafası"),
-            Urun(isim="Servo Motor (1.5kW)", barkod="MTR-006", kategori_id=3, raf_id=7,
-                 stok_miktari=22, min_stok=8, birim="Adet", fiyat=980.00,
-                 aciklama="Yüksek hassasiyetli servo motor"),
-            Urun(isim="Kapasitif Yakınlık Sensörü", barkod="OPT-007", kategori_id=1, raf_id=3,
-                 stok_miktari=67, min_stok=15, birim="Adet", fiyat=125.00,
-                 aciklama="Metal ve plastik algılama için kapasitif sensör"),
-            Urun(isim="Hidrolik Silindir (50mm)", barkod="HDR-008", kategori_id=6, raf_id=8,
-                 stok_miktari=3, min_stok=5, birim="Adet", fiyat=1200.00,
-                 aciklama="Çift etkili hidrolik silindir"),
-            Urun(isim="Güç Kaynağı 24V/10A", barkod="ELK-009", kategori_id=4, raf_id=2,
-                 stok_miktari=45, min_stok=10, birim="Adet", fiyat=195.00,
-                 aciklama="Endüstriyel 24V DC güç kaynağı"),
-            Urun(isim="Konveyör Bant (1m)", barkod="MKN-010", kategori_id=2, raf_id=5,
-                 stok_miktari=18, min_stok=5, birim="Metre", fiyat=450.00,
-                 aciklama="PVC konveyör bandı, genişlik 60cm"),
-            Urun(isim="Pnömatik Valf (5/2)", barkod="HDR-011", kategori_id=6, raf_id=8,
-                 stok_miktari=30, min_stok=10, birim="Adet", fiyat=275.00,
-                 aciklama="5 yollu 2 konumlu pnömatik yön kontrol valfi"),
-            Urun(isim="Shrink Ambalaj Filmi", barkod="PKT-012", kategori_id=5, raf_id=1,
-                 stok_miktari=200, min_stok=50, birim="Rulo", fiyat=65.00,
-                 aciklama="Isıyla daralan ambalaj filmi, 50cm genişlik"),
+            Urun(isim="Yüksük", marka_id=1, kategori_id=1, tedarikci_id=1,
+                 ean="8697430089416", barkod="ARB-001",
+                 ic_adet=20, gramaj=0.5, birim="Adet", fiyat=18.50, min_stok=50,
+                 aciklama="Arbella Yüksük Makarna 500g"),
+            Urun(isim="Küçük Çizgili", marka_id=1, kategori_id=3, tedarikci_id=1,
+                 ean="8697430089767", barkod="ARB-002",
+                 ic_adet=20, gramaj=0.5, birim="Adet", fiyat=18.50, min_stok=50,
+                 aciklama="Arbella Küçük Çizgili Makarna 500g"),
+            Urun(isim="Domateslı Burgu", marka_id=1, kategori_id=1, tedarikci_id=1,
+                 ean="8697430089446", barkod="ARB-003",
+                 ic_adet=20, gramaj=0.067, birim="Adet", fiyat=22.00, min_stok=30,
+                 aciklama="Arbella Domatesli Burgu Makarna"),
+            Urun(isim="Boncuk", marka_id=1, kategori_id=2, tedarikci_id=1,
+                 ean="8697430089416", barkod="ARB-004",
+                 ic_adet=20, gramaj=0.5, birim="Adet", fiyat=16.00, min_stok=40,
+                 aciklama="Arbella Boncuk Şehriye 500g"),
+            Urun(isim="1.7MM SPG", marka_id=1, kategori_id=1, tedarikci_id=1,
+                 ean="8690684001039", barkod="ARB-005",
+                 ic_adet=20, gramaj=1.0, birim="Adet", fiyat=35.00, min_stok=30,
+                 aciklama="Arbella 1.7mm Spagetti 1kg"),
+            Urun(isim="Veggi Pasta (Glutensiz)", marka_id=2, kategori_id=4, tedarikci_id=2,
+                 ean=None, barkod="PW-001",
+                 ic_adet=1, gramaj=0.35, birim="Adet", fiyat=45.00, min_stok=20,
+                 aciklama="Pastawilla Veggi Pasta Glutensiz 350g"),
+            Urun(isim="Sevimli Raka", marka_id=2, kategori_id=5, tedarikci_id=2,
+                 ean=None, barkod="PW-002",
+                 ic_adet=12, gramaj=0.35, birim="Adet", fiyat=28.00, min_stok=25,
+                 aciklama="Pastawilla Sevimli Raka Makarna 350g"),
+            Urun(isim="Rigatoni", marka_id=2, kategori_id=1, tedarikci_id=2,
+                 ean="8690684910362", barkod="PW-003",
+                 ic_adet=12, gramaj=0.5, birim="Adet", fiyat=32.00, min_stok=20,
+                 aciklama="Pastawilla Rigatoni / Burgu 500g"),
+            Urun(isim="Kelebek", marka_id=2, kategori_id=5, tedarikci_id=2,
+                 ean=None, barkod="PW-004",
+                 ic_adet=5, gramaj=0.5, birim="Adet", fiyat=30.00, min_stok=30,
+                 aciklama="Pastawilla Kelebek Makarna 500g"),
+            Urun(isim="Kalem Kesme", marka_id=1, kategori_id=3, tedarikci_id=1,
+                 ean="0869743008213", barkod="ARB-006",
+                 ic_adet=10, gramaj=1.0, birim="Adet", fiyat=38.00, min_stok=20,
+                 aciklama="Arbella Kalem Kesme Makarna 1kg"),
+            Urun(isim="Glutensiz Spagetti", marka_id=1, kategori_id=4, tedarikci_id=1,
+                 ean="5941634000712", barkod="ARB-007",
+                 ic_adet=12, gramaj=0.4, birim="Adet", fiyat=42.00, min_stok=15,
+                 aciklama="Arbella Glutensiz Spagetti 400g"),
+            Urun(isim="Midye", marka_id=1, kategori_id=1, tedarikci_id=1,
+                 ean="8697430088425", barkod="ARB-008",
+                 ic_adet=20, gramaj=0.5, birim="Adet", fiyat=19.00, min_stok=40,
+                 aciklama="Arbella Midye Makarna 500g"),
         ]
         db.add_all(urunler)
         db.flush()
         print(f"  ✅ {len(urunler)} ürün eklendi")
 
         # ==================
-        # KULLANICI
+        # KULLANICILAR
         # ==================
         admin = Kullanici(
             kullanici_adi="admin",
@@ -124,21 +174,73 @@ def seed():
         print(f"  ✅ 2 kullanıcı eklendi (admin / depocu1)")
 
         # ==================
+        # LOTLAR ve PALETLER
+        # ==================
+        now = datetime.utcnow()
+        palet_sayac = 1000001
+        toplam_lot = 0
+        toplam_palet = 0
+
+        for urun in urunler:
+            # Her ürün için 1-3 lot oluştur
+            lot_sayisi = random.randint(1, 3)
+            for j in range(lot_sayisi):
+                uretim = date.today() - timedelta(days=random.randint(10, 180))
+                skt = uretim + timedelta(days=random.randint(365, 1095))  # 1-3 yıl SKT
+
+                lot = Lot(
+                    urun_id=urun.id,
+                    lot_no=f"{random.randint(8690000000000, 8699999999999)}",
+                    parti_no=f"P-{random.randint(1000, 9999)}",
+                    uretim_tarihi=uretim,
+                    son_kullanma_tarihi=skt,
+                    aciklama=f"{urun.isim} - Üretim partisi"
+                )
+                db.add(lot)
+                db.flush()
+                toplam_lot += 1
+
+                # Her lot için 1-4 palet oluştur
+                palet_sayisi = random.randint(1, 4)
+                for k in range(palet_sayisi):
+                    raf_id = random.choice([r.id for r in raflar])
+                    koli = random.choice([23, 34, 45, 54, 56])
+                    palet_kg_val = round(koli * urun.gramaj * urun.ic_adet, 2) if urun.gramaj else round(koli * 5, 2)
+                    vardiya_sec = random.choice(["fg", "ghjg", "fgdfg", "hjhjg", None])
+
+                    palet = Palet(
+                        lot_id=lot.id,
+                        raf_id=raf_id,
+                        palet_no=str(palet_sayac),
+                        koli_adedi=koli,
+                        palet_kg=palet_kg_val,
+                        vardiya=vardiya_sec,
+                        tarih=now - timedelta(days=random.randint(0, 30)),
+                        aktif=True
+                    )
+                    db.add(palet)
+                    palet_sayac += 1
+                    toplam_palet += 1
+
+        db.flush()
+        print(f"  ✅ {toplam_lot} lot eklendi")
+        print(f"  ✅ {toplam_palet} palet eklendi")
+
+        # ==================
         # STOK HAREKETLERİ (Son 30 gün)
         # ==================
         hareketler = []
-        now = datetime.utcnow()
-        for i in range(30):
-            tarih = now - timedelta(days=i, hours=random.randint(0, 12))
-            urun_id = random.randint(1, len(urunler))
+        for i in range(40):
+            tarih = now - timedelta(days=random.randint(0, 30), hours=random.randint(0, 12))
+            urun = random.choice(urunler)
             tip = random.choice(["giris", "cikis"])
             miktar = random.randint(1, 20)
 
             hareketler.append(StokHareketi(
-                urun_id=urun_id,
+                urun_id=urun.id,
                 hareket_tipi=tip,
                 miktar=miktar,
-                aciklama=f"{'Tedarikçiden alım' if tip == 'giris' else 'Üretime sevk'}",
+                aciklama=f"{'Tedarikçiden alım' if tip == 'giris' else 'Müşteriye sevk'}",
                 kullanici_id=random.choice([1, 2]),
                 tarih=tarih
             ))
@@ -147,7 +249,7 @@ def seed():
         print(f"  ✅ {len(hareketler)} stok hareketi eklendi (son 30 gün)")
 
         db.commit()
-        print("\n🎉 Başlangıç verileri başarıyla oluşturuldu!")
+        print("\n🎉 Endüstriyel başlangıç verileri başarıyla oluşturuldu!")
         print("   Kullanıcılar:")
         print("   - admin / admin123 (Yönetici)")
         print("   - depocu1 / depo123 (Depocu)")
@@ -155,6 +257,8 @@ def seed():
     except Exception as e:
         db.rollback()
         print(f"\n❌ Hata oluştu: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         db.close()
 

@@ -64,8 +64,8 @@ def kategori_sil(
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(get_current_user)
 ):
-    """Bir kategoriyi siler."""
+    """Bir kategoriyi pasife alır (soft delete)."""
     success = crud.delete_kategori(db, kategori_id)
     if not success:
         raise HTTPException(status_code=404, detail="Kategori bulunamadı")
-    return {"message": "Kategori başarıyla silindi", "id": kategori_id}
+    return {"message": "Kategori başarıyla pasife alındı", "id": kategori_id}

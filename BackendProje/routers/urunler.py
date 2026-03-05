@@ -17,13 +17,15 @@ router = APIRouter(prefix="/api/urunler", tags=["Ürünler"])
 def urunleri_listele(
     skip: int = 0,
     limit: int = 50,
-    search: Optional[str] = Query(None, description="İsim, barkod veya açıklama ile ara"),
+    search: Optional[str] = Query(None, description="İsim, barkod, EAN veya açıklama ile ara"),
     kategori_id: Optional[int] = Query(None, description="Kategoriye göre filtrele"),
+    marka_id: Optional[int] = Query(None, description="Markaya göre filtrele"),
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(get_current_user)
 ):
-    """Tüm ürünleri listeler. Arama ve filtreleme destekler."""
-    return crud.get_urunler(db, skip=skip, limit=limit, search=search, kategori_id=kategori_id)
+    """Tüm ürünleri listeler. Arama, kategori ve marka filtresi destekler."""
+    return crud.get_urunler(db, skip=skip, limit=limit, search=search,
+                            kategori_id=kategori_id, marka_id=marka_id)
 
 
 @router.get("/kritik", response_model=list[UrunListResponse])
@@ -41,7 +43,7 @@ def urun_getir_by_barkod(
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(get_current_user)
 ):
-    """Barkod numarasına göre tek bir ürün getirir"""
+    """Barkod veya EAN numarasına göre tek bir ürün getirir"""
     db_urun = crud.get_urun_by_barkod(db, barkod=barkod_kodu)
     if not db_urun:
         raise HTTPException(status_code=404, detail="Bu barkoda ait ürün bulunamadı")
@@ -90,8 +92,8 @@ def urun_sil(
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(get_current_user)
 ):
-    """Bir ürünü siler."""
+    """Bir ürünü pasife alır (soft delete)."""
     success = crud.delete_urun(db, urun_id)
     if not success:
         raise HTTPException(status_code=404, detail="Ürün bulunamadı")
-    return {"message": "Ürün başarıyla silindi", "id": urun_id}
+    return {"message": "Ürün başarıyla pasife alındı", "id": urun_id}
