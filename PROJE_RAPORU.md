@@ -108,6 +108,7 @@ Projede Yol Haritası.rtf içinde tanımlanan:
 [Faz 3] Full-stack entegrasyon + auth (login/jwt var, birçok endpoint entegre)
 [Faz 4] ML/ileri seviye (henüz yok, ileride)
 
+
 Sonuç
 [Genel durum] Temel depo yönetim fonksiyonları ve panel altyapısı iyi seviyede; proje MVP’ye yakın.
 [En kritik aksiyonlar]
