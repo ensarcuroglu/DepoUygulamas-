@@ -11,6 +11,9 @@ import KullanicilarPage from './pages/KullanicilarPage';
 import AyarlarPage from './pages/AyarlarPage';
 import TedarikcilerPage from './pages/TedarikcilerPage';
 import ProfilAyarlariPage from './pages/ProfilAyarlariPage';
+import LotlarPage from './pages/LotlarPage';
+import PaletlerPage from './pages/PaletlerPage';
+import DepolarPage from './pages/DepolarPage';
 
 function App() {
   return (
@@ -26,6 +29,9 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/urunler" element={<UrunlerPage />} />
               <Route path="/kategoriler" element={<KategorilerPage />} />
+              <Route path="/lotlar" element={<LotlarPage />} />
+              <Route path="/paletler" element={<PaletlerPage />} />
+              <Route path="/depolar" element={<DepolarPage />} />
               <Route path="/stok-hareketleri" element={<StokHareketleriPage />} />
               <Route path="/kullanicilar" element={<KullanicilarPage />} />
               <Route path="/ayarlar" element={<AyarlarPage />} />

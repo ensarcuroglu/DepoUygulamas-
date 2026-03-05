@@ -30,7 +30,6 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Login sayfasındayken 401 alınırsa yönlendirme yapma
             if (!window.location.pathname.includes('/login')) {
                 localStorage.removeItem('access_token');
                 localStorage.removeItem('user');
@@ -63,6 +62,15 @@ export const deleteKullanici = (id) => api.delete(`/kullanicilar/${id}`);
 export const getDashboardStats = () => api.get('/dashboard');
 
 // ========================
+// MARKALAR
+// ========================
+export const getMarkalar = () => api.get('/markalar/');
+export const getMarka = (id) => api.get(`/markalar/${id}`);
+export const createMarka = (data) => api.post('/markalar/', data);
+export const updateMarka = (id, data) => api.put(`/markalar/${id}`, data);
+export const deleteMarka = (id) => api.delete(`/markalar/${id}`);
+
+// ========================
 // ÜRÜNLER
 // ========================
 export const getUrunler = (params = {}) => api.get('/urunler/', { params });
@@ -82,11 +90,42 @@ export const updateKategori = (id, data) => api.put(`/kategoriler/${id}`, data);
 export const deleteKategori = (id) => api.delete(`/kategoriler/${id}`);
 
 // ========================
+// DEPOLAR
+// ========================
+export const getDepolar = () => api.get('/depolar/');
+export const getDepo = (id) => api.get(`/depolar/${id}`);
+export const createDepo = (data) => api.post('/depolar/', data);
+export const updateDepo = (id, data) => api.put(`/depolar/${id}`, data);
+export const deleteDepo = (id) => api.delete(`/depolar/${id}`);
+export const getRaflar = (params = {}) => api.get('/raflar/', { params });
+export const createRaf = (data) => api.post('/raflar/', data);
+
+// ========================
+// LOTLAR
+// ========================
+export const getLotlar = (params = {}) => api.get('/lotlar/', { params });
+export const getLot = (id) => api.get(`/lotlar/${id}`);
+export const getSktYaklasanLotlar = (gun = 30) => api.get('/lotlar/skt-yaklasan', { params: { gun } });
+export const createLot = (data) => api.post('/lotlar/', data);
+export const updateLot = (id, data) => api.put(`/lotlar/${id}`, data);
+export const deleteLot = (id) => api.delete(`/lotlar/${id}`);
+
+// ========================
+// PALETLER
+// ========================
+export const getPaletler = (params = {}) => api.get('/paletler/', { params });
+export const getPalet = (id) => api.get(`/paletler/${id}`);
+export const getPaletByBarkod = (palet_no) => api.get(`/paletler/barkod/${encodeURIComponent(palet_no)}`);
+export const getSonrakiPaletNo = () => api.get('/paletler/sonraki-numara');
+export const createPalet = (data) => api.post('/paletler/', data);
+export const updatePalet = (id, data) => api.put(`/paletler/${id}`, data);
+export const deletePalet = (id) => api.delete(`/paletler/${id}`);
+
+// ========================
 // STOK HAREKETLERİ
 // ========================
 export const getStokHareketleri = (params = {}) => api.get('/stok-hareketleri/', { params });
 export const createStokHareketi = (data) => api.post('/stok-hareketleri/', data);
-
 
 // ========================
 // TEDARİKÇİLER

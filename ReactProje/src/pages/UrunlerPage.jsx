@@ -3,12 +3,13 @@ import { createPortal } from 'react-dom';
 import {
     Package, Search, Plus, Edit3, Trash2, ChevronLeft, ChevronRight,
     X, Info, Wallet, Layers, Box, SlidersHorizontal, Tag, Barcode,
-    AlignLeft, Banknote, Scale, AlertTriangle, CheckCircle2, Download, FileSpreadsheet, FileText
+    AlignLeft, Banknote, Scale, AlertTriangle, CheckCircle2, Download, FileSpreadsheet, FileText,
+    Award, Hash, Weight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
-import { getUrunler, deleteUrun, getKategoriler, createUrun, updateUrun, getUrunByBarkod } from '../services/api';
+import { getUrunler, deleteUrun, getKategoriler, createUrun, updateUrun, getUrunByBarkod, getMarkalar } from '../services/api';
 import useBarcodeScanner from '../hooks/useBarcodeScanner';
 import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
 
@@ -54,21 +55,24 @@ const CustomInput = ({ label, icon: Icon, required, ...props }) => {
 };
 
 // Ürün Formu Modal (Profesyonel Tasarım - Mobil & Web Uyumlu)
-export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler }) {
+export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler, markalar }) {
     const [form, setForm] = useState({
-        isim: '', barkod: '', aciklama: '', kategori_id: '', stok_miktari: 0,
-        min_stok: 10, birim: 'Adet', fiyat: 0,
+        isim: '', barkod: '', ean: '', aciklama: '', kategori_id: '', marka_id: '',
+        min_stok: 10, birim: 'Adet', fiyat: 0, ic_adet: 1, gramaj: 0,
     });
 
     useEffect(() => {
         if (urun) {
             setForm({
-                isim: urun.isim || '', barkod: urun.barkod || '', aciklama: urun.aciklama || '',
-                kategori_id: urun.kategori?.id || '', stok_miktari: urun.stok_miktari || 0,
+                isim: urun.isim || '', barkod: urun.barkod || '', ean: urun.ean || '',
+                aciklama: urun.aciklama || '',
+                kategori_id: urun.kategori?.id || urun.kategori_id || '',
+                marka_id: urun.marka?.id || urun.marka_id || '',
                 min_stok: urun.min_stok || 10, birim: urun.birim || 'Adet', fiyat: urun.fiyat || 0,
+                ic_adet: urun.ic_adet || 1, gramaj: urun.gramaj || 0,
             });
         } else {
-            setForm({ isim: '', barkod: '', aciklama: '', kategori_id: '', stok_miktari: 0, min_stok: 10, birim: 'Adet', fiyat: 0 });
+            setForm({ isim: '', barkod: '', ean: '', aciklama: '', kategori_id: '', marka_id: '', min_stok: 10, birim: 'Adet', fiyat: 0, ic_adet: 1, gramaj: 0 });
         }
     }, [urun, isOpen]);
 
@@ -83,7 +87,13 @@ export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const data = { ...form, kategori_id: form.kategori_id ? Number(form.kategori_id) : null };
+        const data = {
+            ...form,
+            kategori_id: form.kategori_id ? Number(form.kategori_id) : null,
+            marka_id: form.marka_id ? Number(form.marka_id) : null,
+            ic_adet: Number(form.ic_adet),
+            gramaj: Number(form.gramaj),
+        };
         onSave(data);
     };
 
@@ -148,19 +158,39 @@ export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler }) {
                                     label="Ürün Adı"
                                     icon={Tag}
                                     required
-                                    autoFocus // Otomatik odaklanma eklendi
+                                    autoFocus
                                     value={form.isim}
                                     onChange={e => setForm({ ...form, isim: e.target.value })}
-                                    placeholder="Örn: Endüstriyel Sensör V2"
+                                    placeholder="Örn: Yüksük Makarna 500g"
                                 />
 
+                                <div className="grid grid-cols-2 gap-4">
+                                    <CustomInput
+                                        label="Barkod / Ürün Kodu"
+                                        icon={Barcode}
+                                        value={form.barkod}
+                                        onChange={e => setForm({ ...form, barkod: e.target.value })}
+                                        placeholder="ARB-001"
+                                    />
+                                    <CustomInput
+                                        label="EAN Numarası"
+                                        icon={Hash}
+                                        value={form.ean}
+                                        onChange={e => setForm({ ...form, ean: e.target.value })}
+                                        placeholder="8697430089416"
+                                    />
+                                </div>
+
                                 <CustomInput
-                                    label="Barkod / Ürün Kodu"
-                                    icon={Barcode}
-                                    value={form.barkod}
-                                    onChange={e => setForm({ ...form, barkod: e.target.value })}
-                                    placeholder="Cihaz ile okutun veya manuel yazın"
-                                />
+                                    type="select"
+                                    label="Marka"
+                                    icon={Award}
+                                    value={form.marka_id}
+                                    onChange={e => setForm({ ...form, marka_id: e.target.value })}
+                                >
+                                    <option value="">Marka Seçiniz</option>
+                                    {markalar.map(m => <option key={m.id} value={m.id}>{m.isim}</option>)}
+                                </CustomInput>
 
                                 <CustomInput
                                     type="select"
@@ -185,36 +215,58 @@ export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler }) {
                             </div>
                         </div>
 
-                        {/* Sağ Kolon: Finans ve Stok */}
+                        {/* Sağ Kolon: Finans, Stok & Ambalaj */}
                         <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/60 shadow-sm h-fit space-y-6">
                             <div className="flex items-center gap-2 mb-2 pb-4 border-b border-slate-100">
                                 <div className="p-1.5 bg-emerald-50 rounded-lg text-emerald-600">
                                     <Wallet className="w-5 h-5" />
                                 </div>
-                                <h4 className="text-[16px] font-bold text-slate-800 tracking-tight">Finans ve Stok Bildirimi</h4>
+                                <h4 className="text-[16px] font-bold text-slate-800 tracking-tight">Finans, Stok & Ambalaj</h4>
                             </div>
 
                             <div className="space-y-5">
+                                {/* Ambalaj Bilgileri */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <CustomInput
                                         type="number"
-                                        label="Mevcut Stok"
+                                        label="Koli İçi Adet"
                                         icon={Box}
-                                        value={form.stok_miktari}
-                                        onChange={e => setForm({ ...form, stok_miktari: Number(e.target.value) })}
-                                        min="0"
+                                        value={form.ic_adet}
+                                        onChange={e => setForm({ ...form, ic_adet: Number(e.target.value) })}
+                                        min="1"
                                     />
                                     <CustomInput
                                         type="number"
-                                        label="Kritik Limit"
+                                        label="Gramaj (kg)"
+                                        icon={Weight}
+                                        value={form.gramaj}
+                                        onChange={e => setForm({ ...form, gramaj: Number(e.target.value) })}
+                                        min="0"
+                                        step="0.001"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <CustomInput
+                                        type="number"
+                                        label="Kritik Stok Limiti"
                                         icon={AlertTriangle}
                                         value={form.min_stok}
                                         onChange={e => setForm({ ...form, min_stok: Number(e.target.value) })}
                                         min="0"
                                     />
+                                    <CustomInput
+                                        type="select"
+                                        label="Ölçü Birimi"
+                                        icon={Scale}
+                                        value={form.birim}
+                                        onChange={e => setForm({ ...form, birim: e.target.value })}
+                                    >
+                                        {['Adet', 'Kg', 'Metre', 'Rulo', 'Kutu', 'Litre'].map(b => <option key={b} value={b}>{b}</option>)}
+                                    </CustomInput>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4 pt-2">
+                                <div className="pt-2">
                                     <div className="flex flex-col gap-1.5 w-full">
                                         <label className="text-[13px] font-semibold text-slate-700 flex items-center ml-1">Birim Fiyat</label>
                                         <div className="relative group flex items-center">
@@ -229,24 +281,14 @@ export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler }) {
                                             />
                                         </div>
                                     </div>
-
-                                    <CustomInput
-                                        type="select"
-                                        label="Ölçü Birimi"
-                                        icon={Scale}
-                                        value={form.birim}
-                                        onChange={e => setForm({ ...form, birim: e.target.value })}
-                                    >
-                                        {['Adet', 'Kg', 'Metre', 'Rulo', 'Kutu', 'Litre'].map(b => <option key={b} value={b}>{b}</option>)}
-                                    </CustomInput>
                                 </div>
                             </div>
 
-                            {/* Görsel ipucu: Özet Kartı */}
-                            <div className="mt-6 bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-start gap-3">
-                                <CheckCircle2 className="w-5 h-5 text-indigo-500 mt-0.5 shrink-0" />
-                                <p className="text-[13px] text-slate-600 font-medium leading-relaxed">
-                                    Ürünü kaydettikten sonra envanter tablosunda hemen görüntülenecek ve finansal raporlarınıza dahil edilecektir.
+                            {/* Görsel ipucu: Bilgi Notu */}
+                            <div className="mt-6 bg-amber-50 rounded-2xl p-4 border border-amber-100 flex items-start gap-3">
+                                <CheckCircle2 className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+                                <p className="text-[13px] text-amber-700 font-medium leading-relaxed">
+                                    Stok miktarı artık otomatik hesaplanır. Yeni stok girişi yapmak için <strong>LOT</strong> oluşturun ve <strong>Palet</strong> tanımlayın.
                                 </p>
                             </div>
                         </div>
@@ -295,13 +337,23 @@ function DurumBadge({ durum }) {
     );
 }
 
+// Stok Durumunu Belirle (computed stok_miktari vs min_stok)
+function stokDurumu(urun) {
+    const stok = urun.stok_miktari ?? 0;
+    if (stok <= 0) return 'Stok Yok';
+    if (stok <= (urun.min_stok ?? 0)) return 'Kritik Stok';
+    return 'Yeterli';
+}
+
 // Ana Sayfa Bileşeni
 export default function App() {
     const [urunler, setUrunler] = useState([]);
     const [kategoriler, setKategoriler] = useState([]);
+    const [markalar, setMarkalar] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [filterKategori, setFilterKategori] = useState('');
+    const [filterMarka, setFilterMarka] = useState('');
     const [modalOpen, setModalOpen] = useState(false);
     const [editUrun, setEditUrun] = useState(null);
     const [page, setPage] = useState(0);
@@ -313,12 +365,15 @@ export default function App() {
     const getFormattedExportData = () => {
         return urunler.map(u => ({
             'Barkod/Kod': u.barkod || '-',
+            'EAN': u.ean || '-',
             'Ürün Adı': u.isim,
+            'Marka': u.marka?.isim || '-',
             'Kategori': u.kategori?.isim || 'Kategorisiz',
-            'Stok Miktarı': `${u.stok_miktari} ${u.birim}`,
+            'Stok (Koli)': u.stok_miktari ?? 0,
+            'İç Adet': u.ic_adet || '-',
+            'Gramaj': u.gramaj ? `${u.gramaj} kg` : '-',
             'Birim Fiyat': `${u.fiyat} ₺`,
-            'Durum': u.durum,
-            'Eklenme Tarihi': new Date(u.olusturma_tarihi).toLocaleDateString('tr-TR')
+            'Durum': stokDurumu(u),
         }));
     };
 
@@ -331,7 +386,7 @@ export default function App() {
     const handleExportPDF = () => {
         setExportMenuOpen(false);
         const data = getFormattedExportData();
-        const columns = ['Barkod/Kod', 'Ürün Adı', 'Kategori', 'Stok Miktarı', 'Birim Fiyat', 'Durum', 'Eklenme Tarihi'];
+        const columns = ['Barkod/Kod', 'EAN', 'Ürün Adı', 'Marka', 'Kategori', 'Stok (Koli)', 'Birim Fiyat', 'Durum'];
         exportToPDF(data, columns, `Urun_Katalogu`, 'Güncel Ürün Kartları ve Envanter Raporu');
     };
 
@@ -355,23 +410,25 @@ export default function App() {
         const params = { skip: page * limit, limit };
         if (search) params.search = search;
         if (filterKategori) params.kategori_id = filterKategori;
+        if (filterMarka) params.marka_id = filterMarka;
 
-        Promise.all([getUrunler(params), getKategoriler()])
-            .then(([urunRes, katRes]) => {
+        Promise.all([getUrunler(params), getKategoriler(), getMarkalar()])
+            .then(([urunRes, katRes, markaRes]) => {
                 setUrunler(urunRes.data);
                 setKategoriler(katRes.data);
+                setMarkalar(markaRes.data);
             })
             .catch(() => toast.error('Veri tabanına ulaşılamadı. Sunucu bağlantısını kontrol edin.'))
             .finally(() => setLoading(false));
     };
 
-    useEffect(() => { fetchData(); }, [page, search, filterKategori]);
+    useEffect(() => { fetchData(); }, [page, search, filterKategori, filterMarka]);
 
     const handleDelete = async (id, isim) => {
-        if (!confirm(`Tüm stok geçmişi ile birlikte "${isim}" ürününü kalıcı olarak silmek istediğinize emin misiniz?`)) return;
+        if (!confirm(`"${isim}" ürününü pasife almak istediğinize emin misiniz? (Stok geçmişi korunur)`)) return;
         try {
             await deleteUrun(id);
-            toast.success('Kayıt başarıyla silindi');
+            toast.success('Ürün başarıyla pasife alındı');
             fetchData();
         } catch { toast.error('İşlem reddedildi. Ürün bir siparişe veya harekete bağlı olabilir.'); }
     };
@@ -411,11 +468,11 @@ export default function App() {
                 <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-5">
 
                     {/* Sol Alan: Araçlar (Arama & Filtre) */}
-                    <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:flex-1 lg:max-w-3xl">
+                    <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:flex-1 lg:max-w-4xl">
                         <div className="relative group w-full flex-1 flex gap-2">
                             <div className="relative flex-1">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                                <input type="text" placeholder="Barkod, model no veya ürün ismi ile arayın..." value={search}
+                                <input type="text" placeholder="Barkod, EAN, model no veya ürün ismi ile arayın..." value={search}
                                     onChange={e => { setSearch(e.target.value); setPage(0); }}
                                     className="w-full h-12 pl-11 pr-4 text-[14px] font-medium rounded-2xl border border-slate-200 bg-slate-50
                                     text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" />
@@ -428,18 +485,35 @@ export default function App() {
                             </button>
                         </div>
 
-                        <div className="relative w-full sm:w-[260px] flex-shrink-0 group">
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center bg-slate-100 rounded-md p-1">
-                                <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <div className="relative flex-1 sm:w-[200px] group">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center bg-slate-100 rounded-md p-1">
+                                    <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                </div>
+                                <select value={filterKategori} onChange={e => { setFilterKategori(e.target.value); setPage(0); }}
+                                    className="w-full h-12 pl-12 pr-10 text-[14px] font-medium rounded-2xl border border-slate-200 bg-slate-50
+                                    text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 appearance-none cursor-pointer transition-all">
+                                    <option value="">Tüm Kategoriler</option>
+                                    {kategoriler.map(k => <option key={k.id} value={k.id}>{k.isim}</option>)}
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                                    <ChevronRight className="w-4 h-4 rotate-90" />
+                                </div>
                             </div>
-                            <select value={filterKategori} onChange={e => { setFilterKategori(e.target.value); setPage(0); }}
-                                className="w-full h-12 pl-12 pr-10 text-[14px] font-medium rounded-2xl border border-slate-200 bg-slate-50
-                                text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 appearance-none cursor-pointer transition-all">
-                                <option value="">Tüm Kategoriler</option>
-                                {kategoriler.map(k => <option key={k.id} value={k.id}>{k.isim}</option>)}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                                <ChevronRight className="w-4 h-4 rotate-90" />
+
+                            <div className="relative flex-1 sm:w-[180px] group">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center bg-slate-100 rounded-md p-1">
+                                    <Award className="w-3.5 h-3.5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                </div>
+                                <select value={filterMarka} onChange={e => { setFilterMarka(e.target.value); setPage(0); }}
+                                    className="w-full h-12 pl-12 pr-10 text-[14px] font-medium rounded-2xl border border-slate-200 bg-slate-50
+                                    text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 appearance-none cursor-pointer transition-all">
+                                    <option value="">Tüm Markalar</option>
+                                    {markalar.map(m => <option key={m.id} value={m.id}>{m.isim}</option>)}
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                                    <ChevronRight className="w-4 h-4 rotate-90" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -522,19 +596,24 @@ export default function App() {
                                                 <code className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold border border-slate-200/60 break-all">
                                                     {urun.barkod || 'Kodsuz'}
                                                 </code>
+                                                {urun.marka?.isim && (
+                                                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 font-bold border border-indigo-100">
+                                                        {urun.marka.isim}
+                                                    </span>
+                                                )}
                                                 <span className="text-[12px] font-medium text-slate-500 whitespace-nowrap">
                                                     {urun.kategori?.isim || 'Kategorisiz'}
                                                 </span>
                                             </div>
                                         </div>
-                                        <DurumBadge durum={urun.durum} />
+                                        <DurumBadge durum={stokDurumu(urun)} />
                                     </div>
 
                                     <div className="flex items-end justify-between mt-4">
                                         <div className="flex flex-col gap-1">
                                             <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Stok / Fiyat</span>
                                             <div className="flex items-baseline gap-2">
-                                                <p className="text-[15px] font-extrabold text-slate-800">{urun.stok_miktari} <span className="text-[11px] font-bold text-slate-500">{urun.birim}</span></p>
+                                                <p className="text-[15px] font-extrabold text-slate-800">{urun.stok_miktari ?? 0} <span className="text-[11px] font-bold text-slate-500">koli</span></p>
                                                 <span className="text-slate-300">•</span>
                                                 <p className="text-[14px] font-bold text-emerald-600">₺{urun.fiyat?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
                                             </div>
@@ -563,6 +642,7 @@ export default function App() {
                                 <tr className="bg-slate-50 border-b border-slate-200/80">
                                     <th className="px-4 sm:px-6 py-4 text-[12px] font-extrabold text-slate-500 uppercase tracking-widest whitespace-nowrap">Öğe Tanımı</th>
                                     <th className="px-4 sm:px-6 py-4 text-[12px] font-extrabold text-slate-500 uppercase tracking-widest whitespace-nowrap hidden sm:table-cell">Barkod</th>
+                                    <th className="px-4 sm:px-6 py-4 text-[12px] font-extrabold text-slate-500 uppercase tracking-widest whitespace-nowrap hidden lg:table-cell">Marka</th>
                                     <th className="px-4 sm:px-6 py-4 text-[12px] font-extrabold text-slate-500 uppercase tracking-widest whitespace-nowrap hidden lg:table-cell">Kategori</th>
                                     <th className="px-4 sm:px-6 py-4 text-[12px] font-extrabold text-slate-500 uppercase tracking-widest whitespace-nowrap">Stok</th>
                                     <th className="px-4 sm:px-6 py-4 text-[12px] font-extrabold text-slate-500 uppercase tracking-widest whitespace-nowrap hidden md:table-cell">Fiyat</th>
@@ -576,6 +656,7 @@ export default function App() {
                                         <tr key={i} className="animate-pulse">
                                             <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-slate-200 rounded-md w-32 mb-2" /><div className="h-3 bg-slate-100 rounded-md w-24" /></td>
                                             <td className="px-4 sm:px-6 py-4 hidden sm:table-cell"><div className="h-4 bg-slate-200 rounded-md w-16" /></td>
+                                            <td className="px-4 sm:px-6 py-4 hidden lg:table-cell"><div className="h-4 bg-slate-200 rounded-md w-16" /></td>
                                             <td className="px-4 sm:px-6 py-4 hidden lg:table-cell"><div className="h-4 bg-slate-200 rounded-md w-20" /></td>
                                             <td className="px-4 sm:px-6 py-4"><div className="h-5 bg-slate-200 rounded-md w-12" /></td>
                                             <td className="px-4 sm:px-6 py-4 hidden md:table-cell"><div className="h-5 bg-slate-200 rounded-md w-16" /></td>
@@ -585,7 +666,7 @@ export default function App() {
                                     ))
                                 ) : urunler.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7}>
+                                        <td colSpan={8}>
                                             <div className="flex flex-col items-center justify-center py-24 text-center">
                                                 <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center mb-4 border border-slate-100 shadow-inner">
                                                     <Package className="w-10 h-10 text-slate-300" />
@@ -610,6 +691,15 @@ export default function App() {
                                                 </code>
                                             </td>
                                             <td className="px-4 sm:px-6 py-4 hidden lg:table-cell">
+                                                {urun.marka?.isim ? (
+                                                    <span className="text-[12px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
+                                                        {urun.marka.isim}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[12px] text-slate-400">—</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 sm:px-6 py-4 hidden lg:table-cell">
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-2 h-2 rounded-full bg-indigo-400" />
                                                     <span className="text-[13px] font-medium text-slate-700">{urun.kategori?.isim || 'Kategorisiz'}</span>
@@ -617,8 +707,8 @@ export default function App() {
                                             </td>
                                             <td className="px-4 sm:px-6 py-4">
                                                 <div className="flex items-baseline gap-1">
-                                                    <span className="text-[15px] sm:text-[16px] font-extrabold text-slate-800">{urun.stok_miktari}</span>
-                                                    <span className="text-[11px] font-bold text-slate-400 uppercase">{urun.birim}</span>
+                                                    <span className="text-[15px] sm:text-[16px] font-extrabold text-slate-800">{urun.stok_miktari ?? 0}</span>
+                                                    <span className="text-[11px] font-bold text-slate-400 uppercase">koli</span>
                                                 </div>
                                             </td>
                                             <td className="px-4 sm:px-6 py-4 hidden md:table-cell">
@@ -626,7 +716,7 @@ export default function App() {
                                                     ₺{urun.fiyat?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                                 </span>
                                             </td>
-                                            <td className="px-4 sm:px-6 py-4"><DurumBadge durum={urun.durum} /></td>
+                                            <td className="px-4 sm:px-6 py-4"><DurumBadge durum={stokDurumu(urun)} /></td>
                                             <td className="px-4 sm:px-6 py-4">
                                                 <div className="flex items-center justify-end gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                                     <button onClick={() => { setEditUrun(urun); setModalOpen(true); }}
@@ -636,7 +726,7 @@ export default function App() {
                                                     </button>
                                                     <button onClick={() => handleDelete(urun.id, urun.isim)}
                                                         className="w-8 h-8 rounded-xl bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-slate-500 hover:text-red-600 flex items-center justify-center transition-all shadow-sm"
-                                                        title="Kalıcı Olarak Sil">
+                                                        title="Pasife Al">
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </div>
@@ -677,7 +767,7 @@ export default function App() {
             </div>
             {/* Modal'ı ana animasyonlu alanın dışına çıkardık (Sabit hizalama sorunu çözümü) */}
             <UrunModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditUrun(null); }}
-                onSave={handleSave} urun={editUrun} kategoriler={kategoriler} />
+                onSave={handleSave} urun={editUrun} kategoriler={kategoriler} markalar={markalar} />
 
             <ZXingBarcodeScanner
                 isOpen={cameraScannerOpen}

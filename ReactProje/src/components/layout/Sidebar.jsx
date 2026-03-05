@@ -13,16 +13,21 @@ import {
     HelpCircle,
     X,
     Users,
-    Truck
+    Truck,
+    Layers,
+    Container
 } from 'lucide-react';
 
 const menuItems = [
     { path: '/dashboard', label: 'İş Zekası & Özet', icon: LayoutDashboard },
     { path: '/urunler', label: 'Ürün Yönetimi', icon: Package },
     { path: '/kategoriler', label: 'Kategori Ağacı', icon: FolderOpen },
+    { path: '/lotlar', label: 'LOT Takibi', icon: Layers },
+    { path: '/paletler', label: 'Palet Yönetimi', icon: Container },
     { path: '/stok-hareketleri', label: 'Hareket Terminali', icon: ArrowLeftRight },
     { path: '/kullanicilar', label: 'Kullanıcı Yönetimi', icon: Users },
     { path: '/tedarikciler', label: 'Tedarikçi Yönetimi', icon: Truck },
+    { path: '/depolar', label: 'Depo & Raf', icon: Warehouse },
 ];
 
 const bottomItems = [

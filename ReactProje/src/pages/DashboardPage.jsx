@@ -10,7 +10,7 @@ import { getDashboardStats, getKritikUrunler, getStokHareketleri } from '../serv
 // Minimal Stat Card
 function StatCard({ icon: Icon, label, value, trend, delay = 0 }) {
     return (
-        <div 
+        <div
             className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-shadow duration-300 animate-fade-in flex flex-col justify-between"
             style={{ animationDelay: `${delay}ms` }}
         >
@@ -37,7 +37,7 @@ function StatCard({ icon: Icon, label, value, trend, delay = 0 }) {
 // Minimal Kritik Stok Satırı
 function KritikRow({ urun, index }) {
     const yuzde = urun.min_stok > 0 ? Math.round((urun.stok_miktari / urun.min_stok) * 100) : 0;
-    
+
     return (
         <div className="flex items-center justify-between py-3.5 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 px-2 -mx-2 rounded-lg transition-colors cursor-pointer animate-fade-in"
             style={{ animationDelay: `${index * 60}ms` }}>
@@ -47,7 +47,7 @@ function KritikRow({ urun, index }) {
                 </div>
                 <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{urun.isim}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Raf: {urun.raf?.kod || '—'}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{urun.marka?.isim || 'Marka belirtilmemiş'}</p>
                 </div>
             </div>
             <div className="text-right flex-shrink-0 flex flex-col items-end w-24">
@@ -64,9 +64,9 @@ function KritikRow({ urun, index }) {
 // Minimal Son Hareket Satırı
 function HareketRow({ hareket, index }) {
     const isGiris = hareket.hareket_tipi === 'giris';
-    
+
     return (
-        <div className="flex items-center justify-between py-3.5 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 px-2 -mx-2 rounded-lg transition-colors animate-fade-in" 
+        <div className="flex items-center justify-between py-3.5 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 px-2 -mx-2 rounded-lg transition-colors animate-fade-in"
             style={{ animationDelay: `${index * 50}ms` }}>
             <div className="flex items-center gap-4 min-w-0">
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0
@@ -124,7 +124,7 @@ export default function DashboardPage() {
             setKritikler(kritikRes.data);
             setHareketler(hareketRes.data);
         }).catch(console.error)
-          .finally(() => setLoading(false));
+            .finally(() => setLoading(false));
     }, []);
 
     // Zarif Yükleniyor Durumu
@@ -142,14 +142,14 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-6 md:space-y-8 pb-10 bg-[#FAFAFA] min-h-screen">
-            
+
             {/* 4 Ana KPI */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <StatCard icon={Package} label="Sistemdeki Toplam Ürün" value={stats?.toplam_urun || 0} trend={2} delay={0} />
                 <StatCard icon={AlertTriangle} label="Acil Re-order Gereken" value={stats?.kritik_stok_sayisi || 0} trend={-5} delay={100} />
                 <StatCard icon={ArrowLeftRight} label="Bugün Yapılan İşlem" value={stats?.bugunku_hareket || 0} trend={14} delay={200} />
-                <StatCard icon={DollarSign} label="Toplam Envanter Değeri" 
-                          value={`₺${((stats?.toplam_deger || 0) / 1000).toFixed(1)}K`} delay={300} />
+                <StatCard icon={DollarSign} label="Toplam Envanter Değeri"
+                    value={`₺${((stats?.toplam_deger || 0) / 1000).toFixed(1)}K`} delay={300} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">

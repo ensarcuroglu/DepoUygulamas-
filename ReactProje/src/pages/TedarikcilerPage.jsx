@@ -8,7 +8,9 @@ import {
   Plus,
   Truck,
   Loader2,
-  SearchX
+  SearchX,
+  MapPin,
+  FileSignature
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------------
@@ -23,7 +25,9 @@ const TedarikcilerPage = () => {
     firma_adi: '',
     iletisim_kisi: '',
     telefon: '',
-    email: ''
+    email: '',
+    adres: '',
+    vergi_no: ''
   });
 
   // Sayfa yüklendiğinde tedarikçileri getir
@@ -60,7 +64,7 @@ const TedarikcilerPage = () => {
 
     try {
       await addTedarikci(formData);
-      setFormData({ firma_adi: '', iletisim_kisi: '', telefon: '', email: '' });
+      setFormData({ firma_adi: '', iletisim_kisi: '', telefon: '', email: '', adres: '', vergi_no: '' });
       fetchData();
     } catch (error) {
       console.error("Eklerken hata:", error);
@@ -157,6 +161,37 @@ const TedarikcilerPage = () => {
                   onChange={handleChange}
                   className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
                   placeholder="Örn: info@abclojistik.com"
+                />
+              </div>
+
+              {/* Vergi Numarası */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <FileSignature className="w-4 h-4 text-slate-400" />
+                  Vergi Numarası / TC
+                </label>
+                <input
+                  type="text"
+                  name="vergi_no"
+                  value={formData.vergi_no}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
+                  placeholder="Örn: 1234567890"
+                />
+              </div>
+
+              {/* Adres */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-slate-400" />
+                  Açık Adres
+                </label>
+                <textarea
+                  name="adres"
+                  value={formData.adres}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400 resize-none h-20"
+                  placeholder="Firma açık adresi..."
                 />
               </div>
 
@@ -259,6 +294,18 @@ const TedarikcilerPage = () => {
                             )}
                             {!t.telefon && !t.email && (
                               <span className="text-sm text-slate-400 italic">İletişim bilgisi yok</span>
+                            )}
+                            {t.adres && (
+                              <div className="mt-1 pt-2 border-t border-slate-100 flex items-start gap-2 text-xs text-slate-500">
+                                <MapPin className="w-3.5 h-3.5 mt-0.5 text-slate-400 flex-shrink-0" />
+                                <span className="line-clamp-2">{t.adres}</span>
+                              </div>
+                            )}
+                            {t.vergi_no && (
+                              <div className="flex items-center gap-2 text-xs text-slate-500">
+                                <FileSignature className="w-3.5 h-3.5 text-slate-400" />
+                                <span>VN: {t.vergi_no}</span>
+                              </div>
                             )}
                           </div>
                         </td>
