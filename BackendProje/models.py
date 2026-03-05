@@ -93,7 +93,7 @@ class Tedarikci(Base):
     __tablename__ = "tedarikciler"
 
     id = Column(Integer, primary_key=True, index=True)
-    firma_adi = Column(String, index=True)
-    iletisim_kisi = Column(String, nullable=True)
-    telefon = Column(String, nullable=True)
-    email = Column(String, nullable=True)
+    firma_adi = Column(String(200), index=True)
+    iletisim_kisi = Column(String(100), nullable=True)
+    telefon = Column(String(20), nullable=True)
+    email = Column(String(100), nullable=True)
