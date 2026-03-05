@@ -1,0 +1,14 @@
+# Ortam değişkenleri (şifre, API key vb.)
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# SQLite (artık MySQL kullanıyoruz)
+*.db
+
+# IDE
+.vscode/
+.idea/
