@@ -15,6 +15,7 @@ import ProfilAyarlariPage from './pages/ProfilAyarlariPage';
 import LotlarPage from './pages/LotlarPage';
 import PaletlerPage from './pages/PaletlerPage';
 import DepolarPage from './pages/DepolarPage';
+import DepoKrokiPage from './pages/DepoKrokiPage';
 
 /**
  * Varsayılan yönlendirme: Depocu → stok-hareketleri, Admin → dashboard
@@ -52,6 +53,7 @@ function App() {
               {/* Depo Yönetimi (Admin + Lojistik) */}
               <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
                 <Route path="/depolar" element={<DepolarPage />} />
+                <Route path="/depo-kroki" element={<DepoKrokiPage />} />
               </Route>
 
               {/* Hem Admin hem Depocu erişimli sayfalar */}

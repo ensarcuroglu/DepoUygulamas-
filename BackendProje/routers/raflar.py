@@ -7,7 +7,7 @@ from database import get_db
 from auth import require_role
 
 router = APIRouter(
-    prefix="/raflar",
+    prefix="/api/raflar",
     tags=["Raflar"],
     dependencies=[Depends(require_role("admin", "lojistik"))]
 )
@@ -27,14 +27,8 @@ def create_raf(raf: schemas.RafCreate, db: Session = Depends(get_db)):
     return crud.create_raf(db=db, raf=raf)
 
 @router.get("/", response_model=List[schemas.RafResponse])
-def read_raflar(skip: int = 0, limit: int = 100, depo_id: int = None, db: Session = Depends(get_db)):
-    # Note: crud.get_raflar doesn't currently support depo_id filtering in the main crud.py
-    # But for a simple implementation we'll just return all active raflar.
-    # In a full app, you should add depo_id support to crud.get_raflar
-    raflar = crud.get_raflar(db, skip=skip, limit=limit)
-    if depo_id:
-        raflar = [r for r in raflar if r.depo_id == depo_id]
-    return raflar
+def read_raflar(skip: int = 0, limit: int = 500, depo_id: int = None, db: Session = Depends(get_db)):
+    return crud.get_raflar(db, skip=skip, limit=limit, depo_id=depo_id)
 
 @router.get("/{raf_id}", response_model=schemas.RafResponse)
 def read_raf(raf_id: int, db: Session = Depends(get_db)):

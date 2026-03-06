@@ -29,6 +29,7 @@ const menuItems = [
     { path: '/kullanicilar', label: 'Kullanıcı Yönetimi', icon: Users, roles: ['admin'] },
     { path: '/tedarikciler', label: 'Tedarikçi Yönetimi', icon: Truck, roles: ['admin'] },
     { path: '/depolar', label: 'Depo & Raf', icon: Warehouse, roles: ['admin', 'lojistik'] },
+    { path: '/depo-kroki', label: 'Depo Kroki', icon: LayoutDashboard, roles: ['admin', 'lojistik'] },
 ];
 
 const bottomItems = [

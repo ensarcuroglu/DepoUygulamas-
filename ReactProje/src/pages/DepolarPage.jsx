@@ -13,6 +13,10 @@ export default function DepolarPage() {
     const [depoModalOpen, setDepoModalOpen] = useState(false);
     const [depoForm, setDepoForm] = useState({ isim: '', adres: '', aciklama: '' });
 
+    // Raf Form State'leri
+    const [rafModalOpen, setRafModalOpen] = useState(false);
+    const [rafForm, setRafForm] = useState({ depo_id: '', kod: '', bolge: '', kapasite: 100 });
+
     const fetchData = () => {
         setLoading(true);
         getDepolar()
@@ -33,6 +37,18 @@ export default function DepolarPage() {
             fetchData();
         } catch (err) {
             toast.error(err.response?.data?.detail || 'Depo oluşturulamadı');
+        }
+    };
+
+    const handleRafSave = async (e) => {
+        e.preventDefault();
+        try {
+            await createRaf(rafForm);
+            toast.success('Raf başarıyla oluşturuldu');
+            setRafModalOpen(false);
+            setRafForm({ depo_id: '', kod: '', bolge: '', kapasite: 100 });
+        } catch (err) {
+            toast.error(err.response?.data?.detail || 'Raf oluşturulamadı');
         }
     };
 
@@ -111,6 +127,16 @@ export default function DepolarPage() {
                                     {new Date(depo.olusturma_tarihi).toLocaleDateString('tr-TR')}
                                 </span>
                             </div>
+
+                            {/* Raf Ekle Butonu */}
+                            <div className="px-6 py-3 bg-white border-t border-slate-100 flex items-center justify-end">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setRafForm({ ...rafForm, depo_id: depo.id }); setRafModalOpen(true); }}
+                                    className="flex items-center gap-1.5 text-[12px] font-bold text-violet-600 hover:text-violet-700 bg-violet-50 px-3 py-1.5 rounded-lg transition-colors"
+                                >
+                                    <Plus className="w-3.5 h-3.5 stroke-[3px]" /> Raf Ekle
+                                </button>
+                            </div>
                         </div>
                     ))
                 )}
@@ -142,6 +168,40 @@ export default function DepolarPage() {
                             </div>
                             <div className="flex gap-3 pt-3">
                                 <button type="button" onClick={() => setDepoModalOpen(false)} className="flex-1 h-11 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">İptal</button>
+                                <button type="submit" className="flex-1 h-11 rounded-xl bg-violet-600 font-bold text-white hover:bg-violet-700 shadow-lg transition-all">Kaydet</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Raf Ekleme Modalı */}
+            {rafModalOpen && createPortal(
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setRafModalOpen(false)}>
+                    <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-md" />
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in ring-1 ring-slate-900/10" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
+                            <h3 className="text-[18px] font-extrabold text-slate-900">Raf Ekle</h3>
+                            <button onClick={() => setRafModalOpen(false)} className="w-9 h-9 rounded-full bg-white border border-slate-200 shadow-sm hover:bg-slate-100 flex items-center justify-center">
+                                <X className="w-5 h-5 text-slate-500" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleRafSave} className="p-6 space-y-5">
+                            <div>
+                                <label className="text-[12px] font-bold text-slate-700 mb-2 block uppercase">Raf Kodu *</label>
+                                <input className={inputClass} value={rafForm.kod} onChange={e => setRafForm({ ...rafForm, kod: e.target.value.toUpperCase() })} placeholder="A-01, ZEMİN-1 vb." required />
+                            </div>
+                            <div>
+                                <label className="text-[12px] font-bold text-slate-700 mb-2 block uppercase">Bölge</label>
+                                <input className={inputClass} value={rafForm.bolge} onChange={e => setRafForm({ ...rafForm, bolge: e.target.value })} placeholder="A Blok Zemin Kat" />
+                            </div>
+                            <div>
+                                <label className="text-[12px] font-bold text-slate-700 mb-2 block uppercase">Kapasite (Palet)</label>
+                                <input type="number" className={inputClass} value={rafForm.kapasite} onChange={e => setRafForm({ ...rafForm, kapasite: parseInt(e.target.value) || 0 })} min="1" required />
+                            </div>
+                            <div className="flex gap-3 pt-3">
+                                <button type="button" onClick={() => setRafModalOpen(false)} className="flex-1 h-11 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">İptal</button>
                                 <button type="submit" className="flex-1 h-11 rounded-xl bg-violet-600 font-bold text-white hover:bg-violet-700 shadow-lg transition-all">Kaydet</button>
                             </div>
                         </form>
