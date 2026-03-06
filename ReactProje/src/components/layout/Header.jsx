@@ -20,6 +20,7 @@ const PAGE_TITLES = {
 const ROL_LABELS = {
     admin: 'Sistem Yöneticisi',
     depocu: 'Depo Sorumlusu',
+    lojistik: 'Lojistik Personeli',
     goruntuleyen: 'Görüntüleyici',
 };
 
@@ -38,11 +39,13 @@ export default function Header({ onMobileMenuToggle }) {
     const [kategoriler, setKategoriler] = useState([]);
     const [urunler, setUrunler] = useState([]);
 
-    // Modallar için gerekli listeleri çek
+    // Modallar için gerekli listeleri çek (sadece admin rolünde)
     useEffect(() => {
-        getKategoriler().then(res => setKategoriler(res.data)).catch(() => { });
+        if (user?.rol === 'admin') {
+            getKategoriler().then(res => setKategoriler(res.data)).catch(() => { });
+        }
         getUrunler({ limit: 500 }).then(res => setUrunler(res.data)).catch(() => { });
-    }, []);
+    }, [user?.rol]);
 
     const currentPage = Object.entries(PAGE_TITLES).find(([path]) =>
         location.pathname.startsWith(path)

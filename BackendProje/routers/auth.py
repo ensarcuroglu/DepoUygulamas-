@@ -92,7 +92,12 @@ def register(
         kullanici_adi=kullanici.kullanici_adi,
         sifre_hash=get_password_hash(kullanici.sifre),
         ad_soyad=kullanici.ad_soyad,
-        rol=kullanici.rol or "depocu"
+        rol=kullanici.rol or "depocu",
+        telefon=kullanici.telefon,
+        email=kullanici.email,
+        departman=kullanici.departman,
+        sicil_no=kullanici.sicil_no,
+        kart_numarasi=kullanici.kart_numarasi
     )
     db.add(new_user)
     db.commit()

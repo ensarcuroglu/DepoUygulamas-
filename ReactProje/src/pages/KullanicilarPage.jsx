@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     Users, Plus, Edit3, Trash2, X, Shield, ShieldCheck, Eye,
-    User, Lock, Mail, ChevronRight, AlertTriangle, CheckCircle2, Loader2
+    User, Lock, Mail, ChevronRight, AlertTriangle, CheckCircle2, Loader2,
+    Truck, Phone, Building, Briefcase, CreditCard
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getKullanicilar, createKullanici, updateKullanici, deleteKullanici } from '../services/api';
@@ -10,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 const ROL_CONFIG = {
     admin: { label: 'Yönetici', color: 'bg-red-50 text-red-700 border-red-200', icon: ShieldCheck },
     depocu: { label: 'Depo Sorumlusu', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Shield },
+    lojistik: { label: 'Lojistik', color: 'bg-amber-50 text-amber-700 border-amber-200', icon: Truck },
     goruntuleyen: { label: 'Görüntüleyici', color: 'bg-slate-100 text-slate-600 border-slate-200', icon: Eye },
 };
 
@@ -26,7 +28,10 @@ function RolBadge({ rol }) {
 
 // Kullanıcı Formu Modal
 function KullaniciModal({ isOpen, onClose, onSave, kullanici }) {
-    const [form, setForm] = useState({ kullanici_adi: '', ad_soyad: '', rol: 'depocu', sifre: '' });
+    const [form, setForm] = useState({
+        kullanici_adi: '', ad_soyad: '', rol: 'depocu', sifre: '',
+        telefon: '', email: '', departman: '', sicil_no: '', kart_numarasi: ''
+    });
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -36,9 +41,17 @@ function KullaniciModal({ isOpen, onClose, onSave, kullanici }) {
                 ad_soyad: kullanici.ad_soyad || '',
                 rol: kullanici.rol || 'depocu',
                 sifre: '',
+                telefon: kullanici.telefon || '',
+                email: kullanici.email || '',
+                departman: kullanici.departman || '',
+                sicil_no: kullanici.sicil_no || '',
+                kart_numarasi: kullanici.kart_numarasi || ''
             });
         } else {
-            setForm({ kullanici_adi: '', ad_soyad: '', rol: 'depocu', sifre: '' });
+            setForm({
+                kullanici_adi: '', ad_soyad: '', rol: 'depocu', sifre: '',
+                telefon: '', email: '', departman: '', sicil_no: '', kart_numarasi: ''
+            });
         }
     }, [kullanici, isOpen]);
 
@@ -127,6 +140,7 @@ function KullaniciModal({ isOpen, onClose, onSave, kullanici }) {
                                 className="w-full h-12 bg-slate-50 border border-slate-200 text-slate-800 text-[14px] rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer pl-11 pr-10">
                                 <option value="admin">Yönetici (Admin)</option>
                                 <option value="depocu">Depo Sorumlusu</option>
+                                <option value="lojistik">Lojistik Personeli</option>
                                 <option value="goruntuleyen">Görüntüleyici</option>
                             </select>
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><ChevronRight className="w-4 h-4 rotate-90" /></div>
@@ -145,6 +159,72 @@ function KullaniciModal({ isOpen, onClose, onSave, kullanici }) {
                                 className="w-full h-12 bg-slate-50 border border-slate-200 text-slate-800 text-[14px] rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all pl-11 pr-4" />
                         </div>
                         {kullanici && <p className="text-[12px] text-slate-400 ml-1">Boş bırakılırsa mevcut şifre korunur.</p>}
+                    </div>
+
+                    {/* Ekstra Bilgiler Başlığı */}
+                    <div className="pt-2">
+                        <div className="flex items-center gap-3">
+                            <div className="h-px bg-slate-200 flex-1"></div>
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">İsteğe Bağlı Bilgiler</span>
+                            <div className="h-px bg-slate-200 flex-1"></div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        {/* Telefon */}
+                        <div className="space-y-1.5">
+                            <label className="text-[12px] font-semibold text-slate-700 ml-1">Telefon</label>
+                            <div className="relative group">
+                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"><Phone className="w-4 h-4" /></div>
+                                <input value={form.telefon} onChange={e => setForm({ ...form, telefon: e.target.value })}
+                                    placeholder="0555..."
+                                    className="w-full h-11 bg-slate-50 border border-slate-200 text-slate-800 text-[13px] rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all pl-10 pr-4" />
+                            </div>
+                        </div>
+
+                        {/* Email */}
+                        <div className="space-y-1.5">
+                            <label className="text-[12px] font-semibold text-slate-700 ml-1">E-Posta</label>
+                            <div className="relative group">
+                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"><Mail className="w-4 h-4" /></div>
+                                <input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} type="email"
+                                    placeholder="ornek@sirket.com"
+                                    className="w-full h-11 bg-slate-50 border border-slate-200 text-slate-800 text-[13px] rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all pl-10 pr-4" />
+                            </div>
+                        </div>
+
+                        {/* Departman */}
+                        <div className="space-y-1.5">
+                            <label className="text-[12px] font-semibold text-slate-700 ml-1">Departman</label>
+                            <div className="relative group">
+                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"><Building className="w-4 h-4" /></div>
+                                <input value={form.departman} onChange={e => setForm({ ...form, departman: e.target.value })}
+                                    placeholder="Örn: Sevkiyat"
+                                    className="w-full h-11 bg-slate-50 border border-slate-200 text-slate-800 text-[13px] rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all pl-10 pr-4" />
+                            </div>
+                        </div>
+
+                        {/* Sicil No */}
+                        <div className="space-y-1.5">
+                            <label className="text-[12px] font-semibold text-slate-700 ml-1">Sicil No</label>
+                            <div className="relative group">
+                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"><Briefcase className="w-4 h-4" /></div>
+                                <input value={form.sicil_no} onChange={e => setForm({ ...form, sicil_no: e.target.value })}
+                                    placeholder="Sicil numarası"
+                                    className="w-full h-11 bg-slate-50 border border-slate-200 text-slate-800 text-[13px] rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all pl-10 pr-4" />
+                            </div>
+                        </div>
+
+                        {/* Kart Numarası */}
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <label className="text-[12px] font-semibold text-slate-700 ml-1">Kart Numarası (RFID/Barkod)</label>
+                            <div className="relative group">
+                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"><CreditCard className="w-4 h-4" /></div>
+                                <input value={form.kart_numarasi} onChange={e => setForm({ ...form, kart_numarasi: e.target.value })}
+                                    placeholder="Personele atanan kart id"
+                                    className="w-full h-11 bg-slate-50 border border-slate-200 text-slate-800 text-[13px] rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all pl-10 pr-4" />
+                            </div>
+                        </div>
                     </div>
                 </form>
 

@@ -1,0 +1,17 @@
+CREATE TABLE `kullanicilar` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `kullanici_adi` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `sifre_hash` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `ad_soyad` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `rol` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `olusturma_tarihi` datetime DEFAULT NULL,
+  `telefon` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `departman` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `sicil_no` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `kart_numarasi` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `kullanici_adi` (`kullanici_adi`),
+  UNIQUE KEY `idx_kart_numarasi` (`kart_numarasi`),
+  KEY `ix_kullanicilar_id` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

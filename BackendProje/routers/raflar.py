@@ -9,7 +9,7 @@ from auth import require_role
 router = APIRouter(
     prefix="/raflar",
     tags=["Raflar"],
-    dependencies=[Depends(require_role("admin"))]
+    dependencies=[Depends(require_role("admin", "lojistik"))]
 )
 
 @router.post("/", response_model=schemas.RafResponse, status_code=status.HTTP_201_CREATED)

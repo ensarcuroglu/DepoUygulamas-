@@ -21,7 +21,7 @@ import DepolarPage from './pages/DepolarPage';
  */
 function DefaultRedirect() {
   const { user } = useAuth();
-  const target = user?.rol === 'depocu' ? '/stok-hareketleri' : '/dashboard';
+  const target = (user?.rol === 'depocu' || user?.rol === 'lojistik') ? '/stok-hareketleri' : '/dashboard';
   return <Navigate to={target} replace />;
 }
 
@@ -47,6 +47,10 @@ function App() {
                 <Route path="/kullanicilar" element={<KullanicilarPage />} />
                 <Route path="/ayarlar" element={<AyarlarPage />} />
                 <Route path="/tedarikciler" element={<TedarikcilerPage />} />
+              </Route>
+
+              {/* Depo Yönetimi (Admin + Lojistik) */}
+              <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
                 <Route path="/depolar" element={<DepolarPage />} />
               </Route>
 

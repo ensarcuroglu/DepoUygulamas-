@@ -223,7 +223,7 @@ class Kullanici(Base):
     kullanici_adi = Column(String(50), unique=True, nullable=False)
     sifre_hash = Column(String(255), nullable=False)
     ad_soyad = Column(String(100), nullable=False)
-    rol = Column(String(20), default="depocu")                    # "admin", "depocu", "goruntuleyen"
+    rol = Column(String(20), default="depocu")                    # "admin", "depocu", "goruntuleyen", "lojistik"
     telefon = Column(String(20), nullable=True)
     email = Column(String(100), nullable=True)
     departman = Column(String(100), nullable=True)

@@ -25,9 +25,10 @@ export default function LoginPage() {
 
         setLoading(true);
         try {
-            await login(kullaniciAdi, sifre);
+            const userData = await login(kullaniciAdi, sifre);
             toast.success('Giriş başarılı! Hoş geldiniz.');
-            navigate('/dashboard', { replace: true });
+            const target = (userData.rol === 'depocu' || userData.rol === 'lojistik') ? '/stok-hareketleri' : '/dashboard';
+            navigate(target, { replace: true });
         } catch (err) {
             const message = err.response?.data?.detail || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.';
             setError(message);
@@ -84,7 +85,7 @@ export default function LoginPage() {
             `}} />
 
             <div className="min-h-screen bg-[#F4F7FA] flex relative overflow-hidden font-sans selection:bg-blue-500/30">
-                
+
                 {/* --- Arka Plan Teknolojik Efektleri (Açık Tema) --- */}
                 <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
                     <div className="absolute inset-0 bg-grid-tech" />
@@ -141,10 +142,10 @@ export default function LoginPage() {
                 {/* --- Sağ Panel: Giriş Formu (Mobil ve Masaüstü) --- */}
                 <div className="w-full lg:w-[50%] xl:w-[45%] flex items-center justify-center p-6 sm:p-8 lg:p-12 relative z-10">
                     <div className="glass-card w-full max-w-[440px] rounded-[2rem] p-8 sm:p-10 relative overflow-hidden animate-[float-delayed]">
-                        
+
                         {/* Form İçi Dekoratif Işıklar */}
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-30" />
-                        
+
                         {/* Mobil için Logo Gösterimi */}
                         <div className="lg:hidden flex items-center justify-center gap-3 mb-10">
                             <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border border-blue-100 shadow-[0_8px_20px_rgba(59,130,246,0.15)]">
@@ -240,7 +241,7 @@ export default function LoginPage() {
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/0 via-white/20 to-cyan-400/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
                                 <style>{`@keyframes shimmer { 100% { transform: translateX(100%); } }`}</style>
-                                
+
                                 <span className="relative z-10 flex items-center justify-center gap-2.5">
                                     {loading ? (
                                         <>

@@ -15,8 +15,8 @@ export default function RoleRoute({ allowedRoles = [] }) {
     const { user } = useAuth();
 
     if (!user || !allowedRoles.includes(user.rol)) {
-        // Depocu ise stok hareketlerine, değilse login'e yönlendir
-        const redirectTo = user?.rol === 'depocu' ? '/stok-hareketleri' : '/login';
+        // Depocu veya Lojistik ise stok hareketlerine, değilse login'e yönlendir
+        const redirectTo = (user?.rol === 'depocu' || user?.rol === 'lojistik') ? '/stok-hareketleri' : '/login';
         return <Navigate to={redirectTo} replace />;
     }
 
