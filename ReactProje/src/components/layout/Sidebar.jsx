@@ -25,7 +25,7 @@ const menuItems = [
     { path: '/kategoriler', label: 'Kategori Ağacı', icon: FolderOpen, roles: ['admin'] },
     { path: '/lotlar', label: 'LOT Takibi', icon: Layers, roles: ['admin'] },
     { path: '/paletler', label: 'Palet Yönetimi', icon: Container, roles: ['admin'] },
-    { path: '/stok-hareketleri', label: 'Hareket Terminali', icon: ArrowLeftRight, roles: ['admin', 'depocu'] },
+    { path: '/stok-hareketleri', label: 'Stok İşlemleri', icon: ArrowLeftRight, roles: ['admin', 'depocu'] },
     { path: '/kullanicilar', label: 'Kullanıcı Yönetimi', icon: Users, roles: ['admin'] },
     { path: '/tedarikciler', label: 'Tedarikçi Yönetimi', icon: Truck, roles: ['admin'] },
     { path: '/depolar', label: 'Depo & Raf', icon: Warehouse, roles: ['admin'] },

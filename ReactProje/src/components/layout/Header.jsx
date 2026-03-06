@@ -11,7 +11,7 @@ const PAGE_TITLES = {
     '/dashboard': { title: 'Dashboard', subtitle: 'Gerçek zamanlı depo istatistikleri' },
     '/urunler': { title: 'Ürün Yönetimi', subtitle: 'Stok kartları ve envanter' },
     '/kategoriler': { title: 'Kategori Yönetimi', subtitle: 'Malzeme sınıflandırmaları' },
-    '/stok-hareketleri': { title: 'Stok Hareketleri', subtitle: 'Giriş ve çıkış logları' },
+    '/stok-hareketleri': { title: 'Stok İşlemleri', subtitle: 'Ürün giriş ve çıkış' },
     '/kullanicilar': { title: 'Kullanıcı Yönetimi', subtitle: 'Sistem kullanıcıları ve yetkilendirme' },
     '/ayarlar': { title: 'Ayarlar', subtitle: 'Sistem tercihleri ve yapılandırma' },
     '/profil-ayarlari': { title: 'Profil Ayarları', subtitle: 'Kişisel bilgiler ve güvenlik' },
