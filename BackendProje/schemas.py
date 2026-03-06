@@ -321,6 +321,11 @@ class KullaniciBase(BaseModel):
     kullanici_adi: str
     ad_soyad: str
     rol: Optional[str] = "depocu"
+    telefon: Optional[str] = None
+    email: Optional[str] = None
+    departman: Optional[str] = None
+    sicil_no: Optional[str] = None
+    kart_numarasi: Optional[str] = None
 
 class KullaniciCreate(KullaniciBase):
     sifre: str
@@ -330,6 +335,11 @@ class KullaniciUpdate(BaseModel):
     ad_soyad: Optional[str] = None
     rol: Optional[str] = None
     sifre: Optional[str] = None
+    telefon: Optional[str] = None
+    email: Optional[str] = None
+    departman: Optional[str] = None
+    sicil_no: Optional[str] = None
+    kart_numarasi: Optional[str] = None
 
 class KullaniciResponse(KullaniciBase):
     id: int
@@ -352,6 +362,11 @@ class TokenUserInfo(BaseModel):
     kullanici_adi: str
     ad_soyad: str
     rol: str
+    telefon: Optional[str] = None
+    email: Optional[str] = None
+    departman: Optional[str] = None
+    sicil_no: Optional[str] = None
+    kart_numarasi: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str

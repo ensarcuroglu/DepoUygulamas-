@@ -4,10 +4,13 @@ from sqlalchemy.orm import Session
 import crud
 import schemas
 from database import get_db
-from auth import get_current_user
+from auth import require_role
 from models import Kullanici
 
 router = APIRouter(prefix="/api/tedarikciler", tags=["Tedarikçiler"])
+
+# Tüm endpoint'ler sadece admin erişimlidir
+_admin = Depends(require_role("admin"))
 
 
 @router.get("/", response_model=list[schemas.TedarikciResponse])
@@ -15,7 +18,7 @@ def tedarikcileri_getir(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Kayıtlı tüm tedarikçileri listeler."""
     return crud.get_tedarikciler(db, skip=skip, limit=limit)
@@ -25,7 +28,7 @@ def tedarikcileri_getir(
 def tedarikci_detay(
     tedarikci_id: int,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Belirli bir tedarikçinin detaylarını getirir."""
     db_tedarikci = crud.get_tedarikci(db, tedarikci_id)
@@ -38,7 +41,7 @@ def tedarikci_detay(
 def tedarikci_olustur(
     tedarikci: schemas.TedarikciCreate,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Yeni bir tedarikçi kaydı oluşturur."""
     return crud.create_tedarikci(db=db, tedarikci=tedarikci)
@@ -49,7 +52,7 @@ def tedarikci_guncelle(
     tedarikci_id: int,
     tedarikci: schemas.TedarikciUpdate,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Mevcut bir tedarikçiyi günceller."""
     db_tedarikci = crud.update_tedarikci(db, tedarikci_id, tedarikci)
@@ -62,7 +65,7 @@ def tedarikci_guncelle(
 def tedarikci_sil(
     tedarikci_id: int,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Bir tedarikçiyi pasife alır (soft delete)."""
     success = crud.delete_tedarikci(db, tedarikci_id)

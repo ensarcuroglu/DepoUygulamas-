@@ -4,12 +4,12 @@ from typing import List
 
 import schemas, crud
 from database import get_db
-from routers.auth import get_current_user
+from auth import require_role
 
 router = APIRouter(
     prefix="/raflar",
     tags=["Raflar"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(require_role("admin"))]
 )
 
 @router.post("/", response_model=schemas.RafResponse, status_code=status.HTTP_201_CREATED)

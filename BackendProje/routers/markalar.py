@@ -2,12 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from auth import get_current_user
+from auth import require_role
 from models import Kullanici
 import crud
 from schemas import MarkaCreate, MarkaUpdate, MarkaResponse
 
 router = APIRouter(prefix="/api/markalar", tags=["Markalar"])
+
+# Tüm endpoint'ler sadece admin erişimlidir
+_admin = Depends(require_role("admin"))
 
 
 @router.get("/", response_model=list[MarkaResponse])
@@ -15,7 +18,7 @@ def markalari_listele(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Tüm markaları listeler."""
     return crud.get_markalar(db, skip=skip, limit=limit)
@@ -25,7 +28,7 @@ def markalari_listele(
 def marka_detay(
     marka_id: int,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Belirli bir markanın detaylarını getirir."""
     db_marka = crud.get_marka(db, marka_id)
@@ -38,7 +41,7 @@ def marka_detay(
 def marka_ekle(
     marka: MarkaCreate,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Yeni bir marka ekler."""
     return crud.create_marka(db, marka)
@@ -49,7 +52,7 @@ def marka_guncelle(
     marka_id: int,
     marka: MarkaUpdate,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Mevcut bir markayı günceller."""
     db_marka = crud.update_marka(db, marka_id, marka)
@@ -62,7 +65,7 @@ def marka_guncelle(
 def marka_sil(
     marka_id: int,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Bir markayı pasife alır (soft delete)."""
     success = crud.delete_marka(db, marka_id)

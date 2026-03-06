@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from database import get_db
-from auth import get_current_user
+from auth import get_current_user, require_role
 from models import Kullanici
 import crud
 from schemas import LotCreate, LotUpdate, LotResponse, LotDetailResponse
@@ -50,9 +50,9 @@ def lot_detay(
 def lot_ekle(
     lot: LotCreate,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
-    """Yeni bir LOT kaydı oluşturur."""
+    """Yeni bir LOT kaydı oluşturur. Sadece admin."""
     # Ürün var mı kontrol et
     db_urun = crud.get_urun(db, lot.urun_id)
     if not db_urun:
@@ -65,9 +65,9 @@ def lot_guncelle(
     lot_id: int,
     lot: LotUpdate,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
-    """Mevcut bir LOT kaydını günceller."""
+    """Mevcut bir LOT kaydını günceller. Sadece admin."""
     db_lot = crud.update_lot(db, lot_id, lot)
     if not db_lot:
         raise HTTPException(status_code=404, detail="LOT bulunamadı")
@@ -78,9 +78,9 @@ def lot_guncelle(
 def lot_sil(
     lot_id: int,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
-    """Bir LOT kaydını pasife alır."""
+    """Bir LOT kaydını pasife alır. Sadece admin."""
     success = crud.delete_lot(db, lot_id)
     if not success:
         raise HTTPException(status_code=404, detail="LOT bulunamadı")

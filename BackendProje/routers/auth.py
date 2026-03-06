@@ -42,6 +42,11 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             "kullanici_adi": user.kullanici_adi,
             "ad_soyad": user.ad_soyad,
             "rol": user.rol,
+            "telefon": user.telefon,
+            "email": user.email,
+            "departman": user.departman,
+            "sicil_no": user.sicil_no,
+            "kart_numarasi": user.kart_numarasi,
         }
     }
 

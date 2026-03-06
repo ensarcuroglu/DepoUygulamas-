@@ -89,3 +89,22 @@ def get_current_user(
         raise credentials_exception
 
     return user
+
+
+# ========================
+# ROL TABANLI YETKİLENDİRME
+# ========================
+
+def require_role(*allowed_roles):
+    """
+    Belirli rollere erişimi kısıtlayan dependency factory.
+    Kullanım: Depends(require_role("admin")) veya Depends(require_role("admin", "depocu"))
+    """
+    def role_checker(current_user: Kullanici = Depends(get_current_user)):
+        if current_user.rol not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Bu işlem için yetkiniz bulunmamaktadır."
+            )
+        return current_user
+    return role_checker

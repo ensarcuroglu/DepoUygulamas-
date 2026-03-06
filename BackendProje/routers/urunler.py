@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from database import get_db
-from auth import get_current_user
+from auth import get_current_user, require_role
 from models import Kullanici
 import crud
 from schemas import (
@@ -66,9 +66,9 @@ def urun_detay(
 def urun_ekle(
     urun: UrunCreate,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
-    """Yeni bir ürün ekler."""
+    """Yeni bir ürün ekler. Sadece admin."""
     return crud.create_urun(db, urun)
 
 
@@ -77,9 +77,9 @@ def urun_guncelle(
     urun_id: int,
     urun: UrunUpdate,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
-    """Mevcut bir ürünü günceller."""
+    """Mevcut bir ürünü günceller. Sadece admin."""
     db_urun = crud.update_urun(db, urun_id, urun)
     if not db_urun:
         raise HTTPException(status_code=404, detail="Ürün bulunamadı")
@@ -90,9 +90,9 @@ def urun_guncelle(
 def urun_sil(
     urun_id: int,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
-    """Bir ürünü pasife alır (soft delete)."""
+    """Bir ürünü pasife alır (soft delete). Sadece admin."""
     success = crud.delete_urun(db, urun_id)
     if not success:
         raise HTTPException(status_code=404, detail="Ürün bulunamadı")

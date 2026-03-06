@@ -89,6 +89,16 @@ def kullanici_guncelle(
         user.rol = data.rol
     if data.sifre:
         user.sifre_hash = get_password_hash(data.sifre)
+    if data.telefon is not None:
+        user.telefon = data.telefon
+    if data.email is not None:
+        user.email = data.email
+    if data.departman is not None:
+        user.departman = data.departman
+    if data.sicil_no is not None:
+        user.sicil_no = data.sicil_no
+    if data.kart_numarasi is not None:
+        user.kart_numarasi = data.kart_numarasi
 
     db.commit()
     db.refresh(user)

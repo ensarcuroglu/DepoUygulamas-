@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from database import get_db
-from auth import get_current_user
+from auth import get_current_user, require_role
 from models import Kullanici
 import crud
 from schemas import PaletCreate, PaletUpdate, PaletResponse, PaletDetailResponse
@@ -63,9 +63,9 @@ def palet_detay(
 def palet_ekle(
     palet: PaletCreate,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
-    """Yeni bir palet kaydı oluşturur."""
+    """Yeni bir palet kaydı oluşturur. Sadece admin."""
     # LOT var mı kontrol et
     db_lot = crud.get_lot(db, palet.lot_id)
     if not db_lot:
@@ -85,9 +85,9 @@ def palet_guncelle(
     palet_id: int,
     palet: PaletUpdate,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
-    """Mevcut bir paleti günceller (raf konumu, koli adedi vb.)."""
+    """Mevcut bir paleti günceller. Sadece admin."""
     db_palet = crud.update_palet(db, palet_id, palet)
     if not db_palet:
         raise HTTPException(status_code=404, detail="Palet bulunamadı")
@@ -98,9 +98,9 @@ def palet_guncelle(
 def palet_sil(
     palet_id: int,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
-    """Bir paleti pasife alır (depodan çıkarır)."""
+    """Bir paleti pasife alır. Sadece admin."""
     success = crud.delete_palet(db, palet_id)
     if not success:
         raise HTTPException(status_code=404, detail="Palet bulunamadı")

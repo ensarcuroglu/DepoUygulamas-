@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from database import engine, get_db
 from models import Base, Kullanici
-from auth import get_current_user
+from auth import get_current_user, require_role
 import crud
 from schemas import DashboardStats
 
@@ -58,7 +58,7 @@ def ana_sayfa():
 @app.get("/api/dashboard", response_model=DashboardStats)
 def dashboard_istatistikleri(
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Dashboard için toplam ürün, kritik stok, günlük hareket ve toplam değer istatistikleri"""
     return crud.get_dashboard_stats(db)

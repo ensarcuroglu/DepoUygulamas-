@@ -2,12 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from auth import get_current_user
+from auth import require_role
 from models import Kullanici
 import crud
 from schemas import KategoriCreate, KategoriUpdate, KategoriResponse
 
 router = APIRouter(prefix="/api/kategoriler", tags=["Kategoriler"])
+
+# Tüm endpoint'ler sadece admin erişimlidir
+_admin = Depends(require_role("admin"))
 
 
 @router.get("/", response_model=list[KategoriResponse])
@@ -15,7 +18,7 @@ def kategorileri_listele(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Tüm kategorileri listeler."""
     return crud.get_kategoriler(db, skip=skip, limit=limit)
@@ -25,7 +28,7 @@ def kategorileri_listele(
 def kategori_detay(
     kategori_id: int,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Belirli bir kategorinin detaylarını getirir."""
     db_kategori = crud.get_kategori(db, kategori_id)
@@ -38,7 +41,7 @@ def kategori_detay(
 def kategori_ekle(
     kategori: KategoriCreate,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Yeni bir kategori ekler."""
     return crud.create_kategori(db, kategori)
@@ -49,7 +52,7 @@ def kategori_guncelle(
     kategori_id: int,
     kategori: KategoriUpdate,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Mevcut bir kategoriyi günceller."""
     db_kategori = crud.update_kategori(db, kategori_id, kategori)
@@ -62,7 +65,7 @@ def kategori_guncelle(
 def kategori_sil(
     kategori_id: int,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Bir kategoriyi pasife alır (soft delete)."""
     success = crud.delete_kategori(db, kategori_id)

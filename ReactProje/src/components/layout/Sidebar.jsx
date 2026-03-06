@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import {
     LayoutDashboard,
     Package,
@@ -19,25 +20,34 @@ import {
 } from 'lucide-react';
 
 const menuItems = [
-    { path: '/dashboard', label: 'İş Zekası & Özet', icon: LayoutDashboard },
-    { path: '/urunler', label: 'Ürün Yönetimi', icon: Package },
-    { path: '/kategoriler', label: 'Kategori Ağacı', icon: FolderOpen },
-    { path: '/lotlar', label: 'LOT Takibi', icon: Layers },
-    { path: '/paletler', label: 'Palet Yönetimi', icon: Container },
-    { path: '/stok-hareketleri', label: 'Hareket Terminali', icon: ArrowLeftRight },
-    { path: '/kullanicilar', label: 'Kullanıcı Yönetimi', icon: Users },
-    { path: '/tedarikciler', label: 'Tedarikçi Yönetimi', icon: Truck },
-    { path: '/depolar', label: 'Depo & Raf', icon: Warehouse },
+    { path: '/dashboard', label: 'İş Zekası & Özet', icon: LayoutDashboard, roles: ['admin'] },
+    { path: '/urunler', label: 'Ürün Yönetimi', icon: Package, roles: ['admin'] },
+    { path: '/kategoriler', label: 'Kategori Ağacı', icon: FolderOpen, roles: ['admin'] },
+    { path: '/lotlar', label: 'LOT Takibi', icon: Layers, roles: ['admin'] },
+    { path: '/paletler', label: 'Palet Yönetimi', icon: Container, roles: ['admin'] },
+    { path: '/stok-hareketleri', label: 'Hareket Terminali', icon: ArrowLeftRight, roles: ['admin', 'depocu'] },
+    { path: '/kullanicilar', label: 'Kullanıcı Yönetimi', icon: Users, roles: ['admin'] },
+    { path: '/tedarikciler', label: 'Tedarikçi Yönetimi', icon: Truck, roles: ['admin'] },
+    { path: '/depolar', label: 'Depo & Raf', icon: Warehouse, roles: ['admin'] },
 ];
 
 const bottomItems = [
-    { path: '/yardim', label: 'Destek Masası', icon: HelpCircle },
-    { path: '/ayarlar', label: 'Sistem Tercihleri', icon: Settings },
+    { path: '/yardim', label: 'Destek Masası', icon: HelpCircle, roles: ['admin'] },
+    { path: '/ayarlar', label: 'Sistem Tercihleri', icon: Settings, roles: ['admin'] },
 ];
 
 export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
     const location = useLocation();
+    const { user } = useAuth();
     const [isMobile, setIsMobile] = useState(false);
+
+    // Rolé göre menü öğelerini filtrele
+    const filteredMenuItems = menuItems.filter(item =>
+        !item.roles || item.roles.includes(user?.rol)
+    );
+    const filteredBottomItems = bottomItems.filter(item =>
+        !item.roles || item.roles.includes(user?.rol)
+    );
 
     useEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 1024);
@@ -100,7 +110,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
                             </p>
                         </div>
                     )}
-                    {menuItems.map((item) => {
+                    {filteredMenuItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = location.pathname.startsWith(item.path);
                         return (
@@ -137,7 +147,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
                             </p>
                         </div>
                     )}
-                    {bottomItems.map((item) => {
+                    {filteredBottomItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = location.pathname.startsWith(item.path);
                         return (

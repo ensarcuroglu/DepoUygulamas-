@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
+import RoleRoute from './components/RoleRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
@@ -15,6 +16,15 @@ import LotlarPage from './pages/LotlarPage';
 import PaletlerPage from './pages/PaletlerPage';
 import DepolarPage from './pages/DepolarPage';
 
+/**
+ * Varsayılan yönlendirme: Depocu → stok-hareketleri, Admin → dashboard
+ */
+function DefaultRedirect() {
+  const { user } = useAuth();
+  const target = user?.rol === 'depocu' ? '/stok-hareketleri' : '/dashboard';
+  return <Navigate to={target} replace />;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -26,22 +36,29 @@ function App() {
           {/* Korumalı alanlar: Giriş gerektiren tüm sayfalar */}
           <Route element={<PrivateRoute />}>
             <Route element={<DashboardLayout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/urunler" element={<UrunlerPage />} />
-              <Route path="/kategoriler" element={<KategorilerPage />} />
-              <Route path="/lotlar" element={<LotlarPage />} />
-              <Route path="/paletler" element={<PaletlerPage />} />
-              <Route path="/depolar" element={<DepolarPage />} />
+
+              {/* Sadece Admin erişimli sayfalar */}
+              <Route element={<RoleRoute allowedRoles={['admin']} />}>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/urunler" element={<UrunlerPage />} />
+                <Route path="/kategoriler" element={<KategorilerPage />} />
+                <Route path="/lotlar" element={<LotlarPage />} />
+                <Route path="/paletler" element={<PaletlerPage />} />
+                <Route path="/kullanicilar" element={<KullanicilarPage />} />
+                <Route path="/ayarlar" element={<AyarlarPage />} />
+                <Route path="/tedarikciler" element={<TedarikcilerPage />} />
+                <Route path="/depolar" element={<DepolarPage />} />
+              </Route>
+
+              {/* Hem Admin hem Depocu erişimli sayfalar */}
               <Route path="/stok-hareketleri" element={<StokHareketleriPage />} />
-              <Route path="/kullanicilar" element={<KullanicilarPage />} />
-              <Route path="/ayarlar" element={<AyarlarPage />} />
               <Route path="/profil-ayarlari" element={<ProfilAyarlariPage />} />
-              <Route path="/tedarikciler" element={<TedarikcilerPage />} />
+
             </Route>
           </Route>
 
-          {/* Bilinmeyen rotalar → Dashboard'a yönlendir */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          {/* Bilinmeyen rotalar → Role göre yönlendir */}
+          <Route path="*" element={<DefaultRedirect />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

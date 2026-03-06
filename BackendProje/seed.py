@@ -161,13 +161,23 @@ def seed():
             kullanici_adi="admin",
             sifre_hash=pwd_context.hash("admin123"),
             ad_soyad="Sistem Yöneticisi",
-            rol="admin"
+            rol="admin",
+            telefon="0555-000-0001",
+            email="admin@depo.com",
+            departman="Bilgi Teknolojileri",
+            sicil_no="SYS-001",
+            kart_numarasi="KART-ADM-001"
         )
         depocu = Kullanici(
             kullanici_adi="depocu1",
             sifre_hash=pwd_context.hash("depo123"),
             ad_soyad="Ahmet Yılmaz",
-            rol="depocu"
+            rol="depocu",
+            telefon="0555-100-0001",
+            email="ahmet@depo.com",
+            departman="Depo Operasyonları",
+            sicil_no="DEP-001",
+            kart_numarasi="KART-DEP-001"
         )
         db.add_all([admin, depocu])
         db.flush()
