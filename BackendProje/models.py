@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Date, ForeignKey, Text, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, Date, ForeignKey, Text, Boolean, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime, date
 
@@ -199,8 +199,13 @@ class StokHareketi(Base):
     urun_id = Column(Integer, ForeignKey("urunler.id"), nullable=False)
     lot_id = Column(Integer, ForeignKey("lotlar.id"), nullable=True)
     palet_id = Column(Integer, ForeignKey("paletler.id"), nullable=True)
+    raf_id = Column(Integer, ForeignKey("raflar.id"), nullable=True)              # Ürün girişi için RAF
     hareket_tipi = Column(String(10), nullable=False)             # "giris" veya "cikis"
     miktar = Column(Integer, nullable=False)
+    siparis_no = Column(String(100), nullable=True)               # Ürün çıkışı için Sipariş Numarası
+    tir_plaka = Column(String(50), nullable=True)                 # Ürün çıkışı için Tır Plakası
+    depo_kapi = Column(String(50), nullable=True)                 # Ürün çıkışı için Depo Kapısı
+    barkodlar = Column(JSON, nullable=True)                       # Çoklu barkodları json array formatında saklamak için
     aciklama = Column(Text, default="")
     kullanici_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
     tarih = Column(DateTime, default=datetime.utcnow)
@@ -209,6 +214,7 @@ class StokHareketi(Base):
     urun = relationship("Urun", back_populates="stok_hareketleri")
     lot = relationship("Lot", back_populates="stok_hareketleri")
     palet = relationship("Palet", back_populates="stok_hareketleri")
+    raf = relationship("Raf")   # Stok hareketinin bağlandığı raf
     kullanici = relationship("Kullanici", back_populates="stok_hareketleri")
 
 

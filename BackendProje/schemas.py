@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, date
 
 
@@ -297,8 +297,13 @@ class StokHareketiBase(BaseModel):
     urun_id: int
     lot_id: Optional[int] = None
     palet_id: Optional[int] = None
+    raf_id: Optional[int] = None
     hareket_tipi: str              # "giris" veya "cikis"
     miktar: int
+    siparis_no: Optional[str] = None
+    tir_plaka: Optional[str] = None
+    depo_kapi: Optional[str] = None
+    barkodlar: Optional[List[str]] = None
     aciklama: Optional[str] = ""
 
 class StokHareketiCreate(StokHareketiBase):
@@ -307,6 +312,8 @@ class StokHareketiCreate(StokHareketiBase):
 class StokHareketiResponse(StokHareketiBase):
     id: int
     kullanici_id: Optional[int] = None
+    kullanici: Optional[KullaniciResponse] = None
+    raf: Optional[RafResponse] = None
     tarih: datetime
 
     class Config:

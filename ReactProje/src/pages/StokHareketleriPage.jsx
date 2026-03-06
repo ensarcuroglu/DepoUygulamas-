@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowDownToLine, ArrowUpFromLine, Barcode, Check, Loader2, Package, Clock, Search, X, TrendingUp, TrendingDown, ArrowLeft, RefreshCw } from 'lucide-react';
-import { getStokHareketleri, createStokHareketi, getUrunler, getUrunByBarkod } from '../services/api';
+import { getStokHareketleri, createStokHareketi, getUrunler, getUrunByBarkod, getRaflar } from '../services/api';
 import toast from 'react-hot-toast';
 import useBarcodeScanner from '../hooks/useBarcodeScanner';
 import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
@@ -14,6 +14,15 @@ export default function StokHareketleriPage() {
     const [miktar, setMiktar] = useState(1);
     const [aciklama, setAciklama] = useState('');
     const [submitting, setSubmitting] = useState(false);
+
+    // Yeni Alanlar
+    const [rafId, setRafId] = useState('');
+    const [siparisNo, setSiparisNo] = useState('');
+    const [tirPlaka, setTirPlaka] = useState('');
+    const [depoKapi, setDepoKapi] = useState('');
+    const [barkodlarText, setBarkodlarText] = useState('');
+
+    const [raflar, setRaflar] = useState([]);
 
     // Ürün arama
     const [urunler, setUrunler] = useState([]);
@@ -34,10 +43,12 @@ export default function StokHareketleriPage() {
     const fetchData = () => {
         Promise.all([
             getUrunler({ limit: 500 }),
-            getStokHareketleri({ limit: 20 })
-        ]).then(([uRes, hRes]) => {
+            getStokHareketleri({ limit: 20 }),
+            getRaflar()
+        ]).then(([uRes, hRes, rRes]) => {
             setUrunler(uRes.data);
             setSonIslemler(hRes.data);
+            setRaflar(rRes.data);
         }).catch(() => toast.error('Veriler yüklenemedi.'))
             .finally(() => setLoadingHistory(false));
     };
@@ -82,11 +93,20 @@ export default function StokHareketleriPage() {
         if (!secilenUrun || !hareketTipi || miktar < 1) return;
         setSubmitting(true);
         try {
+            const barkodArray = barkodlarText
+                ? barkodlarText.split(',').map(b => b.trim()).filter(Boolean)
+                : undefined;
+
             await createStokHareketi({
                 urun_id: secilenUrun.id,
                 hareket_tipi: hareketTipi,
                 miktar: Number(miktar),
-                aciklama: aciklama || ''
+                aciklama: aciklama || '',
+                raf_id: (hareketTipi === 'giris' && rafId) ? Number(rafId) : undefined,
+                siparis_no: hareketTipi === 'cikis' ? siparisNo : undefined,
+                tir_plaka: hareketTipi === 'cikis' ? tirPlaka : undefined,
+                depo_kapi: hareketTipi === 'cikis' ? depoKapi : undefined,
+                barkodlar: (hareketTipi === 'cikis' && barkodArray && barkodArray.length > 0) ? barkodArray : undefined,
             });
             const isGiris = hareketTipi === 'giris';
             toast.success(
@@ -116,6 +136,11 @@ export default function StokHareketleriPage() {
         setMiktar(1);
         setAciklama('');
         setAramaText('');
+        setRafId('');
+        setSiparisNo('');
+        setTirPlaka('');
+        setDepoKapi('');
+        setBarkodlarText('');
     };
 
     // Filtrelenmiş ürünler
@@ -377,6 +402,41 @@ export default function StokHareketleriPage() {
                                 </div>
                             </div>
 
+                            {/* Ekstra Detaylar (Giriş/Çıkış özel) */}
+                            {hareketTipi === 'giris' && (
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Raf Seçimi <span className="text-slate-300 normal-case">(isteğe bağlı)</span></label>
+                                    <select
+                                        value={rafId} onChange={e => setRafId(e.target.value)}
+                                        className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                    >
+                                        <option value="">Raf Seçiniz</option>
+                                        {raflar.map(r => <option key={r.id} value={r.id}>{r.kod} ({r.bolge})</option>)}
+                                    </select>
+                                </div>
+                            )}
+
+                            {hareketTipi === 'cikis' && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Sipariş No</label>
+                                        <input type="text" value={siparisNo} onChange={e => setSiparisNo(e.target.value)} className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Örn: ORD-123" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Tır Plaka</label>
+                                        <input type="text" value={tirPlaka} onChange={e => setTirPlaka(e.target.value)} className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Örn: 34 AB 1234" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Depo Kapı</label>
+                                        <input type="text" value={depoKapi} onChange={e => setDepoKapi(e.target.value)} className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Örn: Kapı 4" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Barkodlar</label>
+                                        <input type="text" value={barkodlarText} onChange={e => setBarkodlarText(e.target.value)} className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Virgülle ayırın..." />
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Açıklama (isteğe bağlı) */}
                             <div>
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">
@@ -462,7 +522,11 @@ export default function StokHareketleriPage() {
                                             {urun?.isim || `Ürün #${h.urun_id}`}
                                         </p>
                                         <p className="text-xs font-medium text-slate-400 mt-0.5">
-                                            {tarih.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })} — {tarih.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                            {tarih.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })} {tarih.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                            {h.kullanici ? ` • Yapan: ${h.kullanici.ad_soyad}` : ''}
+                                            {h.raf ? ` • Raf: ${h.raf.kod}` : ''}
+                                            {h.tir_plaka ? ` • Tır: ${h.tir_plaka}` : ''}
+                                            {h.siparis_no ? ` • Sipariş: ${h.siparis_no}` : ''}
                                             {h.aciklama ? ` • ${h.aciklama}` : ''}
                                         </p>
                                     </div>

@@ -431,7 +431,10 @@ def get_sonraki_palet_no(db: Session):
 # ========================
 
 def get_stok_hareketleri(db: Session, skip: int = 0, limit: int = 50, urun_id: int = None, lot_id: int = None):
-    query = db.query(StokHareketi).order_by(StokHareketi.tarih.desc())
+    query = db.query(StokHareketi).options(
+        joinedload(StokHareketi.kullanici),
+        joinedload(StokHareketi.raf)
+    ).order_by(StokHareketi.tarih.desc())
     if urun_id:
         query = query.filter(StokHareketi.urun_id == urun_id)
     if lot_id:
