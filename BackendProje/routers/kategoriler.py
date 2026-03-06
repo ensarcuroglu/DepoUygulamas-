@@ -44,7 +44,7 @@ def kategori_ekle(
     current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Yeni bir kategori ekler."""
-    return crud.create_kategori(db, kategori)
+    return crud.create_kategori(db, kategori, kullanici_id=current_user.id)
 
 
 @router.put("/{kategori_id}", response_model=KategoriResponse)
@@ -55,7 +55,7 @@ def kategori_guncelle(
     current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Mevcut bir kategoriyi günceller."""
-    db_kategori = crud.update_kategori(db, kategori_id, kategori)
+    db_kategori = crud.update_kategori(db, kategori_id, kategori, kullanici_id=current_user.id)
     if not db_kategori:
         raise HTTPException(status_code=404, detail="Kategori bulunamadı")
     return db_kategori
@@ -68,7 +68,7 @@ def kategori_sil(
     current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Bir kategoriyi pasife alır (soft delete)."""
-    success = crud.delete_kategori(db, kategori_id)
+    success = crud.delete_kategori(db, kategori_id, kullanici_id=current_user.id)
     if not success:
         raise HTTPException(status_code=404, detail="Kategori bulunamadı")
     return {"message": "Kategori başarıyla pasife alındı", "id": kategori_id}

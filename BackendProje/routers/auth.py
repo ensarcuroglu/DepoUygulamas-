@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Kullanici
+from models import Kullanici, SistemLog
 from auth import verify_password, get_password_hash, create_access_token, get_current_user
 from schemas import LoginRequest, TokenResponse, KullaniciCreate, KullaniciResponse
 
@@ -33,6 +33,16 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 
     # Token oluştur
     access_token = create_access_token(data={"sub": user.kullanici_adi})
+
+    # Sisteme giriş logu
+    yeni_log = SistemLog(
+        kullanici_id=user.id,
+        islem_tipi="LOGIN",
+        modul="Oturum",
+        detay=f"{user.ad_soyad} sisteme giriş yaptı."
+    )
+    db.add(yeni_log)
+    db.commit()
 
     return {
         "access_token": access_token,
@@ -102,5 +112,16 @@ def register(
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    # Log Kaydı
+    yeni_log = SistemLog(
+        kullanici_id=current_user.id,
+        islem_tipi="CREATE",
+        modul="Kullanıcı Yönetimi",
+        detay=f"Yeni kullanıcı oluşturuldu: {new_user.ad_soyad} ({new_user.kullanici_adi})",
+        yeni_veri={"kullanici_adi": new_user.kullanici_adi, "rol": new_user.rol}
+    )
+    db.add(yeni_log)
+    db.commit()
 
     return new_user

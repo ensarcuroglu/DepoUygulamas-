@@ -69,7 +69,7 @@ def urun_ekle(
     current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Yeni bir ürün ekler. Sadece admin."""
-    return crud.create_urun(db, urun)
+    return crud.create_urun(db, urun, kullanici_id=current_user.id)
 
 
 @router.put("/{urun_id}", response_model=UrunResponse)
@@ -80,7 +80,7 @@ def urun_guncelle(
     current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Mevcut bir ürünü günceller. Sadece admin."""
-    db_urun = crud.update_urun(db, urun_id, urun)
+    db_urun = crud.update_urun(db, urun_id, urun, kullanici_id=current_user.id)
     if not db_urun:
         raise HTTPException(status_code=404, detail="Ürün bulunamadı")
     return db_urun
@@ -93,7 +93,7 @@ def urun_sil(
     current_user: Kullanici = Depends(require_role("admin"))
 ):
     """Bir ürünü pasife alır (soft delete). Sadece admin."""
-    success = crud.delete_urun(db, urun_id)
+    success = crud.delete_urun(db, urun_id, kullanici_id=current_user.id)
     if not success:
         raise HTTPException(status_code=404, detail="Ürün bulunamadı")
     return {"message": "Ürün başarıyla pasife alındı", "id": urun_id}

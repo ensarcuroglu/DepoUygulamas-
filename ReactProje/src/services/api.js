@@ -133,7 +133,12 @@ export const createStokHareketi = (data) => api.post('/stok-hareketleri/', data)
 export const getTedarikciler = () => api.get('/tedarikciler/');
 export const getTedarikci = (id) => api.get(`/tedarikciler/${id}`);
 export const addTedarikci = (data) => api.post('/tedarikciler/', data);
-export const updateTedarikci = (id, data) => api.put(`/tedarikciler/${id}`, data);
 export const deleteTedarikci = (id) => api.delete(`/tedarikciler/${id}`);
+
+// ========================
+// SİSTEM LOGLARI
+// ========================
+export const getSistemLoglari = (limit = 100) => api.get('/sistem-loglari/', { params: { limit } });
+export const createSistemLog = (data) => api.post('/sistem-loglari/', data);
 
 export default api;

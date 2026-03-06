@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, date
 
 from models import (
     Marka, Kategori, Depo, Raf, Tedarikci,
-    Urun, Lot, Palet, StokHareketi, Kullanici
+    Urun, Lot, Palet, StokHareketi, Kullanici, SistemLog
 )
 from schemas import (
     MarkaCreate, MarkaUpdate,
@@ -71,28 +71,57 @@ def get_kategoriler(db: Session, skip: int = 0, limit: int = 100, sadece_aktif: 
 def get_kategori(db: Session, kategori_id: int):
     return db.query(Kategori).filter(Kategori.id == kategori_id).first()
 
-def create_kategori(db: Session, kategori: KategoriCreate):
+def create_kategori(db: Session, kategori: KategoriCreate, kullanici_id: int):
     db_kategori = Kategori(**kategori.model_dump())
     db.add(db_kategori)
     db.commit()
     db.refresh(db_kategori)
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="CREATE",
+        modul="Kategori Yönetimi",
+        detay=f"Yeni kategori eklendi: {db_kategori.isim}"
+    )
+    db.add(log)
+    db.commit()
+
     return db_kategori
 
-def update_kategori(db: Session, kategori_id: int, kategori: KategoriUpdate):
+def update_kategori(db: Session, kategori_id: int, kategori: KategoriUpdate, kullanici_id: int):
     db_kategori = db.query(Kategori).filter(Kategori.id == kategori_id).first()
     if not db_kategori:
         return None
+    eski_isim = db_kategori.isim
     for key, value in kategori.model_dump(exclude_unset=True).items():
         setattr(db_kategori, key, value)
+    
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="UPDATE",
+        modul="Kategori Yönetimi",
+        detay=f"Kategori güncellendi. {eski_isim} -> {db_kategori.isim}"
+    )
+    db.add(log)
+
     db.commit()
     db.refresh(db_kategori)
     return db_kategori
 
-def delete_kategori(db: Session, kategori_id: int):
+def delete_kategori(db: Session, kategori_id: int, kullanici_id: int):
     db_kategori = db.query(Kategori).filter(Kategori.id == kategori_id).first()
     if not db_kategori:
         return False
     db_kategori.aktif = False
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="DELETE",
+        modul="Kategori Yönetimi",
+        detay=f"Kategori silindi (pasife alındı): {db_kategori.isim}"
+    )
+    db.add(log)
+
     db.commit()
     return True
 
@@ -110,11 +139,21 @@ def get_depolar(db: Session, skip: int = 0, limit: int = 100, sadece_aktif: bool
 def get_depo(db: Session, depo_id: int):
     return db.query(Depo).filter(Depo.id == depo_id).first()
 
-def create_depo(db: Session, depo: DepoCreate):
+def create_depo(db: Session, depo: DepoCreate, kullanici_id: int):
     db_depo = Depo(**depo.model_dump())
     db.add(db_depo)
     db.commit()
     db.refresh(db_depo)
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="CREATE",
+        modul="Depo Yönetimi",
+        detay=f"Yeni depo eklendi: {db_depo.isim}"
+    )
+    db.add(log)
+    db.commit()
+
     return db_depo
 
 def update_depo(db: Session, depo_id: int, depo: DepoUpdate):
@@ -263,30 +302,69 @@ def get_urun_by_barkod(db: Session, barkod: str):
         or_(Urun.barkod == barkod, Urun.ean == barkod)
     ).first()
 
-def create_urun(db: Session, urun: UrunCreate):
+def create_urun(db: Session, urun: UrunCreate, kullanici_id: int):
     db_urun = Urun(**urun.model_dump())
     db.add(db_urun)
     db.commit()
     db.refresh(db_urun)
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="CREATE",
+        modul="Ürün Yönetimi",
+        detay=f"Yeni ürün eklendi: {urun.isim} (Barkod: {urun.barkod or '-'})",
+        yeni_veri=urun.model_dump()
+    )
+    db.add(log)
+    db.commit()
+
     return db_urun
 
-def update_urun(db: Session, urun_id: int, urun: UrunUpdate):
+def update_urun(db: Session, urun_id: int, urun: UrunUpdate, kullanici_id: int):
     db_urun = db.query(Urun).filter(Urun.id == urun_id).first()
     if not db_urun:
         return None
+    
+    eski_veri = {c.name: getattr(db_urun, c.name) for c in db_urun.__table__.columns}
+
     for key, value in urun.model_dump(exclude_unset=True).items():
         setattr(db_urun, key, value)
     db_urun.guncelleme_tarihi = datetime.utcnow()
     db.commit()
     db.refresh(db_urun)
+
+    yeni_veri = {c.name: getattr(db_urun, c.name) for c in db_urun.__table__.columns}
+    # DateTime nesnelerini stringe çeviremeyebileceği için Pydantic model json üzerinden vermek daha iyi bir yaklaşım olabilir ama basit json dump işlemi için sadece id vb kullanmak pratik.
+    
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="UPDATE",
+        modul="Ürün Yönetimi",
+        detay=f"Ürün güncellendi: {db_urun.isim}",
+        eski_veri={"isim": eski_veri['isim'], "fiyat": eski_veri['fiyat'], "stok": db_urun.stok_miktari},
+        yeni_veri={"isim": yeni_veri['isim'], "fiyat": yeni_veri['fiyat'], "stok": db_urun.stok_miktari}
+    )
+    db.add(log)
+    db.commit()
+
     return db_urun
 
-def delete_urun(db: Session, urun_id: int):
+def delete_urun(db: Session, urun_id: int, kullanici_id: int):
     db_urun = db.query(Urun).filter(Urun.id == urun_id).first()
     if not db_urun:
         return False
+    
     db_urun.aktif = False
     db_urun.guncelleme_tarihi = datetime.utcnow()
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="DELETE",
+        modul="Ürün Yönetimi",
+        detay=f"Ürün silindi (pasife alındı): {db_urun.isim}"
+    )
+    db.add(log)
+
     db.commit()
     return True
 
@@ -443,6 +521,10 @@ def get_stok_hareketleri(db: Session, skip: int = 0, limit: int = 50, urun_id: i
 
 def create_stok_hareketi(db: Session, hareket: StokHareketiCreate, kullanici_id: int = None):
     """Stok hareketi oluşturur. Palet bazlı çıkış yapılıyorsa paleti pasife alır."""
+    # Ürün bilgisini id üzerinden al
+    db_urun = db.query(Urun).filter(Urun.id == hareket.urun_id).first()
+    urun_ismi = db_urun.isim if db_urun else f"Ürün #{hareket.urun_id}"
+
     db_hareket = StokHareketi(
         **hareket.model_dump(),
         kullanici_id=kullanici_id
@@ -454,6 +536,16 @@ def create_stok_hareketi(db: Session, hareket: StokHareketiCreate, kullanici_id:
         db_palet = db.query(Palet).filter(Palet.id == hareket.palet_id).first()
         if db_palet:
             db_palet.aktif = False
+
+    # Stok Logu Gönder
+    islem_turu_metni = "Giriş Yapıldı" if hareket.hareket_tipi == "giris" else "Çıkış Yapıldı"
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="UPDATE",
+        modul="Stok İşlemleri",
+        detay=f"Stok {islem_turu_metni}: {urun_ismi} | miktar: {hareket.miktar}"
+    )
+    db.add(log)
 
     db.commit()
     db.refresh(db_hareket)

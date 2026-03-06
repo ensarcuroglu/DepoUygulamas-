@@ -219,6 +219,26 @@ class StokHareketi(Base):
 
 
 # ========================
+# SİSTEM LOGLARI
+# ========================
+
+class SistemLog(Base):
+    __tablename__ = "sistem_loglari"
+
+    id = Column(Integer, primary_key=True, index=True)
+    kullanici_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
+    islem_tipi = Column(String(50), nullable=False)               # örn: CREATE, UPDATE, DELETE
+    modul = Column(String(50), nullable=False)                    # örn: Urunler, Kullanicilar, Stok
+    detay = Column(Text, nullable=True)                           # örn: 'Fiyat 10 -> 20 yapıldı'
+    eski_veri = Column(JSON, nullable=True)                       # json formatında eski hali
+    yeni_veri = Column(JSON, nullable=True)                       # json formatında yeni hali
+    tarih = Column(DateTime, default=datetime.utcnow)
+
+    # İlişki
+    kullanici = relationship("Kullanici")
+
+
+# ========================
 # KULLANICI
 # ========================
 

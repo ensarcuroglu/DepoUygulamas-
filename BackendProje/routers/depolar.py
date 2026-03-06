@@ -48,7 +48,7 @@ def depo_ekle(
     current_user: Kullanici = Depends(require_role("admin", "lojistik"))
 ):
     """Yeni bir depo ekler."""
-    return crud.create_depo(db, depo)
+    return crud.create_depo(db, depo, kullanici_id=current_user.id)
 
 
 @router.put("/{depo_id}", response_model=DepoResponse)

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Warehouse, Search, Building, LayoutGrid, AlertCircle, AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Warehouse, Search, Building, LayoutGrid, AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, QrCode, Package, X, Printer, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function DepoKrokiPage() {
     const [depolar, setDepolar] = useState([]);
@@ -10,6 +11,9 @@ export default function DepoKrokiPage() {
     const [paletler, setPaletler] = useState([]); // Depoya ait paletler (doluluk için)
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // YENİ: Modal State
+    const [seciliRafDetay, setSeciliRafDetay] = useState(null);
 
     useEffect(() => {
         setLoading(true);
@@ -113,10 +117,75 @@ export default function DepoKrokiPage() {
         };
     };
 
+    // QR Kod Yazdırma Fonksiyonu
+    const handlePrintQR = () => {
+        if (!seciliRafDetay) return;
+
+        const printWindow = window.open('', '_blank', 'width=600,height=600');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Raf Barkod - ${seciliRafDetay.raf.kod}</title>
+                    <style>
+                        body { 
+                            display: flex; 
+                            flex-direction: column; 
+                            align-items: center; 
+                            justify-content: center; 
+                            height: 100vh; 
+                            margin: 0; 
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                            background-color: white;
+                        }
+                        .print-container { 
+                            text-align: center;
+                            padding: 40px;
+                            border: 3px dashed #cbd5e1;
+                            border-radius: 20px;
+                        }
+                        h1 { 
+                            font-size: 48px; 
+                            color: #1e293b; 
+                            margin-bottom: 30px; 
+                            margin-top: 0;
+                            letter-spacing: -1px;
+                        }
+                        .qr-wrapper {
+                            padding: 20px;
+                            background: white;
+                        }
+                        p { 
+                            font-size: 16px; 
+                            color: #64748b; 
+                            margin-top: 30px; 
+                            font-weight: 500;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-container">
+                        <h1>${seciliRafDetay.raf.kod}</h1>
+                        <div class="qr-wrapper">
+                            ${document.getElementById('qr-svg-container').innerHTML}
+                        </div>
+                        <p>DYS - Otomatik Depo Sistemi</p>
+                    </div>
+                </body>
+                <script>
+                    window.onload = () => {
+                        window.print();
+                        setTimeout(() => window.close(), 500);
+                    }
+                </script>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
     const groupedRaflar = getRafGroups();
 
     return (
-        <div className="space-y-6 max-w-[1400px] mx-auto p-4 sm:p-6 pb-24">
+        <div className="space-y-6 max-w-[1400px] mx-auto p-4 sm:p-6 pb-24 relative">
             {/* Header & Göstergeler Kombini */}
             <div className="flex flex-col gap-6">
 
@@ -226,6 +295,7 @@ export default function DepoKrokiPage() {
                                         return (
                                             <div
                                                 key={raf.id}
+                                                onClick={() => setSeciliRafDetay({ raf, durum })}
                                                 className="relative flex flex-col justify-between p-4 rounded-2xl border border-slate-200 bg-white transition-all duration-300 hover:shadow-xl hover:border-violet-300 hover:-translate-y-1.5 group cursor-pointer"
                                             >
                                                 {/* Üst Kısım: Kod ve İkon */}
@@ -234,8 +304,12 @@ export default function DepoKrokiPage() {
                                                         <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest block mb-1">RAF KODU</span>
                                                         <span className="text-[17px] sm:text-[19px] font-black text-slate-800 leading-none">{raf.kod}</span>
                                                     </div>
-                                                    <div className={`p-1.5 rounded-lg border border-white/50 shadow-sm ${durum.bgKutusu}`}>
+                                                    <div className={`p-1.5 rounded-lg border border-white/50 shadow-sm ${durum.bgKutusu} group-hover:hidden`}>
                                                         {durum.icon}
+                                                    </div>
+                                                    {/* Hoverda QR veya Qr İkonu göster (Kullanıcıya tıklanabilirlik hissi vermek için) */}
+                                                    <div className={`hidden group-hover:flex p-1.5 rounded-lg border border-violet-200 bg-violet-50 text-violet-600 shadow-sm`}>
+                                                        <QrCode className="w-5 h-5" />
                                                     </div>
                                                 </div>
 
@@ -277,6 +351,108 @@ export default function DepoKrokiPage() {
                     </div>
                 )}
             </div>
+
+            {/* Raf Detay ve QR Modal */}
+            {seciliRafDetay && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div
+                        className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
+                                    <Warehouse className="w-5 h-5 text-violet-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-[16px] font-extrabold text-slate-800">Raf Detayları</h3>
+                                    <p className="text-[12px] font-medium text-slate-500">QR Kod & Kapasite</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSeciliRafDetay(null)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6 flex flex-col items-center">
+
+                            {/* QR CODE ALANI */}
+                            <div className="bg-white p-4 rounded-2xl border-2 border-slate-100 shadow-sm relative group mb-6">
+                                {/* Bu div üzerinden yazdıracağız */}
+                                <div id="qr-svg-container">
+                                    {/* Basit bir URL veya ID. Gerçek senaryoda bu URL mobil cihazla okununca o rafa yönlendirir. */}
+                                    <QRCodeSVG
+                                        value={`http://dys-app.com/raf/${seciliRafDetay.raf.kod}`}
+                                        size={180}
+                                        bgColor={"#ffffff"}
+                                        fgColor={"#1e293b"}
+                                        level={"Q"}
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handlePrintQR}
+                                    title="QR Kodu Yazdır"
+                                    className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col justify-center items-center text-white gap-2 backdrop-blur-sm"
+                                >
+                                    <Printer className="w-8 h-8" />
+                                    <span className="font-bold text-[13px]">Yazdır</span>
+                                </button>
+                            </div>
+
+                            <div className="text-center w-full">
+                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block mb-1">RAF KODU</span>
+                                <h4 className="text-[32px] font-black text-slate-800 leading-none mb-4">{seciliRafDetay.raf.kod}</h4>
+
+                                <div className="flex items-center justify-between w-full p-4 rounded-xl bg-slate-50 border border-slate-100">
+                                    <div className="flex flex-col items-start gap-1">
+                                        <div className="flex items-center gap-1.5 text-slate-500">
+                                            <Package className="w-4 h-4" />
+                                            <span className="text-[13px] font-bold">Mevcut Palet</span>
+                                        </div>
+                                        <span className="text-[18px] font-black text-slate-800">{seciliRafDetay.durum.mevcut} <span className="text-slate-400 text-[14px] font-bold">/ {seciliRafDetay.durum.kapasite}</span></span>
+                                    </div>
+
+                                    <div className="h-10 w-px bg-slate-200"></div>
+
+                                    <div className="flex flex-col items-end gap-1">
+                                        <div className="flex items-center gap-1.5 text-slate-500">
+                                            <Info className="w-4 h-4" />
+                                            <span className="text-[13px] font-bold">Durum</span>
+                                        </div>
+                                        <span className={`text-[15px] font-black px-2.5 py-1 rounded-md bg-white border shadow-sm ${seciliRafDetay.durum.textRenk} ${seciliRafDetay.durum.bgKutusu}`}>
+                                            %{seciliRafDetay.durum.yuzde}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Düzenleme vb. action var ise modal footer eklenebilir. Şimdilik yazdırma butonu footerda verebiliriz. */}
+                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-3">
+                            <button
+                                onClick={() => setSeciliRafDetay(null)}
+                                className="flex-1 py-2.5 px-4 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-[14px]"
+                            >
+                                Kapat
+                            </button>
+                            <button
+                                onClick={handlePrintQR}
+                                className="flex-1 py-2.5 px-4 rounded-xl bg-violet-600 text-white font-bold hover:bg-violet-700 transition-colors text-[14px] shadow-sm flex items-center justify-center gap-2"
+                            >
+                                <Printer className="w-4 h-4" />
+                                <span className="hidden sm:inline">QR Yazdır</span>
+                                <span className="sm:hidden">Yazdır</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -16,6 +16,7 @@ import LotlarPage from './pages/LotlarPage';
 import PaletlerPage from './pages/PaletlerPage';
 import DepolarPage from './pages/DepolarPage';
 import DepoKrokiPage from './pages/DepoKrokiPage';
+import SistemLoglariPage from './pages/SistemLoglariPage';
 
 /**
  * Varsayılan yönlendirme: Depocu → stok-hareketleri, Admin → dashboard
@@ -48,6 +49,7 @@ function App() {
                 <Route path="/kullanicilar" element={<KullanicilarPage />} />
                 <Route path="/ayarlar" element={<AyarlarPage />} />
                 <Route path="/tedarikciler" element={<TedarikcilerPage />} />
+                <Route path="/sistem-loglari" element={<SistemLoglariPage />} />
               </Route>
 
               {/* Depo Yönetimi (Admin + Lojistik) */}

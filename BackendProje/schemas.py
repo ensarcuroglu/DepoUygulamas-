@@ -321,6 +321,30 @@ class StokHareketiResponse(StokHareketiBase):
 
 
 # ========================
+# SİSTEM LOGLARI ŞEMALARİ
+# ========================
+
+class SistemLogBase(BaseModel):
+    kullanici_id: Optional[int] = None
+    islem_tipi: str
+    modul: str
+    detay: Optional[str] = None
+    eski_veri: Optional[dict] = None
+    yeni_veri: Optional[dict] = None
+
+class SistemLogCreate(SistemLogBase):
+    pass
+
+class SistemLogResponse(SistemLogBase):
+    id: int
+    tarih: datetime
+    kullanici_ad_soyad: Optional[str] = None # Frontend'de göstermek için
+
+    class Config:
+        from_attributes = True
+
+
+# ========================
 # KULLANICI ŞEMALARİ
 # ========================
 
