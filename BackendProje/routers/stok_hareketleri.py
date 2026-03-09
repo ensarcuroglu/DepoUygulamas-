@@ -17,11 +17,12 @@ def hareketleri_listele(
     limit: int = 50,
     urun_id: Optional[int] = Query(None, description="Belirli ürüne göre filtrele"),
     lot_id: Optional[int] = Query(None, description="Belirli LOT'a göre filtrele"),
+    hareket_tipi: Optional[str] = Query(None, description="'giris' veya 'cikis' olarak filtrele"),
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(get_current_user)
 ):
-    """Stok hareketlerini listeler. Ürün veya LOT bazlı filtreleme destekler."""
-    return crud.get_stok_hareketleri(db, skip=skip, limit=limit, urun_id=urun_id, lot_id=lot_id)
+    """Stok hareketlerini listeler. Ürün, LOT veya hareket tipine göre filtreleme destekler."""
+    return crud.get_stok_hareketleri(db, skip=skip, limit=limit, urun_id=urun_id, lot_id=lot_id, hareket_tipi=hareket_tipi)
 
 
 @router.post("/", response_model=StokHareketiResponse, status_code=201)

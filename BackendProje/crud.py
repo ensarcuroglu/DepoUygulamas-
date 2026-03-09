@@ -510,7 +510,7 @@ def get_sonraki_palet_no(db: Session):
 # STOK HAREKETİ CRUD
 # ========================
 
-def get_stok_hareketleri(db: Session, skip: int = 0, limit: int = 50, urun_id: int = None, lot_id: int = None):
+def get_stok_hareketleri(db: Session, skip: int = 0, limit: int = 50, urun_id: int = None, lot_id: int = None, hareket_tipi: str = None):
     query = db.query(StokHareketi).options(
         joinedload(StokHareketi.kullanici),
         joinedload(StokHareketi.raf)
@@ -519,6 +519,8 @@ def get_stok_hareketleri(db: Session, skip: int = 0, limit: int = 50, urun_id: i
         query = query.filter(StokHareketi.urun_id == urun_id)
     if lot_id:
         query = query.filter(StokHareketi.lot_id == lot_id)
+    if hareket_tipi:
+        query = query.filter(StokHareketi.hareket_tipi == hareket_tipi)
     return query.offset(skip).limit(limit).all()
 
 def create_stok_hareketi(db: Session, hareket: StokHareketiCreate, kullanici_id: int = None):
