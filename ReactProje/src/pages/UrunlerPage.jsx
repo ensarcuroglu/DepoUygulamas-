@@ -7,6 +7,7 @@ import {
     Award, Hash, Weight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { hataMetni } from '../utils/hata';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
 import { getUrunler, deleteUrun, getKategoriler, createUrun, updateUrun, getUrunByBarkod, getMarkalar } from '../services/api';
@@ -430,7 +431,9 @@ export default function App() {
             await deleteUrun(id);
             toast.success('Ürün başarıyla pasife alındı');
             fetchData();
-        } catch { toast.error('İşlem reddedildi. Ürün bir siparişe veya harekete bağlı olabilir.'); }
+        } catch (err) {
+            toast.error(hataMetni(err, 'İşlem reddedildi. Ürün bir siparişe veya harekete bağlı olabilir.'));
+        }
     };
 
     const handleSave = async (data) => {
@@ -446,7 +449,7 @@ export default function App() {
             setEditUrun(null);
             fetchData();
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'İşlem başarısız');
+            toast.error(hataMetni(err, 'İşlem başarısız'));
         }
     };
 

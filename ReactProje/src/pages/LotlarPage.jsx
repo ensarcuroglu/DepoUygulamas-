@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { Layers, Plus, Search, X, Calendar, Package, AlertTriangle, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getLotlar, createLot, deleteLot, getSktYaklasanLotlar, getUrunler } from '../services/api';
+import { useAsync } from '../hooks/useAsync';
+import { hataMetni } from '../utils/hata';
 
 function LotModal({ isOpen, onClose, onSave, urunler }) {
     const [form, setForm] = useState({ urun_id: '', lot_no: '', parti_no: '', uretim_tarihi: '', son_kullanma_tarihi: '', aciklama: '' });
@@ -87,25 +89,26 @@ function LotModal({ isOpen, onClose, onSave, urunler }) {
 export default function LotlarPage() {
     const [lotlar, setLotlar] = useState([]);
     const [urunler, setUrunler] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { loading, run } = useAsync(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [tab, setTab] = useState('tumu'); // 'tumu' | 'skt'
     const [sktLotlar, setSktLotlar] = useState([]);
     const [page, setPage] = useState(0);
     const limit = 20;
 
-    const fetchData = () => {
-        setLoading(true);
-        Promise.all([
-            getLotlar({ skip: page * limit, limit }),
-            getUrunler({ limit: 200 }),
-            getSktYaklasanLotlar(60)
-        ]).then(([lotRes, urunRes, sktRes]) => {
+    const fetchData = async () => {
+        try {
+            const [lotRes, urunRes, sktRes] = await run(() => Promise.all([
+                getLotlar({ skip: page * limit, limit }),
+                getUrunler({ limit: 200 }),
+                getSktYaklasanLotlar(60)
+            ]));
             setLotlar(lotRes.data);
             setUrunler(urunRes.data);
             setSktLotlar(sktRes.data);
-        }).catch(() => toast.error('Veriler yüklenemedi'))
-            .finally(() => setLoading(false));
+        } catch {
+            toast.error('Veriler yüklenemedi');
+        }
     };
 
     useEffect(() => { fetchData(); }, [page]);
@@ -117,7 +120,7 @@ export default function LotlarPage() {
             setModalOpen(false);
             fetchData();
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'LOT oluşturulamadı');
+            toast.error(hataMetni(err, 'LOT oluşturulamadı'));
         }
     };
 
@@ -127,7 +130,9 @@ export default function LotlarPage() {
             await deleteLot(id);
             toast.success('LOT pasife alındı');
             fetchData();
-        } catch { toast.error('İşlem başarısız'); }
+        } catch (err) {
+            toast.error(hataMetni(err, 'LOT pasife alınamadı'));
+        }
     };
 
     const displayLotlar = tab === 'skt' ? sktLotlar : lotlar;

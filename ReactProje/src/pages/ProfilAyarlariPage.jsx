@@ -3,6 +3,7 @@ import { User, Mail, Lock, Camera, Shield, CheckCircle2, Loader2, Save, UserCirc
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { updateKullanici } from '../services/api';
+import { hataMetni } from '../utils/hata';
 
 const ROL_LABELS = {
     admin: 'Sistem Yöneticisi',
@@ -42,7 +43,7 @@ export default function ProfilAyarlariPage() {
             await updateKullanici(user.id, form);
             toast.success('Profil bilgileriniz güncellendi. Yeniden giriş yapmanız gerekebilir.', { icon: '👏' });
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'Profil güncellenemedi.');
+            toast.error(hataMetni(err, 'Profil güncellenemedi'));
         } finally {
             setSaving(false);
         }
@@ -65,7 +66,7 @@ export default function ProfilAyarlariPage() {
             toast.success('Şifreniz başarıyla değiştirildi.', { icon: '🔒' });
             setPasswordForm({ yeni_sifre: '', yeni_sifre_tekrar: '' });
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'Şifre güncellenemedi.');
+            toast.error(hataMetni(err, 'Şifre güncellenemedi'));
         } finally {
             setPasswordSaving(false);
         }

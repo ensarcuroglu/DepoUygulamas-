@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAsync } from '../hooks/useAsync';
 import {
     Package, AlertTriangle, ArrowLeftRight, DollarSign,
     TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight,
@@ -168,19 +169,18 @@ export default function DashboardPage() {
     const [stats, setStats] = useState(null);
     const [kritikler, setKritikler] = useState([]);
     const [hareketler, setHareketler] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { loading, run } = useAsync(true);
 
     useEffect(() => {
-        Promise.all([
+        run(() => Promise.all([
             getDashboardStats(),
             getKritikUrunler(),
-            getStokHareketleri({ limit: 4 }), // Mobilde daha az satır göstermek iyi hissettirir
-        ]).then(([statsRes, kritikRes, hareketRes]) => {
+            getStokHareketleri({ limit: 4 }),
+        ])).then(([statsRes, kritikRes, hareketRes]) => {
             setStats(statsRes.data);
             setKritikler(kritikRes.data);
             setHareketler(hareketRes.data);
-        }).catch(console.error)
-            .finally(() => setLoading(false));
+        }).catch(() => {/* skeleton kalır, toast gereksiz — dashboard ana sayfa */});
     }, []);
 
     // Skeleton Loaders

@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import { getPaletler, createPalet, deletePalet, getSonrakiPaletNo, getLotlar, getPaletByBarkod } from '../services/api';
 import useBarcodeScanner from '../hooks/useBarcodeScanner';
 import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
+import { useAsync } from '../hooks/useAsync';
+import { hataMetni } from '../utils/hata';
 
 function PaletModal({ isOpen, onClose, onSave, lotlar, sonrakiNo }) {
     const [form, setForm] = useState({ lot_id: '', palet_no: '', raf_id: '', koli_adedi: 0, palet_kg: 0, vardiya: '' });
@@ -94,7 +96,7 @@ function PaletModal({ isOpen, onClose, onSave, lotlar, sonrakiNo }) {
 export default function PaletlerPage() {
     const [paletler, setPaletler] = useState([]);
     const [lotlar, setLotlar] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { loading, run } = useAsync(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [sonrakiNo, setSonrakiNo] = useState('');
     const [search, setSearch] = useState('');
@@ -102,18 +104,19 @@ export default function PaletlerPage() {
     const [page, setPage] = useState(0);
     const limit = 24;
 
-    const fetchData = () => {
-        setLoading(true);
-        Promise.all([
-            getPaletler({ skip: page * limit, limit }),
-            getLotlar({ limit: 200 }),
-            getSonrakiPaletNo()
-        ]).then(([palRes, lotRes, noRes]) => {
+    const fetchData = async () => {
+        try {
+            const [palRes, lotRes, noRes] = await run(() => Promise.all([
+                getPaletler({ skip: page * limit, limit }),
+                getLotlar({ limit: 200 }),
+                getSonrakiPaletNo()
+            ]));
             setPaletler(palRes.data);
             setLotlar(lotRes.data);
             setSonrakiNo(noRes.data.palet_no);
-        }).catch(() => toast.error('Veriler yüklenemedi'))
-            .finally(() => setLoading(false));
+        } catch {
+            toast.error('Veriler yüklenemedi');
+        }
     };
 
     useEffect(() => { fetchData(); }, [page]);
@@ -138,7 +141,7 @@ export default function PaletlerPage() {
             setModalOpen(false);
             fetchData();
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'Palet eklenemedi');
+            toast.error(hataMetni(err, 'Palet eklenemedi'));
         }
     };
 
@@ -148,7 +151,9 @@ export default function PaletlerPage() {
             await deletePalet(id);
             toast.success('Palet pasife alındı');
             fetchData();
-        } catch { toast.error('Çıkarma işlemi başarısız'); }
+        } catch (err) {
+            toast.error(hataMetni(err, 'Çıkarma işlemi başarısız'));
+        }
     };
 
     const filtered = search

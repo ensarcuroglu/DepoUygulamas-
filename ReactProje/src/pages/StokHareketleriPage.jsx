@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { ArrowDownToLine, ArrowUpFromLine, Barcode, Check, Loader2, Package, Clock, Search, X, TrendingUp, TrendingDown, ArrowLeft, RefreshCw } from 'lucide-react';
 import { getStokHareketleri, createStokHareketi, getUrunler, getUrunByBarkod, getRaflar } from '../services/api';
 import toast from 'react-hot-toast';
+import { useAsync } from '../hooks/useAsync';
+import { hataMetni } from '../utils/hata';
 import useBarcodeScanner from '../hooks/useBarcodeScanner';
 import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
 
@@ -34,23 +36,25 @@ export default function StokHareketleriPage() {
 
     // Son işlemler
     const [sonIslemler, setSonIslemler] = useState([]);
-    const [loadingHistory, setLoadingHistory] = useState(true);
+    const { loading: loadingHistory, run } = useAsync(true);
 
     const barkodInputRef = useRef(null);
     const miktarInputRef = useRef(null);
 
     // ===== VERİ YÜKLEME =====
-    const fetchData = () => {
-        Promise.all([
-            getUrunler({ limit: 500 }),
-            getStokHareketleri({ limit: 20 }),
-            getRaflar()
-        ]).then(([uRes, hRes, rRes]) => {
+    const fetchData = async () => {
+        try {
+            const [uRes, hRes, rRes] = await run(() => Promise.all([
+                getUrunler({ limit: 500 }),
+                getStokHareketleri({ limit: 20 }),
+                getRaflar()
+            ]));
             setUrunler(uRes.data);
             setSonIslemler(hRes.data);
             setRaflar(rRes.data);
-        }).catch(() => toast.error('Veriler yüklenemedi.'))
-            .finally(() => setLoadingHistory(false));
+        } catch {
+            toast.error('Veriler yüklenemedi');
+        }
     };
 
     useEffect(() => { fetchData(); }, []);
@@ -123,7 +127,7 @@ export default function StokHareketleriPage() {
             setAciklama('');
             fetchData(); // Geçmişi güncelle
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'İşlem başarısız!');
+            toast.error(hataMetni(err, 'İşlem başarısız'));
         } finally {
             setSubmitting(false);
         }

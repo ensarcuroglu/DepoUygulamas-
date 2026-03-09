@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Package, User, Lock, LogIn, Eye, EyeOff, AlertCircle, Loader2, Activity, Shield, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { hataMetni } from '../utils/hata';
 
 
 export default function LoginPage() {
@@ -30,7 +31,7 @@ export default function LoginPage() {
             const target = (userData.rol === 'depocu' || userData.rol === 'lojistik') ? '/stok-hareketleri' : '/dashboard';
             navigate(target, { replace: true });
         } catch (err) {
-            const message = err.response?.data?.detail || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.';
+            const message = hataMetni(err, 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.');
             setError(message);
             toast.error(message);
         } finally {

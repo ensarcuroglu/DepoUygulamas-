@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { getSistemLoglari } from '../services/api';
 import toast from 'react-hot-toast';
+import { useAsync } from '../hooks/useAsync';
 import * as XLSX from 'xlsx';
 
 // İkon ve Renk Haritası
@@ -19,7 +20,7 @@ const ActionStyles = {
 
 export default function SistemLoglariPage() {
     const [loglar, setLoglar] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { loading, run } = useAsync(true);
 
     // Filtre state'leri
     const [aramaTaramasi, setAramaTaramasi] = useState('');
@@ -32,14 +33,11 @@ export default function SistemLoglariPage() {
     const [seciliLog, setSeciliLog] = useState(null);
 
     const fetchData = async () => {
-        setLoading(true);
         try {
-            const res = await getSistemLoglari(200); // Son 200 kaydı getir
+            const res = await run(() => getSistemLoglari(200));
             setLoglar(res.data);
-        } catch (error) {
-            toast.error('Loglar yüklenirken hata oluştu.');
-        } finally {
-            setLoading(false);
+        } catch {
+            toast.error('Loglar yüklenirken hata oluştu');
         }
     };
 

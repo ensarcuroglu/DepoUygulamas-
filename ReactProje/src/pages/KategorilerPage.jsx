@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { FolderOpen, Plus, Edit3, Trash2, X, Package } from 'lucide-react';
 import { getKategoriler, createKategori, updateKategori, deleteKategori } from '../services/api';
 import toast from 'react-hot-toast';
+import { useAsync } from '../hooks/useAsync';
+import { hataMetni } from '../utils/hata';
 
 function KategoriModal({ isOpen, onClose, onSave, kategori }) {
     const [form, setForm] = useState({ isim: '', aciklama: '' });
@@ -75,16 +77,17 @@ const COLORS = [
 
 export default function KategorilerPage() {
     const [kategoriler, setKategoriler] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { loading, run } = useAsync(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editKategori, setEditKategori] = useState(null);
 
-    const fetchData = () => {
-        setLoading(true);
-        getKategoriler()
-            .then(res => setKategoriler(res.data))
-            .catch(() => toast.error('Sistem kategorilere erişirken hata ile karşılaştı.'))
-            .finally(() => setLoading(false));
+    const fetchData = async () => {
+        try {
+            const res = await run(() => getKategoriler());
+            setKategoriler(res.data);
+        } catch {
+            toast.error('Kategoriler yüklenemedi');
+        }
     };
 
     useEffect(() => { fetchData(); }, []);
@@ -95,7 +98,9 @@ export default function KategorilerPage() {
             await deleteKategori(id);
             toast.success('Kategori kayıtları sistemden silindi.');
             fetchData();
-        } catch { toast.error('Sistem silme işlemine izin vermedi. İçerisinde ürün bulunan kategoriler silinemez.'); }
+        } catch (err) {
+            toast.error(hataMetni(err, 'İçerisinde ürün bulunan kategoriler silinemez'));
+        }
     };
 
     const handleSave = async (data) => {
@@ -111,7 +116,7 @@ export default function KategorilerPage() {
             setEditKategori(null);
             fetchData();
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'İşlem başarısız');
+            toast.error(hataMetni(err, 'İşlem başarısız'));
         }
     };
 

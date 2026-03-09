@@ -3,13 +3,14 @@ import { createPortal } from 'react-dom';
 import { Warehouse, Plus, X, MapPin, Building, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getDepolar, createDepo, deleteDepo, getRaflar, createRaf } from '../services/api';
+import { useAsync } from '../hooks/useAsync';
+import { hataMetni } from '../utils/hata';
 
-// Not: getRaflar ve createRaf henüz api.js'de yoksa aşağıda eklenir
 // Bu sayfa hem Depo hem Raf yönetimini kapsar
 
 export default function DepolarPage() {
     const [depolar, setDepolar] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { loading, run } = useAsync(true);
     const [depoModalOpen, setDepoModalOpen] = useState(false);
     const [depoForm, setDepoForm] = useState({ isim: '', adres: '', aciklama: '' });
 
@@ -17,12 +18,13 @@ export default function DepolarPage() {
     const [rafModalOpen, setRafModalOpen] = useState(false);
     const [rafForm, setRafForm] = useState({ depo_id: '', kod: '', bolge: '', kapasite: 100 });
 
-    const fetchData = () => {
-        setLoading(true);
-        getDepolar()
-            .then(res => setDepolar(res.data))
-            .catch(() => toast.error('Depolar yüklenemedi'))
-            .finally(() => setLoading(false));
+    const fetchData = async () => {
+        try {
+            const res = await run(() => getDepolar());
+            setDepolar(res.data);
+        } catch {
+            toast.error('Depolar yüklenemedi');
+        }
     };
 
     useEffect(() => { fetchData(); }, []);
@@ -36,7 +38,7 @@ export default function DepolarPage() {
             setDepoForm({ isim: '', adres: '', aciklama: '' });
             fetchData();
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'Depo oluşturulamadı');
+            toast.error(hataMetni(err, 'Depo oluşturulamadı'));
         }
     };
 
@@ -48,7 +50,7 @@ export default function DepolarPage() {
             setRafModalOpen(false);
             setRafForm({ depo_id: '', kod: '', bolge: '', kapasite: 100 });
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'Raf oluşturulamadı');
+            toast.error(hataMetni(err, 'Raf oluşturulamadı'));
         }
     };
 

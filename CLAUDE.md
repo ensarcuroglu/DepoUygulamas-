@@ -76,6 +76,8 @@ npm run build
 - **`components/PrivateRoute.jsx`** / **`RoleRoute.jsx`** — Route guards
 - **`pages/`** — One page component per feature area
 - **`utils/exportUtils.js`** — Excel (xlsx) and PDF (jspdf + jspdf-autotable) export helpers
+- **`utils/hata.js`** — API error message resolver (`hataMetni(err, fallback)`); checks FastAPI `detail`, `message`, JS message in order
+- **`hooks/useAsync.js`** — `useAsync(initialLoading?)` hook; centralizes `loading` state via `run(asyncFn)` — used across all data-fetching pages
 
 **Route access control:**
 - Admin only: `/dashboard`, `/urunler`, `/kategoriler`, `/lotlar`, `/paletler`, `/kullanicilar`, `/ayarlar`, `/tedarikciler`, `/sistem-loglari`

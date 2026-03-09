@@ -6,6 +6,7 @@ import {
     updateDestekTalebi
 } from '../services/api';
 import toast from 'react-hot-toast';
+import { hataMetni } from '../utils/hata';
 import {
     HelpCircle,
     Plus,
@@ -140,7 +141,7 @@ export default function DestekMasasiPage() {
 
             fetchTalepler();
         } catch (err) {
-            toast.error(err.response?.data?.detail || "Talep oluşturulamadı.");
+            toast.error(hataMetni(err, 'Talep oluşturulamadı'));
         } finally {
             setIsSubmitting(false);
         }
@@ -161,7 +162,7 @@ export default function DestekMasasiPage() {
             setIsDetailOpen(false);
             fetchTalepler();
         } catch (err) {
-            toast.error(err.response?.data?.detail || "Güncelleme başarısız.");
+            toast.error(hataMetni(err, 'Güncelleme başarısız'));
         } finally {
             setIsSubmitting(false);
         }

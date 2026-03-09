@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getKullanicilar, createKullanici, updateKullanici, deleteKullanici } from '../services/api';
+import { hataMetni } from '../utils/hata';
 import { useAuth } from '../contexts/AuthContext';
 
 const ROL_CONFIG = {
@@ -277,7 +278,7 @@ export default function KullanicilarPage() {
             toast.success('Kullanıcı silindi');
             fetchData();
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'Silme işlemi başarısız.');
+            toast.error(hataMetni(err, 'Silme işlemi başarısız'));
         }
     };
 
@@ -294,7 +295,7 @@ export default function KullanicilarPage() {
             setEditKullanici(null);
             fetchData();
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'İşlem başarısız');
+            toast.error(hataMetni(err, 'İşlem başarısız'));
         }
     };
 

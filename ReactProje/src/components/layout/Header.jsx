@@ -6,6 +6,7 @@ import { UrunModal } from '../../pages/UrunlerPage';
 import { HareketModal } from '../../pages/StokHareketleriPage';
 import { getKategoriler, getUrunler, createUrun, createStokHareketi } from '../../services/api';
 import toast from 'react-hot-toast';
+import { hataMetni } from '../../utils/hata';
 
 const PAGE_TITLES = {
     '/dashboard': { title: 'Dashboard', subtitle: 'Gerçek zamanlı depo istatistikleri' },
@@ -73,7 +74,7 @@ export default function Header({ onMobileMenuToggle }) {
             setUrunModalOpen(false);
             getUrunler({ limit: 500 }).then(res => setUrunler(res.data)); // Listeyi yenile
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'Hızlı ürün ekleme başarısız oldu.');
+            toast.error(hataMetni(err, 'Hızlı ürün ekleme başarısız oldu'));
         }
     };
 
@@ -83,7 +84,7 @@ export default function Header({ onMobileMenuToggle }) {
             toast.success(data.hareket_tipi === 'giris' ? 'Hızlı tedarik girişi eklendi.' : 'Hızlı sevkiyat çıkışı eklendi.');
             setStokModalOpen(false);
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'Stok hareketi eklenemedi.');
+            toast.error(hataMetni(err, 'Stok hareketi eklenemedi'));
         }
     };
 
