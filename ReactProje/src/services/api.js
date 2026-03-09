@@ -141,4 +141,12 @@ export const deleteTedarikci = (id) => api.delete(`/tedarikciler/${id}`);
 export const getSistemLoglari = (limit = 100) => api.get('/sistem-loglari/', { params: { limit } });
 export const createSistemLog = (data) => api.post('/sistem-loglari/', data);
 
+// ========================
+// DESTEK MASASI
+// ========================
+export const getDestekTalepleri = (params = {}) => api.get('/destek/', { params });
+export const getDestekTalebi = (id) => api.get(`/destek/${id}`);
+export const createDestekTalebi = (data) => api.post('/destek/', data);
+export const updateDestekTalebi = (id, data) => api.put(`/destek/${id}`, data);
+
 export default api;

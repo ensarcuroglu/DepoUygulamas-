@@ -259,6 +259,29 @@ class Kullanici(Base):
 
     # İlişki
     stok_hareketleri = relationship("StokHareketi", back_populates="kullanici")
+    destek_talepleri = relationship("DestekTalebi", back_populates="kullanici")
+
+
+# ========================
+# DESTEK MASASI
+# ========================
+
+class DestekTalebi(Base):
+    __tablename__ = "destek_talepleri"
+
+    id = Column(Integer, primary_key=True, index=True)
+    kullanici_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=False)
+    konu = Column(String(200), nullable=False)
+    kategori = Column(String(50), nullable=False)                 # "Hata Bildirimi", "Donanım Talebi", "Diğer" vs.
+    oncelik = Column(String(20), default="Normal")                # "Düşük", "Normal", "Yüksek"
+    durum = Column(String(20), default="Açık")                    # "Açık", "İşlemde", "Çözüldü"
+    aciklama = Column(Text, nullable=False)                       # Kullanıcının talebi
+    admin_cevabi = Column(Text, nullable=True)                    # Yönetici/Destek ekibinin cevabı
+    olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
+    guncelleme_tarihi = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # İlişki
+    kullanici = relationship("Kullanici", back_populates="destek_talepleri")
 
 from sqlalchemy import select, func
 from sqlalchemy.orm import column_property

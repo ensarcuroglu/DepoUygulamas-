@@ -17,6 +17,7 @@ import PaletlerPage from './pages/PaletlerPage';
 import DepolarPage from './pages/DepolarPage';
 import DepoKrokiPage from './pages/DepoKrokiPage';
 import SistemLoglariPage from './pages/SistemLoglariPage';
+import DestekMasasiPage from './pages/DestekMasasiPage';
 
 /**
  * Varsayılan yönlendirme: Depocu → stok-hareketleri, Admin → dashboard
@@ -58,9 +59,10 @@ function App() {
                 <Route path="/depo-kroki" element={<DepoKrokiPage />} />
               </Route>
 
-              {/* Hem Admin hem Depocu erişimli sayfalar */}
+              {/* Herkesin erişebildiği korumalı alanlar */}
               <Route path="/stok-hareketleri" element={<StokHareketleriPage />} />
               <Route path="/profil-ayarlari" element={<ProfilAyarlariPage />} />
+              <Route path="/destek-masasi" element={<DestekMasasiPage />} />
 
             </Route>
           </Route>

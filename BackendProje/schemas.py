@@ -414,3 +414,34 @@ class DashboardStats(BaseModel):
     kritik_stok_sayisi: int
     bugunku_hareket: int
     toplam_deger: float
+
+
+# ========================
+# DESTEK MASASI ŞEMALARİ
+# ========================
+
+class DestekTalebiBase(BaseModel):
+    konu: str
+    kategori: str
+    oncelik: Optional[str] = "Normal"
+    aciklama: str
+
+class DestekTalebiCreate(DestekTalebiBase):
+    pass
+
+class DestekTalebiUpdate(BaseModel):
+    durum: Optional[str] = None
+    admin_cevabi: Optional[str] = None
+    oncelik: Optional[str] = None
+
+class DestekTalebiResponse(DestekTalebiBase):
+    id: int
+    kullanici_id: int
+    durum: str
+    admin_cevabi: Optional[str] = None
+    olusturma_tarihi: datetime
+    guncelleme_tarihi: datetime
+    kullanici: Optional[KullaniciResponse] = None
+
+    class Config:
+        from_attributes = True

@@ -36,7 +36,7 @@ const menuItems = [
 
 const bottomItems = [
     { path: '/sistem-loglari', label: 'Sistem Logları', icon: ShieldAlert, roles: ['admin'] },
-    { path: '/yardim', label: 'Destek Masası', icon: HelpCircle, roles: ['admin'] },
+    { path: '/destek-masasi', label: 'Destek Masası', icon: HelpCircle, roles: ['admin', 'depocu', 'lojistik'] },
     { path: '/ayarlar', label: 'Sistem Tercihleri', icon: Settings, roles: ['admin'] },
 ];
 

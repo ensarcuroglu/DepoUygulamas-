@@ -22,6 +22,7 @@ export default function SistemLoglariPage() {
     const [loading, setLoading] = useState(true);
 
     // Filtre state'leri
+    const [aramaTaramasi, setAramaTaramasi] = useState('');
     const [seciliModul, setSeciliModul] = useState('');
     const [seciliTip, setSeciliTip] = useState('');
     const [baslangicTarihi, setBaslangicTarihi] = useState('');
@@ -133,61 +134,61 @@ export default function SistemLoglariPage() {
         <div className="max-w-[1400px] mx-auto p-4 sm:p-6 pb-24 space-y-6">
 
             {/* --- HEADER KISMI --- */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white p-5 sm:p-8 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 bg-white p-5 sm:p-8 rounded-[24px] md:rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
                 {/* Dekoratif Arkaplan */}
                 <div className="absolute -right-20 -top-20 w-64 h-64 bg-slate-50 rounded-full blur-3xl opacity-50 pointer-events-none" />
 
-                <div className="flex items-center gap-5 relative z-10">
-                    <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center flex-shrink-0 shadow-lg shadow-slate-900/20">
-                        <ShieldAlert className="w-8 h-8 text-white" />
+                <div className="flex items-center gap-4 md:gap-5 relative z-10">
+                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-slate-900 flex items-center justify-center flex-shrink-0 shadow-lg shadow-slate-900/20">
+                        <ShieldAlert className="w-6 h-6 md:w-8 md:h-8 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-[28px] font-black text-slate-800 tracking-tight leading-none mb-1">Sistem Logları</h1>
-                        <p className="text-[14px] font-medium text-slate-500">Tüm sistem ve kullanıcı hareketlerini inceliyorsunuz.</p>
+                        <h1 className="text-xl sm:text-[28px] font-black text-slate-800 tracking-tight leading-none mb-1">Sistem Logları</h1>
+                        <p className="text-xs sm:text-[14px] font-medium text-slate-500">Tüm sistem ve kullanıcı hareketlerini inceliyorsunuz.</p>
                     </div>
                 </div>
 
-                <div className="relative z-10 flex flex-col sm:flex-row items-center gap-3">
+                <div className="relative z-10 flex items-center gap-2 md:gap-3 w-full md:w-auto mt-2 md:mt-0">
                     <button
                         onClick={exportToExcel}
-                        className="flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold hover:bg-emerald-100 hover:text-emerald-800 active:scale-95 transition-all w-full sm:w-auto justify-center shadow-sm"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 md:px-5 md:py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold hover:bg-emerald-100 hover:text-emerald-800 active:scale-95 transition-all shadow-sm text-sm"
                     >
                         <Download className="w-4 h-4" />
-                        <span>Excel'e Aktar</span>
+                        <span className="md:inline">İndir</span>
                     </button>
                     <button
                         onClick={fetchData}
-                        className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:text-slate-900 active:scale-95 transition-all w-full sm:w-auto justify-center shadow-sm"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 md:px-5 md:py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:text-slate-900 active:scale-95 transition-all shadow-sm text-sm"
                     >
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        <span>Kayıtları Yenile</span>
+                        <span className="md:inline">Yenile</span>
                     </button>
                 </div>
             </div>
 
             {/* --- FİLTRELER --- */}
-            <div className="bg-white p-2 border border-slate-100/80 rounded-2xl shadow-sm flex flex-col md:flex-row gap-2">
+            <div className="bg-white p-2 md:p-3 border border-slate-100/80 rounded-2xl shadow-sm flex flex-col md:flex-row gap-2 md:gap-3">
 
-                <div className="relative flex-1 group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                <div className="relative w-full md:flex-1 group">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                     <input
                         type="text"
-                        placeholder="İşlem detayı veya kullanıcı ara..."
+                        placeholder="İşlem veya kullanıcı ara..."
                         value={aramaTaramasi}
                         onChange={(e) => setAramaTaramasi(e.target.value)}
-                        className="w-full h-14 pl-12 pr-4 bg-transparent text-[14px] font-semibold text-slate-800 focus:outline-none placeholder:text-slate-400"
+                        className="w-full h-10 md:h-12 pl-9 pr-3 bg-slate-50 md:bg-transparent rounded-xl md:rounded-lg text-[13px] md:text-[14px] font-semibold text-slate-800 focus:outline-none focus:bg-white border border-slate-200 md:border-transparent placeholder:text-slate-400 transition-colors"
                     />
                 </div>
 
-                <div className="hidden md:block w-px h-10 bg-slate-100 self-center" />
+                <div className="hidden md:block w-px h-8 bg-slate-200 self-center" />
 
-                <div className="flex gap-2 flex-col sm:flex-row p-2 md:p-0">
+                <div className="grid grid-cols-2 md:flex gap-2">
                     <div className="relative">
-                        <Server className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Server className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <select
                             value={seciliModul}
                             onChange={(e) => setSeciliModul(e.target.value)}
-                            className="w-full sm:w-48 h-10 md:h-14 pl-10 pr-8 bg-slate-50 md:bg-transparent border border-slate-200 md:border-transparent rounded-xl md:rounded-r-[20px] text-[13px] font-bold text-slate-700 focus:outline-none focus:bg-slate-50 transition-colors appearance-none cursor-pointer"
+                            className="w-full md:w-40 h-10 md:h-12 pl-8 pr-6 bg-slate-50 md:bg-transparent border border-slate-200 md:border-transparent rounded-xl text-[12px] md:text-[13px] font-bold text-slate-700 focus:outline-none focus:bg-white transition-colors appearance-none cursor-pointer"
                         >
                             <option value="">Tüm Modüller</option>
                             {moduller.map(m => <option key={m} value={m}>{m}</option>)}
@@ -195,11 +196,11 @@ export default function SistemLoglariPage() {
                     </div>
 
                     <div className="relative">
-                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <select
                             value={seciliTip}
                             onChange={(e) => setSeciliTip(e.target.value)}
-                            className="w-full sm:w-48 h-10 md:h-14 pl-10 pr-8 bg-slate-50 md:bg-transparent border border-slate-200 md:border-transparent rounded-xl md:rounded-r-[20px] text-[13px] font-bold text-slate-700 focus:outline-none focus:bg-slate-50 transition-colors appearance-none cursor-pointer"
+                            className="w-full md:w-40 h-10 md:h-12 pl-8 pr-6 bg-slate-50 md:bg-transparent border border-slate-200 md:border-transparent rounded-xl text-[12px] md:text-[13px] font-bold text-slate-700 focus:outline-none focus:bg-white transition-colors appearance-none cursor-pointer"
                         >
                             <option value="">Tüm İşlemler</option>
                             {islemTipleri.map(t => <option key={t} value={t}>{t}</option>)}
@@ -207,25 +208,22 @@ export default function SistemLoglariPage() {
                     </div>
                 </div>
 
-                <div className="hidden md:block w-px h-10 bg-slate-100 self-center" />
+                <div className="hidden md:block w-px h-8 bg-slate-200 self-center" />
 
                 {/* Tarih Filtreleri */}
-                <div className="flex gap-2 flex-col sm:flex-row p-2 md:p-0 items-center">
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="date"
-                            value={baslangicTarihi}
-                            onChange={(e) => setBaslangicTarihi(e.target.value)}
-                            className="h-10 md:h-14 px-3 bg-slate-50 md:bg-transparent border border-slate-200 md:border-transparent rounded-xl text-[13px] font-bold text-slate-700 focus:outline-none focus:bg-slate-50 transition-colors"
-                        />
-                        <span className="text-slate-400 font-bold">-</span>
-                        <input
-                            type="date"
-                            value={bitisTarihi}
-                            onChange={(e) => setBitisTarihi(e.target.value)}
-                            className="h-10 md:h-14 px-3 bg-slate-50 md:bg-transparent border border-slate-200 md:border-transparent rounded-xl md:rounded-r-[20px] text-[13px] font-bold text-slate-700 focus:outline-none focus:bg-slate-50 transition-colors"
-                        />
-                    </div>
+                <div className="grid grid-cols-2 md:flex items-center gap-2">
+                    <input
+                        type="date"
+                        value={baslangicTarihi}
+                        onChange={(e) => setBaslangicTarihi(e.target.value)}
+                        className="w-full md:w-auto h-10 md:h-12 px-2.5 bg-slate-50 md:bg-transparent border border-slate-200 md:border-transparent rounded-xl text-[12px] md:text-[13px] font-bold text-slate-700 focus:outline-none focus:bg-white transition-colors"
+                    />
+                    <input
+                        type="date"
+                        value={bitisTarihi}
+                        onChange={(e) => setBitisTarihi(e.target.value)}
+                        className="w-full md:w-auto h-10 md:h-12 px-2.5 bg-slate-50 md:bg-transparent border border-slate-200 md:border-transparent rounded-xl text-[12px] md:text-[13px] font-bold text-slate-700 focus:outline-none focus:bg-white transition-colors"
+                    />
                 </div>
             </div>
 
@@ -255,36 +253,45 @@ export default function SistemLoglariPage() {
                             <div
                                 key={log.id}
                                 onClick={() => hasDiff && setSeciliLog(log)}
-                                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 bg-white rounded-2xl border border-slate-200 transition-all duration-300
+                                className={`flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 p-3.5 sm:p-5 bg-white rounded-xl md:rounded-2xl border border-slate-200 transition-all duration-300
                                 ${hasDiff ? 'cursor-pointer hover:border-slate-300 hover:shadow-md' : ''}`}
                             >
                                 {/* Sol Bölüm: İcon ve Detay */}
-                                <div className="flex items-start sm:items-center gap-4 min-w-0">
-                                    <div className={`w-12 h-12 rounded-xl bg-${c}-50 flex items-center justify-center flex-shrink-0 ring-1 ring-${c}-100`}>
-                                        <Icon className={`w-6 h-6 text-${c}-600`} />
+                                <div className="flex items-start md:items-center gap-3 md:gap-4 min-w-0">
+                                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-${c}-50 flex items-center justify-center flex-shrink-0 ring-1 ring-${c}-100`}>
+                                        <Icon className={`w-5 h-5 md:w-6 md:h-6 text-${c}-600`} />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                            <span className={`text-[11px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-${c}-100/50 text-${c}-700`}>
+                                            <span className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md bg-${c}-100/50 text-${c}-700`}>
                                                 {styleInfo.label}
                                             </span>
-                                            <span className="text-[12px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                                            <span className="text-[11px] md:text-[12px] font-bold text-slate-400 bg-slate-100 px-1.5 md:px-2 py-0.5 rounded-md truncate max-w-[120px] md:max-w-none">
                                                 Modül: {log.modul}
                                             </span>
                                         </div>
-                                        <p className="text-[15px] font-bold text-slate-800 leading-snug break-words">
+                                        <p className="text-[13px] md:text-[15px] font-bold text-slate-800 leading-snug break-words line-clamp-2 md:line-clamp-none">
                                             {log.detay || 'İşlem detayı yok.'}
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Sağ Bölüm: Tarih ve Info */}
-                                <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 sm:gap-1 flex-shrink-0 pt-3 sm:pt-0 border-t sm:border-0 border-slate-100">
-                                    <div className="flex items-center gap-1.5 text-slate-500">
-                                        <UserCircle className="w-4 h-4" />
-                                        <span className="text-[13px] font-black">{log.kullanici_ad_soyad || 'Sistem'}</span>
+                                <div className="flex flex-row items-center justify-between md:justify-center md:flex-col gap-2 md:gap-1 flex-shrink-0 pt-2.5 md:pt-0 mt-1 md:mt-0 border-t md:border-0 border-slate-100">
+                                    <div className="flex items-center gap-3 md:gap-1.5">
+                                        <div className="flex items-center gap-1 md:gap-1.5 text-slate-500">
+                                            <UserCircle className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                                            <span className="text-[11px] md:text-[13px] font-black truncate max-w-[90px] md:max-w-[120px]">{log.kullanici_ad_soyad || 'Sistem'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 md:gap-1.5 text-slate-400 md:hidden">
+                                            <Clock className="w-3.5 h-3.5" />
+                                            <span className="text-[11px] font-semibold">
+                                                {new Date(log.tarih).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-1.5 text-slate-400">
+
+                                    <div className="hidden md:flex items-center gap-1.5 text-slate-400">
                                         <Clock className="w-3.5 h-3.5" />
                                         <span className="text-[12px] font-semibold">
                                             {new Date(log.tarih).toLocaleString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
@@ -293,7 +300,7 @@ export default function SistemLoglariPage() {
 
                                     {/* Mobilde görünür incele butonu minik */}
                                     {hasDiff && (
-                                        <span className="sm:hidden text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md mt-1">
+                                        <span className="md:hidden text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded border border-blue-100">
                                             İncele
                                         </span>
                                     )}
@@ -301,7 +308,7 @@ export default function SistemLoglariPage() {
 
                                 {/* Desktop için incele butonu */}
                                 {hasDiff && (
-                                    <div className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-slate-50 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                                    <div className="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-slate-50 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shrink-0">
                                         <Eye className="w-5 h-5" />
                                     </div>
                                 )}
@@ -313,41 +320,41 @@ export default function SistemLoglariPage() {
 
             {/* --- DETAY MODALI --- */}
             {seciliLog && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
                     <div
-                        className="bg-white rounded-[32px] w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200"
+                        className="bg-white rounded-[24px] md:rounded-[32px] w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
-                        <div className="flex items-center justify-between p-6 pb-4 border-b border-slate-100">
-                            <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-xl bg-${ActionStyles[seciliLog.islem_tipi]?.color || 'slate'}-50 flex items-center justify-center`}>
+                        <div className="flex items-center justify-between p-4 md:p-6 pb-3 md:pb-4 border-b border-slate-100 shadow-sm z-10">
+                            <div className="flex items-center gap-3 md:gap-4">
+                                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-${ActionStyles[seciliLog.islem_tipi]?.color || 'slate'}-50 flex items-center justify-center`}>
                                     {React.createElement(ActionStyles[seciliLog.islem_tipi]?.icon || Activity, {
-                                        className: `w-6 h-6 text-${ActionStyles[seciliLog.islem_tipi]?.color || 'slate'}-600`
+                                        className: `w-5 h-5 md:w-6 md:h-6 text-${ActionStyles[seciliLog.islem_tipi]?.color || 'slate'}-600`
                                     })}
                                 </div>
                                 <div>
-                                    <h3 className="text-[18px] font-black text-slate-900 leading-none mb-1">Kayıt Detayı</h3>
-                                    <p className="text-[13px] font-semibold text-slate-500">ID: #{seciliLog.id} • {seciliLog.modul}</p>
+                                    <h3 className="text-[16px] md:text-[18px] font-black text-slate-900 leading-none mb-1">Kayıt Detayı</h3>
+                                    <p className="text-[12px] md:text-[13px] font-semibold text-slate-500">ID: #{seciliLog.id} • {seciliLog.modul}</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => setSeciliLog(null)}
-                                className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors"
+                                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors"
                             >
-                                <X className="w-5 h-5" />
+                                <X className="w-4 h-4 md:w-5 md:h-5" />
                             </button>
                         </div>
 
                         {/* Modal Body */}
-                        <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/50">
+                        <div className="p-4 md:p-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
 
                             {/* Özet */}
-                            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-6">
-                                <p className="text-[14px] font-bold text-slate-800 mb-2">{seciliLog.detay}</p>
-                                <div className="flex items-center gap-4 text-[12px] font-semibold text-slate-500">
-                                    <span className="flex items-center gap-1"><UserCircle className="w-4 h-4" /> {seciliLog.kullanici_ad_soyad}</span>
-                                    <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {new Date(seciliLog.tarih).toLocaleString('tr-TR')}</span>
+                            <div className="bg-white p-3.5 md:p-4 rounded-xl md:rounded-2xl border border-slate-200 shadow-sm mb-4 md:mb-6">
+                                <p className="text-[13px] md:text-[14px] font-bold text-slate-800 mb-2.5 md:mb-2">{seciliLog.detay}</p>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-[11px] md:text-[12px] font-semibold text-slate-500">
+                                    <span className="flex items-center gap-1.5 bg-slate-50 w-fit px-2 py-1 rounded"><UserCircle className="w-4 h-4 text-slate-400" /> {seciliLog.kullanici_ad_soyad}</span>
+                                    <span className="flex items-center gap-1.5 bg-slate-50 w-fit px-2 py-1 rounded"><Clock className="w-4 h-4 text-slate-400" /> {new Date(seciliLog.tarih).toLocaleString('tr-TR')}</span>
                                 </div>
                             </div>
 
@@ -356,12 +363,12 @@ export default function SistemLoglariPage() {
                                 {/* Eski Veri */}
                                 {seciliLog.eski_veri && (
                                     <div className="flex flex-col">
-                                        <div className="flex items-center gap-2 mb-2 px-2">
+                                        <div className="flex items-center gap-2 mb-2 px-1">
                                             <div className="w-2 h-2 rounded-full bg-rose-500" />
-                                            <span className="text-[12px] font-black text-slate-600 uppercase tracking-wider">Eski Veri</span>
+                                            <span className="text-[11px] md:text-[12px] font-black text-slate-600 uppercase tracking-wider">Eski Veri</span>
                                         </div>
-                                        <div className="bg-[#1e1e1e] rounded-2xl p-4 overflow-x-auto border border-rose-900/30 flex-1">
-                                            <pre className="text-[13px] text-rose-300 font-mono leading-relaxed">
+                                        <div className="bg-[#1e1e1e] rounded-xl md:rounded-2xl p-3 md:p-4 overflow-x-auto border border-rose-900/30 flex-1">
+                                            <pre className="text-[12px] md:text-[13px] text-rose-300 font-mono leading-relaxed">
                                                 {formatJSON(seciliLog.eski_veri)}
                                             </pre>
                                         </div>
@@ -371,12 +378,12 @@ export default function SistemLoglariPage() {
                                 {/* Yeni Veri */}
                                 {seciliLog.yeni_veri && (
                                     <div className="flex flex-col">
-                                        <div className="flex items-center gap-2 mb-2 px-2">
+                                        <div className="flex items-center gap-2 mb-2 px-1">
                                             <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                            <span className="text-[12px] font-black text-slate-600 uppercase tracking-wider">Yeni Veri</span>
+                                            <span className="text-[11px] md:text-[12px] font-black text-slate-600 uppercase tracking-wider">Yeni Veri</span>
                                         </div>
-                                        <div className="bg-[#1e1e1e] rounded-2xl p-4 overflow-x-auto border border-emerald-900/30 flex-1">
-                                            <pre className="text-[13px] text-emerald-300 font-mono leading-relaxed">
+                                        <div className="bg-[#1e1e1e] rounded-xl md:rounded-2xl p-3 md:p-4 overflow-x-auto border border-emerald-900/30 flex-1">
+                                            <pre className="text-[12px] md:text-[13px] text-emerald-300 font-mono leading-relaxed">
                                                 {formatJSON(seciliLog.yeni_veri)}
                                             </pre>
                                         </div>
