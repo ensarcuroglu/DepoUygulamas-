@@ -54,4 +54,7 @@ def hareket_ekle(
         raise HTTPException(status_code=404, detail="Ürün bulunamadı")
 
     # Kullanıcı ID'sini otomatik olarak kaydet
-    return crud.create_stok_hareketi(db, hareket, kullanici_id=current_user.id)
+    try:
+        return crud.create_stok_hareketi(db, hareket, kullanici_id=current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

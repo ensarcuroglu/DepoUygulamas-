@@ -57,6 +57,16 @@ def lot_ekle(
     db_urun = crud.get_urun(db, lot.urun_id)
     if not db_urun:
         raise HTTPException(status_code=404, detail="Ürün bulunamadı")
+        
+    # Mükerrer LOT kontrolü
+    existing_lot = db.query(crud.Lot).filter(
+        crud.Lot.urun_id == lot.urun_id,
+        crud.Lot.lot_no == lot.lot_no,
+        crud.Lot.aktif == True
+    ).first()
+    if existing_lot:
+        raise HTTPException(status_code=400, detail=f"Bu ürüne ait '{lot.lot_no}' numaralı bir LOT zaten mevcut")
+        
     return crud.create_lot(db, lot)
 
 

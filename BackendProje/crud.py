@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_
 from datetime import datetime, timedelta, date
+from fastapi.encoders import jsonable_encoder
 
 from models import (
     Marka, Kategori, Depo, Raf, Tedarikci,
@@ -314,7 +315,7 @@ def create_urun(db: Session, urun: UrunCreate, kullanici_id: int):
         islem_tipi="CREATE",
         modul="Ürün Yönetimi",
         detay=f"Yeni ürün eklendi: {urun.isim} (Barkod: {urun.barkod or '-'})",
-        yeni_veri=urun.model_dump()
+        yeni_veri=jsonable_encoder(urun.model_dump())
     )
     db.add(log)
     db.commit()
@@ -342,8 +343,8 @@ def update_urun(db: Session, urun_id: int, urun: UrunUpdate, kullanici_id: int):
         islem_tipi="UPDATE",
         modul="Ürün Yönetimi",
         detay=f"Ürün güncellendi: {db_urun.isim}",
-        eski_veri={"isim": eski_veri['isim'], "fiyat": eski_veri['fiyat'], "stok": db_urun.stok_miktari},
-        yeni_veri={"isim": yeni_veri['isim'], "fiyat": yeni_veri['fiyat'], "stok": db_urun.stok_miktari}
+        eski_veri=jsonable_encoder({"isim": eski_veri['isim'], "fiyat": eski_veri['fiyat'], "stok": db_urun.stok_miktari}),
+        yeni_veri=jsonable_encoder({"isim": yeni_veri['isim'], "fiyat": yeni_veri['fiyat'], "stok": db_urun.stok_miktari})
     )
     db.add(log)
     db.commit()
@@ -521,24 +522,102 @@ def get_stok_hareketleri(db: Session, skip: int = 0, limit: int = 50, urun_id: i
     return query.offset(skip).limit(limit).all()
 
 def create_stok_hareketi(db: Session, hareket: StokHareketiCreate, kullanici_id: int = None):
-    """Stok hareketi oluşturur. Palet bazlı çıkış yapılıyorsa paleti pasife alır."""
-    # Ürün bilgisini id üzerinden al
+    """Stok hareketi oluşturur ve arka planda Palet bakiyelerini günceller."""
+    
+    # 1. Ürünü bul
     db_urun = db.query(Urun).filter(Urun.id == hareket.urun_id).first()
-    urun_ismi = db_urun.isim if db_urun else f"Ürün #{hareket.urun_id}"
+    if not db_urun:
+        raise ValueError("Ürün bulunamadı")
+        
+    urun_ismi = db_urun.isim
 
+    # ==========================
+    # ÇIKIŞ İŞLEMİ (FIFO MANTIĞI)
+    # ==========================
+    if hareket.hareket_tipi == "cikis":
+        if hareket.miktar > db_urun.stok_miktari:
+            raise ValueError(f"Yetersiz stok! Mevcut: {db_urun.stok_miktari}, İstenen: {hareket.miktar}")
+            
+        kalan_dusulecek_miktar = hareket.miktar
+        
+        # Ürüne ait aktif paletleri SKT'ye veya Üretim Tarihine (Lot üzerinden) göre sırala (FIFO)
+        aktif_paletler = db.query(Palet).join(Lot).filter(
+            Lot.urun_id == hareket.urun_id,
+            Lot.aktif == True,
+            Palet.aktif == True,
+            Palet.koli_adedi > 0
+        ).order_by(
+            Lot.son_kullanma_tarihi.asc().nulls_last(), # Önce SKT'si yakın olanlar
+            Lot.uretim_tarihi.asc().nulls_last(),       # Sonra eski üretimliler
+            Palet.tarih.asc()                           # En son palet oluşturma tarihi
+        ).all()
+        
+        for palet in aktif_paletler:
+            if kalan_dusulecek_miktar <= 0:
+                break
+                
+            if palet.koli_adedi <= kalan_dusulecek_miktar:
+                # Paletin tamamı çıkışa gidiyor, palet kapanır
+                kalan_dusulecek_miktar -= palet.koli_adedi
+                palet.koli_adedi = 0
+                palet.aktif = False
+            else:
+                # Paletin sadece bir kısmı çıkıyor
+                palet.koli_adedi -= kalan_dusulecek_miktar
+                kalan_dusulecek_miktar = 0
+                
+        if kalan_dusulecek_miktar > 0:
+            # Buraya normal şartlarda düşmemeli yukarıda stok kontrolü yapıldı ama her ihtimale karşı
+            raise ValueError("Sistemde yeterli koli bulunamadı (Veri uyuşmazlığı)")
+            
+        # İstek olarak palet_id geldiyse, sadece ilişkilendirmek için (geriye dönük uyum)
+        if hareket.palet_id:
+            pass # Eski mantıkta tüm paleti kapatıyordu, artık koli bazlı düşüyoruz.
+
+    # ==========================
+    # GİRİŞ İŞLEMİ
+    # ==========================
+    elif hareket.hareket_tipi == "giris":
+        # Otomatik bir LOT bul veya oluştur
+        otomatik_lot_no = "OTOMATIK-GIRIS"
+        db_lot = db.query(Lot).filter(
+            Lot.urun_id == hareket.urun_id,
+            Lot.lot_no == otomatik_lot_no,
+            Lot.aktif == True
+        ).first()
+        
+        if not db_lot:
+            db_lot = Lot(
+                urun_id=hareket.urun_id,
+                lot_no=otomatik_lot_no,
+                aciklama="Hızlı Giriş ekranından oluşturulan varsayılan lot"
+            )
+            db.add(db_lot)
+            db.flush() # ID almak için
+            
+        hareket.lot_id = db_lot.id
+        
+        # Otomatik bir PALET oluştur ve stok miktarını buraya ekle
+        yeni_palet_no = f"OTM-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        db_palet = Palet(
+            lot_id=db_lot.id,
+            raf_id=hareket.raf_id,
+            palet_no=yeni_palet_no,
+            koli_adedi=hareket.miktar,
+            vardiya="Hızlı Giriş"
+        )
+        db.add(db_palet)
+        db.flush()
+        hareket.palet_id = db_palet.id
+
+    # 3. Stok Hareketini Kaydet
     db_hareket = StokHareketi(
         **hareket.model_dump(),
         kullanici_id=kullanici_id
     )
     db.add(db_hareket)
 
-    # Çıkış hareketi ve palet belirtilmişse paleti pasife al
-    if hareket.hareket_tipi == "cikis" and hareket.palet_id:
-        db_palet = db.query(Palet).filter(Palet.id == hareket.palet_id).first()
-        if db_palet:
-            db_palet.aktif = False
-
-    # Stok Logu Gönder
+    # 4. Stok Logu Gönder
     islem_turu_metni = "Giriş Yapıldı" if hareket.hareket_tipi == "giris" else "Çıkış Yapıldı"
     log = SistemLog(
         kullanici_id=kullanici_id,
