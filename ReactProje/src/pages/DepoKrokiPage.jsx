@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Warehouse, Search, Building, LayoutGrid, AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, QrCode, Package, X, Printer, Info } from 'lucide-react';
+import { Warehouse, Search, Building, LayoutGrid, AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, QrCode, Package, X, Printer, Info, Calendar, Clock, Tag, AlignLeft, Hash, ChevronDown, ChevronUp, Scale } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { QRCodeSVG } from 'qrcode.react';
@@ -14,6 +14,14 @@ export default function DepoKrokiPage() {
 
     // YENİ: Modal State
     const [seciliRafDetay, setSeciliRafDetay] = useState(null);
+    const [seciliPaletDetay, setSeciliPaletDetay] = useState(null);
+
+    // Modal kapandığında palet detayını da sıfırla
+    useEffect(() => {
+        if (!seciliRafDetay) {
+            setSeciliPaletDetay(null);
+        }
+    }, [seciliRafDetay]);
 
     useEffect(() => {
         setLoading(true);
@@ -356,18 +364,18 @@ export default function DepoKrokiPage() {
             {seciliRafDetay && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
                     <div
-                        className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+                        className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
-                        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+                        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
                                     <Warehouse className="w-5 h-5 text-violet-600" />
                                 </div>
                                 <div>
                                     <h3 className="text-[16px] font-extrabold text-slate-800">Raf Detayları</h3>
-                                    <p className="text-[12px] font-medium text-slate-500">QR Kod & Kapasite</p>
+                                    <p className="text-[12px] font-medium text-slate-500">Kapasite ve İçerik</p>
                                 </div>
                             </div>
                             <button
@@ -378,76 +386,179 @@ export default function DepoKrokiPage() {
                             </button>
                         </div>
 
-                        {/* Modal Body */}
-                        <div className="p-6 flex flex-col items-center">
-
-                            {/* QR CODE ALANI */}
-                            <div className="bg-white p-4 rounded-2xl border-2 border-slate-100 shadow-sm relative group mb-6">
-                                {/* Bu div üzerinden yazdıracağız */}
-                                <div id="qr-svg-container">
-                                    {/* Basit bir URL veya ID. Gerçek senaryoda bu URL mobil cihazla okununca o rafa yönlendirir. */}
-                                    <QRCodeSVG
-                                        value={`http://dys-app.com/raf/${seciliRafDetay.raf.kod}`}
-                                        size={180}
-                                        bgColor={"#ffffff"}
-                                        fgColor={"#1e293b"}
-                                        level={"Q"}
-                                    />
+                        {/* Modal Body - Scrollable */}
+                        <div className="overflow-y-auto p-4 sm:p-6 custom-scrollbar flex-1">
+                            <div className="flex flex-col items-center">
+                                {/* Hızlı İstatistikler */}
+                                <div className="w-full flex items-center gap-3 mb-6">
+                                    <div className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3 flex flex-col items-center gap-1.5">
+                                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">RAF KODU</span>
+                                        <span className="text-[20px] font-black text-slate-800 leading-none">{seciliRafDetay.raf.kod}</span>
+                                    </div>
+                                    <div className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3 flex flex-col items-center gap-1.5">
+                                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">DOLULUK</span>
+                                        <span className={`text-[18px] font-black ${seciliRafDetay.durum.textRenk} leading-none`}>
+                                            %{seciliRafDetay.durum.yuzde}
+                                        </span>
+                                    </div>
                                 </div>
 
-                                <button
-                                    onClick={handlePrintQR}
-                                    title="QR Kodu Yazdır"
-                                    className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col justify-center items-center text-white gap-2 backdrop-blur-sm"
-                                >
-                                    <Printer className="w-8 h-8" />
-                                    <span className="font-bold text-[13px]">Yazdır</span>
-                                </button>
-                            </div>
+                                {/* Alt Açılır Kısım / Ekstra Görsel - İsteğe Bağlı */}
+                                <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative group mb-6 flex justify-between items-center w-full">
+                                    <div className="flex items-center gap-3">
+                                        <div id="qr-svg-container" className="shrink-0">
+                                            <QRCodeSVG
+                                                value={`http://dys-app.com/raf/${seciliRafDetay.raf.kod}`}
+                                                size={60}
+                                                bgColor={"#ffffff"}
+                                                fgColor={"#1e293b"}
+                                                level={"L"}
+                                            />
+                                        </div>
+                                        <div>
+                                            <div className="text-[13px] font-bold text-slate-800">Raf QR Kodu</div>
+                                            <div className="text-[11px] text-slate-500">Fiziksel raf tespiti için</div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={handlePrintQR}
+                                        title="QR Kodu Yazdır"
+                                        className="p-2 bg-slate-100 text-slate-600 hover:bg-violet-100 hover:text-violet-600 rounded-xl transition-colors"
+                                    >
+                                        <Printer className="w-5 h-5" />
+                                    </button>
+                                </div>
 
-                            <div className="text-center w-full">
-                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block mb-1">RAF KODU</span>
-                                <h4 className="text-[32px] font-black text-slate-800 leading-none mb-4">{seciliRafDetay.raf.kod}</h4>
-
-                                <div className="flex items-center justify-between w-full p-4 rounded-xl bg-slate-50 border border-slate-100">
-                                    <div className="flex flex-col items-start gap-1">
-                                        <div className="flex items-center gap-1.5 text-slate-500">
+                                {/* Kapasite Barı */}
+                                <div className="w-full mb-6">
+                                    <div className="flex justify-between items-end mb-2">
+                                        <div className="flex items-center gap-1.5 text-slate-600">
                                             <Package className="w-4 h-4" />
                                             <span className="text-[13px] font-bold">Mevcut Palet</span>
                                         </div>
-                                        <span className="text-[18px] font-black text-slate-800">{seciliRafDetay.durum.mevcut} <span className="text-slate-400 text-[14px] font-bold">/ {seciliRafDetay.durum.kapasite}</span></span>
-                                    </div>
-
-                                    <div className="h-10 w-px bg-slate-200"></div>
-
-                                    <div className="flex flex-col items-end gap-1">
-                                        <div className="flex items-center gap-1.5 text-slate-500">
-                                            <Info className="w-4 h-4" />
-                                            <span className="text-[13px] font-bold">Durum</span>
+                                        <div className="text-[14px] font-black text-slate-800">
+                                            {seciliRafDetay.durum.mevcut} <span className="text-slate-400 font-bold text-[12px]">/ {seciliRafDetay.durum.kapasite}</span>
                                         </div>
-                                        <span className={`text-[15px] font-black px-2.5 py-1 rounded-md bg-white border shadow-sm ${seciliRafDetay.durum.textRenk} ${seciliRafDetay.durum.bgKutusu}`}>
-                                            %{seciliRafDetay.durum.yuzde}
-                                        </span>
+                                    </div>
+                                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-1000 ease-out ${seciliRafDetay.durum.barClass}`}
+                                            style={{ width: `${seciliRafDetay.durum.yuzde}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                {/* Raftaki Paletler Listesi (YENİ) */}
+                                <div className="w-full">
+                                    <h5 className="text-[14px] font-bold text-slate-800 mb-3 flex items-center gap-2 border-b border-slate-100 pb-2">
+                                        <LayoutGrid className="w-4 h-4 text-violet-500" />
+                                        Raftaki Paletler ({seciliRafDetay.durum.paletler.length})
+                                    </h5>
+
+                                    <div className="space-y-2.5">
+                                        {seciliRafDetay.durum.paletler.length > 0 ? (
+                                            seciliRafDetay.durum.paletler.map(palet => {
+                                                const isExpanded = seciliPaletDetay?.id === palet.id;
+
+                                                return (
+                                                    <div
+                                                        key={palet.id}
+                                                        className={`bg-white border ${isExpanded ? 'border-violet-400 ring-2 ring-violet-400/20' : 'border-slate-200'} rounded-2xl shadow-sm hover:border-violet-300 transition-all overflow-hidden flex flex-col`}
+                                                    >
+                                                        {/* Palet Üst Kısım (Tıklanabilir) */}
+                                                        <div
+                                                            onClick={() => setSeciliPaletDetay(isExpanded ? null : palet)}
+                                                            className="p-3.5 flex items-start sm:items-center justify-between cursor-pointer w-full flex-col sm:flex-row gap-3"
+                                                        >
+                                                            <div className="flex flex-col gap-1 w-full sm:w-auto">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-[14px] font-black text-slate-800">{palet.palet_no}</span>
+                                                                    <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider border border-slate-200">
+                                                                        Lot: {palet.lot?.lot_no || 'Yok'}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-[12px] font-medium text-slate-500 flex items-center gap-1.5 line-clamp-1 w-full max-w-full">
+                                                                    <span className="truncate">
+                                                                        {palet.lot?.urun?.isim || palet.lot?.urun_id ? `Ürün: ${palet.lot?.urun?.isim || palet.lot?.urun_id}` : 'Ürün bilgisi yok'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-3">
+                                                                <span className="text-[14px] font-black text-violet-700 bg-violet-50 px-2.5 py-1 rounded-lg">
+                                                                    {palet.koli_adedi} Koli
+                                                                </span>
+                                                                <div className={`p-1 rounded-lg transition-colors ${isExpanded ? 'bg-violet-100 text-violet-600' : 'bg-slate-50 text-slate-400'}`}>
+                                                                    {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Açılır Kısım: Palet Detayları */}
+                                                        {isExpanded && (
+                                                            <div className="p-4 sm:p-5 bg-slate-50/50 border-t border-slate-100 grid grid-cols-2 gap-y-4 gap-x-2 animate-in slide-in-from-top-2 duration-200">
+                                                                <div className="flex flex-col gap-1">
+                                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Tag className="w-3.5 h-3.5" /> BARKOD / SKU</span>
+                                                                    <span className="text-[13px] font-bold text-slate-800">{palet.lot?.urun?.barkod || '-'}</span>
+                                                                </div>
+                                                                <div className="flex flex-col gap-1">
+                                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Scale className="w-3.5 h-3.5" /> NET AĞIRLIK</span>
+                                                                    <span className="text-[13px] font-bold text-slate-800">{palet.palet_kg ? `${palet.palet_kg} kg` : '-'}</span>
+                                                                </div>
+                                                                <div className="flex flex-col gap-1">
+                                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> ÜRETİM T.</span>
+                                                                    <span className="text-[13px] font-bold text-slate-800">{palet.lot?.uretim_tarihi || '-'}</span>
+                                                                </div>
+                                                                <div className="flex flex-col gap-1">
+                                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" /> SKT</span>
+                                                                    {(() => {
+                                                                        const bitisText = palet.lot?.son_kullanma_tarihi;
+                                                                        if (!bitisText) return <span className="text-[13px] font-bold text-slate-800">-</span>;
+
+                                                                        let renk = "text-slate-800";
+                                                                        const bugun = new Date();
+                                                                        const skt = new Date(bitisText);
+                                                                        const fark = Math.ceil((skt - bugun) / (1000 * 60 * 60 * 24));
+                                                                        if (fark < 0) renk = "text-rose-600";
+                                                                        else if (fark < 30) renk = "text-amber-600";
+
+                                                                        return <span className={`text-[13px] font-bold ${renk}`}>{bitisText}</span>;
+                                                                    })()}
+                                                                </div>
+                                                                <div className="flex flex-col gap-1">
+                                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> VARDİYA</span>
+                                                                    <span className="text-[13px] font-bold text-slate-800">{palet.vardiya || '-'}</span>
+                                                                </div>
+                                                                <div className="flex flex-col gap-1">
+                                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Hash className="w-3.5 h-3.5" /> SİSTEME GİRİŞ</span>
+                                                                    <span className="text-[13px] font-bold text-slate-800">{palet.olusturma_tarihi ? new Date(palet.olusturma_tarihi).toLocaleDateString("tr-TR") : '-'}</span>
+                                                                </div>
+                                                                <div className="col-span-2 flex flex-col gap-1 mt-1 pt-3 border-t border-slate-200/50">
+                                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><AlignLeft className="w-3.5 h-3.5" /> AÇIKLAMA</span>
+                                                                    <span className="text-[13px] font-medium text-slate-600 whitespace-pre-wrap">{palet.lot?.aciklama || 'Açıklama bulunmuyor.'}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
+                                                <Package className="w-8 h-8 text-slate-300 mb-2" />
+                                                <span className="text-[13px] font-bold text-slate-600">Bu rafta palet bulunmuyor.</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Düzenleme vb. action var ise modal footer eklenebilir. Şimdilik yazdırma butonu footerda verebiliriz. */}
-                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-3">
+                        {/* Modal Footer */}
+                        <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 shrink-0">
                             <button
                                 onClick={() => setSeciliRafDetay(null)}
-                                className="flex-1 py-2.5 px-4 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors text-[14px]"
+                                className="w-full py-3 px-4 rounded-xl bg-slate-800 text-white font-bold hover:bg-slate-900 transition-colors text-[14px] shadow-md"
                             >
                                 Kapat
-                            </button>
-                            <button
-                                onClick={handlePrintQR}
-                                className="flex-1 py-2.5 px-4 rounded-xl bg-violet-600 text-white font-bold hover:bg-violet-700 transition-colors text-[14px] shadow-sm flex items-center justify-center gap-2"
-                            >
-                                <Printer className="w-4 h-4" />
-                                <span className="hidden sm:inline">QR Yazdır</span>
-                                <span className="sm:hidden">Yazdır</span>
                             </button>
                         </div>
                     </div>
