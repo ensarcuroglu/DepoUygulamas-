@@ -5,15 +5,15 @@ from typing import List
 import schemas, crud
 from database import get_db
 from auth import require_role
+from models import Kullanici
 
 router = APIRouter(
     prefix="/api/raflar",
-    tags=["Raflar"],
-    dependencies=[Depends(require_role("admin", "lojistik"))]
+    tags=["Raflar"]
 )
 
 @router.post("/", response_model=schemas.RafResponse, status_code=status.HTTP_201_CREATED)
-def create_raf(raf: schemas.RafCreate, db: Session = Depends(get_db)):
+def create_raf(raf: schemas.RafCreate, db: Session = Depends(get_db), current_user: Kullanici = Depends(require_role("admin", "lojistik"))):
     # Check if depo exists
     db_depo = crud.get_depo(db, depo_id=raf.depo_id)
     if not db_depo:
@@ -27,25 +27,25 @@ def create_raf(raf: schemas.RafCreate, db: Session = Depends(get_db)):
     return crud.create_raf(db=db, raf=raf)
 
 @router.get("/", response_model=List[schemas.RafResponse])
-def read_raflar(skip: int = 0, limit: int = 500, depo_id: int = None, db: Session = Depends(get_db)):
+def read_raflar(skip: int = 0, limit: int = 500, depo_id: int = None, db: Session = Depends(get_db), current_user: Kullanici = Depends(require_role("admin", "lojistik", "depocu"))):
     return crud.get_raflar(db, skip=skip, limit=limit, depo_id=depo_id)
 
 @router.get("/{raf_id}", response_model=schemas.RafResponse)
-def read_raf(raf_id: int, db: Session = Depends(get_db)):
+def read_raf(raf_id: int, db: Session = Depends(get_db), current_user: Kullanici = Depends(require_role("admin", "lojistik", "depocu"))):
     db_raf = crud.get_raf(db, raf_id=raf_id)
     if db_raf is None:
         raise HTTPException(status_code=404, detail="Raf bulunamadı")
     return db_raf
 
 @router.put("/{raf_id}", response_model=schemas.RafResponse)
-def update_raf(raf_id: int, raf: schemas.RafCreate, db: Session = Depends(get_db)):
+def update_raf(raf_id: int, raf: schemas.RafCreate, db: Session = Depends(get_db), current_user: Kullanici = Depends(require_role("admin", "lojistik"))):
     db_raf = crud.update_raf(db, raf_id=raf_id, raf=raf)
     if db_raf is None:
         raise HTTPException(status_code=404, detail="Raf bulunamadı")
     return db_raf
 
 @router.delete("/{raf_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_raf(raf_id: int, db: Session = Depends(get_db)):
+def delete_raf(raf_id: int, db: Session = Depends(get_db), current_user: Kullanici = Depends(require_role("admin", "lojistik"))):
     success = crud.delete_raf(db, raf_id=raf_id)
     if not success:
         raise HTTPException(status_code=404, detail="Raf bulunamadı VEYA içi dolu olduğu için silinemez")
