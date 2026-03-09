@@ -129,54 +129,192 @@ export default function DepoKrokiPage() {
     const handlePrintQR = () => {
         if (!seciliRafDetay) return;
 
-        const printWindow = window.open('', '_blank', 'width=600,height=600');
+        const printWindow = window.open('', '_blank', 'width=800,height=800');
         printWindow.document.write(`
+            <!DOCTYPE html>
             <html>
                 <head>
-                    <title>Raf Barkod - ${seciliRafDetay.raf.kod}</title>
+                    <title>Raf Etiketi - ${seciliRafDetay.raf.kod}</title>
                     <style>
+                        @page { size: auto;  margin: 0mm; }
                         body { 
-                            display: flex; 
-                            flex-direction: column; 
-                            align-items: center; 
-                            justify-content: center; 
-                            height: 100vh; 
                             margin: 0; 
-                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                            background-color: white;
-                        }
-                        .print-container { 
-                            text-align: center;
-                            padding: 40px;
-                            border: 3px dashed #cbd5e1;
-                            border-radius: 20px;
-                        }
-                        h1 { 
-                            font-size: 48px; 
-                            color: #1e293b; 
-                            margin-bottom: 30px; 
-                            margin-top: 0;
-                            letter-spacing: -1px;
-                        }
-                        .qr-wrapper {
                             padding: 20px;
-                            background: white;
+                            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                            background-color: white;
+                            color: #0f172a;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-height: 100vh;
                         }
-                        p { 
-                            font-size: 16px; 
-                            color: #64748b; 
-                            margin-top: 30px; 
-                            font-weight: 500;
+                        
+                        /* Endüstriyel Etiket Çerçevesi */
+                        .label-card {
+                            width: 100%;
+                            max-width: 500px;
+                            border: 4px solid #0f172a;
+                            border-radius: 16px;
+                            padding: 32px;
+                            box-sizing: border-box;
+                            position: relative;
+                            background: #fff;
+                            box-shadow: 0 10px 25px rgba(0,0,0,0.05); /* Sadece ekranda görünür, baskıda fark edilmez */
+                        }
+
+                        /* Üst Header: DYS ve Logo Alanı */
+                        .header {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            border-bottom: 3px solid #e2e8f0;
+                            padding-bottom: 20px;
+                            margin-bottom: 30px;
+                        }
+                        .system-brand {
+                            font-size: 24px;
+                            font-weight: 900;
+                            letter-spacing: -0.5px;
+                            color: #334155;
+                        }
+                        .shelf-zone {
+                            background: #f1f5f9;
+                            border: 2px solid #cbd5e1;
+                            padding: 6px 12px;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            font-weight: 700;
+                            color: #475569;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                        }
+
+                        /* Orta Alan: Büyük RAF KODU ve QR */
+                        .main-content {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: stretch;
+                            gap: 30px;
+                        }
+
+                        .info-section {
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: center;
+                            flex: 1;
+                        }
+
+                        .label-title {
+                            font-size: 14px;
+                            font-weight: 800;
+                            color: #64748b;
+                            text-transform: uppercase;
+                            letter-spacing: 2px;
+                            margin-bottom: 8px;
+                            display: block;
+                        }
+
+                        .shelf-code {
+                            font-size: 72px;
+                            font-weight: 900;
+                            line-height: 1;
+                            margin: 0 0 20px 0;
+                            color: #0f172a;
+                            letter-spacing: -2px;
+                        }
+
+                        .capacity-box {
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 8px;
+                            background: #f8fafc;
+                            border: 2px solid #e2e8f0;
+                            padding: 10px 16px;
+                            border-radius: 10px;
+                        }
+                        
+                        .capacity-box span {
+                            font-size: 16px;
+                            font-weight: 700;
+                            color: #334155;
+                        }
+
+                        .qr-section {
+                            background: #fff;
+                            border: 3px dashed #cbd5e1;
+                            padding: 15px;
+                            border-radius: 16px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        
+                        /* İçeriği kopyalanan SVG için */
+                        #qr-print-container svg {
+                            width: 160px;
+                            height: 160px;
+                            display: block;
+                        }
+
+                        /* Alt Footer Bilgi */
+                        .footer {
+                            margin-top: 30px;
+                            padding-top: 20px;
+                            border-top: 3px solid #e2e8f0;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            font-size: 12px;
+                            color: #94a3b8;
+                            font-weight: 600;
+                        }
+                        
+                        .footer span strong {
+                            color: #64748b;
+                        }
+
+                        @media print {
+                            body {
+                                -webkit-print-color-adjust: exact !important;
+                                print-color-adjust: exact !important;
+                            }
+                            .label-card {
+                                border: 4px solid #000;
+                                box-shadow: none;
+                            }
                         }
                     </style>
                 </head>
                 <body>
-                    <div class="print-container">
-                        <h1>${seciliRafDetay.raf.kod}</h1>
-                        <div class="qr-wrapper">
-                            ${document.getElementById('qr-svg-container').innerHTML}
+                    <div class="label-card">
+                        <div class="header">
+                            <div class="system-brand">DYS<span style="color:#64748b; font-weight: 700; margin-left: 5px; font-size: 20px;">WMS</span></div>
+                            <div class="shelf-zone">${seciliRafDetay.raf.bolge || 'GENEL ALAN'}</div>
                         </div>
-                        <p>DYS - Otomatik Depo Sistemi</p>
+
+                        <div class="main-content">
+                            <div class="info-section">
+                                <div>
+                                    <span class="label-title">LOC / RAF KODU</span>
+                                    <h1 class="shelf-code">${seciliRafDetay.raf.kod}</h1>
+                                </div>
+                                <div class="capacity-box">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                                    <span>MAX: <strong>${seciliRafDetay.raf.kapasite}</strong> PLT</span>
+                                </div>
+                            </div>
+                            
+                            <div class="qr-section">
+                                <div id="qr-print-container">
+                                    ${document.getElementById('qr-svg-container').innerHTML}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="footer">
+                            <span>YAZDIRILMA: <strong>${new Date().toLocaleDateString('tr-TR')} ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</strong></span>
+                            <span>OTOMATİK OLUŞTURULDU</span>
+                        </div>
                     </div>
                 </body>
                 <script>
