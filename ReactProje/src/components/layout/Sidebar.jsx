@@ -22,7 +22,9 @@ import {
     ShieldAlert,
     ClipboardList,
     Route,
-    FileText
+    FileText,
+    BarChart3,
+    Clock
 } from 'lucide-react';
 
 const menuItems = [
@@ -36,6 +38,7 @@ const menuItems = [
     { path: '/siparisler', label: 'Siparişler', icon: ClipboardList, roles: ['admin', 'lojistik'] },
     { path: '/sevkiyat-planlama', label: 'Sevkiyat Planlama', icon: Route, roles: ['admin', 'lojistik'] },
     { path: '/irsaliyeler', label: 'İrsaliyeler', icon: FileText, roles: ['admin', 'lojistik', 'depocu'] },
+    { path: '/raporlar', label: 'Raporlama Merkezi', icon: BarChart3, roles: ['admin', 'lojistik'] },
     { path: '/kullanicilar', label: 'Kullanıcı Yönetimi', icon: Users, roles: ['admin'] },
     { path: '/tedarikciler', label: 'Tedarikçi Yönetimi', icon: Truck, roles: ['admin'] },
     { path: '/depolar', label: 'Depo & Raf', icon: Warehouse, roles: ['admin', 'lojistik'] },

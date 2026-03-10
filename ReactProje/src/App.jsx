@@ -22,6 +22,10 @@ import SevkiyatlarPage from './pages/SevkiyatlarPage';
 import SiparislerPage from './pages/SiparislerPage';
 import SevkiyatPlanlamaPage from './pages/SevkiyatPlanlamaPage';
 import IrsaliyelerPage from './pages/IrsaliyelerPage';
+import RaporlarPage from './pages/RaporlarPage';
+import RaporOlusturPage from './pages/RaporOlusturPage';
+import RaporSablonlarPage from './pages/RaporSablonlarPage';
+import RaporZamanliPage from './pages/RaporZamanliPage';
 
 /**
  * Varsayılan yönlendirme: Depocu → stok-hareketleri, Admin → dashboard
@@ -68,6 +72,14 @@ function App() {
               {/* İrsaliye Yönetimi (Admin + Lojistik + Depocu) */}
               <Route element={<RoleRoute allowedRoles={['admin', 'lojistik', 'depocu']} />}>
                 <Route path="/irsaliyeler" element={<IrsaliyelerPage />} />
+              </Route>
+
+              {/* Raporlama (Admin + Lojistik) */}
+              <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
+                <Route path="/raporlar" element={<RaporlarPage />} />
+                <Route path="/raporlar/olustur" element={<RaporOlusturPage />} />
+                <Route path="/raporlar/sablonlar" element={<RaporSablonlarPage />} />
+                <Route path="/raporlar/zamanli" element={<RaporZamanliPage />} />
               </Route>
 
               {/* Herkesin erişebildiği korumalı alanlar */}

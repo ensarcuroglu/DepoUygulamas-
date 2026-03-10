@@ -580,3 +580,91 @@ class IrsaliyeResponse(IrsaliyeBase):
 
     class Config:
         from_attributes = True
+
+
+# ========================
+# RAPOR ŞABLONU ŞEMALARİ
+# ========================
+
+class RaporSablonuBase(BaseModel):
+    ad: str
+    tur: str
+    aciklama: Optional[str] = ""
+    config: Optional[dict] = None
+
+class RaporSablonuCreate(RaporSablonuBase):
+    pass
+
+class RaporSablonuUpdate(BaseModel):
+    ad: Optional[str] = None
+    tur: Optional[str] = None
+    aciklama: Optional[str] = None
+    config: Optional[dict] = None
+    is_aktif: Optional[bool] = None
+
+class RaporSablonuResponse(RaporSablonuBase):
+    id: int
+    is_aktif: bool
+    olusturan_kullanici_id: Optional[int] = None
+    olusturma_tarihi: datetime
+    guncelleme_tarihi: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ========================
+# RAPOR LOGU ŞEMALARİ
+# ========================
+
+class RaporLoguBase(BaseModel):
+    sablon_id: Optional[int] = None
+    parametreler: Optional[dict] = None
+    durum: Optional[str] = "Basarili"
+    hata_mesaji: Optional[str] = None
+
+class RaporLoguCreate(RaporLoguBase):
+    pass
+
+class RaporLoguResponse(RaporLoguBase):
+    id: int
+    kullanici_id: int
+    olusturma_tarihi: datetime
+    tamamlanma_tarihi: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ========================
+# RAPOR ZAMANLAMA ŞEMALARİ
+# ========================
+
+class RaporScheduleBase(BaseModel):
+    sablon_id: int
+    sablon_adi: str
+    periyod: str  # "gunluk", "haftalik", "aylik"
+    saat: str  # HH:MM
+    alici_emailler: Optional[List[str]] = None
+    format: Optional[str] = "pdf"
+
+class RaporScheduleCreate(RaporScheduleBase):
+    pass
+
+class RaporScheduleUpdate(BaseModel):
+    sablon_adi: Optional[str] = None
+    periyod: Optional[str] = None
+    saat: Optional[str] = None
+    alici_emailler: Optional[List[str]] = None
+    format: Optional[str] = None
+    is_aktif: Optional[bool] = None
+
+class RaporScheduleResponse(RaporScheduleBase):
+    id: int
+    is_aktif: bool
+    son_calistirilma: Optional[datetime] = None
+    olusturma_tarihi: datetime
+    guncelleme_tarihi: datetime
+
+    class Config:
+        from_attributes = True

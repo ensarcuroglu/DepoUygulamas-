@@ -175,4 +175,34 @@ export const getIrsaliye = (id) => api.get(`/irsaliyeler/${id}`);
 export const createIrsaliye = (data) => api.post('/irsaliyeler/', data);
 export const updateIrsaliye = (id, data) => api.put(`/irsaliyeler/${id}`, data);
 
+// ========================
+// RAPORLAR - ŞABLONLAR
+// ========================
+export const getRaporSablonlari = (params = {}) => api.get('/raporlar/sablonlar', { params });
+export const getRaporSablonu = (id) => api.get(`/raporlar/sablonlar/${id}`);
+export const createRaporSablonu = (data) => api.post('/raporlar/sablonlar', data);
+export const updateRaporSablonu = (id, data) => api.put(`/raporlar/sablonlar/${id}`, data);
+export const deleteRaporSablonu = (id) => api.delete(`/raporlar/sablonlar/${id}`);
+
+// ========================
+// RAPORLAR - VERİ
+// ========================
+export const getStokRaporuVeri = (params = {}) => api.get('/raporlar/stok/veriler', { params });
+export const getSiparisRaporuVeri = (params = {}) => api.get('/raporlar/siparis/veriler', { params });
+export const getHareketRaporuVeri = (params = {}) => api.get('/raporlar/hareket/veriler', { params });
+
+// ========================
+// RAPORLAR - LOG
+// ========================
+export const getRaporLoglari = (params = {}) => api.get('/raporlar/log', { params });
+
+// ========================
+// RAPORLAR - SCHEDULE
+// ========================
+export const getRaporSchedules = (params = {}) => api.get('/raporlar/schedule', { params });
+export const getRaporSchedule = (id) => api.get(`/raporlar/schedule/${id}`);
+export const createRaporSchedule = (data) => api.post('/raporlar/schedule', data);
+export const updateRaporSchedule = (id, data) => api.put(`/raporlar/schedule/${id}`, data);
+export const deleteRaporSchedule = (id) => api.delete(`/raporlar/schedule/${id}`);
+
 export default api;

@@ -6,7 +6,8 @@ from fastapi.encoders import jsonable_encoder
 from models import (
     Marka, Kategori, Depo, Raf, Tedarikci,
     Urun, Lot, Palet, StokHareketi, Kullanici, SistemLog, DestekTalebi,
-    Siparis, SiparisKalemi, SevkiyatPlani, Irsaliye
+    Siparis, SiparisKalemi, SevkiyatPlani, Irsaliye,
+    RaporSablonu, RaporLogu, RaporSchedule
 )
 from schemas import (
     MarkaCreate, MarkaUpdate,
@@ -21,7 +22,10 @@ from schemas import (
     DestekTalebiCreate, DestekTalebiUpdate,
     SiparisCreate, SiparisUpdate,
     SevkiyatPlaniCreate, SevkiyatPlaniUpdate,
-    IrsaliyeCreate, IrsaliyeUpdate
+    IrsaliyeCreate, IrsaliyeUpdate,
+    RaporSablonuCreate, RaporSablonuUpdate,
+    RaporLoguCreate,
+    RaporScheduleCreate, RaporScheduleUpdate
 )
 
 
@@ -1031,3 +1035,225 @@ def update_irsaliye(db: Session, irsaliye_id: int, irsaliye_update: IrsaliyeUpda
     db.commit()
     db.refresh(db_irsaliye)
     return db_irsaliye
+
+
+# ========================
+# RAPOR ŞABLONU CRUD
+# ========================
+
+def get_rapor_sablonlari(db: Session, skip: int = 0, limit: int = 100, tur: str = None, is_aktif: bool = True):
+    query = db.query(RaporSablonu)
+    if is_aktif:
+        query = query.filter(RaporSablonu.is_aktif == True)
+    if tur:
+        query = query.filter(RaporSablonu.tur == tur)
+    return query.order_by(RaporSablonu.ad).offset(skip).limit(limit).all()
+
+def get_rapor_sablonu(db: Session, sablon_id: int):
+    return db.query(RaporSablonu).filter(RaporSablonu.id == sablon_id).first()
+
+def create_rapor_sablonu(db: Session, sablon: RaporSablonuCreate, kullanici_id: int):
+    db_sablon = RaporSablonu(
+        **sablon.model_dump(),
+        olusturan_kullanici_id=kullanici_id
+    )
+    db.add(db_sablon)
+    db.flush()
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="CREATE",
+        modul="Rapor Yönetimi",
+        detay=f"Yeni rapor şablonu oluşturuldu: {db_sablon.ad} ({db_sablon.tur})"
+    )
+    db.add(log)
+
+    db.commit()
+    db.refresh(db_sablon)
+    return db_sablon
+
+def update_rapor_sablonu(db: Session, sablon_id: int, sablon_update: RaporSablonuUpdate, kullanici_id: int):
+    db_sablon = db.query(RaporSablonu).filter(RaporSablonu.id == sablon_id).first()
+    if not db_sablon:
+        return None
+
+    for key, value in sablon_update.model_dump(exclude_unset=True).items():
+        setattr(db_sablon, key, value)
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="UPDATE",
+        modul="Rapor Yönetimi",
+        detay=f"Rapor şablonu güncellendi: {db_sablon.ad}"
+    )
+    db.add(log)
+
+    db.commit()
+    db.refresh(db_sablon)
+    return db_sablon
+
+def delete_rapor_sablonu(db: Session, sablon_id: int, kullanici_id: int):
+    db_sablon = db.query(RaporSablonu).filter(RaporSablonu.id == sablon_id).first()
+    if not db_sablon:
+        return False
+
+    db_sablon.is_aktif = False
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="DELETE",
+        modul="Rapor Yönetimi",
+        detay=f"Rapor şablonu silindi: {db_sablon.ad}"
+    )
+    db.add(log)
+
+    db.commit()
+    return True
+
+
+# ========================
+# RAPOR LOGU CRUD
+# ========================
+
+def get_rapor_loglari(db: Session, skip: int = 0, limit: int = 100, sablon_id: int = None):
+    query = db.query(RaporLogu).options(joinedload(RaporLogu.sablon))
+    if sablon_id:
+        query = query.filter(RaporLogu.sablon_id == sablon_id)
+    return query.order_by(RaporLogu.olusturma_tarihi.desc()).offset(skip).limit(limit).all()
+
+def create_rapor_logu(db: Session, log_data: RaporLoguCreate, kullanici_id: int):
+    db_log = RaporLogu(
+        **log_data.model_dump(),
+        kullanici_id=kullanici_id,
+        tamamlanma_tarihi=datetime.utcnow()
+    )
+    db.add(db_log)
+    db.commit()
+    db.refresh(db_log)
+    return db_log
+
+
+# ========================
+# RAPOR SCHEDULE CRUD
+# ========================
+
+def get_rapor_schedules(db: Session, skip: int = 0, limit: int = 100, is_aktif: bool = True):
+    query = db.query(RaporSchedule).options(joinedload(RaporSchedule.sablon))
+    if is_aktif:
+        query = query.filter(RaporSchedule.is_aktif == True)
+    return query.order_by(RaporSchedule.sablon_adi).offset(skip).limit(limit).all()
+
+def get_rapor_schedule(db: Session, schedule_id: int):
+    return db.query(RaporSchedule).options(joinedload(RaporSchedule.sablon)).filter(RaporSchedule.id == schedule_id).first()
+
+def create_rapor_schedule(db: Session, schedule: RaporScheduleCreate, kullanici_id: int):
+    db_schedule = RaporSchedule(**schedule.model_dump())
+    db.add(db_schedule)
+    db.flush()
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="CREATE",
+        modul="Rapor Zamanlaması",
+        detay=f"Yeni zamanlı rapor oluşturuldu: {db_schedule.sablon_adi} ({db_schedule.periyod})"
+    )
+    db.add(log)
+
+    db.commit()
+    db.refresh(db_schedule)
+    return db_schedule
+
+def update_rapor_schedule(db: Session, schedule_id: int, schedule_update: RaporScheduleUpdate, kullanici_id: int):
+    db_schedule = db.query(RaporSchedule).filter(RaporSchedule.id == schedule_id).first()
+    if not db_schedule:
+        return None
+
+    for key, value in schedule_update.model_dump(exclude_unset=True).items():
+        setattr(db_schedule, key, value)
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="UPDATE",
+        modul="Rapor Zamanlaması",
+        detay=f"Zamanlı rapor güncellendi: {db_schedule.sablon_adi}"
+    )
+    db.add(log)
+
+    db.commit()
+    db.refresh(db_schedule)
+    return db_schedule
+
+def delete_rapor_schedule(db: Session, schedule_id: int, kullanici_id: int):
+    db_schedule = db.query(RaporSchedule).filter(RaporSchedule.id == schedule_id).first()
+    if not db_schedule:
+        return False
+
+    db.delete(db_schedule)
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="DELETE",
+        modul="Rapor Zamanlaması",
+        detay=f"Zamanlı rapor silindi: {db_schedule.sablon_adi}"
+    )
+    db.add(log)
+
+    db.commit()
+    return True
+
+
+# ========================
+# RAPOR VERİ ÜRETİMİ
+# ========================
+
+def get_stok_raporu_verileri(db: Session, urun_id: int = None):
+    """Stok durumu raporu için veri döndür"""
+    query = db.query(
+        Urun.id,
+        Urun.isim,
+        Urun.stok_miktari,
+        Urun.min_stok,
+        Marka.isim.label("marka"),
+        Kategori.isim.label("kategori")
+    ).outerjoin(Marka).outerjoin(Kategori).filter(Urun.aktif == True)
+
+    if urun_id:
+        query = query.filter(Urun.id == urun_id)
+
+    return query.all()
+
+def get_siparis_raporu_verileri(db: Session, baslang_tarihi: date = None, bitis_tarihi: date = None):
+    """Sipariş raporu için veri döndür"""
+    query = db.query(
+        Siparis.siparis_no,
+        Siparis.musteri_adi,
+        Siparis.teslimat_tarihi,
+        Siparis.durum,
+        Siparis.top_miktar,
+        Siparis.top_tutar,
+        func.count(SiparisKalemi.id).label("kalem_sayisi")
+    ).outerjoin(SiparisKalemi).filter(Siparis.aktif == True)
+
+    if baslang_tarihi:
+        query = query.filter(Siparis.olusturma_tarihi >= baslang_tarihi)
+    if bitis_tarihi:
+        query = query.filter(Siparis.olusturma_tarihi <= bitis_tarihi)
+
+    return query.group_by(Siparis.id).all()
+
+def get_hareket_raporu_verileri(db: Session, baslang_tarihi: date = None, bitis_tarihi: date = None):
+    """Stok hareketi raporu için veri döndür"""
+    query = db.query(
+        StokHareketi.hareket_tipi,
+        Urun.isim,
+        StokHareketi.miktar,
+        StokHareketi.tarih,
+        Kullanici.ad_soyad
+    ).join(Urun).outerjoin(Kullanici)
+
+    if baslang_tarihi:
+        query = query.filter(StokHareketi.tarih >= baslang_tarihi)
+    if bitis_tarihi:
+        query = query.filter(StokHareketi.tarih <= bitis_tarihi)
+
+    return query.order_by(StokHareketi.tarih.desc()).all()

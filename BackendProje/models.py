@@ -379,6 +379,72 @@ class Irsaliye(Base):
     siparis = relationship("Siparis", back_populates="irsaliyeler")
 
 
+# ========================
+# RAPOR ŞABLONU
+# ========================
+
+class RaporSablonu(Base):
+    __tablename__ = "rapor_sablonlari"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ad = Column(String(200), nullable=False, index=True)
+    tur = Column(String(50), nullable=False)  # "stok", "siparis", "finansal", "performans"
+    aciklama = Column(Text, default="")
+    config = Column(JSON, nullable=True)  # { "columns": [...], "filters": {...}, "groupBy": "..." }
+    olusturan_kullanici_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
+    is_aktif = Column(Boolean, default=True)
+    olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
+    guncelleme_tarihi = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # İlişkiler
+    olusturan_kullanici = relationship("Kullanici")
+    raporlar = relationship("RaporLogu", back_populates="sablon")
+
+
+# ========================
+# RAPOR LOGU
+# ========================
+
+class RaporLogu(Base):
+    __tablename__ = "rapor_loglari"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sablon_id = Column(Integer, ForeignKey("rapor_sablonlari.id"), nullable=True)
+    kullanici_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=False)
+    parametreler = Column(JSON, nullable=True)  # Rapor oluştururken kullanılan parametreler
+    durum = Column(String(20), default="Basarili")  # "Basarili", "Hatali"
+    hata_mesaji = Column(Text, nullable=True)
+    olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
+    tamamlanma_tarihi = Column(DateTime, nullable=True)
+
+    # İlişkiler
+    sablon = relationship("RaporSablonu", back_populates="raporlar")
+    kullanici = relationship("Kullanici")
+
+
+# ========================
+# RAPOR ZAMANLAMA
+# ========================
+
+class RaporSchedule(Base):
+    __tablename__ = "rapor_schedules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sablon_id = Column(Integer, ForeignKey("rapor_sablonlari.id"), nullable=False)
+    sablon_adi = Column(String(200), nullable=False)  # Deskriptif ad
+    periyod = Column(String(20), nullable=False)  # "gunluk", "haftalik", "aylik"
+    saat = Column(String(5), nullable=False)  # HH:MM format, örn: "09:00"
+    alici_emailler = Column(JSON, nullable=True)  # ["email1@test.com", "email2@test.com"]
+    format = Column(String(20), default="pdf")  # "pdf", "excel", "csv"
+    is_aktif = Column(Boolean, default=True)
+    son_calistirilma = Column(DateTime, nullable=True)
+    olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
+    guncelleme_tarihi = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # İlişkiler
+    sablon = relationship("RaporSablonu")
+
+
 from sqlalchemy import select, func
 from sqlalchemy.orm import column_property
 
