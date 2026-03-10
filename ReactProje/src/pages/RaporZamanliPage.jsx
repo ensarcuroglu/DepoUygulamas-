@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Loader2, X, Edit2, Trash2, Clock, Mail, CheckCircle2
+  Plus, Loader2, X, Edit2, Trash2, Clock, Mail, CheckCircle2, ArrowLeft, Calendar, FileText
 } from 'lucide-react';
 import {
   getRaporSchedules, createRaporSchedule, updateRaporSchedule, deleteRaporSchedule, getRaporSablonlari
@@ -10,12 +11,13 @@ import { hataMetni } from '../utils/hata';
 import toast from 'react-hot-toast';
 
 const periyodRenkleri = {
-  'gunluk': 'bg-blue-100 text-blue-700',
-  'haftalik': 'bg-purple-100 text-purple-700',
-  'aylik': 'bg-emerald-100 text-emerald-700',
+  'gunluk': 'bg-blue-50 text-blue-700 border-blue-100',
+  'haftalik': 'bg-purple-50 text-purple-700 border-purple-100',
+  'aylik': 'bg-emerald-50 text-emerald-700 border-emerald-100',
 };
 
 export default function RaporZamanliPage() {
+  const navigate = useNavigate();
   const { loading, run } = useAsync(true);
   const [schedules, setSchedules] = useState([]);
   const [sablonlar, setSablonlar] = useState([]);
@@ -94,7 +96,8 @@ export default function RaporZamanliPage() {
     }
   };
 
-  const handleEmailEkle = () => {
+  const handleEmailEkle = (e) => {
+    e?.preventDefault();
     if (emailInput.trim() && !formData.alici_emailler.includes(emailInput)) {
       setFormData({
         ...formData,
@@ -106,262 +109,329 @@ export default function RaporZamanliPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[80vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      <div className="flex min-h-[80vh] items-center justify-center bg-slate-50/50">
+        <div className="flex flex-col items-center gap-4 bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+          <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+          <p className="text-slate-500 font-medium animate-pulse">Planlar yükleniyor...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-[1200px] mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Zamanlı Raporlar</h1>
-        <button
-          onClick={() => setYeniModal(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
-        >
-          <Plus className="h-5 w-5" /> Yeni Plan
-        </button>
-      </div>
-
-      {schedules.length === 0 ? (
-        <div className="text-center py-12 border-2 border-dashed rounded-2xl">
-          <Clock className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500">Zamanlı rapor planı yok</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6">
-          {schedules.map((schedule) => (
-            <div
-              key={schedule.id}
-              className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition"
+    <div className="min-h-screen bg-slate-50/50 pb-12 sm:pb-20">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10">
+        
+        {/* Üst Kısım: Geri Butonu, Başlık ve Aksiyon */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 mb-8 sm:mb-10">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-3 bg-white border border-slate-200 rounded-2xl shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 group"
+              title="Geri Dön"
             >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">{schedule.sablon_adi}</h3>
-                  <div className="flex flex-wrap gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${periyodRenkleri[schedule.periyod]}`}>
-                      {schedule.periyod}
-                    </span>
-                    <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> {schedule.saat}
-                    </span>
-                    <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold">
-                      {schedule.format.toUpperCase()}
-                    </span>
-                    {schedule.is_aktif && (
-                      <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" /> Aktif
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setEditModal(schedule);
-                      setFormData({
-                        sablon_id: schedule.sablon_id,
-                        sablon_adi: schedule.sablon_adi,
-                        periyod: schedule.periyod,
-                        saat: schedule.saat,
-                        alici_emailler: schedule.alici_emailler || [],
-                        format: schedule.format,
-                      });
-                    }}
-                    className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleSil(schedule.id)}
-                    className="p-2 text-red-600 hover:bg-red-100 rounded-lg"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              {schedule.alici_emailler && schedule.alici_emailler.length > 0 && (
-                <div className="pt-4 border-t border-slate-100">
-                  <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1">
-                    <Mail className="h-3 w-3" /> Alıcılar
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {schedule.alici_emailler.map((email, idx) => (
-                      <span
-                        key={idx}
-                        className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium"
-                      >
-                        {email}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {schedule.son_calistirilma && (
-                <p className="text-xs text-slate-500 mt-3">
-                  Son çalıştırıldı: {new Date(schedule.son_calistirilma).toLocaleString('tr-TR')}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Modal */}
-      {(yeniModal || editModal) && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">
-                {editModal ? 'Planı Düzenle' : 'Yeni Zamanlı Rapor'}
-              </h2>
-              <button
-                onClick={() => {
-                  setYeniModal(false);
-                  setEditModal(null);
-                }}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2">Şablon</label>
-                <select
-                  value={formData.sablon_id}
-                  onChange={(e) => {
-                    const sablon = sablonlar.find((s) => s.id === parseInt(e.target.value));
-                    setFormData({
-                      ...formData,
-                      sablon_id: parseInt(e.target.value),
-                      sablon_adi: sablon?.ad || '',
-                    });
-                  }}
-                  className="w-full h-11 px-4 rounded-lg border border-slate-200 text-sm"
-                >
-                  <option value="">Şablon Seçiniz...</option>
-                  {sablonlar.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.ad}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2">Plan Adı</label>
-                <input
-                  type="text"
-                  value={formData.sablon_adi}
-                  onChange={(e) => setFormData({ ...formData, sablon_adi: e.target.value })}
-                  className="w-full h-11 px-4 rounded-lg border border-slate-200 text-sm"
-                  placeholder="Örn: Haftalık Stok Raporu"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2">Periyot</label>
-                <select
-                  value={formData.periyod}
-                  onChange={(e) => setFormData({ ...formData, periyod: e.target.value })}
-                  className="w-full h-11 px-4 rounded-lg border border-slate-200 text-sm"
-                >
-                  <option value="gunluk">Günlük</option>
-                  <option value="haftalik">Haftalık</option>
-                  <option value="aylik">Aylık</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2">Saat</label>
-                <input
-                  type="time"
-                  value={formData.saat}
-                  onChange={(e) => setFormData({ ...formData, saat: e.target.value })}
-                  className="w-full h-11 px-4 rounded-lg border border-slate-200 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2">Format</label>
-                <select
-                  value={formData.format}
-                  onChange={(e) => setFormData({ ...formData, format: e.target.value })}
-                  className="w-full h-11 px-4 rounded-lg border border-slate-200 text-sm"
-                >
-                  <option value="pdf">PDF</option>
-                  <option value="excel">Excel</option>
-                  <option value="csv">CSV</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2">E-posta Alıcıları</label>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="email"
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleEmailEkle()}
-                    className="flex-1 h-10 px-3 rounded-lg border border-slate-200 text-sm"
-                    placeholder="E-posta ekle..."
-                  />
-                  <button
-                    onClick={handleEmailEkle}
-                    className="px-3 h-10 rounded-lg bg-blue-100 text-blue-600 font-semibold text-sm hover:bg-blue-200"
-                  >
-                    Ekle
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.alici_emailler.map((email, idx) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium flex items-center gap-2"
-                    >
-                      {email}
-                      <button
-                        onClick={() => {
-                          setFormData({
-                            ...formData,
-                            alici_emailler: formData.alici_emailler.filter((_, i) => i !== idx),
-                          });
-                        }}
-                        className="text-slate-400 hover:text-slate-600"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setYeniModal(false);
-                  setEditModal(null);
-                }}
-                className="flex-1 h-11 rounded-lg border border-slate-200 font-semibold hover:bg-slate-100"
-              >
-                İptal
-              </button>
-              <button
-                onClick={editModal ? handleGuncelle : handleEkle}
-                className="flex-1 h-11 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700"
-              >
-                {editModal ? 'Güncelle' : 'Oluştur'}
-              </button>
+              <ArrowLeft className="h-5 w-5 text-slate-600 group-hover:-translate-x-0.5 transition-transform" />
+            </button>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Zamanlı Raporlar
+              </h1>
+              <p className="text-slate-500 mt-1 text-sm sm:text-base">
+                Otomatik rapor gönderim planlarınızı yönetin.
+              </p>
             </div>
           </div>
+          
+          <button
+            onClick={() => setYeniModal(true)}
+            className="w-full sm:w-auto group flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3.5 sm:py-3 rounded-2xl sm:rounded-xl font-semibold shadow-md shadow-blue-600/20 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98] transition-all duration-200"
+          >
+            <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
+            Yeni Plan Oluştur
+          </button>
         </div>
-      )}
+
+        {/* Plan Listesi */}
+        {schedules.length === 0 ? (
+          <div className="bg-white rounded-3xl p-12 text-center border-2 border-dashed border-slate-200 flex flex-col items-center justify-center">
+            <div className="h-20 w-20 bg-slate-50 rounded-full flex items-center justify-center mb-5">
+              <Calendar className="h-10 w-10 text-slate-300" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Henüz Plan Yok</h3>
+            <p className="text-slate-500 max-w-sm mx-auto">
+              Belirli aralıklarla otomatik olarak oluşturulup e-posta ile gönderilecek bir rapor planı ekleyin.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {schedules.map((schedule) => (
+              <div
+                key={schedule.id}
+                className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm shadow-slate-200/50 border border-slate-100 hover:border-blue-100 hover:shadow-md transition-all duration-300 flex flex-col"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1 pr-4">
+                    <h3 className="text-lg font-bold text-slate-900 mb-3 leading-snug line-clamp-2">
+                      {schedule.sablon_adi}
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      <span className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold uppercase tracking-wide flex items-center gap-1.5 ${periyodRenkleri[schedule.periyod]}`}>
+                        <Calendar className="h-3.5 w-3.5" />
+                        {schedule.periyod}
+                      </span>
+                      <span className="px-2.5 py-1 bg-slate-50 border border-slate-200 text-slate-700 rounded-lg text-[11px] font-bold flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" /> 
+                        {schedule.saat}
+                      </span>
+                      <span className="px-2.5 py-1 bg-slate-800 text-white rounded-lg text-[11px] font-bold uppercase flex items-center gap-1.5">
+                        <FileText className="h-3.5 w-3.5" />
+                        {schedule.format}
+                      </span>
+                      {schedule.is_aktif && (
+                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-[11px] font-bold flex items-center gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> 
+                          Aktif
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Kart Aksiyonları */}
+                  <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100">
+                    <button
+                      onClick={() => {
+                        setEditModal(schedule);
+                        setFormData({
+                          sablon_id: schedule.sablon_id,
+                          sablon_adi: schedule.sablon_adi,
+                          periyod: schedule.periyod,
+                          saat: schedule.saat,
+                          alici_emailler: schedule.alici_emailler || [],
+                          format: schedule.format,
+                        });
+                      }}
+                      className="p-2 text-blue-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+                      title="Düzenle"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleSil(schedule.id)}
+                      className="p-2 text-red-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+                      title="Sil"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Alıcılar Bölümü */}
+                {schedule.alici_emailler && schedule.alici_emailler.length > 0 && (
+                  <div className="pt-4 mt-auto border-t border-slate-50">
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <Mail className="h-4 w-4 text-slate-400" />
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Alıcılar ({schedule.alici_emailler.length})
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {schedule.alici_emailler.map((email, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2.5 py-1 bg-slate-50 border border-slate-100 text-slate-600 rounded-md text-xs font-medium truncate max-w-full"
+                          title={email}
+                        >
+                          {email}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Son Çalıştırılma Bilgisi */}
+                {schedule.son_calistirilma && (
+                  <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-400">Son Çalıştırılma:</span>
+                    <span className="text-xs font-medium text-slate-600">
+                      {new Date(schedule.son_calistirilma).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Ekle/Düzenle Modal */}
+        {(yeniModal || editModal) && (
+          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
+            <div className="bg-white w-full sm:max-w-lg rounded-t-[2rem] sm:rounded-3xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
+              
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                    {editModal ? 'Planı Düzenle' : 'Yeni Zamanlı Rapor'}
+                  </h2>
+                  <p className="text-sm text-slate-500 mt-1">Raporun ne zaman ve kime gideceğini ayarlayın.</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setYeniModal(false);
+                    setEditModal(null);
+                  }}
+                  className="p-2 bg-slate-50 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="space-y-5">
+                {/* Şablon Seçimi */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Şablon Seçimi</label>
+                  <select
+                    value={formData.sablon_id}
+                    onChange={(e) => {
+                      const sablon = sablonlar.find((s) => s.id === parseInt(e.target.value));
+                      setFormData({
+                        ...formData,
+                        sablon_id: parseInt(e.target.value),
+                        sablon_adi: sablon?.ad || '',
+                      });
+                    }}
+                    className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
+                  >
+                    <option value="">Şablon Seçiniz...</option>
+                    {sablonlar.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.ad}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Plan Adı */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Plan Adı</label>
+                  <input
+                    type="text"
+                    value={formData.sablon_adi}
+                    onChange={(e) => setFormData({ ...formData, sablon_adi: e.target.value })}
+                    className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
+                    placeholder="Örn: Haftalık Satış Özet Raporu"
+                  />
+                </div>
+
+                {/* Periyot ve Saat (Yan yana) */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Periyot</label>
+                    <select
+                      value={formData.periyod}
+                      onChange={(e) => setFormData({ ...formData, periyod: e.target.value })}
+                      className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
+                    >
+                      <option value="gunluk">Günlük</option>
+                      <option value="haftalik">Haftalık</option>
+                      <option value="aylik">Aylık</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Saat</label>
+                    <input
+                      type="time"
+                      value={formData.saat}
+                      onChange={(e) => setFormData({ ...formData, saat: e.target.value })}
+                      className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Format */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Çıktı Formatı</label>
+                  <select
+                    value={formData.format}
+                    onChange={(e) => setFormData({ ...formData, format: e.target.value })}
+                    className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
+                  >
+                    <option value="pdf">PDF Dokümanı</option>
+                    <option value="excel">Excel Tablosu</option>
+                    <option value="csv">CSV Dosyası</option>
+                  </select>
+                </div>
+
+                {/* E-posta Alıcıları */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">E-posta Alıcıları</label>
+                  <div className="flex gap-2 mb-3 relative">
+                    <input
+                      type="email"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleEmailEkle(e)}
+                      className="flex-1 h-12 pl-10 pr-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
+                      placeholder="ornek@sirket.com"
+                    />
+                    <Mail className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-400 pointer-events-none" />
+                    <button
+                      onClick={handleEmailEkle}
+                      type="button"
+                      className="px-5 h-12 rounded-xl bg-slate-800 text-white font-semibold text-sm hover:bg-slate-900 transition-colors shadow-sm"
+                    >
+                      Ekle
+                    </button>
+                  </div>
+                  
+                  {formData.alici_emailler.length > 0 && (
+                    <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      {formData.alici_emailler.map((email, idx) => (
+                        <div
+                          key={idx}
+                          className="pl-3 pr-1.5 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm"
+                        >
+                          {email}
+                          <button
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                alici_emailler: formData.alici_emailler.filter((_, i) => i !== idx),
+                              });
+                            }}
+                            className="p-1 bg-slate-100 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Aksiyon Butonları */}
+              <div className="flex gap-3 mt-8 pt-6 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    setYeniModal(false);
+                    setEditModal(null);
+                  }}
+                  className="flex-1 h-12 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all"
+                >
+                  İptal
+                </button>
+                <button
+                  onClick={editModal ? handleGuncelle : handleEkle}
+                  className="flex-1 h-12 rounded-xl bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30 transition-all"
+                >
+                  {editModal ? 'Değişiklikleri Kaydet' : 'Planı Oluştur'}
+                </button>
+              </div>
+              
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  BarChart3, TrendingUp, FileText, Clock, Loader2, Plus, Eye, Trash2, ArrowRight
+  BarChart3, TrendingUp, FileText, Clock, Loader2, Plus, Eye, ArrowRight, Settings
 } from 'lucide-react';
 import { getRaporSablonlari, getRaporLoglari } from '../services/api';
 import { useAsync } from '../hooks/useAsync';
@@ -9,10 +9,10 @@ import { hataMetni } from '../utils/hata';
 import toast from 'react-hot-toast';
 
 const turRenkleri = {
-  'stok': 'bg-blue-50 text-blue-700 border border-blue-200',
-  'siparis': 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-  'finansal': 'bg-amber-50 text-amber-700 border border-amber-200',
-  'performans': 'bg-purple-50 text-purple-700 border border-purple-200',
+  'stok': 'bg-blue-50 text-blue-700 border-blue-100',
+  'siparis': 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  'finansal': 'bg-amber-50 text-amber-700 border-amber-100',
+  'performans': 'bg-purple-50 text-purple-700 border-purple-100',
 };
 
 const turIkonlari = {
@@ -50,112 +50,147 @@ export default function RaporlarPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[80vh] items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-4">
+      <div className="flex min-h-[80vh] items-center justify-center bg-slate-50/50">
+        <div className="flex flex-col items-center gap-4 bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
           <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-          <p className="text-slate-500 font-medium">Raporlar yükleniyor...</p>
+          <p className="text-slate-500 font-medium animate-pulse">Raporlar hazırlanıyor...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-12">
-      <div className="max-w-[1400px] mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50/50 pb-12 sm:pb-20">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10">
 
-        {/* Başlık */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+        {/* Başlık ve Aksiyon Alanı */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 mb-8 sm:mb-10">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
               Raporlama Merkezi
             </h1>
-            <p className="text-slate-500 mt-2">Kapsamlı iş raporları oluştur, zamanla ve dışa aktar</p>
+            <p className="text-slate-500 mt-1.5 sm:mt-2 text-sm sm:text-base">
+              Kapsamlı iş raporları oluşturun, zamanlayın ve verilerinizi analiz edin.
+            </p>
           </div>
           <button
             onClick={() => navigate('/raporlar/olustur')}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:bg-blue-700 active:scale-[0.98] transition-all"
+            className="w-full sm:w-auto group flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3.5 sm:py-3 rounded-2xl sm:rounded-xl font-semibold shadow-md shadow-blue-600/20 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98] transition-all duration-200"
           >
-            <Plus className="h-5 w-5" /> Yeni Rapor
+            <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" /> 
+            <span>Yeni Rapor</span>
           </button>
         </div>
 
-        {/* Hızlı İstatistikler */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        {/* Özet Kartları (İstatistikler) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
+          {/* Kart 1 */}
+          <div className="bg-white rounded-3xl p-6 shadow-sm shadow-slate-200/50 border border-slate-100 hover:border-blue-100 hover:shadow-md transition-all duration-300 group">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-500 text-sm font-semibold uppercase">Toplam Şablon</p>
-                <p className="text-3xl font-bold text-slate-900 mt-2">{sablonlar.length}</p>
+                <p className="text-slate-400 text-xs sm:text-sm font-bold uppercase tracking-wider mb-1">Toplam Şablon</p>
+                <p className="text-3xl sm:text-4xl font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">{sablonlar.length}</p>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                <FileText className="h-6 w-6 text-blue-600" />
+              <div className="h-14 w-14 rounded-2xl bg-blue-50/50 border border-blue-50 flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                <FileText className="h-7 w-7 text-blue-500" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+          {/* Kart 2 */}
+          <div className="bg-white rounded-3xl p-6 shadow-sm shadow-slate-200/50 border border-slate-100 hover:border-emerald-100 hover:shadow-md transition-all duration-300 group">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-500 text-sm font-semibold uppercase">Son Raporlar</p>
-                <p className="text-3xl font-bold text-slate-900 mt-2">{loglar.length}</p>
+                <p className="text-slate-400 text-xs sm:text-sm font-bold uppercase tracking-wider mb-1">Son Raporlar</p>
+                <p className="text-3xl sm:text-4xl font-extrabold text-slate-900 group-hover:text-emerald-600 transition-colors">{loglar.length}</p>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-emerald-100 flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-emerald-600" />
+              <div className="h-14 w-14 rounded-2xl bg-emerald-50/50 border border-emerald-50 flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
+                <TrendingUp className="h-7 w-7 text-emerald-500" />
               </div>
             </div>
           </div>
 
+          {/* Kart 3 (Tıklanabilir) - Zamanlı Raporlar */}
           <button
             onClick={() => navigate('/raporlar/zamanli')}
-            className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all text-left group"
+            className="w-full text-left bg-white rounded-3xl p-6 shadow-sm shadow-slate-200/50 border border-slate-100 hover:border-amber-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-500 text-sm font-semibold uppercase">Zamanlı Raporlar</p>
-                <p className="text-3xl font-bold text-slate-900 mt-2 group-hover:text-blue-600 transition">
-                  Yönet →
-                </p>
+                <p className="text-slate-400 text-xs sm:text-sm font-bold uppercase tracking-wider mb-1">Zamanlı Raporlar</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-lg font-bold text-slate-900 group-hover:text-amber-600 transition-colors">
+                    Yönetimi Aç
+                  </span>
+                  <ArrowRight className="h-5 w-5 text-amber-500 group-hover:translate-x-1 transition-transform" />
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center">
-                <Clock className="h-6 w-6 text-amber-600" />
+              <div className="h-14 w-14 rounded-2xl bg-amber-50/50 border border-amber-50 flex items-center justify-center group-hover:bg-amber-50 transition-colors">
+                <Clock className="h-7 w-7 text-amber-500" />
+              </div>
+            </div>
+          </button>
+
+          {/* Kart 4 (Tıklanabilir) - Şablonları Yönet */}
+          <button
+            onClick={() => navigate('/raporlar/sablonlar')}
+            className="w-full text-left bg-white rounded-3xl p-6 shadow-sm shadow-slate-200/50 border border-slate-100 hover:border-indigo-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-xs sm:text-sm font-bold uppercase tracking-wider mb-1">Rapor Şablonları</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                    Yönetimi Aç
+                  </span>
+                  <ArrowRight className="h-5 w-5 text-indigo-500 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+              <div className="h-14 w-14 rounded-2xl bg-indigo-50/50 border border-indigo-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
+                <Settings className="h-7 w-7 text-indigo-500" />
               </div>
             </div>
           </button>
         </div>
 
-        {/* Rapor Türü Filtreleri */}
-        <div className="mb-8 flex flex-wrap gap-3">
-          <button
-            onClick={() => setSeciliTur('')}
-            className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-sm ${
-              !seciliTur
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
-            }`}
-          >
-            Tüm Raporlar
-          </button>
-          {['stok', 'siparis', 'finansal', 'performans'].map((tur) => (
+        {/* Rapor Türü Filtreleri (Mobil için yatay kaydırma eklendi) */}
+        <div className="mb-6 sm:mb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex overflow-x-auto pb-4 sm:pb-0 gap-2 sm:gap-3 snap-x hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button
-              key={tur}
-              onClick={() => setSeciliTur(tur)}
-              className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-sm border ${
-                seciliTur === tur
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+              onClick={() => setSeciliTur('')}
+              className={`snap-start whitespace-nowrap px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 ${
+                !seciliTur
+                  ? 'bg-slate-800 text-white shadow-md'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
               }`}
             >
-              {tur.charAt(0).toUpperCase() + tur.slice(1)}
+              Tüm Şablonlar
             </button>
-          ))}
+            {['stok', 'siparis', 'finansal', 'performans'].map((tur) => (
+              <button
+                key={tur}
+                onClick={() => setSeciliTur(tur)}
+                className={`snap-start whitespace-nowrap px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 border ${
+                  seciliTur === tur
+                    ? 'bg-slate-800 text-white border-slate-800 shadow-md'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                }`}
+              >
+                {tur.charAt(0).toUpperCase() + tur.slice(1)} Raporları
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Şablonlar Listesi */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-12 sm:mb-16">
           {filtrelenmis.length === 0 ? (
-            <div className="lg:col-span-2 bg-white rounded-2xl p-12 text-center border-2 border-dashed border-slate-200">
-              <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500 font-medium">Rapor şablonu bulunamadı</p>
+            <div className="md:col-span-2 lg:col-span-3 bg-white rounded-3xl p-12 text-center border-2 border-dashed border-slate-200">
+              <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="h-8 w-8 text-slate-400" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-1">Şablon Bulunamadı</h3>
+              <p className="text-slate-500 font-medium text-sm">Seçili kritere uygun bir rapor şablonu mevcut değil.</p>
             </div>
           ) : (
             filtrelenmis.map((sablon) => {
@@ -163,43 +198,39 @@ export default function RaporlarPage() {
               return (
                 <div
                   key={sablon.id}
-                  className="bg-white rounded-2xl shadow-sm hover:shadow-md border border-slate-200 hover:border-blue-200 transition-all duration-200 overflow-hidden group"
+                  className="bg-white rounded-3xl shadow-sm shadow-slate-200/40 border border-slate-100 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300 flex flex-col group"
                 >
-                  <div className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-start gap-4">
-                        <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${turRenkleri[sablon.tur]}`}>
-                          <Icon className="h-6 w-6" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-slate-900 mb-1">{sablon.ad}</h3>
-                          <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-semibold ${turRenkleri[sablon.tur]}`}>
-                            {sablon.tur}
-                          </span>
-                        </div>
+                  <div className="p-5 sm:p-6 flex-1 flex flex-col">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className={`h-12 w-12 rounded-2xl flex items-center justify-center flex-shrink-0 border ${turRenkleri[sablon.tur]}`}>
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1 pt-1">
+                        <h3 className="text-[17px] leading-snug font-bold text-slate-900 mb-1.5 group-hover:text-blue-600 transition-colors line-clamp-2">
+                          {sablon.ad}
+                        </h3>
+                        <span className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wide border ${turRenkleri[sablon.tur]}`}>
+                          {sablon.tur}
+                        </span>
                       </div>
                     </div>
 
                     {sablon.aciklama && (
-                      <p className="text-slate-600 text-sm mb-4 line-clamp-2">{sablon.aciklama}</p>
+                      <p className="text-slate-500 text-sm mb-6 line-clamp-2 flex-1 leading-relaxed">
+                        {sablon.aciklama}
+                      </p>
                     )}
 
-                    <div className="flex gap-3 pt-4 border-t border-slate-100">
+                    <div className="flex gap-2 sm:gap-3 pt-4 border-t border-slate-50 mt-auto">
                       <button
                         onClick={() =>
                           navigate('/raporlar/olustur', {
                             state: { sablon_id: sablon.id },
                           })
                         }
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg font-semibold text-sm transition-colors"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-xl font-bold text-sm transition-all duration-200"
                       >
                         <Eye className="h-4 w-4" /> Oluştur
-                      </button>
-                      <button
-                        onClick={() => navigate('/raporlar/sablonlar')}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg font-semibold text-sm transition-colors"
-                      >
-                        <ArrowRight className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -209,46 +240,51 @@ export default function RaporlarPage() {
           )}
         </div>
 
-        {/* Son Oluşturulan Raporlar */}
+        {/* Son Oluşturulan Raporlar Tablosu */}
         {loglar.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">Son Raporlar</h2>
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">Son Raporlar</h2>
+            </div>
+            <div className="bg-white rounded-3xl shadow-sm shadow-slate-200/40 border border-slate-100 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-bold uppercase text-slate-600">Şablon</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold uppercase text-slate-600">Durum</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold uppercase text-slate-600">Tarih</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold uppercase text-slate-600">Süre</th>
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/80 border-b border-slate-100">
+                      <th className="px-5 sm:px-6 py-4 text-xs font-extrabold text-slate-400 uppercase tracking-wider whitespace-nowrap">Şablon ID</th>
+                      <th className="px-5 sm:px-6 py-4 text-xs font-extrabold text-slate-400 uppercase tracking-wider whitespace-nowrap">Durum</th>
+                      <th className="px-5 sm:px-6 py-4 text-xs font-extrabold text-slate-400 uppercase tracking-wider whitespace-nowrap">Tarih</th>
+                      <th className="px-5 sm:px-6 py-4 text-xs font-extrabold text-slate-400 uppercase tracking-wider whitespace-nowrap text-right">Süre</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-50">
                     {loglar.map((log) => (
-                      <tr key={log.id} className="hover:bg-slate-50 transition">
-                        <td className="px-6 py-4 font-medium text-slate-900">{log.sablon_id || 'Ad Hoc'}</td>
-                        <td className="px-6 py-4">
+                      <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-5 sm:px-6 py-4 whitespace-nowrap">
+                          <span className="font-semibold text-slate-700 text-sm">
+                            {log.sablon_id || 'Ad Hoc Rapor'}
+                          </span>
+                        </td>
+                        <td className="px-5 sm:px-6 py-4 whitespace-nowrap">
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border ${
                               log.durum === 'Basarili'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-red-100 text-red-700'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                : 'bg-red-50 text-red-700 border-red-100'
                             }`}
                           >
+                            {log.durum === 'Basarili' && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2"></div>}
+                            {log.durum !== 'Basarili' && <div className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2"></div>}
                             {log.durum}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-slate-600 text-sm">
-                          {new Date(log.olusturma_tarihi).toLocaleDateString('tr-TR')}
+                        <td className="px-5 sm:px-6 py-4 whitespace-nowrap text-slate-500 text-sm font-medium">
+                          {new Date(log.olusturma_tarihi).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>
-                        <td className="px-6 py-4 text-slate-600 text-sm">
+                        <td className="px-5 sm:px-6 py-4 whitespace-nowrap text-slate-500 text-sm font-medium text-right">
                           {log.tamamlanma_tarihi
-                            ? new Date(
-                                new Date(log.tamamlanma_tarihi) -
-                                  new Date(log.olusturma_tarihi)
-                              ).getSeconds() + 's'
-                            : '-'}
+                            ? (new Date(log.tamamlanma_tarihi) - new Date(log.olusturma_tarihi)) / 1000 + ' sn'
+                            : <span className="text-slate-300">-</span>}
                         </td>
                       </tr>
                     ))}
@@ -258,6 +294,7 @@ export default function RaporlarPage() {
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
