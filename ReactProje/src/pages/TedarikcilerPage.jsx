@@ -73,252 +73,252 @@ const TedarikcilerPage = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto min-h-screen bg-slate-50/50">
+    <div className="min-h-screen bg-slate-50 pb-12">
+      <div className="max-w-[1400px] mx-auto px-4 py-6 sm:px-6 lg:px-8">
 
-      {/* Sayfa Başlığı */}
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center text-indigo-600">
-          <Truck className="w-6 h-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Tedarikçi Yönetimi</h1>
-          <p className="text-sm text-slate-500 mt-1">Sistemdeki tedarikçileri görüntüleyin ve yeni firmalar ekleyin.</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-        {/* SOL TARAF: Ekleme Formu */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-indigo-500" />
-                Yeni Tedarikçi Ekle
-              </h2>
+        {/* Sayfa Başlığı */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-indigo-600 rounded-xl shadow-md shadow-indigo-600/20 flex items-center justify-center text-white shrink-0">
+              <Truck className="w-6 h-6" />
             </div>
-
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-
-              {/* Firma Adı */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-slate-400" />
-                  Firma Adı <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="firma_adi"
-                  value={formData.firma_adi}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
-                  placeholder="Örn: ABC Lojistik A.Ş."
-                />
-              </div>
-
-              {/* İletişim Kişisi */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                  <User className="w-4 h-4 text-slate-400" />
-                  İletişim Kişisi
-                </label>
-                <input
-                  type="text"
-                  name="iletisim_kisi"
-                  value={formData.iletisim_kisi}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
-                  placeholder="Örn: Ayşe Yılmaz"
-                />
-              </div>
-
-              {/* Telefon */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-slate-400" />
-                  Telefon
-                </label>
-                <input
-                  type="text"
-                  name="telefon"
-                  value={formData.telefon}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
-                  placeholder="Örn: 0555 123 45 67"
-                />
-              </div>
-
-              {/* E-posta */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-slate-400" />
-                  E-posta
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
-                  placeholder="Örn: info@abclojistik.com"
-                />
-              </div>
-
-              {/* Vergi Numarası */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                  <FileSignature className="w-4 h-4 text-slate-400" />
-                  Vergi Numarası / TC
-                </label>
-                <input
-                  type="text"
-                  name="vergi_no"
-                  value={formData.vergi_no}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
-                  placeholder="Örn: 1234567890"
-                />
-              </div>
-
-              {/* Adres */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-slate-400" />
-                  Açık Adres
-                </label>
-                <textarea
-                  name="adres"
-                  value={formData.adres}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400 resize-none h-20"
-                  placeholder="Firma açık adresi..."
-                />
-              </div>
-
-              {/* Kaydet Butonu */}
-              <button
-                type="submit"
-                className="group relative w-full mt-4 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all duration-300 hover:bg-indigo-600 hover:shadow-indigo-600/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
-              >
-                <Plus className="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" />
-                <span>Tedarikçiyi Kaydet</span>
-              </button>
-
-            </form>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Tedarikçi Yönetimi</h1>
+              <p className="text-sm text-slate-500 mt-1">Sistemdeki tedarikçileri görüntüleyin ve yönetin.</p>
+            </div>
           </div>
         </div>
 
-        {/* SAĞ TARAF: Tedarikçi Listesi (Tablo) */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-full flex flex-col">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
 
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-indigo-500" />
-                Kayıtlı Tedarikçiler
-              </h2>
-              <span className="bg-white border border-slate-200 text-slate-600 text-xs font-bold px-3 py-1 rounded-full shadow-sm">
-                {tedarikciler.length} Kayıt
-              </span>
-            </div>
-
-            <div className="p-0 overflow-x-auto flex-1">
-              {loading ? (
-                // Yükleniyor Durumu
-                <div className="flex flex-col items-center justify-center h-64 text-slate-500">
-                  <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-4" />
-                  <p className="text-sm font-medium">Veriler yükleniyor...</p>
-                </div>
-              ) : tedarikciler.length === 0 ? (
-                // Boş Durum (Empty State)
-                <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
-                    <SearchX className="w-8 h-8 text-slate-300" />
+          {/* SOL TARAF: Ekleme Formu */}
+          <div className="w-full lg:w-[400px] xl:w-[450px] shrink-0">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-6">
+              <div className="px-5 sm:px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2.5">
+                  <div className="p-1.5 bg-indigo-100 rounded-lg text-indigo-600">
+                    <Plus className="w-4 h-4 stroke-[3]" />
                   </div>
-                  <p className="text-base font-medium text-slate-600">Henüz kayıtlı tedarikçi yok</p>
-                  <p className="text-sm mt-1">Sol taraftaki formu kullanarak ilk tedarikçiyi ekleyebilirsiniz.</p>
+                  Yeni Tedarikçi Ekle
+                </h2>
+              </div>
+
+              <form onSubmit={handleSubmit} className="p-5 sm:px-6 py-6 space-y-4">
+
+                {/* Firma Adı */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-slate-400" />
+                    Firma Adı <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="firma_adi"
+                    value={formData.firma_adi}
+                    onChange={handleChange}
+                    className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                    placeholder="Örn: ABC Lojistik A.Ş."
+                  />
                 </div>
-              ) : (
-                // Veri Tablosu
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/50 border-b border-slate-100">
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Firma Bilgileri</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Yetkili Kişi</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">İletişim</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {tedarikciler.map((t) => (
-                      <tr key={t.id} className="hover:bg-slate-50/80 transition-colors group">
 
-                        {/* Firma Sütunu */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0 group-hover:scale-105 transition-transform">
-                              <Building2 className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold text-slate-800">{t.firma_adi}</p>
-                              <p className="text-xs text-slate-400 mt-0.5">ID: #{t.id}</p>
-                            </div>
-                          </div>
-                        </td>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
+                  {/* İletişim Kişisi */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                      <User className="w-4 h-4 text-slate-400" />
+                      İletişim Kişisi
+                    </label>
+                    <input
+                      type="text"
+                      name="iletisim_kisi"
+                      value={formData.iletisim_kisi}
+                      onChange={handleChange}
+                      className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                      placeholder="Örn: Ayşe Yılmaz"
+                    />
+                  </div>
 
-                        {/* Yetkili Sütunu */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-                              <User className="w-3.5 h-3.5" />
-                            </div>
-                            <span className="text-sm text-slate-600 font-medium">
-                              {t.iletisim_kisi || <span className="text-slate-400 italic">Belirtilmedi</span>}
-                            </span>
-                          </div>
-                        </td>
+                  {/* Telefon */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-slate-400" />
+                      Telefon
+                    </label>
+                    <input
+                      type="text"
+                      name="telefon"
+                      value={formData.telefon}
+                      onChange={handleChange}
+                      className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                      placeholder="Örn: 0555 123 45 67"
+                    />
+                  </div>
+                </div>
 
-                        {/* İletişim Sütunu */}
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-2">
-                            {t.telefon && (
-                              <div className="flex items-center gap-2 text-sm text-slate-600">
-                                <Phone className="w-3.5 h-3.5 text-slate-400" />
-                                <span>{t.telefon}</span>
-                              </div>
-                            )}
-                            {t.email && (
-                              <div className="flex items-center gap-2 text-sm text-slate-600">
-                                <Mail className="w-3.5 h-3.5 text-slate-400" />
-                                <span>{t.email}</span>
-                              </div>
-                            )}
-                            {!t.telefon && !t.email && (
-                              <span className="text-sm text-slate-400 italic">İletişim bilgisi yok</span>
-                            )}
-                            {t.adres && (
-                              <div className="mt-1 pt-2 border-t border-slate-100 flex items-start gap-2 text-xs text-slate-500">
-                                <MapPin className="w-3.5 h-3.5 mt-0.5 text-slate-400 flex-shrink-0" />
-                                <span className="line-clamp-2">{t.adres}</span>
-                              </div>
-                            )}
-                            {t.vergi_no && (
-                              <div className="flex items-center gap-2 text-xs text-slate-500">
-                                <FileSignature className="w-3.5 h-3.5 text-slate-400" />
-                                <span>VN: {t.vergi_no}</span>
-                              </div>
-                            )}
-                          </div>
-                        </td>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
+                  {/* E-posta */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-slate-400" />
+                      E-posta
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                      placeholder="Örn: info@firma.com"
+                    />
+                  </div>
 
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                  {/* Vergi Numarası */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                      <FileSignature className="w-4 h-4 text-slate-400" />
+                      Vergi No / TC
+                    </label>
+                    <input
+                      type="text"
+                      name="vergi_no"
+                      value={formData.vergi_no}
+                      onChange={handleChange}
+                      className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                      placeholder="Örn: 1234567890"
+                    />
+                  </div>
+                </div>
+
+                {/* Adres */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-slate-400" />
+                    Açık Adres
+                  </label>
+                  <textarea
+                    name="adres"
+                    value={formData.adres}
+                    onChange={handleChange}
+                    className="w-full min-h-[90px] p-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 resize-y"
+                    placeholder="Firma açık adresi..."
+                  />
+                </div>
+
+                {/* Kaydet Butonu */}
+                <button
+                  type="submit"
+                  className="w-full mt-2 h-12 flex items-center justify-center gap-2 rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-[0.98]"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>Tedarikçiyi Kaydet</span>
+                </button>
+
+              </form>
             </div>
           </div>
-        </div>
 
+          {/* SAĞ TARAF: Tedarikçi Listesi (Kart Grid Yapısı) */}
+          <div className="w-full flex-1">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-full flex flex-col">
+
+              <div className="px-5 sm:px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2.5">
+                  <div className="p-1.5 bg-slate-200 text-slate-600 rounded-lg">
+                    <Building2 className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                  Kayıtlı Tedarikçiler
+                </h2>
+                <span className="bg-white border border-slate-200 text-indigo-600 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+                  {tedarikciler.length} Kayıt
+                </span>
+              </div>
+
+              <div className="p-4 sm:p-5 flex-1 bg-slate-50/30">
+                {loading ? (
+                  // Yükleniyor Durumu
+                  <div className="flex flex-col items-center justify-center h-64 text-slate-500">
+                    <Loader2 className="w-10 h-10 animate-spin text-indigo-600 mb-4" />
+                    <p className="text-sm font-medium animate-pulse">Veriler yükleniyor...</p>
+                  </div>
+                ) : tedarikciler.length === 0 ? (
+                  // Boş Durum
+                  <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 border border-slate-200 shadow-sm">
+                      <SearchX className="w-8 h-8 text-slate-300" />
+                    </div>
+                    <p className="text-base font-bold text-slate-700">Tedarikçi Bulunamadı</p>
+                    <p className="text-sm mt-1 text-center max-w-sm">Sol taraftaki formu kullanarak sisteme ilk tedarikçinizi ekleyebilirsiniz.</p>
+                  </div>
+                ) : (
+                  // Kart Grid Listesi (Tablo yerine mobilde çok daha şık durur)
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {tedarikciler.map((t) => (
+                      <div 
+                        key={t.id} 
+                        className="bg-white border border-slate-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-md transition-all duration-200 group flex flex-col"
+                      >
+                        <div className="flex items-start gap-3 mb-4 pb-4 border-b border-slate-100">
+                          <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <Building2 className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-slate-900 truncate group-hover:text-indigo-600 transition-colors" title={t.firma_adi}>
+                              {t.firma_adi}
+                            </h3>
+                            <p className="text-xs font-medium text-slate-400 mt-0.5">ID: #{t.id}</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 flex-1">
+                          {t.iletisim_kisi ? (
+                            <div className="flex items-start gap-2.5 text-sm text-slate-700">
+                              <User className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                              <span className="font-medium">{t.iletisim_kisi}</span>
+                            </div>
+                          ) : null}
+
+                          {(t.telefon || t.email) ? (
+                            <div className="flex flex-col gap-2">
+                              {t.telefon && (
+                                <div className="flex items-center gap-2.5 text-sm text-slate-600">
+                                  <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                                  <span>{t.telefon}</span>
+                                </div>
+                              )}
+                              {t.email && (
+                                <div className="flex items-center gap-2.5 text-sm text-slate-600">
+                                  <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                                  <span className="truncate" title={t.email}>{t.email}</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            !t.iletisim_kisi && <span className="text-sm text-slate-400 italic">İletişim bilgisi eklenmemiş</span>
+                          )}
+
+                          {t.vergi_no && (
+                            <div className="flex items-center gap-2.5 text-sm text-slate-600">
+                              <FileSignature className="w-4 h-4 text-slate-400 shrink-0" />
+                              <span>VN: <span className="font-medium">{t.vergi_no}</span></span>
+                            </div>
+                          )}
+
+                          {t.adres && (
+                            <div className="flex items-start gap-2.5 text-sm text-slate-600 mt-2 pt-3 border-t border-slate-50">
+                              <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                              <span className="line-clamp-2 leading-relaxed" title={t.adres}>{t.adres}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );
