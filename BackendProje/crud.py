@@ -5,7 +5,8 @@ from fastapi.encoders import jsonable_encoder
 
 from models import (
     Marka, Kategori, Depo, Raf, Tedarikci,
-    Urun, Lot, Palet, StokHareketi, Kullanici, SistemLog, DestekTalebi
+    Urun, Lot, Palet, StokHareketi, Kullanici, SistemLog, DestekTalebi,
+    Siparis, SiparisKalemi, SevkiyatPlani, Irsaliye
 )
 from schemas import (
     MarkaCreate, MarkaUpdate,
@@ -17,7 +18,10 @@ from schemas import (
     LotCreate, LotUpdate,
     PaletCreate, PaletUpdate,
     StokHareketiCreate,
-    DestekTalebiCreate, DestekTalebiUpdate
+    DestekTalebiCreate, DestekTalebiUpdate,
+    SiparisCreate, SiparisUpdate,
+    SevkiyatPlaniCreate, SevkiyatPlaniUpdate,
+    IrsaliyeCreate, IrsaliyeUpdate
 )
 
 
@@ -701,12 +705,12 @@ def update_destek_talebi(db: Session, talep_id: int, talep_update: DestekTalebiU
         return None
 
     eski_durum = db_talep.durum
-    
+
     for key, value in talep_update.model_dump(exclude_unset=True).items():
         setattr(db_talep, key, value)
-    
+
     db_talep.guncelleme_tarihi = datetime.utcnow()
-    
+
     log = SistemLog(
         kullanici_id=admin_id,
         islem_tipi="UPDATE",
@@ -714,7 +718,316 @@ def update_destek_talebi(db: Session, talep_id: int, talep_update: DestekTalebiU
         detay=f"Destek talebi güncellendi (#{db_talep.id}). Durum: {eski_durum} -> {db_talep.durum}"
     )
     db.add(log)
-    
+
     db.commit()
     db.refresh(db_talep)
     return db_talep
+
+
+# ========================
+# SİPARİŞ CRUD
+# ========================
+
+def generate_siparis_no(db: Session) -> str:
+    """Otomatik sipariş numarası üret: SIP-2026-0001 formatında"""
+    bugun = datetime.utcnow()
+    yil = bugun.year
+
+    # Bu yıla ait son sipariş numarasını bul
+    son_siparis = db.query(Siparis).filter(
+        Siparis.siparis_no.startswith(f"SIP-{yil}-")
+    ).order_by(Siparis.id.desc()).first()
+
+    if son_siparis:
+        # Son numaradan sıra numarası çıkar
+        try:
+            son_no = int(son_siparis.siparis_no.split("-")[-1])
+            yeni_no = son_no + 1
+        except:
+            yeni_no = 1
+    else:
+        yeni_no = 1
+
+    return f"SIP-{yil}-{yeni_no:04d}"
+
+def get_siparisler(db: Session, skip: int = 0, limit: int = 100, durum: str = None, arama: str = None):
+    query = db.query(Siparis).options(
+        joinedload(Siparis.kalemler),
+        joinedload(Siparis.olusturan_kullanici)
+    )
+
+    if durum:
+        query = query.filter(Siparis.durum == durum)
+
+    if arama:
+        query = query.filter(
+            or_(
+                Siparis.siparis_no.ilike(f"%{arama}%"),
+                Siparis.musteri_adi.ilike(f"%{arama}%")
+            )
+        )
+
+    return query.order_by(Siparis.olusturma_tarihi.desc()).offset(skip).limit(limit).all()
+
+def get_siparis(db: Session, siparis_id: int):
+    return db.query(Siparis).options(
+        joinedload(Siparis.kalemler),
+        joinedload(Siparis.olusturan_kullanici)
+    ).filter(Siparis.id == siparis_id).first()
+
+def create_siparis(db: Session, siparis: SiparisCreate, kullanici_id: int):
+    # Otomatik sipariş numarası
+    siparis_no = generate_siparis_no(db)
+
+    # Sipariş oluştur
+    db_siparis = Siparis(
+        **siparis.model_dump(exclude={"kalemler"}),
+        siparis_no=siparis_no,
+        olusturan_kullanici_id=kullanici_id
+    )
+
+    # Kalemler ekle
+    toplam_tutar = 0.0
+    toplam_miktar = 0
+
+    for kalem in siparis.kalemler:
+        # Toplam hesapla (gönderilmediyse)
+        kalem_toplam = kalem.toplam or (kalem.miktar * kalem.birim_fiyat * (1 + kalem.kdv_orani / 100))
+
+        kalem_dict = kalem.model_dump()
+        kalem_dict['toplam'] = kalem_toplam
+
+        db_kalem = SiparisKalemi(**kalem_dict)
+        db_siparis.kalemler.append(db_kalem)
+        toplam_tutar += kalem_toplam
+        toplam_miktar += kalem.miktar
+
+    db_siparis.top_miktar = toplam_miktar
+    db_siparis.top_tutar = toplam_tutar
+
+    db.add(db_siparis)
+    db.flush()
+
+    # Sistem logu
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="CREATE",
+        modul="Sipariş Yönetimi",
+        detay=f"Yeni sipariş oluşturuldu: {siparis_no} - {db_siparis.musteri_adi}"
+    )
+    db.add(log)
+
+    db.commit()
+    db.refresh(db_siparis)
+    return db_siparis
+
+def update_siparis(db: Session, siparis_id: int, siparis_update: SiparisUpdate, kullanici_id: int):
+    db_siparis = db.query(Siparis).filter(Siparis.id == siparis_id).first()
+    if not db_siparis:
+        return None
+
+    eski_durum = db_siparis.durum
+
+    for key, value in siparis_update.model_dump(exclude_unset=True).items():
+        setattr(db_siparis, key, value)
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="UPDATE",
+        modul="Sipariş Yönetimi",
+        detay=f"Sipariş güncellendi: {db_siparis.siparis_no}. Durum: {eski_durum} -> {db_siparis.durum}"
+    )
+    db.add(log)
+
+    db.commit()
+    db.refresh(db_siparis)
+    return db_siparis
+
+def delete_siparis(db: Session, siparis_id: int, kullanici_id: int):
+    db_siparis = db.query(Siparis).filter(Siparis.id == siparis_id).first()
+    if not db_siparis:
+        return False
+
+    db_siparis.aktif = False
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="DELETE",
+        modul="Sipariş Yönetimi",
+        detay=f"Sipariş silindi: {db_siparis.siparis_no}"
+    )
+    db.add(log)
+
+    db.commit()
+    return True
+
+
+# ========================
+# SEVKİYAT PLANI CRUD
+# ========================
+
+def get_sevkiyat_planlari(db: Session, skip: int = 0, limit: int = 100, durum: str = None, tarih_baslang: date = None, tarih_bitis: date = None):
+    query = db.query(SevkiyatPlani).options(joinedload(SevkiyatPlani.siparis))
+
+    if durum:
+        query = query.filter(SevkiyatPlani.durum == durum)
+
+    if tarih_baslang:
+        query = query.filter(SevkiyatPlani.yukleme_tarihi >= tarih_baslang)
+
+    if tarih_bitis:
+        query = query.filter(SevkiyatPlani.yukleme_tarihi <= tarih_bitis)
+
+    return query.order_by(SevkiyatPlani.yukleme_tarihi.desc()).offset(skip).limit(limit).all()
+
+def get_sevkiyat_plani(db: Session, plan_id: int):
+    return db.query(SevkiyatPlani).options(joinedload(SevkiyatPlani.siparis)).filter(SevkiyatPlani.id == plan_id).first()
+
+def create_sevkiyat_plani(db: Session, plan: SevkiyatPlaniCreate, kullanici_id: int):
+    db_plan = SevkiyatPlani(**plan.model_dump())
+    db.add(db_plan)
+    db.flush()
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="CREATE",
+        modul="Sevkiyat Planlama",
+        detay=f"Yeni sevkiyat planı oluşturuldu - Sipariş ID: {plan.siparis_id}"
+    )
+    db.add(log)
+
+    db.commit()
+    db.refresh(db_plan)
+    return db_plan
+
+def update_sevkiyat_plani(db: Session, plan_id: int, plan_update: SevkiyatPlaniUpdate, kullanici_id: int):
+    db_plan = db.query(SevkiyatPlani).filter(SevkiyatPlani.id == plan_id).first()
+    if not db_plan:
+        return None
+
+    eski_durum = db_plan.durum
+
+    for key, value in plan_update.model_dump(exclude_unset=True).items():
+        setattr(db_plan, key, value)
+
+    if eski_durum != db_plan.durum:
+        log = SistemLog(
+            kullanici_id=kullanici_id,
+            islem_tipi="UPDATE",
+            modul="Sevkiyat Planlama",
+            detay=f"Sevkiyat planı durumu değiştirildi. Durum: {eski_durum} -> {db_plan.durum}"
+        )
+        db.add(log)
+
+    db.commit()
+    db.refresh(db_plan)
+    return db_plan
+
+def delete_sevkiyat_plani(db: Session, plan_id: int, kullanici_id: int):
+    db_plan = db.query(SevkiyatPlani).filter(SevkiyatPlani.id == plan_id).first()
+    if not db_plan:
+        return False
+
+    db.delete(db_plan)
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="DELETE",
+        modul="Sevkiyat Planlama",
+        detay=f"Sevkiyat planı silindi - Sipariş ID: {db_plan.siparis_id}"
+    )
+    db.add(log)
+
+    db.commit()
+    return True
+
+
+# ========================
+# İRSALİYE CRUD
+# ========================
+
+def generate_irsaliye_no(db: Session) -> str:
+    """Otomatik irsaliye numarası üret: IRS-2026-0001 formatında"""
+    bugun = datetime.utcnow()
+    yil = bugun.year
+
+    # Bu yıla ait son irsaliye numarasını bul
+    son_irsaliye = db.query(Irsaliye).filter(
+        Irsaliye.irsaliye_no.startswith(f"IRS-{yil}-")
+    ).order_by(Irsaliye.id.desc()).first()
+
+    if son_irsaliye:
+        try:
+            son_no = int(son_irsaliye.irsaliye_no.split("-")[-1])
+            yeni_no = son_no + 1
+        except:
+            yeni_no = 1
+    else:
+        yeni_no = 1
+
+    return f"IRS-{yil}-{yeni_no:04d}"
+
+def get_irsaliyeler(db: Session, skip: int = 0, limit: int = 100, durum: str = None, arama: str = None):
+    query = db.query(Irsaliye).options(joinedload(Irsaliye.siparis))
+
+    if durum:
+        query = query.filter(Irsaliye.durum == durum)
+
+    if arama:
+        query = query.filter(
+            or_(
+                Irsaliye.irsaliye_no.ilike(f"%{arama}%"),
+                Irsaliye.tir_plaka.ilike(f"%{arama}%")
+            )
+        )
+
+    return query.order_by(Irsaliye.olusturma_tarihi.desc()).offset(skip).limit(limit).all()
+
+def get_irsaliye(db: Session, irsaliye_id: int):
+    return db.query(Irsaliye).options(joinedload(Irsaliye.siparis)).filter(Irsaliye.id == irsaliye_id).first()
+
+def create_irsaliye(db: Session, irsaliye_data: IrsaliyeCreate, kullanici_id: int):
+    # Otomatik irsaliye numarası
+    irsaliye_no = generate_irsaliye_no(db)
+
+    db_irsaliye = Irsaliye(
+        **irsaliye_data.model_dump(),
+        irsaliye_no=irsaliye_no
+    )
+    db.add(db_irsaliye)
+    db.flush()
+
+    log = SistemLog(
+        kullanici_id=kullanici_id,
+        islem_tipi="CREATE",
+        modul="İrsaliye Yönetimi",
+        detay=f"Yeni irsaliye oluşturuldu: {irsaliye_no}"
+    )
+    db.add(log)
+
+    db.commit()
+    db.refresh(db_irsaliye)
+    return db_irsaliye
+
+def update_irsaliye(db: Session, irsaliye_id: int, irsaliye_update: IrsaliyeUpdate, kullanici_id: int):
+    db_irsaliye = db.query(Irsaliye).filter(Irsaliye.id == irsaliye_id).first()
+    if not db_irsaliye:
+        return None
+
+    eski_durum = db_irsaliye.durum
+
+    for key, value in irsaliye_update.model_dump(exclude_unset=True).items():
+        setattr(db_irsaliye, key, value)
+
+    if eski_durum != db_irsaliye.durum:
+        log = SistemLog(
+            kullanici_id=kullanici_id,
+            islem_tipi="UPDATE",
+            modul="İrsaliye Yönetimi",
+            detay=f"İrsaliye durumu değiştirildi. Durum: {eski_durum} -> {db_irsaliye.durum}"
+        )
+        db.add(log)
+
+    db.commit()
+    db.refresh(db_irsaliye)
+    return db_irsaliye

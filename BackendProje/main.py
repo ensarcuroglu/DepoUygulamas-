@@ -11,7 +11,8 @@ from schemas import DashboardStats
 # Router'ları içe aktar
 from routers import (
     urunler, kategoriler, stok_hareketleri, auth,
-    kullanicilar, tedarikciler, markalar, depolar, lotlar, paletler, raflar, sistem_loglari, destek
+    kullanicilar, tedarikciler, markalar, depolar, lotlar, paletler, raflar, sistem_loglari, destek,
+    siparisler, sevkiyat_planlama, irsaliyeler
 )
 
 # Veritabanı tablolarını oluştur (yoksa)
@@ -46,6 +47,9 @@ app.include_router(kullanicilar.router)
 app.include_router(tedarikciler.router)
 app.include_router(sistem_loglari.router)
 app.include_router(destek.router)
+app.include_router(siparisler.router)
+app.include_router(sevkiyat_planlama.router)
+app.include_router(irsaliyeler.router)
 
 
 @app.get("/")

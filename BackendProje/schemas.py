@@ -445,3 +445,138 @@ class DestekTalebiResponse(DestekTalebiBase):
 
     class Config:
         from_attributes = True
+
+
+# ========================
+# SİPARİŞ ŞEMALARİ
+# ========================
+
+class SiparisKalemiBase(BaseModel):
+    urun_id: int
+    miktar: int
+    birim_fiyat: float
+    kdv_orani: Optional[float] = 18.0
+    toplam: Optional[float] = None
+
+class SiparisKalemiCreate(SiparisKalemiBase):
+    pass
+
+class SiparisKalemiResponse(SiparisKalemiBase):
+    id: int
+    siparis_id: int
+    urun: Optional[UrunListResponse] = None
+
+    class Config:
+        from_attributes = True
+
+class SiparisBase(BaseModel):
+    musteri_adi: str
+    teslimat_adresi: str
+    teslimat_tarihi: date
+    durum: Optional[str] = "Bekleme"
+    top_miktar: Optional[int] = 0
+    top_tutar: Optional[float] = 0.0
+    notlar: Optional[str] = ""
+
+class SiparisCreate(SiparisBase):
+    kalemler: List[SiparisKalemiCreate]
+
+class SiparisUpdate(BaseModel):
+    musteri_adi: Optional[str] = None
+    teslimat_adresi: Optional[str] = None
+    teslimat_tarihi: Optional[date] = None
+    durum: Optional[str] = None
+    top_miktar: Optional[int] = None
+    top_tutar: Optional[float] = None
+    notlar: Optional[str] = None
+    aktif: Optional[bool] = None
+
+class SiparisResponse(SiparisBase):
+    id: int
+    siparis_no: str
+    olusturan_kullanici_id: Optional[int] = None
+    olusturma_tarihi: datetime
+    guncelleme_tarihi: datetime
+    aktif: bool
+
+    class Config:
+        from_attributes = True
+
+class SiparisDetayResponse(SiparisResponse):
+    kalemler: List[SiparisKalemiResponse] = []
+
+    class Config:
+        from_attributes = True
+
+
+# ========================
+# SEVKİYAT PLANI ŞEMALARİ
+# ========================
+
+class SevkiyatPlaniBase(BaseModel):
+    siparis_id: int
+    tir_plaka: Optional[str] = None
+    sofor_adi: Optional[str] = None
+    sofor_telefon: Optional[str] = None
+    depo_kapi: Optional[str] = None
+    yukleme_tarihi: date
+    cikis_saati: Optional[str] = None
+    varis_saati: Optional[str] = None
+    durum: Optional[str] = "Planlandi"
+    notlar: Optional[str] = ""
+
+class SevkiyatPlaniCreate(SevkiyatPlaniBase):
+    pass
+
+class SevkiyatPlaniUpdate(BaseModel):
+    tir_plaka: Optional[str] = None
+    sofor_adi: Optional[str] = None
+    sofor_telefon: Optional[str] = None
+    depo_kapi: Optional[str] = None
+    yukleme_tarihi: Optional[date] = None
+    cikis_saati: Optional[str] = None
+    varis_saati: Optional[str] = None
+    durum: Optional[str] = None
+    notlar: Optional[str] = None
+
+class SevkiyatPlaniResponse(SevkiyatPlaniBase):
+    id: int
+    olusturma_tarihi: datetime
+    guncelleme_tarihi: datetime
+    siparis: Optional[SiparisResponse] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ========================
+# İRSALİYE ŞEMALARİ
+# ========================
+
+class IrsaliyeBase(BaseModel):
+    siparis_id: int
+    sevkiyat_id: Optional[int] = None
+    irsaliye_tarihi: date
+    belge_turu: Optional[str] = "SevkIrsaliyesi"
+    tir_plaka: Optional[str] = None
+    sofor_adi: Optional[str] = None
+    durum: Optional[str] = "Taslak"
+
+class IrsaliyeCreate(IrsaliyeBase):
+    pass
+
+class IrsaliyeUpdate(BaseModel):
+    belge_turu: Optional[str] = None
+    tir_plaka: Optional[str] = None
+    sofor_adi: Optional[str] = None
+    durum: Optional[str] = None
+
+class IrsaliyeResponse(IrsaliyeBase):
+    id: int
+    irsaliye_no: str
+    olusturma_tarihi: datetime
+    guncelleme_tarihi: datetime
+    siparis: Optional[SiparisResponse] = None
+
+    class Config:
+        from_attributes = True

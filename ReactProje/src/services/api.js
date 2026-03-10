@@ -149,4 +149,30 @@ export const getDestekTalebi = (id) => api.get(`/destek/${id}`);
 export const createDestekTalebi = (data) => api.post('/destek/', data);
 export const updateDestekTalebi = (id, data) => api.put(`/destek/${id}`, data);
 
+// ========================
+// SİPARİŞLER
+// ========================
+export const getSiparisler = (params = {}) => api.get('/siparisler/', { params });
+export const getSiparis = (id) => api.get(`/siparisler/${id}`);
+export const createSiparis = (data) => api.post('/siparisler/', data);
+export const updateSiparis = (id, data) => api.put(`/siparisler/${id}`, data);
+export const deleteSiparis = (id) => api.delete(`/siparisler/${id}`);
+
+// ========================
+// SEVKİYAT PLANLAMA
+// ========================
+export const getSevkiyatPlanlari = (params = {}) => api.get('/sevkiyat-planlama/', { params });
+export const getSevkiyatPlani = (id) => api.get(`/sevkiyat-planlama/${id}`);
+export const createSevkiyatPlani = (data) => api.post('/sevkiyat-planlama/', data);
+export const updateSevkiyatPlani = (id, data) => api.put(`/sevkiyat-planlama/${id}`, data);
+export const deleteSevkiyatPlani = (id) => api.delete(`/sevkiyat-planlama/${id}`);
+
+// ========================
+// İRSALİYELER
+// ========================
+export const getIrsaliyeler = (params = {}) => api.get('/irsaliyeler/', { params });
+export const getIrsaliye = (id) => api.get(`/irsaliyeler/${id}`);
+export const createIrsaliye = (data) => api.post('/irsaliyeler/', data);
+export const updateIrsaliye = (id, data) => api.put(`/irsaliyeler/${id}`, data);
+
 export default api;

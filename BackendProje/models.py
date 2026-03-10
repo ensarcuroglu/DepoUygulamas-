@@ -283,6 +283,102 @@ class DestekTalebi(Base):
     # İlişki
     kullanici = relationship("Kullanici", back_populates="destek_talepleri")
 
+# ========================
+# SİPARİŞ
+# ========================
+
+class Siparis(Base):
+    __tablename__ = "siparisler"
+
+    id = Column(Integer, primary_key=True, index=True)
+    siparis_no = Column(String(50), unique=True, nullable=False, index=True)  # Örn: SIP-2026-0001
+    musteri_adi = Column(String(200), nullable=False)
+    teslimat_adresi = Column(Text, nullable=False)
+    teslimat_tarihi = Column(Date, nullable=False)
+    durum = Column(String(20), default="Bekleme")  # Bekleme, Hazirlaniyor, YolaCikti, TeslimEdildi, Iptal
+    top_miktar = Column(Integer, default=0)
+    top_tutar = Column(Float, default=0.0)
+    notlar = Column(Text, default="")
+    olusturan_kullanici_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
+    olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
+    guncelleme_tarihi = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    aktif = Column(Boolean, default=True)
+
+    # İlişkiler
+    kalemler = relationship("SiparisKalemi", back_populates="siparis", cascade="all, delete-orphan")
+    sevkiyat_plani = relationship("SevkiyatPlani", back_populates="siparis", uselist=False)
+    irsaliyeler = relationship("Irsaliye", back_populates="siparis")
+    olusturan_kullanici = relationship("Kullanici")
+
+
+# ========================
+# SİPARİŞ KALEMİ
+# ========================
+
+class SiparisKalemi(Base):
+    __tablename__ = "siparis_kalemleri"
+
+    id = Column(Integer, primary_key=True, index=True)
+    siparis_id = Column(Integer, ForeignKey("siparisler.id"), nullable=False)
+    urun_id = Column(Integer, ForeignKey("urunler.id"), nullable=False)
+    miktar = Column(Integer, nullable=False)
+    birim_fiyat = Column(Float, nullable=False)
+    kdv_orani = Column(Float, default=18.0)
+    toplam = Column(Float, nullable=False)
+
+    # İlişkiler
+    siparis = relationship("Siparis", back_populates="kalemler")
+    urun = relationship("Urun")
+
+
+# ========================
+# SEVKİYAT PLANI
+# ========================
+
+class SevkiyatPlani(Base):
+    __tablename__ = "sevkiyat_planlari"
+
+    id = Column(Integer, primary_key=True, index=True)
+    siparis_id = Column(Integer, ForeignKey("siparisler.id"), unique=True, nullable=False)
+    tir_plaka = Column(String(20), nullable=True)
+    sofor_adi = Column(String(100), nullable=True)
+    sofor_telefon = Column(String(20), nullable=True)
+    depo_kapi = Column(String(50), nullable=True)
+    yukleme_tarihi = Column(Date, nullable=False)
+    cikis_saati = Column(String(5), nullable=True)  # HH:MM format
+    varis_saati = Column(String(5), nullable=True)  # HH:MM format
+    durum = Column(String(20), default="Planlandi")  # Planlandi, Yukleniyor, Yolda, TeslimEdildi
+    notlar = Column(Text, default="")
+    olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
+    guncelleme_tarihi = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # İlişkiler
+    siparis = relationship("Siparis", back_populates="sevkiyat_plani")
+
+
+# ========================
+# İRSALİYE
+# ========================
+
+class Irsaliye(Base):
+    __tablename__ = "irsaliyeler"
+
+    id = Column(Integer, primary_key=True, index=True)
+    siparis_id = Column(Integer, ForeignKey("siparisler.id"), nullable=False)
+    sevkiyat_id = Column(Integer, ForeignKey("sevkiyat_planlari.id"), nullable=True)
+    irsaliye_no = Column(String(50), unique=True, nullable=False, index=True)  # Örn: IRS-2026-0001
+    irsaliye_tarihi = Column(Date, nullable=False)
+    belge_turu = Column(String(50), default="SevkIrsaliyesi")  # SevkIrsaliyesi, IadeIrsaliyesi
+    tir_plaka = Column(String(20), nullable=True)
+    sofor_adi = Column(String(100), nullable=True)
+    durum = Column(String(20), default="Taslak")  # Taslak, Kesildi, Gonderildi
+    olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
+    guncelleme_tarihi = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # İlişkiler
+    siparis = relationship("Siparis", back_populates="irsaliyeler")
+
+
 from sqlalchemy import select, func
 from sqlalchemy.orm import column_property
 

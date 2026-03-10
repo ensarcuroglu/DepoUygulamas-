@@ -19,6 +19,9 @@ import DepoKrokiPage from './pages/DepoKrokiPage';
 import SistemLoglariPage from './pages/SistemLoglariPage';
 import DestekMasasiPage from './pages/DestekMasasiPage';
 import SevkiyatlarPage from './pages/SevkiyatlarPage';
+import SiparislerPage from './pages/SiparislerPage';
+import SevkiyatPlanlamaPage from './pages/SevkiyatPlanlamaPage';
+import IrsaliyelerPage from './pages/IrsaliyelerPage';
 
 /**
  * Varsayılan yönlendirme: Depocu → stok-hareketleri, Admin → dashboard
@@ -58,6 +61,13 @@ function App() {
               <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
                 <Route path="/depolar" element={<DepolarPage />} />
                 <Route path="/depo-kroki" element={<DepoKrokiPage />} />
+                <Route path="/siparisler" element={<SiparislerPage />} />
+                <Route path="/sevkiyat-planlama" element={<SevkiyatPlanlamaPage />} />
+              </Route>
+
+              {/* İrsaliye Yönetimi (Admin + Lojistik + Depocu) */}
+              <Route element={<RoleRoute allowedRoles={['admin', 'lojistik', 'depocu']} />}>
+                <Route path="/irsaliyeler" element={<IrsaliyelerPage />} />
               </Route>
 
               {/* Herkesin erişebildiği korumalı alanlar */}

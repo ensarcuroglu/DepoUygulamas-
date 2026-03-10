@@ -19,7 +19,10 @@ import {
     Layers,
     Container,
     UserCircle,
-    ShieldAlert
+    ShieldAlert,
+    ClipboardList,
+    Route,
+    FileText
 } from 'lucide-react';
 
 const menuItems = [
@@ -30,6 +33,9 @@ const menuItems = [
     { path: '/paletler', label: 'Palet Yönetimi', icon: Container, roles: ['admin'] },
     { path: '/stok-hareketleri', label: 'Stok İşlemleri', icon: ArrowLeftRight, roles: ['admin', 'depocu', 'lojistik'] },
     { path: '/sevkiyatlar', label: 'Sevkiyatlar (Çıkış)', icon: ArrowUpFromLine, roles: ['admin', 'depocu', 'lojistik'] },
+    { path: '/siparisler', label: 'Siparişler', icon: ClipboardList, roles: ['admin', 'lojistik'] },
+    { path: '/sevkiyat-planlama', label: 'Sevkiyat Planlama', icon: Route, roles: ['admin', 'lojistik'] },
+    { path: '/irsaliyeler', label: 'İrsaliyeler', icon: FileText, roles: ['admin', 'lojistik', 'depocu'] },
     { path: '/kullanicilar', label: 'Kullanıcı Yönetimi', icon: Users, roles: ['admin'] },
     { path: '/tedarikciler', label: 'Tedarikçi Yönetimi', icon: Truck, roles: ['admin'] },
     { path: '/depolar', label: 'Depo & Raf', icon: Warehouse, roles: ['admin', 'lojistik'] },
