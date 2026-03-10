@@ -91,88 +91,274 @@ export default function IrsaliyelerPage() {
   };
 
   const handleYazdir = (irsaliye) => {
+    const isSevk = irsaliye.belge_turu === 'SevkIrsaliyesi';
+    const belgeBaslik = isSevk ? 'SEVK İRSALİYESİ' : 'İADE İRSALİYESİ';
+    const accentColor = isSevk ? '#1e40af' : '#b45309'; // Kurumsal lacivert veya kiremit
+    
+    // Tarih formatlama
+    const tarih = new Date(irsaliye.irsaliye_tarihi).toLocaleDateString('tr-TR', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+    const saat = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
     const htmlContent = `
       <!DOCTYPE html>
-      <html>
+      <html lang="tr">
       <head>
         <meta charset="UTF-8">
-        <title>İrsaliye: ${irsaliye.irsaliye_no}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${belgeBaslik} - ${irsaliye.irsaliye_no}</title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-          .content { margin-bottom: 30px; }
-          .field { margin: 10px 0; }
-          .label { font-weight: bold; color: #555; font-size: 12px; }
-          .value { color: #333; font-size: 14px; }
-          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-          th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-          th { background-color: #f5f5f5; font-weight: bold; }
-          .footer { margin-top: 30px; text-align: center; color: #666; font-size: 12px; }
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+          
+          /* A4 ve Genel Baskı Ayarları */
+          @page { size: A4; margin: 12mm 15mm; }
+          * { box-sizing: border-box; }
+          body { 
+            font-family: 'Inter', sans-serif; 
+            color: #0f172a; 
+            font-size: 11pt; 
+            line-height: 1.4; 
+            margin: 0; 
+            background: #fff;
+          }
+          .page-container { width: 100%; max-width: 800px; margin: 0 auto; }
+          
+          /* Üst Başlık ve Logo Alanı */
+          .header-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            border-bottom: 3px solid ${accentColor};
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .company-info h1 { 
+            margin: 0 0 5px 0; 
+            font-size: 18pt; 
+            font-weight: 800; 
+            letter-spacing: -0.5px;
+            color: #0f172a;
+          }
+          .company-info p { margin: 2px 0; color: #475569; font-size: 9pt; }
+          .document-meta { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+          .doc-type { 
+            font-size: 16pt; 
+            font-weight: 800; 
+            color: ${accentColor}; 
+            margin: 0 0 10px 0; 
+            letter-spacing: 1px;
+          }
+          .qr-placeholder {
+            width: 70px; height: 70px;
+            border: 1px dashed #94a3b8;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 7pt; color: #94a3b8; text-align: center;
+          }
+
+          /* Adres ve Ana Bilgi Blokları */
+          .info-blocks {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 30px;
+          }
+          .info-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 12px 16px;
+            background: #f8fafc;
+          }
+          .box-title {
+            font-size: 8.5pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: ${accentColor};
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 4px;
+          }
+          .data-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+          .data-label { font-size: 8.5pt; font-weight: 600; color: #64748b; }
+          .data-value { font-size: 9pt; font-weight: 600; color: #0f172a; text-align: right; max-width: 65%; }
+
+          /* Kalemler Tablosu */
+          .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+          }
+          .items-table th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-size: 8.5pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 10px 12px;
+            text-align: left;
+            border-top: 2px solid #cbd5e1;
+            border-bottom: 2px solid #cbd5e1;
+          }
+          .items-table td {
+            padding: 12px;
+            font-size: 9.5pt;
+            border-bottom: 1px solid #e2e8f0;
+            color: #1e293b;
+          }
+          .items-table td.numeric { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+          .items-table tr:last-child td { border-bottom: 2px solid #cbd5e1; }
+
+          /* Teslimat ve İmzalar */
+          .signatures-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 50px;
+            page-break-inside: avoid;
+          }
+          .sign-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 12px;
+            min-height: 120px;
+            position: relative;
+          }
+          .sign-title { font-size: 8pt; font-weight: 700; color: #64748b; text-transform: uppercase; }
+          .sign-name { font-size: 9pt; font-weight: 600; margin-top: 8px; color: #0f172a; }
+          .sign-area { 
+            position: absolute; bottom: 12px; left: 12px; right: 12px; 
+            border-top: 1px dotted #94a3b8; 
+            padding-top: 4px; font-size: 7.5pt; color: #94a3b8; text-align: center; 
+          }
+
+          /* Footer Notu */
+          .print-footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 7.5pt;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 12px;
+          }
+
+          /* Yazıcı Optimizasyonu */
+          @media print {
+            body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .info-box { background: #f8fafc !important; }
+            .items-table th { background-color: #f1f5f9 !important; }
+          }
         </style>
       </head>
       <body>
-        <div class="header">
-          <h1>İRSALİYE</h1>
-          <p style="font-size: 12px; color: #666;">${irsaliye.belge_turu === 'SevkIrsaliyesi' ? 'Sevkiyat İrsaliyesi' : 'İade İrsaliyesi'}</p>
-        </div>
+        <div class="page-container">
+          
+          <div class="header-grid">
+            <div class="company-info">
+              <h1>OPTİMAK ENDÜSTRİ VE TEKNOLOJİ A.Ş.</h1>
+              <p>Otomotiv İhtisas OSB, 1. Cadde No: 5, Merkez / Türkiye</p>
+              <p>Vergi Dairesi: Kurumlar VD. | VKN: 123 456 7890</p>
+              <p>Mersis No: 0123456789000001 | Ticaret Sicil No: 12345</p>
+            </div>
+            <div class="document-meta">
+              <h2 class="doc-type">${belgeBaslik}</h2>
+              <div class="qr-placeholder">Karekod<br>Alanı</div>
+            </div>
+          </div>
 
-        <div class="content">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div>
-              <div class="field">
-                <div class="label">İRSALİYE NO</div>
-                <div class="value">${irsaliye.irsaliye_no}</div>
+          <div class="info-blocks">
+            <div class="info-box">
+              <div class="box-title">Alıcı Bilgileri</div>
+              <div class="data-row">
+                <span class="data-label">Müşteri/Unvan:</span>
+                <span class="data-value">${irsaliye.siparis?.musteri_adi || '-'}</span>
               </div>
-              <div class="field">
-                <div class="label">İRSALİYE TARİHİ</div>
-                <div class="value">${irsaliye.irsaliye_tarihi}</div>
+              <div class="data-row">
+                <span class="data-label">Teslimat Adresi:</span>
+                <span class="data-value">${irsaliye.siparis?.teslimat_adresi || '-'}</span>
               </div>
             </div>
-            <div>
-              <div class="field">
-                <div class="label">SİPARİŞ NO</div>
-                <div class="value">${irsaliye.siparis?.siparis_no}</div>
+
+            <div class="info-box">
+              <div class="box-title">Belge Detayları</div>
+              <div class="data-row">
+                <span class="data-label">İrsaliye No:</span>
+                <span class="data-value">${irsaliye.irsaliye_no}</span>
               </div>
-              <div class="field">
-                <div class="label">DURUM</div>
-                <div class="value">${irsaliye.durum}</div>
+              <div class="data-row">
+                <span class="data-label">Fiili Sevk Tarihi:</span>
+                <span class="data-value">${tarih}</span>
+              </div>
+              <div class="data-row">
+                <span class="data-label">Sipariş No:</span>
+                <span class="data-value">${irsaliye.siparis?.siparis_no || '-'}</span>
               </div>
             </div>
           </div>
 
-          <div style="border-top: 1px solid #ddd; margin-top: 20px; padding-top: 20px;">
-            <h3>MÜŞTERİ BİLGİLERİ</h3>
-            <div class="field">
-              <div class="label">MÜŞTERİ ADI</div>
-              <div class="value">${irsaliye.siparis?.musteri_adi}</div>
-            </div>
-            <div class="field">
-              <div class="label">TESLİMAT ADRESİ</div>
-              <div class="value">${irsaliye.siparis?.teslimat_adresi}</div>
-            </div>
-          </div>
-
-          <div style="border-top: 1px solid #ddd; margin-top: 20px; padding-top: 20px;">
-            <h3>TAŞIYICI BİLGİLERİ</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-              <div class="field">
-                <div class="label">TIR PLAKASI</div>
-                <div class="value">${irsaliye.tir_plaka || '-'}</div>
+          <div class="info-blocks" style="margin-bottom: 20px;">
+            <div class="info-box" style="grid-column: 1 / -1; display: flex; justify-content: space-between;">
+              <div>
+                <span class="data-label">Taşıyıcı / Şoför:</span>
+                <span class="data-value" style="margin-left: 10px;">${irsaliye.sofor_adi || '-'}</span>
               </div>
-              <div class="field">
-                <div class="label">ŞOFÖR ADI</div>
-                <div class="value">${irsaliye.sofor_adi || '-'}</div>
+              <div>
+                <span class="data-label">Araç Plakası:</span>
+                <span class="data-value" style="margin-left: 10px;">${irsaliye.tir_plaka || '-'}</span>
+              </div>
+              <div>
+                <span class="data-label">Durum:</span>
+                <span class="data-value" style="margin-left: 10px;">${irsaliye.durum}</span>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="footer">
-          <p>Yazdırıldı: ${new Date().toLocaleString('tr-TR')}</p>
-          <p style="margin-top: 30px; border-top: 1px solid #ccc; padding-top: 10px;">
-            ________________________<br>
-            Alıcı İmzası
-          </p>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 20%;">KOD</th>
+                <th style="width: 45%;">ÜRÜN CİNSİ / AÇIKLAMA</th>
+                <th style="width: 15%; text-align: right;">MİKTAR</th>
+                <th style="width: 15%; text-align: right;">BİRİM</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td style="color: #64748b; font-size: 8.5pt;">GEN-001</td>
+                <td>
+                  <strong>Sipariş Kapsamındaki Ürünler</strong><br>
+                  <span style="font-size: 8pt; color: #64748b;">(Detaylı malzeme dökümü faturada belirtilecektir)</span>
+                </td>
+                <td class="numeric">1,00</td>
+                <td class="numeric">Adet/Set</td>
+              </tr>
+              </tbody>
+          </table>
+
+          <div class="signatures-grid">
+            <div class="sign-box">
+              <div class="sign-title">Düzenleyen</div>
+              <div class="sign-name">Sistem Kullanıcısı</div>
+              <div class="sign-area">Kaşe / İmza</div>
+            </div>
+            <div class="sign-box">
+              <div class="sign-title">Taşıyıcı / Teslim Eden</div>
+              <div class="sign-name">${irsaliye.sofor_adi || 'Şoför Adı'}</div>
+              <div class="sign-area">İmza</div>
+            </div>
+            <div class="sign-box">
+              <div class="sign-title">Teslim Alan</div>
+              <div class="sign-name">${irsaliye.siparis?.musteri_adi || 'Müşteri'}</div>
+              <div class="sign-area">Kaşe / İmza / Tarih</div>
+            </div>
+          </div>
+
+          <div class="print-footer">
+            İşbu belge 213 sayılı V.U.K. hükümlerine göre düzenlenmiştir. Elektronik ortamda üretilmiş olup, irsaliye yerine geçer.<br>
+            Sistem Yazdırma Zamanı: ${tarih} - ${saat}
+          </div>
+
         </div>
       </body>
       </html>
@@ -181,7 +367,12 @@ export default function IrsaliyelerPage() {
     const newWindow = window.open('', '_blank');
     newWindow.document.write(htmlContent);
     newWindow.document.close();
-    setTimeout(() => newWindow.print(), 250);
+    
+    // Fontların ve stillerin tarayıcı tarafından işlenmesi için kısa bekleme
+    setTimeout(() => {
+      newWindow.focus();
+      newWindow.print();
+    }, 400);
   };
 
   const filtrelenmis = irsaliyeler.filter((i) =>
