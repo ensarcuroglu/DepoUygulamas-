@@ -531,58 +531,61 @@ def get_stok_hareketleri(db: Session, skip: int = 0, limit: int = 50, urun_id: i
         query = query.filter(StokHareketi.hareket_tipi == hareket_tipi)
     return query.offset(skip).limit(limit).all()
 
+def _fifo_palet_azalt(db: Session, urun_id: int, miktar: int):
+    """FIFO mantığıyla palet stoklarını düşer. DB commit yapmaz — çağıran fonksiyon commit eder."""
+    db_urun = db.query(Urun).filter(Urun.id == urun_id).first()
+    if not db_urun:
+        raise ValueError(f"Ürün bulunamadı (ID: {urun_id})")
+
+    if miktar > db_urun.stok_miktari:
+        raise ValueError(f"Yetersiz stok! Ürün: {db_urun.isim}, Mevcut: {db_urun.stok_miktari}, İstenen: {miktar}")
+
+    kalan = miktar
+    aktif_paletler = db.query(Palet).join(Lot).filter(
+        Lot.urun_id == urun_id,
+        Lot.aktif == True,
+        Palet.aktif == True,
+        Palet.koli_adedi > 0
+    ).order_by(
+        Lot.son_kullanma_tarihi.asc().nulls_last(),
+        Lot.uretim_tarihi.asc().nulls_last(),
+        Palet.tarih.asc()
+    ).all()
+
+    for palet in aktif_paletler:
+        if kalan <= 0:
+            break
+        if palet.koli_adedi <= kalan:
+            kalan -= palet.koli_adedi
+            palet.koli_adedi = 0
+            palet.aktif = False
+        else:
+            palet.koli_adedi -= kalan
+            kalan = 0
+
+    if kalan > 0:
+        raise ValueError(f"Stok veri uyuşmazlığı: {db_urun.isim}")
+
+
 def create_stok_hareketi(db: Session, hareket: StokHareketiCreate, kullanici_id: int = None):
     """Stok hareketi oluşturur ve arka planda Palet bakiyelerini günceller."""
-    
+
     # 1. Ürünü bul
     db_urun = db.query(Urun).filter(Urun.id == hareket.urun_id).first()
     if not db_urun:
         raise ValueError("Ürün bulunamadı")
-        
+
     urun_ismi = db_urun.isim
 
     # ==========================
     # ÇIKIŞ İŞLEMİ (FIFO MANTIĞI)
     # ==========================
     if hareket.hareket_tipi == "cikis":
-        if hareket.miktar > db_urun.stok_miktari:
-            raise ValueError(f"Yetersiz stok! Mevcut: {db_urun.stok_miktari}, İstenen: {hareket.miktar}")
-            
-        kalan_dusulecek_miktar = hareket.miktar
-        
-        # Ürüne ait aktif paletleri SKT'ye veya Üretim Tarihine (Lot üzerinden) göre sırala (FIFO)
-        aktif_paletler = db.query(Palet).join(Lot).filter(
-            Lot.urun_id == hareket.urun_id,
-            Lot.aktif == True,
-            Palet.aktif == True,
-            Palet.koli_adedi > 0
-        ).order_by(
-            Lot.son_kullanma_tarihi.asc().nulls_last(), # Önce SKT'si yakın olanlar
-            Lot.uretim_tarihi.asc().nulls_last(),       # Sonra eski üretimliler
-            Palet.tarih.asc()                           # En son palet oluşturma tarihi
-        ).all()
-        
-        for palet in aktif_paletler:
-            if kalan_dusulecek_miktar <= 0:
-                break
-                
-            if palet.koli_adedi <= kalan_dusulecek_miktar:
-                # Paletin tamamı çıkışa gidiyor, palet kapanır
-                kalan_dusulecek_miktar -= palet.koli_adedi
-                palet.koli_adedi = 0
-                palet.aktif = False
-            else:
-                # Paletin sadece bir kısmı çıkıyor
-                palet.koli_adedi -= kalan_dusulecek_miktar
-                kalan_dusulecek_miktar = 0
-                
-        if kalan_dusulecek_miktar > 0:
-            # Buraya normal şartlarda düşmemeli yukarıda stok kontrolü yapıldı ama her ihtimale karşı
-            raise ValueError("Sistemde yeterli koli bulunamadı (Veri uyuşmazlığı)")
-            
+        _fifo_palet_azalt(db, hareket.urun_id, hareket.miktar)
+
         # İstek olarak palet_id geldiyse, sadece ilişkilendirmek için (geriye dönük uyum)
         if hareket.palet_id:
-            pass # Eski mantıkta tüm paleti kapatıyordu, artık koli bazlı düşüyoruz.
+            pass  # Eski mantıkta tüm paleti kapatıyordu, artık koli bazlı düşüyoruz.
 
     # ==========================
     # GİRİŞ İŞLEMİ
@@ -905,7 +908,7 @@ def create_sevkiyat_plani(db: Session, plan: SevkiyatPlaniCreate, kullanici_id: 
     return db_plan
 
 def update_sevkiyat_plani(db: Session, plan_id: int, plan_update: SevkiyatPlaniUpdate, kullanici_id: int):
-    db_plan = db.query(SevkiyatPlani).filter(SevkiyatPlani.id == plan_id).first()
+    db_plan = db.query(SevkiyatPlani).options(joinedload(SevkiyatPlani.siparis).joinedload(Siparis.kalemler)).filter(SevkiyatPlani.id == plan_id).first()
     if not db_plan:
         return None
 
@@ -922,6 +925,33 @@ def update_sevkiyat_plani(db: Session, plan_id: int, plan_update: SevkiyatPlaniU
             detay=f"Sevkiyat planı durumu değiştirildi. Durum: {eski_durum} -> {db_plan.durum}"
         )
         db.add(log)
+
+        # Durum "Yukleniyor"a geçince sipariş kalemlerinden otomatik stok çıkışı yap (FIFO)
+        if db_plan.durum == "Yukleniyor" and eski_durum not in ("Yukleniyor", "Yolda", "TeslimEdildi"):
+            db_siparis = db_plan.siparis
+            if db_siparis and db_siparis.kalemler:
+                for kalem in db_siparis.kalemler:
+                    try:
+                        _fifo_palet_azalt(db, kalem.urun_id, kalem.miktar)
+                        db_stok = StokHareketi(
+                            urun_id=kalem.urun_id,
+                            hareket_tipi="cikis",
+                            miktar=kalem.miktar,
+                            siparis_no=db_siparis.siparis_no,
+                            tir_plaka=db_plan.tir_plaka,
+                            depo_kapi=db_plan.depo_kapi,
+                            aciklama=f"Sevkiyat yüklemesi - {db_siparis.siparis_no}",
+                            kullanici_id=kullanici_id
+                        )
+                        db.add(db_stok)
+                    except ValueError as e:
+                        hata_log = SistemLog(
+                            kullanici_id=kullanici_id,
+                            islem_tipi="ERROR",
+                            modul="Sevkiyat Planlama",
+                            detay=f"Stok çıkışı hatası (Ürün ID: {kalem.urun_id}): {str(e)}"
+                        )
+                        db.add(hata_log)
 
     db.commit()
     db.refresh(db_plan)
@@ -1008,6 +1038,40 @@ def create_irsaliye(db: Session, irsaliye_data: IrsaliyeCreate, kullanici_id: in
         detay=f"Yeni irsaliye oluşturuldu: {irsaliye_no}"
     )
     db.add(log)
+
+    # Sipariş kalemlerinden stok çıkışı yap (sevkiyat planı henüz Yukleniyor olmadıysa)
+    db_siparis = db.query(Siparis).options(
+        joinedload(Siparis.kalemler),
+        joinedload(Siparis.sevkiyat_plani)
+    ).filter(Siparis.id == irsaliye_data.siparis_id).first()
+
+    if db_siparis and db_siparis.kalemler:
+        sevkiyat_stok_cikarildi = (
+            db_siparis.sevkiyat_plani is not None and
+            db_siparis.sevkiyat_plani.durum in ("Yukleniyor", "Yolda", "TeslimEdildi")
+        )
+        if not sevkiyat_stok_cikarildi:
+            for kalem in db_siparis.kalemler:
+                try:
+                    _fifo_palet_azalt(db, kalem.urun_id, kalem.miktar)
+                    db_stok = StokHareketi(
+                        urun_id=kalem.urun_id,
+                        hareket_tipi="cikis",
+                        miktar=kalem.miktar,
+                        siparis_no=db_siparis.siparis_no,
+                        tir_plaka=db_irsaliye.tir_plaka,
+                        aciklama=f"İrsaliye çıkışı - {irsaliye_no}",
+                        kullanici_id=kullanici_id
+                    )
+                    db.add(db_stok)
+                except ValueError as e:
+                    hata_log = SistemLog(
+                        kullanici_id=kullanici_id,
+                        islem_tipi="ERROR",
+                        modul="İrsaliye Yönetimi",
+                        detay=f"Stok çıkışı hatası (Ürün ID: {kalem.urun_id}): {str(e)}"
+                    )
+                    db.add(hata_log)
 
     db.commit()
     db.refresh(db_irsaliye)
@@ -1257,3 +1321,105 @@ def get_hareket_raporu_verileri(db: Session, baslang_tarihi: date = None, bitis_
         query = query.filter(StokHareketi.tarih <= bitis_tarihi)
 
     return query.order_by(StokHareketi.tarih.desc()).all()
+
+
+def get_kritik_stok_raporu(db: Session):
+    """Min stok seviyesinin altındaki ürünleri döndür"""
+    return db.query(
+        Urun.id,
+        Urun.isim,
+        Urun.stok_miktari,
+        Urun.min_stok,
+        Marka.isim.label("marka"),
+        Kategori.isim.label("kategori")
+    ).outerjoin(Marka).outerjoin(Kategori).filter(
+        Urun.aktif == True,
+        Urun.stok_miktari <= Urun.min_stok
+    ).order_by(Urun.stok_miktari.asc()).all()
+
+
+def get_skt_raporu(db: Session, gun: int = 30):
+    """Son kullanma tarihi yaklaşan lotları döndür (varsayılan: 30 gün içinde)"""
+    sinir_tarihi = datetime.utcnow().date() + timedelta(days=gun)
+    return db.query(
+        Lot.id,
+        Lot.lot_no,
+        Lot.son_kullanma_tarihi,
+        Urun.isim.label("urun_isim"),
+        func.sum(Palet.koli_adedi).label("toplam_stok")
+    ).join(Urun).outerjoin(
+        Palet, (Palet.lot_id == Lot.id) & (Palet.aktif == True)
+    ).filter(
+        Lot.aktif == True,
+        Lot.son_kullanma_tarihi != None,
+        Lot.son_kullanma_tarihi <= sinir_tarihi,
+        Lot.son_kullanma_tarihi >= datetime.utcnow().date()
+    ).group_by(Lot.id, Lot.lot_no, Lot.son_kullanma_tarihi, Urun.isim).order_by(Lot.son_kullanma_tarihi.asc()).all()
+
+
+def get_abc_analiz(db: Session):
+    """
+    ABC analizi: siparişlerdeki toplam satış değerine göre ürünleri A/B/C olarak sınıflandır.
+    A: İlk %70 değer, B: Sonraki %20, C: Kalan %10.
+    """
+    # Sipariş kalemlerinden ürün bazlı toplam değeri hesapla
+    satislar = db.query(
+        SiparisKalemi.urun_id,
+        Urun.isim.label("urun_isim"),
+        func.sum(SiparisKalemi.toplam).label("toplam_deger"),
+        func.sum(SiparisKalemi.miktar).label("toplam_miktar")
+    ).join(Urun).join(Siparis).filter(
+        Siparis.aktif == True,
+        Siparis.durum != "Iptal"
+    ).group_by(SiparisKalemi.urun_id, Urun.isim).order_by(
+        func.sum(SiparisKalemi.toplam).desc()
+    ).all()
+
+    if not satislar:
+        return []
+
+    genel_toplam = sum(s.toplam_deger or 0 for s in satislar)
+    if genel_toplam == 0:
+        return []
+
+    sonuclar = []
+    kumulatif = 0.0
+    for s in satislar:
+        deger = s.toplam_deger or 0
+        kumulatif += deger
+        yuzde = (kumulatif / genel_toplam) * 100
+        if yuzde <= 70:
+            sinif = "A"
+        elif yuzde <= 90:
+            sinif = "B"
+        else:
+            sinif = "C"
+        sonuclar.append({
+            "urun_id": s.urun_id,
+            "urun_isim": s.urun_isim,
+            "toplam_deger": round(deger, 2),
+            "toplam_miktar": s.toplam_miktar,
+            "sinif": sinif
+        })
+
+    return sonuclar
+
+
+def get_depo_doluluk(db: Session):
+    """Depo doluluk yüzdesini raf bazında hesaplar"""
+    raflar = db.query(Raf).filter(Raf.aktif == True).all()
+    sonuclar = []
+    for raf in raflar:
+        aktif_palet_sayisi = db.query(func.count(Palet.id)).filter(
+            Palet.raf_id == raf.id,
+            Palet.aktif == True
+        ).scalar() or 0
+        doluluk_yuzde = round((aktif_palet_sayisi / raf.kapasite) * 100, 1) if raf.kapasite > 0 else 0
+        sonuclar.append({
+            "raf_id": raf.id,
+            "raf_kodu": raf.kod,
+            "kapasite": raf.kapasite,
+            "dolu": aktif_palet_sayisi,
+            "doluluk_yuzde": doluluk_yuzde
+        })
+    return sonuclar

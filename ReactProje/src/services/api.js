@@ -190,6 +190,12 @@ export const deleteRaporSablonu = (id) => api.delete(`/raporlar/sablonlar/${id}`
 export const getStokRaporuVeri = (params = {}) => api.get('/raporlar/stok/veriler', { params });
 export const getSiparisRaporuVeri = (params = {}) => api.get('/raporlar/siparis/veriler', { params });
 export const getHareketRaporuVeri = (params = {}) => api.get('/raporlar/hareket/veriler', { params });
+export const getKritikStokRaporu = () => api.get('/raporlar/kritik-stok');
+export const getSktRaporu = (gun = 30) => api.get('/raporlar/skt', { params: { gun } });
+export const getAbcAnaliz = () => api.get('/raporlar/abc-analiz');
+export const getDepoDoluluk = () => api.get('/raporlar/doluluk');
+export const raporExport = (params = {}) => api.post('/raporlar/export', null, { params, responseType: 'blob' });
+export const tetikleRaporSchedule = (scheduleId) => api.post(`/raporlar/schedule/tetikle`, null, { params: { schedule_id: scheduleId } });
 
 // ========================
 // RAPORLAR - LOG
@@ -204,5 +210,10 @@ export const getRaporSchedule = (id) => api.get(`/raporlar/schedule/${id}`);
 export const createRaporSchedule = (data) => api.post('/raporlar/schedule', data);
 export const updateRaporSchedule = (id, data) => api.put(`/raporlar/schedule/${id}`, data);
 export const deleteRaporSchedule = (id) => api.delete(`/raporlar/schedule/${id}`);
+
+// ========================
+// İRSALİYE YAZDIR
+// ========================
+export const getIrsaliyeYazdirVerisi = (id) => api.get(`/irsaliyeler/${id}/yazdir`);
 
 export default api;

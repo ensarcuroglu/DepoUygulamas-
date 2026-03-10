@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import Optional
 
 from database import get_db
 from auth import require_role
-from models import Kullanici
+from models import Kullanici, Irsaliye, Siparis, SiparisKalemi, Urun
 import crud
 from schemas import (
     IrsaliyeCreate, IrsaliyeUpdate, IrsaliyeResponse
@@ -66,3 +66,52 @@ def irsaliye_guncelle(
     if not db_irsaliye:
         raise HTTPException(status_code=404, detail="İrsaliye bulunamadı")
     return db_irsaliye
+
+
+@router.get("/{irsaliye_id}/yazdir")
+def irsaliye_yazdir_verisi(
+    irsaliye_id: int,
+    db: Session = Depends(get_db),
+    current_user: Kullanici = Depends(require_role("admin", "lojistik", "depocu"))
+):
+    """İrsaliye yazdırma verisi: irsaliye + sipariş + kalemler (ürün adıyla birlikte)"""
+    db_irsaliye = db.query(Irsaliye).options(
+        joinedload(Irsaliye.siparis).joinedload(Siparis.kalemler).joinedload(SiparisKalemi.urun)
+    ).filter(Irsaliye.id == irsaliye_id).first()
+
+    if not db_irsaliye:
+        raise HTTPException(status_code=404, detail="İrsaliye bulunamadı")
+
+    siparis = db_irsaliye.siparis
+    kalemler = [
+        {
+            "urun_id": k.urun_id,
+            "urun_isim": k.urun.isim if k.urun else "-",
+            "miktar": k.miktar,
+            "birim_fiyat": k.birim_fiyat,
+            "kdv_orani": k.kdv_orani,
+            "toplam": k.toplam
+        }
+        for k in (siparis.kalemler if siparis else [])
+    ]
+
+    return {
+        "irsaliye": {
+            "id": db_irsaliye.id,
+            "irsaliye_no": db_irsaliye.irsaliye_no,
+            "irsaliye_tarihi": str(db_irsaliye.irsaliye_tarihi),
+            "belge_turu": db_irsaliye.belge_turu,
+            "tir_plaka": db_irsaliye.tir_plaka,
+            "sofor_adi": db_irsaliye.sofor_adi,
+            "durum": db_irsaliye.durum,
+        },
+        "siparis": {
+            "siparis_no": siparis.siparis_no if siparis else "-",
+            "musteri_adi": siparis.musteri_adi if siparis else "-",
+            "teslimat_adresi": siparis.teslimat_adresi if siparis else "-",
+            "teslimat_tarihi": str(siparis.teslimat_tarihi) if siparis else "-",
+            "top_tutar": siparis.top_tutar if siparis else 0,
+            "top_miktar": siparis.top_miktar if siparis else 0,
+        },
+        "kalemler": kalemler
+    }

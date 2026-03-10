@@ -7,3 +7,6 @@ python-jose[cryptography]
 passlib[bcrypt]
 python-dotenv
 python-multipart
+openpyxl
+apscheduler
+fastapi-mail
