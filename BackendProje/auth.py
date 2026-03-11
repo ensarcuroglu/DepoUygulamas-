@@ -23,7 +23,22 @@ from models import Kullanici
 # YAPILANDIRMA
 # ========================
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "depo-yonetim-sistemi-gizli-anahtar-2026-uretim-ortaminda-degistirin")
+def _get_secret_key() -> str:
+    """JWT Secret Key'i ortam değişkeninden alır, yoksa uygulamayı başlatmaz."""
+    key = os.getenv("JWT_SECRET_KEY")
+    if not key:
+        raise RuntimeError(
+            "JWT_SECRET_KEY ortam değişkeni ayarlanmamış! "
+            "Lütfen .env dosyasına JWT_SECRET_KEY ekleyin."
+        )
+    if len(key) < 32:
+        raise RuntimeError(
+            "JWT_SECRET_KEY en az 32 karakter olmalıdır!"
+        )
+    return key
+
+
+SECRET_KEY = _get_secret_key()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30   # 30 dakika
 REFRESH_TOKEN_EXPIRE_DAYS = 7      # 7 gün

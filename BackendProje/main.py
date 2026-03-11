@@ -7,9 +7,14 @@ import logging
 
 from database import engine, get_db, SessionLocal
 from models import Base, Kullanici, RaporSchedule
-from auth import get_current_user, require_role
+from auth import get_current_user, require_role, SECRET_KEY
 import crud
 from schemas import DashboardStats
+
+# Başlangıçta key yapılandırmasını logla
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.info(f"🔐 JWT Secret Key: {SECRET_KEY[:8]}... (yapılandırıldı)")
 
 # Router'ları içe aktar
 from routers import (
