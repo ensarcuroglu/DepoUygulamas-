@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { loginUser as apiLogin, getCurrentUser } from '../services/api';
+import { loginUser as apiLogin, getCurrentUser, logoutUser as apiLogout } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -24,8 +24,9 @@ export function AuthProvider({ children }) {
                     localStorage.setItem('user', JSON.stringify(freshUser));
                 })
                 .catch(() => {
-                    // Token geçersiz — oturumu temizle
+                    // Token geçersiz ve refresh da başarısız olduysa (interceptor logout yaptı)
                     localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
                     localStorage.removeItem('user');
                     setUser(null);
                 })
@@ -37,17 +38,29 @@ export function AuthProvider({ children }) {
 
     const login = async (kullanici_adi, sifre) => {
         const res = await apiLogin({ kullanici_adi, sifre });
-        const { access_token, user: userData } = res.data;
+        const { access_token, refresh_token, user: userData } = res.data;
 
         localStorage.setItem('access_token', access_token);
+        localStorage.setItem('refresh_token', refresh_token);
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
 
         return userData;
     };
 
-    const logout = () => {
+    const logout = async () => {
+        // Server-side token revocation (refresh token'ı geçersiz kıl)
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (refreshToken) {
+            try {
+                await apiLogout({ refresh_token: refreshToken });
+            } catch {
+                // Sunucu hatası olsa bile local temizleme yapılır
+            }
+        }
+
         localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         setUser(null);
     };

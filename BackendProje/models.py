@@ -255,6 +255,8 @@ class Kullanici(Base):
     departman = Column(String(100), nullable=True)
     sicil_no = Column(String(50), nullable=True)
     kart_numarasi = Column(String(50), unique=True, nullable=True)
+    refresh_token_hash = Column(String(255), nullable=True)        # Hashli refresh token
+    refresh_token_son_kullanim = Column(DateTime, nullable=True)   # Refresh token geçerlilik süresi
     olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
 
     # İlişki

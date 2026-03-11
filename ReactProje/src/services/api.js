@@ -10,7 +10,7 @@ const api = axios.create({
 });
 
 // ========================
-// REQUEST INTERCEPTOR — Her istekte token ekle
+// REQUEST INTERCEPTOR — Her istekte access token ekle
 // ========================
 api.interceptors.request.use(
     (config) => {
@@ -24,19 +24,91 @@ api.interceptors.request.use(
 );
 
 // ========================
-// RESPONSE INTERCEPTOR — 401'de otomatik logout
+// RESPONSE INTERCEPTOR — 401'de önce refresh dene, başarısızsa logout
 // ========================
+
+// Eş zamanlı birden fazla 401 isteğini yönetmek için
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
+const forceLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+    }
+};
+
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            if (!window.location.pathname.includes('/login')) {
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('user');
-                window.location.href = '/login';
-            }
+    async (error) => {
+        const originalRequest = error.config;
+
+        // 401 değilse, login sayfasındaysa veya zaten retry yapıldıysa direkt reject
+        if (
+            error.response?.status !== 401 ||
+            originalRequest._retry ||
+            window.location.pathname.includes('/login')
+        ) {
+            return Promise.reject(error);
         }
-        return Promise.reject(error);
+
+        // Refresh zaten devam ediyorsa, bu isteği kuyruğa al
+        if (isRefreshing) {
+            return new Promise((resolve, reject) => {
+                failedQueue.push({ resolve, reject });
+            })
+                .then((token) => {
+                    originalRequest.headers.Authorization = `Bearer ${token}`;
+                    return api(originalRequest);
+                })
+                .catch((err) => Promise.reject(err));
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        const refreshToken = localStorage.getItem('refresh_token');
+
+        if (!refreshToken) {
+            isRefreshing = false;
+            forceLogout();
+            return Promise.reject(error);
+        }
+
+        try {
+            // Refresh endpoint'ine axios direkt çağrı (interceptor döngüsünü önler)
+            const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+                refresh_token: refreshToken,
+            });
+
+            const { access_token } = response.data;
+            localStorage.setItem('access_token', access_token);
+            api.defaults.headers.common.Authorization = `Bearer ${access_token}`;
+
+            processQueue(null, access_token);
+
+            originalRequest.headers.Authorization = `Bearer ${access_token}`;
+            return api(originalRequest);
+        } catch (refreshError) {
+            processQueue(refreshError, null);
+            forceLogout();
+            return Promise.reject(refreshError);
+        } finally {
+            isRefreshing = false;
+        }
     }
 );
 
@@ -46,6 +118,8 @@ api.interceptors.response.use(
 export const loginUser = (credentials) => api.post('/auth/login', credentials);
 export const getCurrentUser = () => api.get('/auth/me');
 export const registerUser = (data) => api.post('/auth/register', data);
+export const refreshAccessToken = (data) => api.post('/auth/refresh', data);
+export const logoutUser = (data) => api.post('/auth/logout', data);
 
 // ========================
 // KULLANICI YÖNETİMİ

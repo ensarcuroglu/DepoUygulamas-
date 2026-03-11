@@ -1,23 +1,46 @@
 """
-Auth Router — Giriş, Profil ve Kayıt Endpoint'leri
+Auth Router — Giriş, Çıkış, Profil, Kayıt ve Token Yenileme Endpoint'leri
 """
+
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Kullanici, SistemLog
-from auth import verify_password, get_password_hash, create_access_token, get_current_user
-from schemas import LoginRequest, TokenResponse, KullaniciCreate, KullaniciResponse
+from auth import (
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    create_refresh_token,
+    verify_and_get_user_from_refresh_token,
+    get_current_user,
+    pwd_context,
+    REFRESH_TOKEN_EXPIRE_DAYS,
+)
+from schemas import (
+    LoginRequest,
+    TokenResponse,
+    KullaniciCreate,
+    KullaniciResponse,
+    RefreshRequest,
+    LogoutRequest,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["Kimlik Doğrulama"])
 
+
+# ========================
+# LOGIN
+# ========================
 
 @router.post("/login", response_model=TokenResponse)
 def login(request: LoginRequest, db: Session = Depends(get_db)):
     """
     Kullanıcı adı ve şifre ile giriş yapar.
-    Başarılıysa JWT token ve kullanıcı bilgisi döner.
+    Başarılıysa kısa ömürlü access_token (30 dk) ve
+    uzun ömürlü refresh_token (7 gün) döner.
     """
     # Kullanıcıyı bul
     user = db.query(Kullanici).filter(
@@ -31,8 +54,13 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Token oluştur
+    # Token'lar oluştur
     access_token = create_access_token(data={"sub": user.kullanici_adi})
+    refresh_token = create_refresh_token(data={"sub": user.kullanici_adi})
+
+    # Refresh token'ı hashle ve DB'ye kaydet
+    user.refresh_token_hash = pwd_context.hash(refresh_token)
+    user.refresh_token_son_kullanim = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
     # Sisteme giriş logu
     yeni_log = SistemLog(
@@ -46,6 +74,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "user": {
             "id": user.id,
@@ -61,6 +90,61 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     }
 
 
+# ========================
+# REFRESH TOKEN
+# ========================
+
+@router.post("/refresh")
+def refresh_token(request: RefreshRequest, db: Session = Depends(get_db)):
+    """
+    Geçerli bir refresh_token ile yeni access_token üretir.
+    Refresh token süresi dolmamışsa ve DB'de kayıtlıysa başarılı olur.
+    """
+    user = verify_and_get_user_from_refresh_token(request.refresh_token, db)
+
+    new_access_token = create_access_token(data={"sub": user.kullanici_adi})
+
+    return {
+        "access_token": new_access_token,
+        "token_type": "bearer",
+    }
+
+
+# ========================
+# LOGOUT
+# ========================
+
+@router.post("/logout", status_code=200)
+def logout(
+    request: LogoutRequest,
+    db: Session = Depends(get_db),
+    current_user: Kullanici = Depends(get_current_user),
+):
+    """
+    Oturumu kapatır ve refresh token'ı sunucu tarafında geçersiz kılar.
+    Sonraki refresh istekleri reddedilir.
+    """
+    # Refresh token'ı DB'den sil (revocation)
+    current_user.refresh_token_hash = None
+    current_user.refresh_token_son_kullanim = None
+
+    # Çıkış logu
+    yeni_log = SistemLog(
+        kullanici_id=current_user.id,
+        islem_tipi="LOGOUT",
+        modul="Oturum",
+        detay=f"{current_user.ad_soyad} sistemden çıkış yaptı."
+    )
+    db.add(yeni_log)
+    db.commit()
+
+    return {"message": "Başarıyla çıkış yapıldı."}
+
+
+# ========================
+# PROFİL
+# ========================
+
 @router.get("/me", response_model=KullaniciResponse)
 def get_profile(current_user: Kullanici = Depends(get_current_user)):
     """
@@ -69,6 +153,10 @@ def get_profile(current_user: Kullanici = Depends(get_current_user)):
     """
     return current_user
 
+
+# ========================
+# KAYIT
+# ========================
 
 @router.post("/register", response_model=KullaniciResponse, status_code=201)
 def register(
