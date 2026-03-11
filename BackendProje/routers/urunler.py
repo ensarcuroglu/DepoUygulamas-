@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -9,12 +9,15 @@ import crud
 from schemas import (
     UrunCreate, UrunUpdate, UrunResponse, UrunListResponse
 )
+from main import limiter
 
 router = APIRouter(prefix="/api/urunler", tags=["Ürünler"])
 
 
 @router.get("/", response_model=list[UrunListResponse])
+@limiter.limit("100/minute")
 def urunleri_listele(
+    request: Request,
     skip: int = 0,
     limit: int = 50,
     search: Optional[str] = Query(None, description="İsim, barkod, EAN veya açıklama ile ara"),
@@ -29,7 +32,9 @@ def urunleri_listele(
 
 
 @router.get("/kritik", response_model=list[UrunListResponse])
+@limiter.limit("50/minute")
 def kritik_urunleri_getir(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(get_current_user)
 ):
@@ -38,7 +43,9 @@ def kritik_urunleri_getir(
 
 
 @router.get("/barkod/{barkod_kodu}", response_model=UrunResponse)
+@limiter.limit("100/minute")
 def urun_getir_by_barkod(
+    request: Request,
     barkod_kodu: str,
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(get_current_user)
@@ -50,7 +57,9 @@ def urun_getir_by_barkod(
     return db_urun
 
 @router.get("/{urun_id}", response_model=UrunResponse)
+@limiter.limit("100/minute")
 def urun_detay(
+    request: Request,
     urun_id: int,
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(get_current_user)
@@ -63,7 +72,9 @@ def urun_detay(
 
 
 @router.post("/", response_model=UrunResponse, status_code=201)
+@limiter.limit("50/minute")
 def urun_ekle(
+    request: Request,
     urun: UrunCreate,
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(require_role("admin"))
@@ -73,7 +84,9 @@ def urun_ekle(
 
 
 @router.put("/{urun_id}", response_model=UrunResponse)
+@limiter.limit("50/minute")
 def urun_guncelle(
+    request: Request,
     urun_id: int,
     urun: UrunUpdate,
     db: Session = Depends(get_db),
@@ -87,7 +100,9 @@ def urun_guncelle(
 
 
 @router.delete("/{urun_id}")
+@limiter.limit("50/minute")
 def urun_sil(
+    request: Request,
     urun_id: int,
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(require_role("admin"))

@@ -4,7 +4,7 @@ Auth Router — Giriş, Çıkış, Profil, Kayıt ve Token Yenileme Endpoint'ler
 
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -28,6 +28,9 @@ from schemas import (
     LogoutRequest,
 )
 
+# main'den limiter'ı içe aktar
+from main import limiter
+
 router = APIRouter(prefix="/api/auth", tags=["Kimlik Doğrulama"])
 
 
@@ -36,7 +39,8 @@ router = APIRouter(prefix="/api/auth", tags=["Kimlik Doğrulama"])
 # ========================
 
 @router.post("/login", response_model=TokenResponse)
-def login(request: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, login_request: LoginRequest, db: Session = Depends(get_db)):
     """
     Kullanıcı adı ve şifre ile giriş yapar.
     Başarılıysa kısa ömürlü access_token (30 dk) ve
@@ -44,10 +48,10 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     """
     # Kullanıcıyı bul
     user = db.query(Kullanici).filter(
-        Kullanici.kullanici_adi == request.kullanici_adi
+        Kullanici.kullanici_adi == login_request.kullanici_adi
     ).first()
 
-    if not user or not verify_password(request.sifre, user.sifre_hash):
+    if not user or not verify_password(login_request.sifre, user.sifre_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Kullanıcı adı veya şifre hatalı.",
@@ -115,8 +119,10 @@ def refresh_token(request: RefreshRequest, db: Session = Depends(get_db)):
 # ========================
 
 @router.post("/logout", status_code=200)
+@limiter.limit("10/minute")
 def logout(
-    request: LogoutRequest,
+    request: Request,
+    logout_request: LogoutRequest,
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(get_current_user),
 ):

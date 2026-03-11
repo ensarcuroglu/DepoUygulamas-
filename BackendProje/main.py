@@ -4,6 +4,12 @@ from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 from datetime import datetime
 import logging
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from fastapi.responses import JSONResponse
+from fastapi import Request
 
 from database import engine, get_db, SessionLocal
 from models import Base, Kullanici, RaporSchedule
@@ -16,14 +22,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.info(f"🔐 JWT Secret Key: {SECRET_KEY[:8]}... (yapılandırıldı)")
 
+# Rate Limiter yapılandırması
+limiter = Limiter(key_func=get_remote_address)
+
 # Router'ları içe aktar
 from routers import (
     urunler, kategoriler, stok_hareketleri, auth,
     kullanicilar, tedarikciler, markalar, depolar, lotlar, paletler, raflar, sistem_loglari, destek,
     siparisler, sevkiyat_planlama, irsaliyeler, raporlar
 )
-
-logger = logging.getLogger(__name__)
 
 # ========================
 # APScheduler Kurulumu
@@ -140,6 +147,22 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan
 )
+
+# Rate Limite Middleware ve Exception Handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# Özel 429 hata mesajı handler'ı (opsiyonel, _rate_limit_exceeded_handler standardını kullanabiliriz)
+@app.exception_handler(RateLimitExceeded)
+async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={
+            "detail": "Çok fazla istek gönderdiniz. Lütfen daha sonra tekrar deneyin.",
+            "retry_after": exc.detail
+        }
+    )
 
 # CORS ayarları — React'ın bu sunucuya erişebilmesi için
 app.add_middleware(

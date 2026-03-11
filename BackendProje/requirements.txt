@@ -10,3 +10,4 @@ python-multipart
 openpyxl
 apscheduler
 fastapi-mail
+slowapi

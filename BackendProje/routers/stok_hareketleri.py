@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -7,12 +7,15 @@ from auth import get_current_user
 from models import Kullanici
 import crud
 from schemas import StokHareketiCreate, StokHareketiResponse
+from main import limiter
 
 router = APIRouter(prefix="/api/stok-hareketleri", tags=["Stok Hareketleri"])
 
 
 @router.get("/", response_model=list[StokHareketiResponse])
+@limiter.limit("100/minute")
 def hareketleri_listele(
+    request: Request,
     skip: int = 0,
     limit: int = 50,
     urun_id: Optional[int] = Query(None, description="Belirli ürüne göre filtrele"),
@@ -26,7 +29,9 @@ def hareketleri_listele(
 
 
 @router.post("/", response_model=StokHareketiResponse, status_code=201)
+@limiter.limit("50/minute")
 def hareket_ekle(
+    request: Request,
     hareket: StokHareketiCreate,
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(get_current_user)
