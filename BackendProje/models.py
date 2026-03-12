@@ -447,6 +447,67 @@ class RaporSchedule(Base):
     sablon = relationship("RaporSablonu")
 
 
+# ========================
+# STOK SAYIM  (Inventar)
+# ========================
+
+class StokSayim(Base):
+    """Periyodik stok sayımı oturumu (header)"""
+    __tablename__ = "stok_sayimlar"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sayim_no = Column(String(50), unique=True, nullable=False, index=True)
+    aciklama = Column(Text, default="")
+
+    # Sayım Dönemi
+    baslangic_tarihi = Column(DateTime, default=datetime.utcnow)
+    bitis_tarihi = Column(DateTime, nullable=True)
+
+    # Snapshot alındığı andaki stok
+    referans_stok_json = Column(JSON, nullable=True)  # {urun_id: koli_adedi, ...}
+
+    # Sayımı yapan kullanıcı
+    kontrol_eden_user_id = Column(Integer, ForeignKey("kullanicilar.id"))
+    onaylayan_user_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
+
+    # Durum: "oluşturuldu", "devam_ediyor", "bitti", "onaylandı"
+    durum = Column(String(20), default="oluşturuldu")
+
+    aktif = Column(Boolean, default=True)
+    olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
+
+    # İlişkiler
+    sayim_kalemleri = relationship("StokSayimKalemi", back_populates="sayim", cascade="all, delete-orphan")
+    kontrol_eden = relationship("Kullanici", foreign_keys="StokSayim.kontrol_eden_user_id")
+    onaylayan = relationship("Kullanici", foreign_keys="StokSayim.onaylayan_user_id")
+
+
+class StokSayimKalemi(Base):
+    """Stok sayımı satır öğeleri (ürün başına sayılan miktar)"""
+    __tablename__ = "stok_sayim_kalemleri"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    sayim_id = Column(Integer, ForeignKey("stok_sayimlar.id"), nullable=False, index=True)
+    urun_id = Column(Integer, ForeignKey("urunler.id"), nullable=False, index=True)
+
+    # Sayım sırasında kaydedilen miktar (koli)
+    sayilan_miktar = Column(Integer, default=0)
+
+    # Gözlem notları (hasarlı, yer değişmiş, vb)
+    notlar = Column(Text, default="")
+
+    # Sayımı yapan kişi
+    user_id = Column(Integer, ForeignKey("kullanicilar.id"))
+
+    sayim_tarihi = Column(DateTime, default=datetime.utcnow)
+
+    # İlişkiler
+    sayim = relationship("StokSayim", back_populates="sayim_kalemleri")
+    urun = relationship("Urun")
+    user = relationship("Kullanici", foreign_keys="StokSayimKalemi.user_id")
+
+
 from sqlalchemy import select, func
 from sqlalchemy.orm import column_property
 

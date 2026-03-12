@@ -29,7 +29,7 @@ limiter = Limiter(key_func=get_remote_address)
 from routers import (
     urunler, kategoriler, stok_hareketleri, auth,
     kullanicilar, tedarikciler, markalar, depolar, lotlar, paletler, raflar, sistem_loglari, destek,
-    siparisler, sevkiyat_planlama, irsaliyeler, raporlar
+    siparisler, sevkiyat_planlama, irsaliyeler, raporlar, stok_sayim
 )
 
 # ========================
@@ -191,6 +191,7 @@ app.include_router(siparisler.router)
 app.include_router(sevkiyat_planlama.router)
 app.include_router(irsaliyeler.router)
 app.include_router(raporlar.router)
+app.include_router(stok_sayim.router)
 
 
 @app.get("/")

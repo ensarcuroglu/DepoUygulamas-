@@ -24,7 +24,8 @@ import {
     Route,
     FileText,
     BarChart3,
-    Clock
+    Clock,
+    ClipboardCheck
 } from 'lucide-react';
 
 const menuItems = [
@@ -34,6 +35,7 @@ const menuItems = [
     { path: '/lotlar', label: 'LOT Takibi', icon: Layers, roles: ['admin'] },
     { path: '/paletler', label: 'Palet Yönetimi', icon: Container, roles: ['admin'] },
     { path: '/stok-hareketleri', label: 'Stok İşlemleri', icon: ArrowLeftRight, roles: ['admin', 'depocu', 'lojistik'] },
+    { path: '/stok-sayim', label: 'Stok Sayımı', icon: ClipboardCheck, roles: ['admin', 'depocu'] },
     { path: '/sevkiyatlar', label: 'Sevkiyatlar (Çıkış)', icon: ArrowUpFromLine, roles: ['admin', 'depocu', 'lojistik'] },
     { path: '/siparisler', label: 'Siparişler', icon: ClipboardList, roles: ['admin', 'lojistik'] },
     { path: '/sevkiyat-planlama', label: 'Sevkiyat Planlama', icon: Route, roles: ['admin', 'lojistik'] },

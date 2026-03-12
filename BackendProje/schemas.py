@@ -677,3 +677,44 @@ class RaporScheduleResponse(RaporScheduleBase):
 
     class Config:
         from_attributes = True
+
+
+# ========================
+# STOK SAYIM ŞEMALARİ
+# ========================
+
+class StokSayimKalemiBase(BaseModel):
+    urun_id: int
+    sayilan_miktar: int
+    notlar: Optional[str] = ""
+
+class StokSayimKalemiCreate(StokSayimKalemiBase):
+    pass
+
+class StokSayimKalemiRead(StokSayimKalemiBase):
+    id: int
+    sayim_id: int
+    user_id: Optional[int] = None
+    sayim_tarihi: datetime
+    urun_adi: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class StokSayimCreate(BaseModel):
+    aciklama: Optional[str] = ""
+
+class StokSayimRead(BaseModel):
+    id: int
+    sayim_no: str
+    aciklama: str
+    baslangic_tarihi: datetime
+    bitis_tarihi: Optional[datetime] = None
+    durum: str
+    sayim_kalemleri: List[StokSayimKalemiRead] = []
+    kontrol_eden_user_id: int
+    onaylayan_user_id: Optional[int] = None
+    olusturma_tarihi: datetime
+
+    class Config:
+        from_attributes = True
