@@ -2,17 +2,25 @@
  * API hata yanıtlarından tutarlı biçimde mesaj üretir.
  *
  * Öncelik sırası:
- *   1. FastAPI'nin döndürdüğü `detail` alanı  (en yaygın)
- *   2. Genel `message` alanı
- *   3. Ağ/timeout gibi JS hatalarının mesajı (ekrana "Network Error" gibi teknik ifadeler çıkmaması için filtre var)
- *   4. Çağırırken verilen `varsayilan` değer
+ *   1. Yeni backend formatı: { success: false, error: "..." }
+ *   2. FastAPI'nin döndürdüğü `detail` alanı  (en yaygın)
+ *   3. Genel `message` alanı
+ *   4. Ağ/timeout gibi JS hatalarının mesajı (ekrana "Network Error" gibi teknik ifadeler çıkmaması için filtre var)
+ *   5. Çağırırken verilen `varsayilan` değer
  *
  * @param {unknown} err         - Axios veya JS hatası
  * @param {string}  varsayilan  - Hiçbir detay bulunamazsa gösterilecek mesaj
  * @returns {string}
  */
 export function hataMetni(err, varsayilan = 'Beklenmeyen bir hata oluştu') {
-    const detail = err?.response?.data?.detail;
+    const data = err?.response?.data;
+
+    // Yeni backend formatı: { success: false, error: "..." }
+    if (data?.success === false && data?.error) {
+        return String(data.error);
+    }
+
+    const detail = data?.detail;
     if (detail) {
         // FastAPI bazen detail'i dizi olarak döner (validation hataları)
         if (Array.isArray(detail)) {
@@ -21,7 +29,7 @@ export function hataMetni(err, varsayilan = 'Beklenmeyen bir hata oluştu') {
         return String(detail);
     }
 
-    const message = err?.response?.data?.message;
+    const message = data?.message;
     if (message) return String(message);
 
     // Axios ağ hataları gibi teknik mesajları kullanıcıya gösterme

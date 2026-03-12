@@ -12,10 +12,13 @@ from .sistem_log_service import SistemLogService
 from .siparis_service import SiparisService
 from .sevkiyat_service import SevkiyatService
 from .irsaliye_service import IrsaliyeService
+from .stok_sayim_service import StokSayimService
+from .rapor_service import RaporService
 
 __all__ = [
     "UrunService", "LotService", "PaletService", "StokService",
     "KategoriService", "MarkaService", "DepoService", "RafService",
     "TedarikciService", "KullaniciService", "DestekService",
     "SistemLogService", "SiparisService", "SevkiyatService", "IrsaliyeService",
+    "StokSayimService", "RaporService",
 ]
