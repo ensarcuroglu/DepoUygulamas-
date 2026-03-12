@@ -4,8 +4,7 @@ from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 from datetime import datetime
 import logging
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from fastapi.responses import JSONResponse
@@ -16,14 +15,13 @@ from models import Base, Kullanici, RaporSchedule
 from auth import get_current_user, require_role, SECRET_KEY
 import crud
 from schemas import DashboardStats
+from limiter import limiter
+from core import APIException, api_exception_handler, generic_exception_handler
 
 # Başlangıçta key yapılandırmasını logla
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.info(f"🔐 JWT Secret Key: {SECRET_KEY[:8]}... (yapılandırıldı)")
-
-# Rate Limiter yapılandırması
-limiter = Limiter(key_func=get_remote_address)
 
 # Router'ları içe aktar
 from routers import (
@@ -148,10 +146,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Rate Limite Middleware ve Exception Handler
+# Rate Limiter Middleware ve Exception Handler
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+
+# Custom Exception Handler'lar
+app.add_exception_handler(APIException, api_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
 
 # Özel 429 hata mesajı handler'ı (opsiyonel, _rate_limit_exceeded_handler standardını kullanabiliriz)
 @app.exception_handler(RateLimitExceeded)

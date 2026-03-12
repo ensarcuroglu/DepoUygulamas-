@@ -29,7 +29,7 @@ from schemas import (
 )
 
 # main'den limiter'ı içe aktar
-from main import limiter
+from limiter import limiter
 
 router = APIRouter(prefix="/api/auth", tags=["Kimlik Doğrulama"])
 

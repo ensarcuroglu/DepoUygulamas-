@@ -2,6 +2,55 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
+// ========================
+// HATA YÖNETİMİ
+// ========================
+
+/**
+ * Standart API hata sınıfı.
+ * Backend'in { success, error, code, details } formatını taşır.
+ */
+export class ApiError extends Error {
+    constructor(message, status, code = null, details = null) {
+        super(message);
+        this.name = 'ApiError';
+        this.status = status;
+        this.code = code;
+        this.details = details;
+    }
+}
+
+/**
+ * Axios hata nesnesini ApiError'a dönüştürür.
+ * - Backend standardize yanıtı (success: false) destekler
+ * - Ağ hatası (no response) ayrıca işlenir
+ * - Fallback olarak axios hata mesajını kullanır
+ */
+export const handleApiError = (error) => {
+    // Backend'den gelen standardize yanıt
+    if (error.response?.data) {
+        const { success, error: message, code, details } = error.response.data;
+        if (success === false && message) {
+            return new ApiError(message, code ?? error.response.status, code, details);
+        }
+        // FastAPI'nin kendi hata formatı (detail field)
+        const detail = error.response.data.detail;
+        if (detail) {
+            const msg = typeof detail === 'string' ? detail : JSON.stringify(detail);
+            return new ApiError(msg, error.response.status);
+        }
+    }
+    // Ağ / bağlantı hatası
+    if (!error.response) {
+        return new ApiError('Sunucuya bağlanılamadı', 0, 'NETWORK_ERROR');
+    }
+    // Fallback
+    return new ApiError(
+        error.message || 'Beklenmeyen hata oluştu',
+        error.response?.status ?? 500,
+    );
+};
+
 const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {

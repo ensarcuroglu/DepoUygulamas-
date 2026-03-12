@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from typing import Optional
 
 from database import get_db
 from auth import get_current_user
 from models import Kullanici
-import crud
+from services.stok_service import StokService
 from schemas import StokHareketiCreate, StokHareketiResponse
-from main import limiter
+from limiter import limiter
 
 router = APIRouter(prefix="/api/stok-hareketleri", tags=["Stok Hareketleri"])
 
@@ -22,10 +22,13 @@ def hareketleri_listele(
     lot_id: Optional[int] = Query(None, description="Belirli LOT'a göre filtrele"),
     hareket_tipi: Optional[str] = Query(None, description="'giris' veya 'cikis' olarak filtrele"),
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(get_current_user),
 ):
     """Stok hareketlerini listeler. Ürün, LOT veya hareket tipine göre filtreleme destekler."""
-    return crud.get_stok_hareketleri(db, skip=skip, limit=limit, urun_id=urun_id, lot_id=lot_id, hareket_tipi=hareket_tipi)
+    return StokService.get_hareketler(
+        db, skip=skip, limit=limit,
+        urun_id=urun_id, lot_id=lot_id, hareket_tipi=hareket_tipi,
+    )
 
 
 @router.post("/", response_model=StokHareketiResponse, status_code=201)
@@ -34,33 +37,12 @@ def hareket_ekle(
     request: Request,
     hareket: StokHareketiCreate,
     db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(get_current_user)
+    current_user: Kullanici = Depends(get_current_user),
 ):
     """
     Yeni stok hareketi oluşturur.
-    - hareket_tipi: "giris" veya "cikis"
+    - hareket_tipi: 'giris' veya 'cikis'
     - Çıkışta palet belirtilmişse otomatik olarak paleti pasife alır
     - Hareketi gerçekleştiren kullanıcı otomatik kaydedilir
     """
-    if hareket.hareket_tipi not in ("giris", "cikis"):
-        raise HTTPException(
-            status_code=400,
-            detail="Hareket tipi 'giris' veya 'cikis' olmalıdır"
-        )
-
-    if hareket.miktar <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Miktar 0'dan büyük olmalıdır"
-        )
-
-    # Ürünün varlığını kontrol et
-    db_urun = crud.get_urun(db, hareket.urun_id)
-    if not db_urun:
-        raise HTTPException(status_code=404, detail="Ürün bulunamadı")
-
-    # Kullanıcı ID'sini otomatik olarak kaydet
-    try:
-        return crud.create_stok_hareketi(db, hareket, kullanici_id=current_user.id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return StokService.create_hareket(db, hareket, kullanici_id=current_user.id)
