@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje\" && pip install pydantic --quiet 2>&1 | tail -3)",
+      "Bash(cd \"/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje\" && pip install pydantic --break-system-packages --quiet 2>&1 | tail -3 && python3 -c \"import pydantic; print\\('pydantic', pydantic.__version__\\)\")"
+    ]
+  }
+}
