@@ -16,18 +16,52 @@ from auth import get_current_user, require_role, SECRET_KEY
 import crud
 from schemas import DashboardStats
 from limiter import limiter
-from core import APIException, api_exception_handler, generic_exception_handler
+
+# ── Legacy exception yapısı (mevcut 15 modül için) ──
+from core import (
+    APIException,
+    api_exception_handler,
+    generic_exception_handler,
+    # Domain exception handler'ları
+    kayit_bulunamadi_handler,
+    yetersiz_stok_handler,
+    cakisma_handler,
+    yetkisiz_islem_handler,
+    gecersiz_durum_gecisi_handler,
+    gecersiz_islem_handler,
+    stok_veri_uyumsuzlugu_handler,
+    domain_exception_handler,
+)
+
+# ── Domain exception'lar (handler kayıtları için) ──
+from app.core.exceptions import (
+    DomainException,
+    KayitBulunamadiError,
+    YetersizStokError,
+    CakismaHatasi,
+    YetkisizIslemError,
+    GecersizDurumGecisiError,
+    GecersizIslemError,
+    StokVeriUyumsuzluguError,
+)
 
 # Başlangıçta key yapılandırmasını logla
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.info(f"🔐 JWT Secret Key: {SECRET_KEY[:8]}... (yapılandırıldı)")
 
-# Router'ları içe aktar
+# ── YENİ Clean Architecture Router'ları ──
+from app.api.v1.routers import (
+    urunler_router as v1_urunler_router,
+    stok_hareketleri_router as v1_stok_hareketleri_router,
+    siparisler_router as v1_siparisler_router,
+)
+
+# ── ESKİ Router'lar (henüz use case'e dönüştürülmemiş modüller) ──
 from routers import (
-    urunler, kategoriler, stok_hareketleri, auth,
+    kategoriler, auth,
     kullanicilar, tedarikciler, markalar, depolar, lotlar, paletler, raflar, sistem_loglari, destek,
-    siparisler, sevkiyat_planlama, irsaliyeler, raporlar, stok_sayim
+    sevkiyat_planlama, irsaliyeler, raporlar, stok_sayim
 )
 
 # ========================
@@ -148,14 +182,30 @@ app = FastAPI(
 
 # Rate Limiter Middleware ve Exception Handler
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
-# Custom Exception Handler'lar
+# ========================
+# EXCEPTION HANDLER KAYITLARI
+# ========================
+
+# 1. Legacy API exception handler'lar (mevcut 15 modül için)
 app.add_exception_handler(APIException, api_exception_handler)
+
+# 2. Domain exception → HTTP handler'lar (Clean Architecture modülleri için)
+#    Sıralama önemli: spesifik exception'lar önce, genel DomainException en son
+app.add_exception_handler(KayitBulunamadiError, kayit_bulunamadi_handler)
+app.add_exception_handler(YetersizStokError, yetersiz_stok_handler)
+app.add_exception_handler(CakismaHatasi, cakisma_handler)
+app.add_exception_handler(YetkisizIslemError, yetkisiz_islem_handler)
+app.add_exception_handler(GecersizDurumGecisiError, gecersiz_durum_gecisi_handler)
+app.add_exception_handler(GecersizIslemError, gecersiz_islem_handler)
+app.add_exception_handler(StokVeriUyumsuzluguError, stok_veri_uyumsuzlugu_handler)
+app.add_exception_handler(DomainException, domain_exception_handler)
+
+# 3. Genel fallback handler
 app.add_exception_handler(Exception, generic_exception_handler)
 
-# Özel 429 hata mesajı handler'ı (opsiyonel, _rate_limit_exceeded_handler standardını kullanabiliriz)
+# Özel 429 hata mesajı handler'ı
 @app.exception_handler(RateLimitExceeded)
 async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
     return JSONResponse(
@@ -175,21 +225,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Router'ları kaydet
+# ========================
+# ROUTER KAYITLARI
+# ========================
+
+# YENİ Clean Architecture Router'ları (DI tabanlı)
+app.include_router(v1_urunler_router)
+app.include_router(v1_stok_hareketleri_router)
+app.include_router(v1_siparisler_router)
+
+# ESKİ Router'lar (henüz dönüştürülmemiş modüller)
 app.include_router(auth.router)
 app.include_router(markalar.router)
-app.include_router(urunler.router)
 app.include_router(kategoriler.router)
 app.include_router(depolar.router)
 app.include_router(lotlar.router)
 app.include_router(paletler.router)
 app.include_router(raflar.router)
-app.include_router(stok_hareketleri.router)
 app.include_router(kullanicilar.router)
 app.include_router(tedarikciler.router)
 app.include_router(sistem_loglari.router)
 app.include_router(destek.router)
-app.include_router(siparisler.router)
 app.include_router(sevkiyat_planlama.router)
 app.include_router(irsaliyeler.router)
 app.include_router(raporlar.router)
