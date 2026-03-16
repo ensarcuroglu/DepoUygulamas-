@@ -107,3 +107,14 @@ JWT_SECRET_KEY=<strong-random-secret>
 - Backend routers use `Depends(get_current_user)` or `Depends(require_role("admin"))` for auth
 - `SistemLog` records are written manually from routers when critical operations occur (CREATE/UPDATE/DELETE)
 - `Palet.aktif=False` marks a pallet as shipped/removed; `Lot.aktif=False` marks a lot as closed
+
+## Code Review Standards
+
+After completing any implementation, review the code for:
+- Functions longer than 30 lines (likely doing too much)
+- Logic duplicated more than twice (extract to utility)
+- Any `any` type usage in JavaScript (replace with real types)
+- Components with more than 3 props that could be grouped into an object
+- Missing error handling on async operations
+
+Run /simplify before presenting code to the user.
