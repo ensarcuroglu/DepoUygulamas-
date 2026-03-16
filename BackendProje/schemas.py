@@ -312,7 +312,7 @@ class StokHareketiCreate(StokHareketiBase):
 class StokHareketiResponse(StokHareketiBase):
     id: int
     kullanici_id: Optional[int] = None
-    kullanici: Optional[KullaniciResponse] = None
+    kullanici: Optional["KullaniciResponse"] = None
     raf: Optional[RafResponse] = None
     tarih: datetime
 
@@ -718,3 +718,7 @@ class StokSayimRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Forward reference çözümlemesi (StokHareketiResponse -> KullaniciResponse)
+StokHareketiResponse.model_rebuild()

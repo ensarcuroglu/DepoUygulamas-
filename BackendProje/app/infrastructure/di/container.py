@@ -14,7 +14,7 @@ Kullanım (router'dan):
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from app.infrastructure.persistence.database import get_db
+from database import get_db
 
 # ── SQLAlchemy repository implementasyonları ──
 from app.infrastructure.persistence.repositories import (

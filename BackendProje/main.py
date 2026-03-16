@@ -17,32 +17,11 @@ import crud
 from schemas import DashboardStats
 from limiter import limiter
 
-# ── Legacy exception yapısı (mevcut 15 modül için) ──
+# ── Birleşik exception yapısı ──
 from core import (
     APIException,
     api_exception_handler,
     generic_exception_handler,
-    # Domain exception handler'ları
-    kayit_bulunamadi_handler,
-    yetersiz_stok_handler,
-    cakisma_handler,
-    yetkisiz_islem_handler,
-    gecersiz_durum_gecisi_handler,
-    gecersiz_islem_handler,
-    stok_veri_uyumsuzlugu_handler,
-    domain_exception_handler,
-)
-
-# ── Domain exception'lar (handler kayıtları için) ──
-from app.core.exceptions import (
-    DomainException,
-    KayitBulunamadiError,
-    YetersizStokError,
-    CakismaHatasi,
-    YetkisizIslemError,
-    GecersizDurumGecisiError,
-    GecersizIslemError,
-    StokVeriUyumsuzluguError,
 )
 
 # Başlangıçta key yapılandırmasını logla
@@ -188,21 +167,10 @@ app.add_middleware(SlowAPIMiddleware)
 # EXCEPTION HANDLER KAYITLARI
 # ========================
 
-# 1. Legacy API exception handler'lar (mevcut 15 modül için)
+# Birleşik handler: Tüm APIException alt sınıfları (legacy + domain) tek handler ile yakalanır
 app.add_exception_handler(APIException, api_exception_handler)
 
-# 2. Domain exception → HTTP handler'lar (Clean Architecture modülleri için)
-#    Sıralama önemli: spesifik exception'lar önce, genel DomainException en son
-app.add_exception_handler(KayitBulunamadiError, kayit_bulunamadi_handler)
-app.add_exception_handler(YetersizStokError, yetersiz_stok_handler)
-app.add_exception_handler(CakismaHatasi, cakisma_handler)
-app.add_exception_handler(YetkisizIslemError, yetkisiz_islem_handler)
-app.add_exception_handler(GecersizDurumGecisiError, gecersiz_durum_gecisi_handler)
-app.add_exception_handler(GecersizIslemError, gecersiz_islem_handler)
-app.add_exception_handler(StokVeriUyumsuzluguError, stok_veri_uyumsuzlugu_handler)
-app.add_exception_handler(DomainException, domain_exception_handler)
-
-# 3. Genel fallback handler
+# Genel fallback handler
 app.add_exception_handler(Exception, generic_exception_handler)
 
 # Özel 429 hata mesajı handler'ı
