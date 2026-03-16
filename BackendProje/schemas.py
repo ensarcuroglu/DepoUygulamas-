@@ -468,9 +468,13 @@ class DestekTalebiUpdate(BaseModel):
     admin_cevabi: Optional[str] = Field(None, max_length=5000)
     oncelik: Optional[Literal["Normal", "Yüksek", "Düşük"]] = None
 
-class DestekTalebiResponse(DestekTalebiBase):
+class DestekTalebiResponse(BaseModel):
     id: int
     kullanici_id: int
+    konu: str
+    kategori: str
+    oncelik: str
+    aciklama: str
     durum: str
     admin_cevabi: Optional[str] = None
     olusturma_tarihi: datetime
