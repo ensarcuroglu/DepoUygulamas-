@@ -15,8 +15,7 @@ def get_depo(db: Session, depo_id: int):
 def create_depo(db: Session, depo: DepoCreate, kullanici_id: int):
     db_depo = Depo(**depo.model_dump())
     db.add(db_depo)
-    db.commit()
-    db.refresh(db_depo)
+    db.flush()
 
     log = SistemLog(
         kullanici_id=kullanici_id,
@@ -26,6 +25,7 @@ def create_depo(db: Session, depo: DepoCreate, kullanici_id: int):
     )
     db.add(log)
     db.commit()
+    db.refresh(db_depo)
 
     return db_depo
 

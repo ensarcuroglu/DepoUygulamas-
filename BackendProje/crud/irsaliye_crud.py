@@ -4,6 +4,7 @@ from datetime import datetime
 
 from models import Irsaliye, Siparis, StokHareketi, SistemLog
 from schemas import IrsaliyeCreate, IrsaliyeUpdate
+from core.api_exceptions import APIException
 from .stok_hareketi_crud import _fifo_palet_azalt
 
 
@@ -20,7 +21,7 @@ def generate_irsaliye_no(db: Session) -> str:
         try:
             son_no = int(son_irsaliye.irsaliye_no.split("-")[-1])
             yeni_no = son_no + 1
-        except:
+        except (ValueError, IndexError):
             yeni_no = 1
     else:
         yeni_no = 1
@@ -89,7 +90,7 @@ def create_irsaliye(db: Session, irsaliye_data: IrsaliyeCreate, kullanici_id: in
                         kullanici_id=kullanici_id
                     )
                     db.add(db_stok)
-                except ValueError as e:
+                except APIException as e:
                     hata_log = SistemLog(
                         kullanici_id=kullanici_id,
                         islem_tipi="ERROR",

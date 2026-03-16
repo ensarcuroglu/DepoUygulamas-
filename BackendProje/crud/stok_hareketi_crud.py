@@ -3,6 +3,7 @@ from datetime import datetime
 
 from models import StokHareketi, Urun, Lot, Palet, SistemLog
 from schemas import StokHareketiCreate
+from core.api_exceptions import KayitBulunamadiError, YetersizStokError, StokVeriUyumsuzluguError
 
 
 def get_stok_hareketleri(db: Session, skip: int = 0, limit: int = 50, urun_id: int = None, lot_id: int = None, hareket_tipi: str = None):
@@ -22,10 +23,10 @@ def _fifo_palet_azalt(db: Session, urun_id: int, miktar: int):
     """FIFO mantigi ile palet stoklarini duser. DB commit yapmaz — cagiran fonksiyon commit eder."""
     db_urun = db.query(Urun).filter(Urun.id == urun_id).first()
     if not db_urun:
-        raise ValueError(f"Ürün bulunamadı (ID: {urun_id})")
+        raise KayitBulunamadiError("Ürün", urun_id)
 
     if miktar > db_urun.stok_miktari:
-        raise ValueError(f"Yetersiz stok! Ürün: {db_urun.isim}, Mevcut: {db_urun.stok_miktari}, İstenen: {miktar}")
+        raise YetersizStokError(db_urun.isim, db_urun.stok_miktari, miktar)
 
     kalan = miktar
     aktif_paletler = db.query(Palet).join(Lot).filter(
@@ -51,7 +52,7 @@ def _fifo_palet_azalt(db: Session, urun_id: int, miktar: int):
             kalan = 0
 
     if kalan > 0:
-        raise ValueError(f"Stok veri uyuşmazlığı: {db_urun.isim}")
+        raise StokVeriUyumsuzluguError(db_urun.isim)
 
 
 def create_stok_hareketi(db: Session, hareket: StokHareketiCreate, kullanici_id: int = None):
@@ -60,7 +61,7 @@ def create_stok_hareketi(db: Session, hareket: StokHareketiCreate, kullanici_id:
     # 1. Urunu bul
     db_urun = db.query(Urun).filter(Urun.id == hareket.urun_id).first()
     if not db_urun:
-        raise ValueError("Ürün bulunamadı")
+        raise KayitBulunamadiError("Ürün", hareket.urun_id)
 
     urun_ismi = db_urun.isim
 

@@ -3,6 +3,7 @@ from datetime import date
 
 from models import SevkiyatPlani, Siparis, StokHareketi, SistemLog
 from schemas import SevkiyatPlaniCreate, SevkiyatPlaniUpdate
+from core.api_exceptions import APIException
 from .stok_hareketi_crud import _fifo_palet_azalt
 
 
@@ -77,7 +78,7 @@ def update_sevkiyat_plani(db: Session, plan_id: int, plan_update: SevkiyatPlaniU
                             kullanici_id=kullanici_id
                         )
                         db.add(db_stok)
-                    except ValueError as e:
+                    except APIException as e:
                         hata_log = SistemLog(
                             kullanici_id=kullanici_id,
                             islem_tipi="ERROR",

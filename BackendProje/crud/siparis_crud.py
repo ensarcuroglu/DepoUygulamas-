@@ -19,7 +19,7 @@ def generate_siparis_no(db: Session) -> str:
         try:
             son_no = int(son_siparis.siparis_no.split("-")[-1])
             yeni_no = son_no + 1
-        except:
+        except (ValueError, IndexError):
             yeni_no = 1
     else:
         yeni_no = 1

@@ -53,7 +53,7 @@ from .palet_crud import (
 
 # Stok Hareketi
 from .stok_hareketi_crud import (
-    get_stok_hareketleri, create_stok_hareketi, _fifo_palet_azalt,
+    get_stok_hareketleri, create_stok_hareketi,
 )
 
 # Dashboard

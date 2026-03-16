@@ -15,8 +15,7 @@ def get_kategori(db: Session, kategori_id: int):
 def create_kategori(db: Session, kategori: KategoriCreate, kullanici_id: int):
     db_kategori = Kategori(**kategori.model_dump())
     db.add(db_kategori)
-    db.commit()
-    db.refresh(db_kategori)
+    db.flush()
 
     log = SistemLog(
         kullanici_id=kullanici_id,
@@ -26,6 +25,7 @@ def create_kategori(db: Session, kategori: KategoriCreate, kullanici_id: int):
     )
     db.add(log)
     db.commit()
+    db.refresh(db_kategori)
 
     return db_kategori
 

@@ -19,8 +19,7 @@ def get_destek_talebi(db: Session, talep_id: int):
 def create_destek_talebi(db: Session, talep: DestekTalebiCreate, kullanici_id: int):
     db_talep = DestekTalebi(**talep.model_dump(), kullanici_id=kullanici_id)
     db.add(db_talep)
-    db.commit()
-    db.refresh(db_talep)
+    db.flush()
 
     log = SistemLog(
         kullanici_id=kullanici_id,
@@ -30,6 +29,7 @@ def create_destek_talebi(db: Session, talep: DestekTalebiCreate, kullanici_id: i
     )
     db.add(log)
     db.commit()
+    db.refresh(db_talep)
 
     return db_talep
 

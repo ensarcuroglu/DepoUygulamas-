@@ -53,8 +53,7 @@ def get_urun_by_barkod(db: Session, barkod: str):
 def create_urun(db: Session, urun: UrunCreate, kullanici_id: int):
     db_urun = Urun(**urun.model_dump())
     db.add(db_urun)
-    db.commit()
-    db.refresh(db_urun)
+    db.flush()
 
     log = SistemLog(
         kullanici_id=kullanici_id,
@@ -65,6 +64,7 @@ def create_urun(db: Session, urun: UrunCreate, kullanici_id: int):
     )
     db.add(log)
     db.commit()
+    db.refresh(db_urun)
 
     return db_urun
 

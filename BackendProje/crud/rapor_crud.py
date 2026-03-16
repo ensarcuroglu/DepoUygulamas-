@@ -318,20 +318,28 @@ def get_abc_analiz(db: Session):
 
 
 def get_depo_doluluk(db: Session):
-    """Depo doluluk yuzdesini raf bazinda hesaplar"""
-    raflar = db.query(Raf).filter(Raf.aktif == True).all()
-    sonuclar = []
-    for raf in raflar:
-        aktif_palet_sayisi = db.query(func.count(Palet.id)).filter(
-            Palet.raf_id == raf.id,
-            Palet.aktif == True
-        ).scalar() or 0
-        doluluk_yuzde = round((aktif_palet_sayisi / raf.kapasite) * 100, 1) if raf.kapasite > 0 else 0
-        sonuclar.append({
-            "raf_id": raf.id,
-            "raf_kodu": raf.kod,
-            "kapasite": raf.kapasite,
-            "dolu": aktif_palet_sayisi,
-            "doluluk_yuzde": doluluk_yuzde
-        })
-    return sonuclar
+    """Depo doluluk yuzdesini raf bazinda hesaplar (tek sorgu)"""
+    palet_sayilari = db.query(
+        Palet.raf_id,
+        func.count(Palet.id).label("dolu")
+    ).filter(Palet.aktif == True).group_by(Palet.raf_id).subquery()
+
+    sonuclar_raw = db.query(
+        Raf.id,
+        Raf.kod,
+        Raf.kapasite,
+        func.coalesce(palet_sayilari.c.dolu, 0).label("dolu")
+    ).outerjoin(
+        palet_sayilari, Raf.id == palet_sayilari.c.raf_id
+    ).filter(Raf.aktif == True).all()
+
+    return [
+        {
+            "raf_id": row.id,
+            "raf_kodu": row.kod,
+            "kapasite": row.kapasite,
+            "dolu": row.dolu,
+            "doluluk_yuzde": round((row.dolu / row.kapasite) * 100, 1) if row.kapasite > 0 else 0
+        }
+        for row in sonuclar_raw
+    ]

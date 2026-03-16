@@ -25,6 +25,11 @@ class APIException(Exception):
         self.details = details or {}
         super().__init__(self.message)
 
+    @property
+    def mesaj(self) -> str:
+        """Geriye donuk uyumluluk: eski DomainException kodlari exc.mesaj kullaniyor."""
+        return self.message
+
 
 # =====================================================================
 # LEGACY EXCEPTION'LAR (mevcut 15 modul icin)
@@ -98,8 +103,6 @@ class KayitBulunamadiError(APIException):
         mesaj = f"{entity_adi} bulunamadı"
         if entity_id is not None:
             mesaj += f" (ID: {entity_id})"
-        # DomainException uyumlulugu: .mesaj attribute'u
-        self.mesaj = mesaj
         super().__init__(
             status.HTTP_404_NOT_FOUND,
             mesaj,
@@ -111,7 +114,6 @@ class YetkisizIslemError(APIException):
     """Kullanicinin bu islem icin yetkisi yok."""
 
     def __init__(self, mesaj: str = "Bu işlem için yetkiniz bulunmamaktadır."):
-        self.mesaj = mesaj
         super().__init__(status.HTTP_403_FORBIDDEN, mesaj)
 
 
@@ -123,7 +125,6 @@ class YetersizStokError(APIException):
         self.mevcut = mevcut
         self.istenen = istenen
         mesaj = f"Yetersiz stok! Ürün: {urun_ismi}, Mevcut: {mevcut}, İstenen: {istenen}"
-        self.mesaj = mesaj
         super().__init__(
             status.HTTP_400_BAD_REQUEST,
             mesaj,
@@ -136,7 +137,6 @@ class StokVeriUyumsuzluguError(APIException):
 
     def __init__(self, urun_ismi: str):
         mesaj = f"Stok veri uyuşmazlığı: {urun_ismi}"
-        self.mesaj = mesaj
         super().__init__(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             mesaj,
@@ -149,7 +149,6 @@ class GecersizDurumGecisiError(APIException):
 
     def __init__(self, entity_adi: str, mevcut: str, hedef: str):
         mesaj = f"{entity_adi} için geçersiz durum geçişi: {mevcut} → {hedef}"
-        self.mesaj = mesaj
         super().__init__(
             status.HTTP_400_BAD_REQUEST,
             mesaj,
@@ -164,7 +163,6 @@ class CakismaHatasi(APIException):
         self.alan = alan
         self.deger = deger
         mesaj = f"Bu {alan} zaten kullanılıyor: {deger}"
-        self.mesaj = mesaj
         super().__init__(
             status.HTTP_409_CONFLICT,
             mesaj,
@@ -176,5 +174,4 @@ class GecersizIslemError(APIException):
     """Genel is kurali ihlali."""
 
     def __init__(self, message: str = "Geçersiz işlem."):
-        self.mesaj = message
         super().__init__(status.HTTP_400_BAD_REQUEST, message)
