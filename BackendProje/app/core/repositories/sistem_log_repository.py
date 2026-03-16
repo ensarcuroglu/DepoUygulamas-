@@ -15,5 +15,5 @@ class ISistemLogRepository(ABC):
         ...
 
     @abstractmethod
-    def olustur(self, log: SistemLog) -> SistemLog:
+    def olustur(self, log: SistemLog, auto_commit: bool = True) -> SistemLog:
         ...

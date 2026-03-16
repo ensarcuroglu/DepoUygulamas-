@@ -25,10 +25,13 @@ class SqlAlchemySistemLogRepository(ISistemLogRepository):
         orm_list = query.order_by(SistemLogORM.tarih.desc()).offset(skip).limit(limit).all()
         return [sistem_log_to_entity(o) for o in orm_list]
 
-    def olustur(self, log: SistemLog) -> SistemLog:
+    def olustur(self, log: SistemLog, auto_commit: bool = True) -> SistemLog:
         orm = sistem_log_to_orm(log)
         orm.id = None
         self._db.add(orm)
-        self._db.commit()
+        if auto_commit:
+            self._db.commit()
+        else:
+            self._db.flush()
         self._db.refresh(orm)
         return sistem_log_to_entity(orm)

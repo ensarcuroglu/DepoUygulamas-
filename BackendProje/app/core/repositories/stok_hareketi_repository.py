@@ -16,5 +16,5 @@ class IStokHareketiRepository(ABC):
         ...
 
     @abstractmethod
-    def olustur(self, hareket: StokHareketi) -> StokHareketi:
+    def olustur(self, hareket: StokHareketi, auto_commit: bool = True) -> StokHareketi:
         ...

@@ -4,11 +4,15 @@ Stok Hareketi Use Case'leri.
 En kritik iş mantığı burada:
   - FIFO stok çıkışı: paleti en eski SKT'dan itibaren düşür
   - Hızlı giriş: otomatik lot + palet oluştur
+  - Atomik transaction yönetimi: tüm işlemler tek commit ile kaydedilir
+  - Concurrency kontrolü: SELECT FOR UPDATE ile race condition engellenir
 """
 
 from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
+
+from sqlalchemy.orm import Session
 
 from app.core.repositories.urun_repository import IUrunRepository
 from app.core.repositories.lot_repository import ILotRepository
@@ -23,7 +27,6 @@ from app.core.exceptions import (
     KayitBulunamadiError,
     YetersizStokError,
     StokVeriUyumsuzluguError,
-    GecersizIslemError,
 )
 from app.application.dto.stok_hareketi_dto import (
     StokHareketiOlusturRequestDTO,
@@ -68,8 +71,7 @@ class StokHareketiOlusturUseCase:
     Stok girişi veya çıkışı oluşturur.
 
     Çıkış (FIFO):
-      1. Ürünün aktif paletlerini SKT asc / üretim tarihi asc / tarih asc
-         sırasıyla getir (getir_fifo_sirayla).
+      1. Paletleri SELECT FOR UPDATE ile kilitle (race condition engeli).
       2. Her paletten istenen miktarı düş; palet biter → aktif=False.
       3. Stok kaydını yaz.
 
@@ -78,11 +80,10 @@ class StokHareketiOlusturUseCase:
       2. Yeni palet oluştur (OTM-<timestamp>).
       3. Stok kaydını yaz.
 
-    Not: Repository'ler DB commit'i kendi içinde yönetir.
-    Bu use case birden fazla repo çağrısı yaptığından atomiklik
-    altyapı katmanında Unit of Work pattern ile sağlanabilir.
-    Şimdilik her repo kendi commit'ini yapar; kritik hatada
-    StokVeriUyumsuzluguError fırlatılır.
+    Transaction Yönetimi:
+      Tüm repository çağrıları auto_commit=False ile yapılır;
+      işlem sonunda tek bir db.commit() ile atomik olarak kaydedilir.
+      Hata durumunda db.rollback() çağrılarak kısmi kayıtlar geri alınır.
     """
 
     def __init__(
@@ -92,12 +93,14 @@ class StokHareketiOlusturUseCase:
         palet_repo: IPaletRepository,
         hareket_repo: IStokHareketiRepository,
         log_repo: ISistemLogRepository,
+        db: Session,
     ):
         self._urun_repo = urun_repo
         self._lot_repo = lot_repo
         self._palet_repo = palet_repo
         self._hareket_repo = hareket_repo
         self._log_repo = log_repo
+        self._db = db
 
     # ── public ──────────────────────────────────────────────────
 
@@ -106,7 +109,6 @@ class StokHareketiOlusturUseCase:
         dto: StokHareketiOlusturRequestDTO,
         kullanici_id: int,
     ) -> StokHareketiResponseDTO:
-        # Temel hareket entity doğrulaması (domain kuralı)
         hareket_entity = StokHareketi(
             urun_id=dto.urun_id,
             lot_id=dto.lot_id,
@@ -123,56 +125,55 @@ class StokHareketiOlusturUseCase:
         )
         hareket_entity.dogrula()
 
-        # Ürün varlık kontrolü
         urun = self._urun_repo.getir_id_ile(dto.urun_id)
         if not urun:
             raise KayitBulunamadiError("Ürün", dto.urun_id)
 
-        if dto.hareket_tipi == HareketTipi.CIKIS:
-            hareket_entity = self._cikis_isle(hareket_entity, urun)
-        else:
-            hareket_entity = self._giris_isle(hareket_entity)
+        try:
+            if dto.hareket_tipi == HareketTipi.CIKIS:
+                hareket_entity = self._cikis_isle(hareket_entity, urun)
+            else:
+                hareket_entity = self._giris_isle(hareket_entity)
 
-        # Stok hareketini kaydet
-        kaydedilen = self._hareket_repo.olustur(hareket_entity)
+            kaydedilen = self._hareket_repo.olustur(hareket_entity, auto_commit=False)
 
-        # Sistem logu
-        islem_metni = "Giriş Yapıldı" if dto.hareket_tipi == HareketTipi.GIRIS else "Çıkış Yapıldı"
-        self._log_repo.olustur(
-            SistemLog.olustur(
-                kullanici_id=kullanici_id,
-                islem_tipi=IslemTipi.UPDATE,
-                modul="Stok İşlemleri",
-                detay=f"Stok {islem_metni}: {urun.isim} | miktar: {dto.miktar}",
+            islem_metni = "Giriş Yapıldı" if dto.hareket_tipi == HareketTipi.GIRIS else "Çıkış Yapıldı"
+            self._log_repo.olustur(
+                SistemLog.olustur(
+                    kullanici_id=kullanici_id,
+                    islem_tipi=IslemTipi.UPDATE,
+                    modul="Stok İşlemleri",
+                    detay=f"Stok {islem_metni}: {urun.isim} | miktar: {dto.miktar}",
+                ),
+                auto_commit=False,
             )
-        )
 
-        return StokHareketiResponseDTO.from_entity(kaydedilen)
+            self._db.commit()
+            return StokHareketiResponseDTO.from_entity(kaydedilen)
+
+        except Exception:
+            self._db.rollback()
+            raise
 
     # ── private: çıkış (FIFO) ───────────────────────────────────
 
     def _cikis_isle(self, hareket: StokHareketi, urun) -> StokHareketi:
-        """FIFO mantığıyla palet stoklarını düşer."""
-        if not urun.stok_cikis_yapilabilir_mi(hareket.miktar):
-            raise YetersizStokError(urun.isim, urun.stok_miktari, hareket.miktar)
+        """FIFO mantığıyla palet stoklarını düşer.
 
-        fifo_paletler = self._palet_repo.getir_fifo_sirayla(urun.id)
+        SELECT FOR UPDATE ile ilgili paletler kilitlenir;
+        eşzamanlı çıkış istekleri sıralanır ve race condition engellenir.
+        """
+        fifo_paletler = self._palet_repo.getir_fifo_sirayla_kilitli(urun.id)
         kalan = hareket.miktar
 
         for palet_entity in fifo_paletler:
             if kalan <= 0:
                 break
-
-            # Domain entity üzerinde stok düşme işlemi
             dusurulen = palet_entity.stok_dus(kalan)
             kalan -= dusurulen
-
-            # Değişen paleti kaydet
-            self._palet_repo.guncelle(palet_entity)
+            self._palet_repo.guncelle(palet_entity, auto_commit=False)
 
         if kalan > 0:
-            # Çok nadir durum: stok_miktari column_property ile tutarlıysa
-            # buraya gelinmemeli; gelirse veri bütünlüğü sorunu var.
             raise StokVeriUyumsuzluguError(urun.isim)
 
         return hareket
@@ -181,28 +182,17 @@ class StokHareketiOlusturUseCase:
 
     def _giris_isle(self, hareket: StokHareketi) -> StokHareketi:
         """Otomatik LOT bulur/oluşturur ve yeni PALET ekler."""
-        # Mevcut otomatik lotu ara
         lot = self._lot_repo.getir_lot_no_ile(_OTOMATIK_LOT_NO)
         if lot is None or lot.urun_id != hareket.urun_id:
-            # Bu ürüne ait aktif otomatik lot yok → oluştur
             lot = self._lot_repo.olustur(
                 Lot(
                     urun_id=hareket.urun_id,
                     lot_no=_OTOMATIK_LOT_NO,
                     aciklama="Hızlı Giriş ekranından oluşturulan varsayılan lot",
-                )
-            )
-        # Sadece bu ürüne ait aktif lot kullan
-        if lot.urun_id != hareket.urun_id:
-            lot = self._lot_repo.olustur(
-                Lot(
-                    urun_id=hareket.urun_id,
-                    lot_no=_OTOMATIK_LOT_NO,
-                    aciklama="Hızlı Giriş ekranından oluşturulan varsayılan lot",
-                )
+                ),
+                auto_commit=False,
             )
 
-        # Yeni palet oluştur
         palet_no = f"OTM-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
         yeni_palet = self._palet_repo.olustur(
             Palet(
@@ -211,10 +201,10 @@ class StokHareketiOlusturUseCase:
                 palet_no=palet_no,
                 koli_adedi=hareket.miktar,
                 vardiya="Hızlı Giriş",
-            )
+            ),
+            auto_commit=False,
         )
 
-        # Harekete lot ve palet ID'sini bağla
         hareket.lot_id = lot.id
         hareket.palet_id = yeni_palet.id
         return hareket

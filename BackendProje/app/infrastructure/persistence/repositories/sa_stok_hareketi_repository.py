@@ -32,10 +32,13 @@ class SqlAlchemyStokHareketiRepository(IStokHareketiRepository):
 
         return [stok_hareketi_to_entity(o) for o in query.offset(skip).limit(limit).all()]
 
-    def olustur(self, hareket: StokHareketi) -> StokHareketi:
+    def olustur(self, hareket: StokHareketi, auto_commit: bool = True) -> StokHareketi:
         orm = stok_hareketi_to_orm(hareket)
         orm.id = None
         self._db.add(orm)
-        self._db.commit()
+        if auto_commit:
+            self._db.commit()
+        else:
+            self._db.flush()
         self._db.refresh(orm)
         return stok_hareketi_to_entity(orm)

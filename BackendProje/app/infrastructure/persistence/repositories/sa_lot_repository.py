@@ -39,15 +39,18 @@ class SqlAlchemyLotRepository(ILotRepository):
         ).filter(LotORM.lot_no == lot_no).first()
         return lot_to_entity(orm) if orm else None
 
-    def olustur(self, lot: Lot) -> Lot:
+    def olustur(self, lot: Lot, auto_commit: bool = True) -> Lot:
         orm = lot_to_orm(lot)
         orm.id = None
         self._db.add(orm)
-        self._db.commit()
+        if auto_commit:
+            self._db.commit()
+        else:
+            self._db.flush()
         self._db.refresh(orm)
         return lot_to_entity(orm)
 
-    def guncelle(self, lot: Lot) -> Lot:
+    def guncelle(self, lot: Lot, auto_commit: bool = True) -> Lot:
         orm = self._db.query(LotORM).filter(LotORM.id == lot.id).first()
         if not orm:
             return None
@@ -58,7 +61,10 @@ class SqlAlchemyLotRepository(ILotRepository):
         orm.son_kullanma_tarihi = lot.son_kullanma_tarihi
         orm.aciklama = lot.aciklama
         orm.aktif = lot.aktif
-        self._db.commit()
+        if auto_commit:
+            self._db.commit()
+        else:
+            self._db.flush()
         self._db.refresh(orm)
         return lot_to_entity(orm)
 

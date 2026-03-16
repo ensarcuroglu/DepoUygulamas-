@@ -22,11 +22,11 @@ class ILotRepository(ABC):
         ...
 
     @abstractmethod
-    def olustur(self, lot: Lot) -> Lot:
+    def olustur(self, lot: Lot, auto_commit: bool = True) -> Lot:
         ...
 
     @abstractmethod
-    def guncelle(self, lot: Lot) -> Lot:
+    def guncelle(self, lot: Lot, auto_commit: bool = True) -> Lot:
         ...
 
     @abstractmethod

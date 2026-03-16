@@ -126,6 +126,7 @@ def get_stok_hareketi_listele_uc(
 
 
 def get_stok_hareketi_olustur_uc(
+    db: Session = Depends(get_db),
     urun_repo=Depends(get_urun_repo),
     lot_repo=Depends(get_lot_repo),
     palet_repo=Depends(get_palet_repo),
@@ -133,7 +134,7 @@ def get_stok_hareketi_olustur_uc(
     log_repo=Depends(get_log_repo),
 ):
     return StokHareketiOlusturUseCase(
-        urun_repo, lot_repo, palet_repo, hareket_repo, log_repo
+        urun_repo, lot_repo, palet_repo, hareket_repo, log_repo, db
     )
 
 

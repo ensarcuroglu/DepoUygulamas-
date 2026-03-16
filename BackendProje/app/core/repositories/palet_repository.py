@@ -24,11 +24,11 @@ class IPaletRepository(ABC):
         ...
 
     @abstractmethod
-    def olustur(self, palet: Palet) -> Palet:
+    def olustur(self, palet: Palet, auto_commit: bool = True) -> Palet:
         ...
 
     @abstractmethod
-    def guncelle(self, palet: Palet) -> Palet:
+    def guncelle(self, palet: Palet, auto_commit: bool = True) -> Palet:
         ...
 
     @abstractmethod
@@ -44,4 +44,10 @@ class IPaletRepository(ABC):
     def getir_fifo_sirayla(self, urun_id: int) -> List[Palet]:
         """FIFO sıralamasıyla (SKT asc, üretim tarihi asc, tarih asc)
         aktif paletleri döner. Stok çıkışında kullanılır."""
+        ...
+
+    @abstractmethod
+    def getir_fifo_sirayla_kilitli(self, urun_id: int) -> List[Palet]:
+        """FIFO sıralamasıyla aktif paletleri SELECT FOR UPDATE ile kilitleyerek döner.
+        Eşzamanlı çıkış isteklerinde race condition engellenir."""
         ...

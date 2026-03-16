@@ -20,7 +20,11 @@ def get_stok_hareketleri(db: Session, skip: int = 0, limit: int = 50, urun_id: i
     return query.offset(skip).limit(limit).all()
 
 def _fifo_palet_azalt(db: Session, urun_id: int, miktar: int):
-    """FIFO mantigi ile palet stoklarini duser. DB commit yapmaz — cagiran fonksiyon commit eder."""
+    """FIFO mantigi ile palet stoklarini duser. DB commit yapmaz — cagiran fonksiyon commit eder.
+
+    SELECT FOR UPDATE ile paletler kilitlenir; eşzamanlı çıkış istekleri
+    sıralanarak race condition engellenir.
+    """
     db_urun = db.query(Urun).filter(Urun.id == urun_id).first()
     if not db_urun:
         raise KayitBulunamadiError("Ürün", urun_id)
@@ -38,7 +42,7 @@ def _fifo_palet_azalt(db: Session, urun_id: int, miktar: int):
         Lot.son_kullanma_tarihi.asc().nulls_last(),
         Lot.uretim_tarihi.asc().nulls_last(),
         Palet.tarih.asc()
-    ).all()
+    ).with_for_update().all()
 
     for palet in aktif_paletler:
         if kalan <= 0:

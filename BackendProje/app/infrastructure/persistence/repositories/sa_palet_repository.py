@@ -45,15 +45,18 @@ class SqlAlchemyPaletRepository(IPaletRepository):
         ).filter(PaletORM.palet_no == palet_no).first()
         return palet_to_entity(orm) if orm else None
 
-    def olustur(self, palet: Palet) -> Palet:
+    def olustur(self, palet: Palet, auto_commit: bool = True) -> Palet:
         orm = palet_to_orm(palet)
         orm.id = None
         self._db.add(orm)
-        self._db.commit()
+        if auto_commit:
+            self._db.commit()
+        else:
+            self._db.flush()
         self._db.refresh(orm)
         return palet_to_entity(orm)
 
-    def guncelle(self, palet: Palet) -> Palet:
+    def guncelle(self, palet: Palet, auto_commit: bool = True) -> Palet:
         orm = self._db.query(PaletORM).filter(PaletORM.id == palet.id).first()
         if not orm:
             return None
@@ -64,7 +67,10 @@ class SqlAlchemyPaletRepository(IPaletRepository):
         orm.palet_kg = palet.palet_kg
         orm.vardiya = palet.vardiya
         orm.aktif = palet.aktif
-        self._db.commit()
+        if auto_commit:
+            self._db.commit()
+        else:
+            self._db.flush()
         self._db.refresh(orm)
         return palet_to_entity(orm)
 
@@ -82,12 +88,9 @@ class SqlAlchemyPaletRepository(IPaletRepository):
             return str(int(son_palet.palet_no) + 1)
         return "1000001"
 
-    def getir_fifo_sirayla(self, urun_id: int) -> List[Palet]:
-        """FIFO sıralamasıyla aktif paletleri döner.
-
-        Sıralama: SKT asc (NULL en sona), üretim tarihi asc, palet tarihi asc.
-        """
-        orm_list = self._db.query(PaletORM).join(LotORM).filter(
+    def _fifo_query(self, urun_id: int):
+        """FIFO sıralamalı temel sorgu (kilitsiz)."""
+        return self._db.query(PaletORM).join(LotORM).filter(
             LotORM.urun_id == urun_id,
             LotORM.aktif == True,
             PaletORM.aktif == True,
@@ -96,5 +99,12 @@ class SqlAlchemyPaletRepository(IPaletRepository):
             LotORM.son_kullanma_tarihi.asc().nulls_last(),
             LotORM.uretim_tarihi.asc().nulls_last(),
             PaletORM.tarih.asc(),
-        ).all()
+        )
+
+    def getir_fifo_sirayla(self, urun_id: int) -> List[Palet]:
+        orm_list = self._fifo_query(urun_id).all()
+        return [palet_to_entity(o) for o in orm_list]
+
+    def getir_fifo_sirayla_kilitli(self, urun_id: int) -> List[Palet]:
+        orm_list = self._fifo_query(urun_id).with_for_update().all()
         return [palet_to_entity(o) for o in orm_list]
