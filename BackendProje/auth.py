@@ -57,6 +57,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     """Şifreyi bcrypt ile hashler."""
+    if len(password) > 128:
+        raise ValueError("Şifre 128 karakterden uzun olamaz.")
     return pwd_context.hash(password)
 
 
@@ -157,7 +159,13 @@ def get_current_user(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         kullanici_adi: str = payload.get("sub")
+        token_type: str = payload.get("type")
+
         if kullanici_adi is None:
+            raise credentials_exception
+
+        # Refresh token Access token'ı yerine kullanılıyor mu? Kontrol et
+        if token_type == "refresh":
             raise credentials_exception
     except JWTError:
         raise credentials_exception

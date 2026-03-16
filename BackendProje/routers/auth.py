@@ -165,7 +165,9 @@ def get_profile(current_user: Kullanici = Depends(get_current_user)):
 # ========================
 
 @router.post("/register", response_model=KullaniciResponse, status_code=201)
+@limiter.limit("3/minute")
 def register(
+    request: Request,
     kullanici: KullaniciCreate,
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(get_current_user)

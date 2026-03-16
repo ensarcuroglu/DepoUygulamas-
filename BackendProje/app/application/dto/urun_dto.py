@@ -22,8 +22,8 @@ class UrunOlusturRequestDTO(BaseModel):
     marka_id: Optional[int] = Field(None, gt=0)
     kategori_id: Optional[int] = Field(None, gt=0)
     tedarikci_id: Optional[int] = Field(None, gt=0)
-    ean: Optional[str] = Field(None, max_length=20, description="EAN barkod")
-    barkod: Optional[str] = Field(None, max_length=50, description="Ek barkod / SKU")
+    ean: Optional[str] = Field(None, pattern=r"^\d{8,14}$", description="EAN-8, EAN-13 veya EAN-14 (numerik)")
+    barkod: Optional[str] = Field(None, pattern=r"^\d{8,14}$", description="Barkod (numerik, 8-14 hane)")
     ic_adet: int = Field(default=1, ge=1, description="Koli başına iç adet")
     gramaj: Optional[float] = Field(None, ge=0, description="Birim gramaj (kg)")
     birim: str = Field(default="Adet", max_length=20)
@@ -54,8 +54,8 @@ class UrunGuncelleRequestDTO(BaseModel):
     marka_id: Optional[int] = Field(None, gt=0)
     kategori_id: Optional[int] = Field(None, gt=0)
     tedarikci_id: Optional[int] = Field(None, gt=0)
-    ean: Optional[str] = Field(None, max_length=20)
-    barkod: Optional[str] = Field(None, max_length=50)
+    ean: Optional[str] = Field(None, pattern=r"^\d{8,14}$")
+    barkod: Optional[str] = Field(None, pattern=r"^\d{8,14}$")
     ic_adet: Optional[int] = Field(None, ge=1)
     gramaj: Optional[float] = Field(None, ge=0)
     birim: Optional[str] = Field(None, max_length=20)
@@ -70,6 +70,15 @@ class UrunGuncelleRequestDTO(BaseModel):
         if v is not None and not v.strip():
             raise ValueError("Ürün ismi boşluk bırakılamaz.")
         return v.strip() if v else v
+
+    @field_validator("birim")
+    @classmethod
+    def gecerli_birim(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            izinli = {"Adet", "Kg", "Metre", "Kutu", "Litre", "Paket"}
+            if v not in izinli:
+                raise ValueError(f"Geçersiz birim: '{v}'. İzin verilen: {izinli}")
+        return v
 
 
 # ─────────────────────────────────────────

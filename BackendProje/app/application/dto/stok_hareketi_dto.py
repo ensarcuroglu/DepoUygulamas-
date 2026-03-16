@@ -39,10 +39,24 @@ class StokHareketiOlusturRequestDTO(BaseModel):
     )
     aciklama: str = Field(default="", max_length=1000)
 
+    @field_validator("barkodlar")
+    @classmethod
+    def barkodlar_validasyonu(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        """Barkod listesindeki her elemanın uzunluğunu kontrol eder."""
+        if v is not None:
+            for barkod in v:
+                if len(barkod) > 50:
+                    raise ValueError(f"Barkod çok uzun ({len(barkod)} > 50 karakter): {barkod}")
+        return v
+
     @model_validator(mode="after")
     def cikis_validasyonu(self) -> "StokHareketiOlusturRequestDTO":
-        """Çıkış hareketinde sipariş no veya açıklama uyarısı ekler."""
-        # Zorunluluk değil; eksikse Use Case kendi kuralını uygular
+        """Çıkış hareketinde sipariş no veya açıklama zorunluluğu kontrolü."""
+        if self.hareket_tipi == "cikis":
+            if not self.siparis_no and not self.aciklama:
+                raise ValueError(
+                    "Çıkış hareketi için 'siparis_no' veya 'aciklama' alanlarından en az biri zorunludur."
+                )
         return self
 
 

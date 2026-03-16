@@ -1,6 +1,7 @@
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator, EmailStr
+from typing import Optional, List, Literal
 from datetime import datetime, date
+import re
 
 
 # ========================
@@ -88,7 +89,7 @@ class RafBase(BaseModel):
     depo_id: Optional[int] = None
     kod: str
     bolge: Optional[str] = ""
-    kapasite: Optional[int] = 100
+    kapasite: Optional[int] = Field(100, gt=0, description="Kapasite pozitif olmalı")
 
 class RafCreate(RafBase):
     pass
@@ -118,7 +119,7 @@ class TedarikciBase(BaseModel):
     firma_adi: str
     iletisim_kisi: Optional[str] = None
     telefon: Optional[str] = None
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     adres: Optional[str] = None
     vergi_no: Optional[str] = None
 
@@ -129,7 +130,7 @@ class TedarikciUpdate(BaseModel):
     firma_adi: Optional[str] = None
     iletisim_kisi: Optional[str] = None
     telefon: Optional[str] = None
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     adres: Optional[str] = None
     vergi_no: Optional[str] = None
     aktif: Optional[bool] = None
@@ -152,12 +153,12 @@ class UrunBase(BaseModel):
     marka_id: Optional[int] = None
     kategori_id: Optional[int] = None
     tedarikci_id: Optional[int] = None
-    ean: Optional[str] = None
-    barkod: Optional[str] = None
-    ic_adet: Optional[int] = 1
+    ean: Optional[str] = Field(None, pattern=r"^\d{8,14}$", description="EAN-8, EAN-13 veya EAN-14")
+    barkod: Optional[str] = Field(None, pattern=r"^\d{8,14}$", description="Barkod (numerik)")
+    ic_adet: Optional[int] = Field(1, ge=1)
     gramaj: Optional[float] = None
-    birim: Optional[str] = "Adet"
-    fiyat: Optional[float] = 0.0
+    birim: Optional[Literal["Adet", "Kg", "Metre", "Kutu", "Litre", "Paket"]] = "Adet"
+    fiyat: Optional[float] = Field(0.0, ge=0)
     min_stok: Optional[int] = 10
     aciklama: Optional[str] = ""
 
@@ -169,12 +170,12 @@ class UrunUpdate(BaseModel):
     marka_id: Optional[int] = None
     kategori_id: Optional[int] = None
     tedarikci_id: Optional[int] = None
-    ean: Optional[str] = None
-    barkod: Optional[str] = None
-    ic_adet: Optional[int] = None
+    ean: Optional[str] = Field(None, pattern=r"^\d{8,14}$")
+    barkod: Optional[str] = Field(None, pattern=r"^\d{8,14}$")
+    ic_adet: Optional[int] = Field(None, ge=1)
     gramaj: Optional[float] = None
-    birim: Optional[str] = None
-    fiyat: Optional[float] = None
+    birim: Optional[Literal["Adet", "Kg", "Metre", "Kutu", "Litre", "Paket"]] = None
+    fiyat: Optional[float] = Field(None, ge=0)
     min_stok: Optional[int] = None
     aciklama: Optional[str] = None
     aktif: Optional[bool] = None
@@ -258,7 +259,7 @@ class PaletBase(BaseModel):
     lot_id: int
     raf_id: Optional[int] = None
     palet_no: str
-    koli_adedi: int
+    koli_adedi: int = Field(..., gt=0, description="Koli adedi pozitif olmalı")
     palet_kg: Optional[float] = None
     vardiya: Optional[str] = None
 
@@ -267,7 +268,7 @@ class PaletCreate(PaletBase):
 
 class PaletUpdate(BaseModel):
     raf_id: Optional[int] = None
-    koli_adedi: Optional[int] = None
+    koli_adedi: Optional[int] = Field(None, gt=0)
     palet_kg: Optional[float] = None
     vardiya: Optional[str] = None
     aktif: Optional[bool] = None
@@ -298,7 +299,7 @@ class StokHareketiBase(BaseModel):
     lot_id: Optional[int] = None
     palet_id: Optional[int] = None
     raf_id: Optional[int] = None
-    hareket_tipi: str              # "giris" veya "cikis"
+    hareket_tipi: Literal["giris", "cikis"]
     miktar: int
     siparis_no: Optional[str] = None
     tir_plaka: Optional[str] = None
@@ -351,7 +352,7 @@ class SistemLogResponse(SistemLogBase):
 class KullaniciBase(BaseModel):
     kullanici_adi: str
     ad_soyad: str
-    rol: Optional[str] = "depocu"
+    rol: Literal["admin", "depocu", "goruntuleyen", "lojistik"] = "depocu"
     telefon: Optional[str] = None
     email: Optional[str] = None
     departman: Optional[str] = None
@@ -359,18 +360,42 @@ class KullaniciBase(BaseModel):
     kart_numarasi: Optional[str] = None
 
 class KullaniciCreate(KullaniciBase):
-    sifre: str
+    sifre: str = Field(..., min_length=8, max_length=128)
+
+    @field_validator("sifre")
+    @classmethod
+    def sifre_kompliksitesi(cls, v: str) -> str:
+        """Şifre en az 1 büyük harf, 1 küçük harf, 1 rakam içermeli."""
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Şifre en az bir büyük harf içermeli.")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Şifre en az bir küçük harf içermeli.")
+        if not re.search(r"\d", v):
+            raise ValueError("Şifre en az bir rakam içermeli.")
+        return v
 
 class KullaniciUpdate(BaseModel):
     kullanici_adi: Optional[str] = None
     ad_soyad: Optional[str] = None
-    rol: Optional[str] = None
-    sifre: Optional[str] = None
+    rol: Optional[Literal["admin", "depocu", "goruntuleyen", "lojistik"]] = None
+    sifre: Optional[str] = Field(None, min_length=8, max_length=128)
     telefon: Optional[str] = None
     email: Optional[str] = None
     departman: Optional[str] = None
     sicil_no: Optional[str] = None
     kart_numarasi: Optional[str] = None
+
+    @field_validator("sifre")
+    @classmethod
+    def sifre_kompliksitesi(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            if not re.search(r"[A-Z]", v):
+                raise ValueError("Şifre en az bir büyük harf içermeli.")
+            if not re.search(r"[a-z]", v):
+                raise ValueError("Şifre en az bir küçük harf içermeli.")
+            if not re.search(r"\d", v):
+                raise ValueError("Şifre en az bir rakam içermeli.")
+        return v
 
 class KullaniciResponse(KullaniciBase):
     id: int
@@ -385,8 +410,8 @@ class KullaniciResponse(KullaniciBase):
 # ========================
 
 class LoginRequest(BaseModel):
-    kullanici_adi: str
-    sifre: str
+    kullanici_adi: str = Field(..., min_length=3, max_length=50)
+    sifre: str = Field(..., min_length=1, max_length=128)
 
 class TokenUserInfo(BaseModel):
     id: int
@@ -430,18 +455,18 @@ class DashboardStats(BaseModel):
 # ========================
 
 class DestekTalebiBase(BaseModel):
-    konu: str
-    kategori: str
-    oncelik: Optional[str] = "Normal"
-    aciklama: str
+    konu: str = Field(..., max_length=200)
+    kategori: Literal["Teknik", "Stok", "Sistem", "Diger"]
+    oncelik: Literal["Normal", "Yüksek", "Düşük"] = "Normal"
+    aciklama: str = Field(..., max_length=5000)
 
 class DestekTalebiCreate(DestekTalebiBase):
     pass
 
 class DestekTalebiUpdate(BaseModel):
-    durum: Optional[str] = None
-    admin_cevabi: Optional[str] = None
-    oncelik: Optional[str] = None
+    durum: Optional[Literal["Acik", "Islemde", "Kapalı"]] = None
+    admin_cevabi: Optional[str] = Field(None, max_length=5000)
+    oncelik: Optional[Literal["Normal", "Yüksek", "Düşük"]] = None
 
 class DestekTalebiResponse(DestekTalebiBase):
     id: int
@@ -529,9 +554,9 @@ class SevkiyatPlaniBase(BaseModel):
     sofor_telefon: Optional[str] = None
     depo_kapi: Optional[str] = None
     yukleme_tarihi: date
-    cikis_saati: Optional[str] = None
-    varis_saati: Optional[str] = None
-    durum: Optional[str] = "Planlandi"
+    cikis_saati: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    varis_saati: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    durum: Optional[Literal["Planlandi", "YolaCikti", "Tamamlandi", "Iptal"]] = "Planlandi"
     notlar: Optional[str] = ""
 
 class SevkiyatPlaniCreate(SevkiyatPlaniBase):
@@ -543,9 +568,9 @@ class SevkiyatPlaniUpdate(BaseModel):
     sofor_telefon: Optional[str] = None
     depo_kapi: Optional[str] = None
     yukleme_tarihi: Optional[date] = None
-    cikis_saati: Optional[str] = None
-    varis_saati: Optional[str] = None
-    durum: Optional[str] = None
+    cikis_saati: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    varis_saati: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    durum: Optional[Literal["Planlandi", "YolaCikti", "Tamamlandi", "Iptal"]] = None
     notlar: Optional[str] = None
 
 class SevkiyatPlaniResponse(SevkiyatPlaniBase):
@@ -566,19 +591,19 @@ class IrsaliyeBase(BaseModel):
     siparis_id: int
     sevkiyat_id: Optional[int] = None
     irsaliye_tarihi: date
-    belge_turu: Optional[str] = "SevkIrsaliyesi"
+    belge_turu: Optional[Literal["SevkIrsaliyesi", "AlimIrsaliyesi"]] = "SevkIrsaliyesi"
     tir_plaka: Optional[str] = None
     sofor_adi: Optional[str] = None
-    durum: Optional[str] = "Taslak"
+    durum: Optional[Literal["Taslak", "Onaylandi", "Iptal"]] = "Taslak"
 
 class IrsaliyeCreate(IrsaliyeBase):
     pass
 
 class IrsaliyeUpdate(BaseModel):
-    belge_turu: Optional[str] = None
+    belge_turu: Optional[Literal["SevkIrsaliyesi", "AlimIrsaliyesi"]] = None
     tir_plaka: Optional[str] = None
     sofor_adi: Optional[str] = None
-    durum: Optional[str] = None
+    durum: Optional[Literal["Taslak", "Onaylandi", "Iptal"]] = None
 
 class IrsaliyeResponse(IrsaliyeBase):
     id: int
@@ -652,20 +677,20 @@ class RaporLoguResponse(RaporLoguBase):
 class RaporScheduleBase(BaseModel):
     sablon_id: int
     sablon_adi: str
-    periyod: str  # "gunluk", "haftalik", "aylik"
-    saat: str  # HH:MM
-    alici_emailler: Optional[List[str]] = None
-    format: Optional[str] = "pdf"
+    periyod: Literal["gunluk", "haftalik", "aylik"]
+    saat: str = Field(..., pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    alici_emailler: Optional[List[EmailStr]] = None
+    format: Optional[Literal["pdf", "excel"]] = "pdf"
 
 class RaporScheduleCreate(RaporScheduleBase):
     pass
 
 class RaporScheduleUpdate(BaseModel):
     sablon_adi: Optional[str] = None
-    periyod: Optional[str] = None
-    saat: Optional[str] = None
-    alici_emailler: Optional[List[str]] = None
-    format: Optional[str] = None
+    periyod: Optional[Literal["gunluk", "haftalik", "aylik"]] = None
+    saat: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    alici_emailler: Optional[List[EmailStr]] = None
+    format: Optional[Literal["pdf", "excel"]] = None
     is_aktif: Optional[bool] = None
 
 class RaporScheduleResponse(RaporScheduleBase):
