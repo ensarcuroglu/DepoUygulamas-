@@ -81,26 +81,19 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 # REFRESH TOKEN
 # ========================
 
-def create_refresh_token(data: dict) -> str:
+def create_refresh_token() -> str:
     """
-    JWT refresh token oluşturur (uzun ömürlü, 7 gün).
-    İçinde rastgele jti (JWT ID) bulunur — her token benzersizdir.
+    Kriptografik olarak güvenli rastgele refresh token oluşturur (uzun ömürlü, 7 gün).
+    Bcrypt hashleme için 72 bayt limitine takılmaz.
     """
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    jti = secrets.token_hex(16)  # Benzersiz token ID
-    to_encode.update({"exp": expire, "type": "refresh", "jti": jti})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return secrets.token_urlsafe(32)
 
 
 def verify_and_get_user_from_refresh_token(token: str, db: Session) -> Kullanici:
     """
     Refresh token'ı doğrular ve ilgili kullanıcıyı döner.
-    1. JWT imzasını doğrular
-    2. Token tipini kontrol eder (type == "refresh")
-    3. DB'den kullanıcıyı bulur
-    4. DB'deki hash ile karşılaştırır (revocation kontrolü)
-    5. Son kullanım tarihini kontrol eder
+    DB'de refresh_token_hash'i olan kullanıcılar üzerinden linear search ile
+    hash doğrulaması yapar. Zira token rastgeledir ve JWT gibi metadata içermez.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -108,34 +101,26 @@ def verify_and_get_user_from_refresh_token(token: str, db: Session) -> Kullanici
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        kullanici_adi: str = payload.get("sub")
-        token_type: str = payload.get("type")
+    # DB'de refresh_token_hash alanı dolu olan kullanıcıları getir
+    potansiyel_kullanicilar = db.query(Kullanici).filter(Kullanici.refresh_token_hash.isnot(None)).all()
+    eslesen_user = None
 
-        if kullanici_adi is None or token_type != "refresh":
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
+    for user in potansiyel_kullanicilar:
+        try:
+            if pwd_context.verify(token, user.refresh_token_hash):
+                eslesen_user = user
+                break
+        except Exception:
+            continue
 
-    # DB'den kullanıcıyı bul
-    user = db.query(Kullanici).filter(Kullanici.kullanici_adi == kullanici_adi).first()
-    if user is None:
-        raise credentials_exception
-
-    # Refresh token DB'de kayıtlı mı? (revocation kontrolü)
-    if user.refresh_token_hash is None:
-        raise credentials_exception
-
-    # Hash eşleşmesi — token hâlâ geçerli mi?
-    if not pwd_context.verify(token, user.refresh_token_hash):
+    if eslesen_user is None:
         raise credentials_exception
 
     # Son kullanım tarihi kontrolü
-    if user.refresh_token_son_kullanim is None or datetime.utcnow() > user.refresh_token_son_kullanim:
+    if eslesen_user.refresh_token_son_kullanim is None or datetime.utcnow() > eslesen_user.refresh_token_son_kullanim:
         raise credentials_exception
 
-    return user
+    return eslesen_user
 
 
 # ========================

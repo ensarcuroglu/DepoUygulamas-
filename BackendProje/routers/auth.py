@@ -60,7 +60,7 @@ def login(request: Request, login_request: LoginRequest, db: Session = Depends(g
 
     # Token'lar oluştur
     access_token = create_access_token(data={"sub": user.kullanici_adi})
-    refresh_token = create_refresh_token(data={"sub": user.kullanici_adi})
+    refresh_token = create_refresh_token()
 
     # Refresh token'ı hashle ve DB'ye kaydet
     user.refresh_token_hash = pwd_context.hash(refresh_token)
