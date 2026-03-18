@@ -1,8 +1,4 @@
-"""Integration testler: StokSayimService — gerçek MySQL DB ile.
-
-Not: Service katmanı DB bağımlı olduğu için unit değil integration test olarak çalışır.
-Dosya konumu unit/ altında ancak marker integration'dır.
-"""
+"""Integration testler: StokSayimService — gerçek MySQL DB ile."""
 
 import pytest
 from services.stok_sayim_service import StokSayimService

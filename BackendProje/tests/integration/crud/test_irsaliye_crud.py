@@ -33,9 +33,10 @@ class TestIrsaliyeCrud:
         assert no == f"IRS-{yil}-0001"
 
     def test_generate_irsaliye_no_ardisik(self, db_session):
-        IrsaliyeFactory.create()  # IRS-2026-0001
+        yil = datetime.utcnow().year
+        IrsaliyeFactory.create(irsaliye_no=f"IRS-{yil}-0050")
         no = generate_irsaliye_no(db_session)
-        assert no.endswith("-0002")
+        assert no == f"IRS-{yil}-0051"
 
     def test_create_irsaliye_basit(self, db_session):
         """Sevkiyat planı olmayan sipariş için irsaliye oluşturma."""

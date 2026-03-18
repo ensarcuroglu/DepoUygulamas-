@@ -25,16 +25,18 @@ class TestSiparisCrud:
 
     def test_generate_siparis_no_ilk(self, db_session):
         """Yıl içinde ilk sipariş: SIP-YYYY-0001."""
-        no = generate_siparis_no(db_session)
         from datetime import datetime
+        no = generate_siparis_no(db_session)
         yil = datetime.utcnow().year
         assert no == f"SIP-{yil}-0001"
 
     def test_generate_siparis_no_ardisik(self, db_session):
         """Mevcut sipariş varsa bir sonraki numara üretilmeli."""
-        SiparisFactory.create()  # SIP-2026-0001
+        from datetime import datetime
+        yil = datetime.utcnow().year
+        SiparisFactory.create(siparis_no=f"SIP-{yil}-0050")
         no = generate_siparis_no(db_session)
-        assert no.endswith("-0002")
+        assert no == f"SIP-{yil}-0051"
 
     def test_create_siparis_tek_kalem(self, db_session):
         """Tek kalemli sipariş oluşturma + KDV hesabı."""

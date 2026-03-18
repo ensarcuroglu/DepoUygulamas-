@@ -9,7 +9,9 @@ class StokSayimFactory(BaseFactory):
     class Meta:
         model = StokSayim
 
-    sayim_no = factory.Sequence(lambda n: f"SAY-202603-18-{n:04d}")
+    sayim_no = factory.LazyAttributeSequence(
+        lambda o, n: f"SAY-{__import__('datetime').datetime.utcnow().strftime('%Y%m-%d')}-{n:04d}"
+    )
     aciklama = "Test stok sayimi"
     kontrol_eden = factory.SubFactory(KullaniciFactory, rol="admin")
     referans_stok_json = {}

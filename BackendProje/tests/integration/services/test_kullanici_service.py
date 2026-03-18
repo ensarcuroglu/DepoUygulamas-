@@ -1,8 +1,4 @@
-"""Integration testler: KullaniciService — gerçek MySQL DB ile.
-
-Not: Service katmanı DB bağımlı olduğu için unit değil integration test olarak çalışır.
-Dosya konumu unit/ altında ancak marker integration'dır.
-"""
+"""Integration testler: KullaniciService — gerçek MySQL DB ile."""
 
 import pytest
 from services.kullanici_service import KullaniciService

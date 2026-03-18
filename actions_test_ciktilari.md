@@ -1,5 +1,4 @@
 Run pytest --cov=. --cov-report=term-missing -v
-  
 ============================= test session starts ==============================
 platform linux -- Python 3.11.15, pytest-9.0.2, pluggy-1.6.0 -- /opt/hostedtoolcache/Python/3.11.15/x64/bin/python
 cachedir: .pytest_cache
@@ -8,6 +7,7 @@ configfile: pytest.ini
 testpaths: tests
 plugins: anyio-4.12.1, cov-7.0.0, Faker-40.11.0
 collecting ... collected 178 items
+
 tests/api/routers/test_auth_api.py::TestLoginEndpoint::test_basarili_login PASSED [  0%]
 tests/api/routers/test_auth_api.py::TestLoginEndpoint::test_yanlis_sifre PASSED [  1%]
 tests/api/routers/test_auth_api.py::TestLoginEndpoint::test_olmayan_kullanici PASSED [  1%]
@@ -33,39 +33,181 @@ tests/integration/crud/test_depo_crud.py::TestDepoCrud::test_create_depo_sistem_
 tests/integration/crud/test_depo_crud.py::TestDepoCrud::test_get_depolar PASSED [ 12%]
 tests/integration/crud/test_depo_crud.py::TestDepoCrud::test_get_depolar_dahil_pasif PASSED [ 13%]
 tests/integration/crud/test_depo_crud.py::TestDepoCrud::test_get_depo_by_id PASSED [ 14%]
+tests/integration/crud/test_depo_crud.py::TestDepoCrud::test_get_depo_bulunamadi PASSED [ 14%]
+tests/integration/crud/test_depo_crud.py::TestDepoCrud::test_update_depo PASSED [ 15%]
+tests/integration/crud/test_depo_crud.py::TestDepoCrud::test_update_depo_bulunamadi PASSED [ 15%]
+tests/integration/crud/test_depo_crud.py::TestDepoCrud::test_delete_depo_soft PASSED [ 16%]
+tests/integration/crud/test_depo_crud.py::TestDepoCrud::test_delete_depo_bulunamadi PASSED [ 16%]
+tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_generate_irsaliye_no_ilk PASSED [ 17%]
+tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_generate_irsaliye_no_ardisik PASSED [ 17%]
+tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_create_irsaliye_basit PASSED [ 18%]
+tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_create_irsaliye_stok_cikisi PASSED [ 19%]
+tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_create_irsaliye_sevkiyat_varsa_stok_cikisi_yapilmaz PASSED [ 19%]
+tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_create_irsaliye_sistem_log PASSED [ 20%]
+tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_get_irsaliyeler PASSED [ 20%]
+tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_get_irsaliyeler_durum_filtre PASSED [ 21%]
+tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_get_irsaliye_by_id PASSED [ 21%]
+tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_get_irsaliye_bulunamadi PASSED [ 22%]
+tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_update_irsaliye_durum PASSED [ 23%]
+tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_update_irsaliye_bulunamadi FAILED [ 23%]
+tests/integration/crud/test_kategori_crud.py::TestKategoriCrud::test_create_kategori PASSED [ 24%]
+tests/integration/crud/test_kategori_crud.py::TestKategoriCrud::test_create_kategori_sistem_log PASSED [ 24%]
+tests/integration/crud/test_kategori_crud.py::TestKategoriCrud::test_get_kategoriler PASSED [ 25%]
+tests/integration/crud/test_kategori_crud.py::TestKategoriCrud::test_get_kategoriler_dahil_pasif PASSED [ 25%]
+tests/integration/crud/test_kategori_crud.py::TestKategoriCrud::test_get_kategori_by_id PASSED [ 26%]
+tests/integration/crud/test_kategori_crud.py::TestKategoriCrud::test_get_kategori_bulunamadi PASSED [ 26%]
+tests/integration/crud/test_kategori_crud.py::TestKategoriCrud::test_update_kategori PASSED [ 27%]
+tests/integration/crud/test_kategori_crud.py::TestKategoriCrud::test_update_kategori_bulunamadi PASSED [ 28%]
+tests/integration/crud/test_kategori_crud.py::TestKategoriCrud::test_delete_kategori_soft PASSED [ 28%]
+tests/integration/crud/test_kategori_crud.py::TestKategoriCrud::test_delete_kategori_bulunamadi PASSED [ 29%]
+tests/integration/crud/test_rapor_crud.py::TestRaporSablonuCrud::test_create_rapor_sablonu PASSED [ 29%]
+tests/integration/crud/test_rapor_crud.py::TestRaporSablonuCrud::test_get_rapor_sablonlari PASSED [ 30%]
+tests/integration/crud/test_rapor_crud.py::TestRaporSablonuCrud::test_get_rapor_sablonlari_tur_filtre PASSED [ 30%]
+tests/integration/crud/test_rapor_crud.py::TestRaporSablonuCrud::test_get_rapor_sablonu_by_id PASSED [ 31%]
+tests/integration/crud/test_rapor_crud.py::TestRaporSablonuCrud::test_update_rapor_sablonu PASSED [ 32%]
+tests/integration/crud/test_rapor_crud.py::TestRaporSablonuCrud::test_update_rapor_sablonu_bulunamadi PASSED [ 32%]
+tests/integration/crud/test_rapor_crud.py::TestRaporSablonuCrud::test_delete_rapor_sablonu_soft PASSED [ 33%]
+tests/integration/crud/test_rapor_crud.py::TestRaporSablonuCrud::test_delete_rapor_sablonu_bulunamadi PASSED [ 33%]
+tests/integration/crud/test_rapor_crud.py::TestRaporLoguCrud::test_create_rapor_logu PASSED [ 34%]
+tests/integration/crud/test_rapor_crud.py::TestRaporLoguCrud::test_get_rapor_loglari PASSED [ 34%]
+tests/integration/crud/test_rapor_crud.py::TestRaporLoguCrud::test_get_rapor_loglari_sablon_filtre PASSED [ 35%]
+tests/integration/crud/test_rapor_crud.py::TestRaporScheduleCrud::test_create_rapor_schedule PASSED [ 35%]
+tests/integration/crud/test_rapor_crud.py::TestRaporScheduleCrud::test_get_rapor_schedules PASSED [ 36%]
+tests/integration/crud/test_rapor_crud.py::TestRaporScheduleCrud::test_update_rapor_schedule PASSED [ 37%]
+tests/integration/crud/test_rapor_crud.py::TestRaporScheduleCrud::test_update_rapor_schedule_bulunamadi PASSED [ 37%]
+tests/integration/crud/test_rapor_crud.py::TestRaporScheduleCrud::test_delete_rapor_schedule PASSED [ 38%]
+tests/integration/crud/test_rapor_crud.py::TestRaporScheduleCrud::test_delete_rapor_schedule_bulunamadi PASSED [ 38%]
+tests/integration/crud/test_rapor_crud.py::TestRaporVerileri::test_get_stok_raporu_verileri PASSED [ 39%]
+tests/integration/crud/test_rapor_crud.py::TestRaporVerileri::test_get_stok_raporu_urun_filtre PASSED [ 39%]
+tests/integration/crud/test_rapor_crud.py::TestRaporVerileri::test_get_kritik_stok_raporu PASSED [ 40%]
+tests/integration/crud/test_rapor_crud.py::TestRaporVerileri::test_get_depo_doluluk PASSED [ 41%]
+tests/integration/crud/test_rapor_crud.py::TestRaporVerileri::test_get_depo_doluluk_bos_raf PASSED [ 41%]
+tests/integration/crud/test_rapor_crud.py::TestRaporVerileri::test_get_abc_analiz FAILED [ 42%]
+tests/integration/crud/test_rapor_crud.py::TestRaporVerileri::test_get_abc_analiz_bos PASSED [ 42%]
+tests/integration/crud/test_rapor_crud.py::TestRaporVerileri::test_get_skt_raporu PASSED [ 43%]
+tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_create_sevkiyat_plani PASSED [ 43%]
+tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_create_sevkiyat_sistem_log PASSED [ 44%]
+tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_get_sevkiyat_planlari PASSED [ 44%]
+tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_get_sevkiyat_planlari_durum_filtre PASSED [ 45%]
+tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_get_sevkiyat_plani_by_id PASSED [ 46%]
+tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_get_sevkiyat_plani_bulunamadi PASSED [ 46%]
+tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_update_sevkiyat_plani_basit PASSED [ 47%]
+tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_update_sevkiyat_yukleniyor_fifo_stok_cikis PASSED [ 47%]
+tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_update_sevkiyat_bulunamadi FAILED [ 48%]
+tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_delete_sevkiyat_plani PASSED [ 48%]
+tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_delete_sevkiyat_bulunamadi PASSED [ 49%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_generate_siparis_no_ilk PASSED [ 50%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_generate_siparis_no_ardisik FAILED [ 50%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_create_siparis_tek_kalem PASSED [ 51%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_create_siparis_cok_kalem PASSED [ 51%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_create_siparis_sistem_log PASSED [ 52%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_get_siparisler PASSED [ 52%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_get_siparisler_durum_filtre PASSED [ 53%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_get_siparisler_arama PASSED [ 53%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_get_siparis_by_id PASSED [ 54%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_get_siparis_bulunamadi PASSED [ 55%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_update_siparis_durum PASSED [ 55%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_update_siparis_bulunamadi PASSED [ 56%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_delete_siparis_soft PASSED [ 56%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_delete_siparis_bulunamadi PASSED [ 57%]
+tests/integration/crud/test_stok_hareketi_crud.py::TestStokHareketiCrud::test_create_stok_giris PASSED [ 57%]
+tests/integration/crud/test_stok_hareketi_crud.py::TestStokHareketiCrud::test_create_stok_cikis_fifo PASSED [ 58%]
+tests/integration/crud/test_stok_hareketi_crud.py::TestStokHareketiCrud::test_get_stok_hareketleri_filtre PASSED [ 58%]
+tests/integration/crud/test_stok_hareketi_crud.py::TestStokHareketiCrud::test_get_stok_hareketleri_urun_filtre PASSED [ 59%]
+tests/integration/crud/test_urun_crud.py::TestUrunCrud::test_create_urun PASSED [ 60%]
+tests/integration/crud/test_urun_crud.py::TestUrunCrud::test_get_urun_by_id PASSED [ 60%]
+tests/integration/crud/test_urun_crud.py::TestUrunCrud::test_get_urun_by_id_bulunamadi PASSED [ 61%]
+tests/integration/crud/test_urun_crud.py::TestUrunCrud::test_get_urun_by_barkod PASSED [ 61%]
+tests/integration/crud/test_urun_crud.py::TestUrunCrud::test_get_urunler_search PASSED [ 62%]
+tests/integration/crud/test_urun_crud.py::TestUrunCrud::test_get_urunler_kategori_filtre PASSED [ 62%]
+tests/integration/crud/test_urun_crud.py::TestUrunCrud::test_update_urun PASSED [ 63%]
+tests/integration/crud/test_urun_crud.py::TestUrunCrud::test_delete_urun_soft_delete PASSED [ 64%]
+tests/integration/crud/test_urun_crud.py::TestUrunCrud::test_get_kritik_urunler PASSED [ 64%]
+tests/integration/services/test_kullanici_service.py::TestKullaniciService::test_get_kullanicilar PASSED [ 65%]
+tests/integration/services/test_kullanici_service.py::TestKullaniciService::test_get_kullanici PASSED [ 65%]
+tests/integration/services/test_kullanici_service.py::TestKullaniciService::test_get_kullanici_bulunamadi PASSED [ 66%]
+tests/integration/services/test_kullanici_service.py::TestKullaniciService::test_update_kullanici_kendi_hesabi PASSED [ 66%]
+tests/integration/services/test_kullanici_service.py::TestKullaniciService::test_update_kullanici_admin_baskasini_guncelleyebilir PASSED [ 67%]
+tests/integration/services/test_kullanici_service.py::TestKullaniciService::test_update_kullanici_yetkisiz PASSED [ 67%]
+tests/integration/services/test_kullanici_service.py::TestKullaniciService::test_update_kullanici_duplicate_username PASSED [ 68%]
+tests/integration/services/test_kullanici_service.py::TestKullaniciService::test_update_kullanici_rol_degistirme_admin PASSED [ 69%]
+tests/integration/services/test_kullanici_service.py::TestKullaniciService::test_update_kullanici_rol_degistirme_yetkisiz PASSED [ 69%]
+tests/integration/services/test_kullanici_service.py::TestKullaniciService::test_update_kullanici_sifre PASSED [ 70%]
+tests/integration/services/test_kullanici_service.py::TestKullaniciService::test_delete_kullanici PASSED [ 70%]
+tests/integration/services/test_kullanici_service.py::TestKullaniciService::test_delete_kullanici_kendini_silemez PASSED [ 71%]
+tests/integration/services/test_kullanici_service.py::TestKullaniciService::test_delete_kullanici_bulunamadi PASSED [ 71%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_basla PASSED [ 72%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_basla_bos_stok PASSED [ 73%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_kalem_kaydet_yeni PASSED [ 73%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_kalem_kaydet_upsert PASSED [ 74%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_kalem_kaydet_sayim_bulunamadi PASSED [ 74%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_kalem_kaydet_sayim_kapali PASSED [ 75%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_kalem_kaydet_urun_bulunamadi PASSED [ 75%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_varyans_hesapla_sapma_var PASSED [ 76%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_varyans_hesapla_sapma_yok PASSED [ 76%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_varyans_hesapla_sayim_bulunamadi PASSED [ 77%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_onayla PASSED [ 78%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_onayla_zaten_onayli PASSED [ 78%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_onayla_sayim_bulunamadi PASSED [ 79%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_get_sayimlar PASSED [ 79%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_get_sayim PASSED [ 80%]
+tests/integration/services/test_stok_sayim_service.py::TestStokSayimService::test_get_sayim_bulunamadi PASSED [ 80%]
+tests/unit/entities/test_schemas.py::TestUrunCreateSchema::test_gecerli_urun PASSED [ 81%]
+tests/unit/entities/test_schemas.py::TestUrunCreateSchema::test_barkod_format_hatasi PASSED [ 82%]
+tests/unit/entities/test_schemas.py::TestUrunCreateSchema::test_ean_format_hatasi PASSED [ 82%]
+tests/unit/entities/test_schemas.py::TestUrunCreateSchema::test_gecerli_ean PASSED [ 83%]
+tests/unit/entities/test_schemas.py::TestUrunCreateSchema::test_fiyat_negatif_olamaz PASSED [ 83%]
+tests/unit/entities/test_schemas.py::TestUrunCreateSchema::test_ic_adet_sifir_olamaz PASSED [ 84%]
+tests/unit/entities/test_schemas.py::TestUrunCreateSchema::test_gecersiz_birim PASSED [ 84%]
+tests/unit/entities/test_schemas.py::TestUrunCreateSchema::test_gecerli_birimler PASSED [ 85%]
+tests/unit/entities/test_schemas.py::TestKullaniciCreateSchema::test_gecerli_kullanici PASSED [ 85%]
+tests/unit/entities/test_schemas.py::TestKullaniciCreateSchema::test_sifre_cok_kisa PASSED [ 86%]
+tests/unit/entities/test_schemas.py::TestKullaniciCreateSchema::test_sifre_buyuk_harf_yok PASSED [ 87%]
+tests/unit/entities/test_schemas.py::TestKullaniciCreateSchema::test_sifre_kucuk_harf_yok PASSED [ 87%]
+tests/unit/entities/test_schemas.py::TestKullaniciCreateSchema::test_sifre_rakam_yok PASSED [ 88%]
+tests/unit/entities/test_schemas.py::TestKullaniciCreateSchema::test_gecersiz_rol PASSED [ 88%]
+tests/unit/entities/test_schemas.py::TestKullaniciCreateSchema::test_gecerli_roller PASSED [ 89%]
+tests/unit/entities/test_schemas.py::TestPaletCreateSchema::test_koli_adedi_pozitif_olmali PASSED [ 89%]
+tests/unit/entities/test_schemas.py::TestPaletCreateSchema::test_koli_adedi_negatif_olamaz PASSED [ 90%]
+tests/unit/entities/test_schemas.py::TestPaletCreateSchema::test_gecerli_palet PASSED [ 91%]
+tests/unit/entities/test_schemas.py::TestRafBaseSchema::test_kapasite_pozitif_olmali PASSED [ 91%]
+tests/unit/entities/test_schemas.py::TestRafBaseSchema::test_gecerli_raf PASSED [ 92%]
+tests/unit/entities/test_schemas.py::TestStokHareketiSchema::test_gecerli_giris PASSED [ 92%]
+tests/unit/entities/test_schemas.py::TestStokHareketiSchema::test_gecerli_cikis PASSED [ 93%]
+tests/unit/entities/test_schemas.py::TestStokHareketiSchema::test_gecersiz_hareket_tipi PASSED [ 93%]
+tests/unit/entities/test_schemas.py::TestLoginRequestSchema::test_kullanici_adi_cok_kisa PASSED [ 94%]
+tests/unit/entities/test_schemas.py::TestLoginRequestSchema::test_gecerli_login PASSED [ 94%]
+tests/unit/use_cases/test_urun_use_cases.py::TestUrunOlusturUseCase::test_basarili_olusturma PASSED [ 95%]
+tests/unit/use_cases/test_urun_use_cases.py::TestUrunOlusturUseCase::test_barkod_cakismasi PASSED [ 96%]
+tests/unit/use_cases/test_urun_use_cases.py::TestUrunGetirUseCase::test_basarili_getir PASSED [ 96%]
+tests/unit/use_cases/test_urun_use_cases.py::TestUrunGetirUseCase::test_bulunamadi PASSED [ 97%]
+tests/unit/use_cases/test_urun_use_cases.py::TestUrunGetirUseCase::test_barkod_ile_getir PASSED [ 97%]
+tests/unit/use_cases/test_urun_use_cases.py::TestUrunListeleUseCase::test_bos_liste PASSED [ 98%]
 tests/unit/use_cases/test_urun_use_cases.py::TestUrunListeleUseCase::test_filtreli_listeleme PASSED [ 98%]
 tests/unit/use_cases/test_urun_use_cases.py::TestUrunSilUseCase::test_basarili_silme PASSED [ 99%]
 tests/unit/use_cases/test_urun_use_cases.py::TestUrunSilUseCase::test_olmayan_urun_silme PASSED [100%]
+
 =================================== FAILURES ===================================
-_________________ TestIrsaliyeCrud.test_update_irsaliye_durum __________________
-self = <tests.integration.crud.test_irsaliye_crud.TestIrsaliyeCrud object at 0x7f3296ba80d0>
-db_session = <sqlalchemy.orm.session.Session object at 0x7f32984abd50>
-    def test_update_irsaliye_durum(self, db_session):
-        kullanici = KullaniciFactory.create(rol="admin")
-        irs = IrsaliyeFactory.create(durum="Taslak")
-    
->       dto = IrsaliyeUpdate(durum="Kesildi")
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       pydantic_core._pydantic_core.ValidationError: 1 validation error for IrsaliyeUpdate
-E       durum
-E         Input should be 'Taslak', 'Onaylandi' or 'Iptal' [type=literal_error, input_value='Kesildi', input_type=str]
-E           For further information visit https://errors.pydantic.dev/2.12/v/literal_error
-tests/integration/crud/test_irsaliye_crud.py:154: ValidationError
 _______________ TestIrsaliyeCrud.test_update_irsaliye_bulunamadi _______________
-self = <tests.integration.crud.test_irsaliye_crud.TestIrsaliyeCrud object at 0x7f3296ba8710>
-db_session = <sqlalchemy.orm.session.Session object at 0x7f32984a4f90>
+
+self = <tests.integration.crud.test_irsaliye_crud.TestIrsaliyeCrud object at 0x7ff52c79c690>
+db_session = <sqlalchemy.orm.session.Session object at 0x7ff52e0b2590>
+
     def test_update_irsaliye_bulunamadi(self, db_session):
         kullanici = KullaniciFactory.create(rol="admin")
 >       dto = IrsaliyeUpdate(durum="X")
               ^^^^^^^^^^^^^^^^^^^^^^^^^
 E       pydantic_core._pydantic_core.ValidationError: 1 validation error for IrsaliyeUpdate
 E       durum
-E         Input should be 'Taslak', 'Onaylandi' or 'Iptal' [type=literal_error, input_value='X', input_type=str]
+E         Input should be 'Taslak', 'Kesildi' or 'Gonderildi' [type=literal_error, input_value='X', input_type=str]
 E           For further information visit https://errors.pydantic.dev/2.12/v/literal_error
+
 tests/integration/crud/test_irsaliye_crud.py:161: ValidationError
 ____________________ TestRaporVerileri.test_get_abc_analiz _____________________
-self = <tests.integration.crud.test_rapor_crud.TestRaporVerileri object at 0x7f3296a97d10>
-db_session = <sqlalchemy.orm.session.Session object at 0x7f329820ce50>
+
+self = <tests.integration.crud.test_rapor_crud.TestRaporVerileri object at 0x7ff52c68bb90>
+db_session = <sqlalchemy.orm.session.Session object at 0x7ff52dff9910>
+
     def test_get_abc_analiz(self, db_session):
         """ABC analizi: yüksek değerli ürün A, düşük değerli C olmalı."""
         urun_a = UrunFactory.create(isim="Pahali Urun")
@@ -84,60 +226,41 @@ E       AssertionError: assert 'C' == 'A'
 E         
 E         - A
 E         + C
+
 tests/integration/crud/test_rapor_crud.py:301: AssertionError
-_______ TestSevkiyatCrud.test_update_sevkiyat_yukleniyor_fifo_stok_cikis _______
-self = <tests.integration.crud.test_sevkiyat_crud.TestSevkiyatCrud object at 0x7f3296a09610>
-db_session = <sqlalchemy.orm.session.Session object at 0x7f329827a290>
-    def test_update_sevkiyat_yukleniyor_fifo_stok_cikis(self, db_session):
-        """Durum Yukleniyor'a geçince FIFO stok çıkışı tetiklenmeli."""
-        kullanici = KullaniciFactory.create(rol="admin")
-        urun = UrunFactory.create()
-        lot = LotFactory.create(urun=urun)
-        PaletFactory.create(lot=lot, koli_adedi=100)
-    
-        siparis = SiparisFactory.create()
-        SiparisKalemiFactory.create(siparis=siparis, urun=urun, miktar=20, birim_fiyat=50.0)
-    
-        plan = SevkiyatPlaniFactory.create(
-            siparis=siparis,
-            durum="Planlandi",
-            tir_plaka="34 TST 001",
-            depo_kapi="Kapi-1",
-        )
-    
->       dto = SevkiyatPlaniUpdate(durum="Yukleniyor")
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       pydantic_core._pydantic_core.ValidationError: 1 validation error for SevkiyatPlaniUpdate
-E       durum
-E         Input should be 'Planlandi', 'YolaCikti', 'Tamamlandi' or 'Iptal' [type=literal_error, input_value='Yukleniyor', input_type=str]
-E           For further information visit https://errors.pydantic.dev/2.12/v/literal_error
-tests/integration/crud/test_sevkiyat_crud.py:119: ValidationError
 _______________ TestSevkiyatCrud.test_update_sevkiyat_bulunamadi _______________
-self = <tests.integration.crud.test_sevkiyat_crud.TestSevkiyatCrud object at 0x7f3296a09c90>
-db_session = <sqlalchemy.orm.session.Session object at 0x7f3298278b10>
+
+self = <tests.integration.crud.test_sevkiyat_crud.TestSevkiyatCrud object at 0x7ff52c7f9e50>
+db_session = <sqlalchemy.orm.session.Session object at 0x7ff52de90dd0>
+
     def test_update_sevkiyat_bulunamadi(self, db_session):
         kullanici = KullaniciFactory.create(rol="admin")
 >       dto = SevkiyatPlaniUpdate(durum="Yolda")
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 E       pydantic_core._pydantic_core.ValidationError: 1 validation error for SevkiyatPlaniUpdate
 E       durum
-E         Input should be 'Planlandi', 'YolaCikti', 'Tamamlandi' or 'Iptal' [type=literal_error, input_value='Yolda', input_type=str]
+E         Input should be 'Planlandi', 'Yukleniyor', 'Tamamlandi' or 'Iptal' [type=literal_error, input_value='Yolda', input_type=str]
 E           For further information visit https://errors.pydantic.dev/2.12/v/literal_error
+
 tests/integration/crud/test_sevkiyat_crud.py:134: ValidationError
 _______________ TestSiparisCrud.test_generate_siparis_no_ardisik _______________
-self = <tests.integration.crud.test_siparis_crud.TestSiparisCrud object at 0x7f3296b664d0>
-db_session = <sqlalchemy.orm.session.Session object at 0x7f32982e6150>
+
+self = <tests.integration.crud.test_siparis_crud.TestSiparisCrud object at 0x7ff52c75d310>
+db_session = <sqlalchemy.orm.session.Session object at 0x7ff52deda290>
+
     def test_generate_siparis_no_ardisik(self, db_session):
         """Mevcut sipariş varsa bir sonraki numara üretilmeli."""
         SiparisFactory.create()  # SIP-2026-0001
         no = generate_siparis_no(db_session)
 >       assert no.endswith("-0002")
 E       AssertionError: assert False
-E        +  where False = <built-in method endswith of str object at 0x7f32983d51b0>('-0002')
-E        +    where <built-in method endswith of str object at 0x7f32983d51b0> = 'SIP-2026-0024'.endswith
+E        +  where False = <built-in method endswith of str object at 0x7ff52deb7530>('-0002')
+E        +    where <built-in method endswith of str object at 0x7ff52deb7530> = 'SIP-2026-0024'.endswith
+
 tests/integration/crud/test_siparis_crud.py:37: AssertionError
 ================================ tests coverage ================================
 _______________ coverage: platform linux, python 3.11.15-final-0 _______________
+
 Name                                                                          Stmts   Miss  Cover   Missing
 -----------------------------------------------------------------------------------------------------------
 app/__init__.py                                                                   0      0   100%
@@ -227,14 +350,14 @@ crud/__init__.py                                                                
 crud/dashboard_crud.py                                                           11      6    45%   9-23
 crud/depo_crud.py                                                                35      0   100%
 crud/destek_crud.py                                                              35     27    23%   9-14, 17, 20-34, 37-58
-crud/irsaliye_crud.py                                                            63     18    71%   24-25, 38, 93-100, 107-127
+crud/irsaliye_crud.py                                                            63      7    89%   24-25, 38, 93-100, 109
 crud/kategori_crud.py                                                            40      0   100%
 crud/lot_crud.py                                                                 40     29    28%   9-14, 17, 23, 29-33, 36-43, 46-51, 55-56
 crud/marka_crud.py                                                               32     15    53%   13, 23-30, 33-38
 crud/palet_crud.py                                                               43     33    23%   9-19, 22, 28, 34-38, 41-48, 52-57, 61-64
 crud/raf_crud.py                                                                 34     26    24%   7-12, 15, 18-22, 25-32, 35-40
 crud/rapor_crud.py                                                              138     16    88%   124, 204-219, 223-236, 295, 304, 306
-crud/sevkiyat_crud.py                                                            59     16    73%   17, 20, 47, 55-88
+crud/sevkiyat_crud.py                                                            59      6    90%   17, 20, 47, 81-88
 crud/siparis_crud.py                                                             69      2    97%   22-23
 crud/stok_hareketi_crud.py                                                       65     10    85%   19, 32, 35, 53, 55-57, 63, 72, 83
 crud/tedarikci_crud.py                                                           32     24    25%   7-10, 13, 16-20, 23-30, 33-38
@@ -303,10 +426,10 @@ tests/integration/__init__.py                                                   
 tests/integration/conftest.py                                                     6      0   100%
 tests/integration/crud/__init__.py                                                0      0   100%
 tests/integration/crud/test_depo_crud.py                                         60      0   100%
-tests/integration/crud/test_irsaliye_crud.py                                     85      4    95%   155-157, 163-165
+tests/integration/crud/test_irsaliye_crud.py                                     85      2    98%   163-165
 tests/integration/crud/test_kategori_crud.py                                     63      0   100%
 tests/integration/crud/test_rapor_crud.py                                       166      1    99%   302
-tests/integration/crud/test_sevkiyat_crud.py                                     77      7    91%   120-130, 136-138
+tests/integration/crud/test_sevkiyat_crud.py                                     77      2    97%   136-138
 tests/integration/crud/test_siparis_crud.py                                      93      0   100%
 tests/integration/crud/test_stok_hareketi_crud.py                                48      0   100%
 tests/integration/crud/test_urun_crud.py                                         69      0   100%
@@ -319,30 +442,22 @@ tests/unit/entities/test_schemas.py                                             
 tests/unit/use_cases/__init__.py                                                  0      0   100%
 tests/unit/use_cases/test_urun_use_cases.py                                      86      0   100%
 -----------------------------------------------------------------------------------------------------------
-TOTAL                                                                          6816   1728    75%
+TOTAL                                                                          6816   1700    75%
 =========================== short test summary info ============================
-FAILED tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_update_irsaliye_durum - pydantic_core._pydantic_core.ValidationError: 1 validation error for IrsaliyeUpdate
-durum
-  Input should be 'Taslak', 'Onaylandi' or 'Iptal' [type=literal_error, input_value='Kesildi', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.12/v/literal_error
 FAILED tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_update_irsaliye_bulunamadi - pydantic_core._pydantic_core.ValidationError: 1 validation error for IrsaliyeUpdate
 durum
-  Input should be 'Taslak', 'Onaylandi' or 'Iptal' [type=literal_error, input_value='X', input_type=str]
+  Input should be 'Taslak', 'Kesildi' or 'Gonderildi' [type=literal_error, input_value='X', input_type=str]
     For further information visit https://errors.pydantic.dev/2.12/v/literal_error
 FAILED tests/integration/crud/test_rapor_crud.py::TestRaporVerileri::test_get_abc_analiz - AssertionError: assert 'C' == 'A'
   
   - A
   + C
-FAILED tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_update_sevkiyat_yukleniyor_fifo_stok_cikis - pydantic_core._pydantic_core.ValidationError: 1 validation error for SevkiyatPlaniUpdate
-durum
-  Input should be 'Planlandi', 'YolaCikti', 'Tamamlandi' or 'Iptal' [type=literal_error, input_value='Yukleniyor', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.12/v/literal_error
 FAILED tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_update_sevkiyat_bulunamadi - pydantic_core._pydantic_core.ValidationError: 1 validation error for SevkiyatPlaniUpdate
 durum
-  Input should be 'Planlandi', 'YolaCikti', 'Tamamlandi' or 'Iptal' [type=literal_error, input_value='Yolda', input_type=str]
+  Input should be 'Planlandi', 'Yukleniyor', 'Tamamlandi' or 'Iptal' [type=literal_error, input_value='Yolda', input_type=str]
     For further information visit https://errors.pydantic.dev/2.12/v/literal_error
 FAILED tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_generate_siparis_no_ardisik - AssertionError: assert False
- +  where False = <built-in method endswith of str object at 0x7f32983d51b0>('-0002')
- +    where <built-in method endswith of str object at 0x7f32983d51b0> = 'SIP-2026-0024'.endswith
-======================== 6 failed, 172 passed in 51.24s ========================
+ +  where False = <built-in method endswith of str object at 0x7ff52deb7530>('-0002')
+ +    where <built-in method endswith of str object at 0x7ff52deb7530> = 'SIP-2026-0024'.endswith
+======================== 4 failed, 174 passed in 49.03s ========================
 Error: Process completed with exit code 1.
