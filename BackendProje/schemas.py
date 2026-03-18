@@ -550,7 +550,7 @@ class SevkiyatPlaniUpdate(BaseModel):
     yukleme_tarihi: Optional[date] = None
     cikis_saati: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
     varis_saati: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
-    durum: Optional[Literal["Planlandi", "YolaCikti", "Tamamlandi", "Iptal"]] = None
+    durum: Optional[Literal["Planlandi", "Yukleniyor", "Tamamlandi", "Iptal"]] = None
     notlar: Optional[str] = None
 
 class SevkiyatPlaniResponse(SevkiyatPlaniBase):
@@ -582,7 +582,7 @@ class IrsaliyeUpdate(BaseModel):
     belge_turu: Optional[Literal["SevkIrsaliyesi", "AlimIrsaliyesi"]] = None
     tir_plaka: Optional[str] = None
     sofor_adi: Optional[str] = None
-    durum: Optional[Literal["Taslak", "Onaylandi", "Iptal"]] = None
+    durum: Optional[Literal["Taslak", "Kesildi", "Gonderildi"]] = None
 
 class IrsaliyeResponse(IrsaliyeBase):
     model_config = ConfigDict(from_attributes=True)
