@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator, EmailStr
+from pydantic import BaseModel, ConfigDict, Field, field_validator, EmailStr
 from typing import Optional, List, Literal
 from datetime import datetime, date
 import re
@@ -21,12 +21,11 @@ class MarkaUpdate(BaseModel):
     aktif: Optional[bool] = None
 
 class MarkaResponse(MarkaBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     aktif: bool
     olusturma_tarihi: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -46,12 +45,11 @@ class KategoriUpdate(BaseModel):
     aktif: Optional[bool] = None
 
 class KategoriResponse(KategoriBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     aktif: bool
     olusturma_tarihi: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -73,12 +71,11 @@ class DepoUpdate(BaseModel):
     aktif: Optional[bool] = None
 
 class DepoResponse(DepoBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     aktif: bool
     olusturma_tarihi: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -102,13 +99,12 @@ class RafUpdate(BaseModel):
     aktif: Optional[bool] = None
 
 class RafResponse(RafBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     aktif: bool
     depo: Optional[DepoResponse] = None
     olusturma_tarihi: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -136,12 +132,11 @@ class TedarikciUpdate(BaseModel):
     aktif: Optional[bool] = None
 
 class TedarikciResponse(TedarikciBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     aktif: bool
     olusturma_tarihi: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -181,6 +176,8 @@ class UrunUpdate(BaseModel):
     aktif: Optional[bool] = None
 
 class UrunResponse(UrunBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     stok_miktari: int
     durum: str
@@ -191,10 +188,9 @@ class UrunResponse(UrunBase):
     kategori: Optional[KategoriResponse] = None
     tedarikci: Optional[TedarikciResponse] = None
 
-    class Config:
-        from_attributes = True
-
 class UrunListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     isim: str
     barkod: Optional[str] = None
@@ -208,9 +204,6 @@ class UrunListResponse(BaseModel):
     fiyat: float
     durum: str
     aktif: bool
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -237,18 +230,14 @@ class LotUpdate(BaseModel):
     aktif: Optional[bool] = None
 
 class LotResponse(LotBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     aktif: bool
     olusturma_tarihi: datetime
 
-    class Config:
-        from_attributes = True
-
 class LotDetailResponse(LotResponse):
     urun: Optional[UrunListResponse] = None
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -274,20 +263,16 @@ class PaletUpdate(BaseModel):
     aktif: Optional[bool] = None
 
 class PaletResponse(PaletBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     tarih: datetime
     aktif: bool
     olusturma_tarihi: datetime
 
-    class Config:
-        from_attributes = True
-
 class PaletDetailResponse(PaletResponse):
     lot: Optional[LotResponse] = None
     raf: Optional[RafResponse] = None
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -311,14 +296,13 @@ class StokHareketiCreate(StokHareketiBase):
     pass
 
 class StokHareketiResponse(StokHareketiBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     kullanici_id: Optional[int] = None
     kullanici: Optional["KullaniciResponse"] = None
     raf: Optional[RafResponse] = None
     tarih: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -337,12 +321,11 @@ class SistemLogCreate(SistemLogBase):
     pass
 
 class SistemLogResponse(SistemLogBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     tarih: datetime
-    kullanici_ad_soyad: Optional[str] = None # Frontend'de göstermek için
-
-    class Config:
-        from_attributes = True
+    kullanici_ad_soyad: Optional[str] = None
 
 
 # ========================
@@ -398,11 +381,10 @@ class KullaniciUpdate(BaseModel):
         return v
 
 class KullaniciResponse(KullaniciBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     olusturma_tarihi: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -469,6 +451,8 @@ class DestekTalebiUpdate(BaseModel):
     oncelik: Optional[Literal["Normal", "Yüksek", "Düşük"]] = None
 
 class DestekTalebiResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     kullanici_id: int
     konu: str
@@ -480,9 +464,6 @@ class DestekTalebiResponse(BaseModel):
     olusturma_tarihi: datetime
     guncelleme_tarihi: datetime
     kullanici: Optional[KullaniciResponse] = None
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -500,12 +481,11 @@ class SiparisKalemiCreate(SiparisKalemiBase):
     pass
 
 class SiparisKalemiResponse(SiparisKalemiBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     siparis_id: int
     urun: Optional[UrunListResponse] = None
-
-    class Config:
-        from_attributes = True
 
 class SiparisBase(BaseModel):
     musteri_adi: str
@@ -530,6 +510,8 @@ class SiparisUpdate(BaseModel):
     aktif: Optional[bool] = None
 
 class SiparisResponse(SiparisBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     siparis_no: str
     olusturan_kullanici_id: Optional[int] = None
@@ -537,14 +519,8 @@ class SiparisResponse(SiparisBase):
     guncelleme_tarihi: datetime
     aktif: bool
 
-    class Config:
-        from_attributes = True
-
 class SiparisDetayResponse(SiparisResponse):
     kalemler: List[SiparisKalemiResponse] = []
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -578,13 +554,12 @@ class SevkiyatPlaniUpdate(BaseModel):
     notlar: Optional[str] = None
 
 class SevkiyatPlaniResponse(SevkiyatPlaniBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     olusturma_tarihi: datetime
     guncelleme_tarihi: datetime
     siparis: Optional[SiparisResponse] = None
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -610,14 +585,13 @@ class IrsaliyeUpdate(BaseModel):
     durum: Optional[Literal["Taslak", "Onaylandi", "Iptal"]] = None
 
 class IrsaliyeResponse(IrsaliyeBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     irsaliye_no: str
     olusturma_tarihi: datetime
     guncelleme_tarihi: datetime
     siparis: Optional[SiparisResponse] = None
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -641,14 +615,13 @@ class RaporSablonuUpdate(BaseModel):
     is_aktif: Optional[bool] = None
 
 class RaporSablonuResponse(RaporSablonuBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     is_aktif: bool
     olusturan_kullanici_id: Optional[int] = None
     olusturma_tarihi: datetime
     guncelleme_tarihi: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -665,13 +638,12 @@ class RaporLoguCreate(RaporLoguBase):
     pass
 
 class RaporLoguResponse(RaporLoguBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     kullanici_id: int
     olusturma_tarihi: datetime
     tamamlanma_tarihi: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -698,14 +670,13 @@ class RaporScheduleUpdate(BaseModel):
     is_aktif: Optional[bool] = None
 
 class RaporScheduleResponse(RaporScheduleBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     is_aktif: bool
     son_calistirilma: Optional[datetime] = None
     olusturma_tarihi: datetime
     guncelleme_tarihi: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ========================
@@ -721,19 +692,20 @@ class StokSayimKalemiCreate(StokSayimKalemiBase):
     pass
 
 class StokSayimKalemiRead(StokSayimKalemiBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     sayim_id: int
     user_id: Optional[int] = None
     sayim_tarihi: datetime
     urun_adi: Optional[str] = None
 
-    class Config:
-        from_attributes = True
-
 class StokSayimCreate(BaseModel):
     aciklama: Optional[str] = ""
 
 class StokSayimRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     sayim_no: str
     aciklama: str
@@ -744,9 +716,6 @@ class StokSayimRead(BaseModel):
     kontrol_eden_user_id: int
     onaylayan_user_id: Optional[int] = None
     olusturma_tarihi: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # Forward reference çözümlemesi (StokHareketiResponse -> KullaniciResponse)

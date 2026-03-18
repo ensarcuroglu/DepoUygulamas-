@@ -1,0 +1,6 @@
+[run]
+source = .
+omit =
+    */_crud_legacy.py
+    */migrate_*.py
+    */seed.py
