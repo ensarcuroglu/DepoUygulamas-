@@ -13,7 +13,7 @@ def _ekle_urun_adi(sayim: StokSayim) -> StokSayim:
     """Sayım kalemlerindeki urun_adi geçici alanını doldurur."""
     for kalem in sayim.sayim_kalemleri:
         if kalem.urun:
-            kalem.urun_adi = kalem.urun.adi
+            kalem.urun_adi = kalem.urun.isim
     return sayim
 
 
@@ -121,7 +121,7 @@ class StokSayimService:
 
         db.commit()
         db.refresh(kalem)
-        kalem.urun_adi = urun.adi
+        kalem.urun_adi = urun.isim
         return kalem
 
     @staticmethod
@@ -160,7 +160,7 @@ class StokSayimService:
                 urun = db.query(Urun).filter(Urun.id == urun_id).first()
                 varyanslar.append({
                     "urun_id": urun_id,
-                    "urun_adi": urun.adi if urun else f"Ürün #{urun_id}",
+                    "urun_adi": urun.isim if urun else f"Ürün #{urun_id}",
                     "beklenen": beklenen,
                     "sayilan": sayilan,
                     "fark": fark,

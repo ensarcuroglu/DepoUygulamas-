@@ -14,6 +14,7 @@ Run pytest --cov=. --cov-report=term-missing -v
     DB_PORT: 3306
     DB_NAME: depo_db_test
     JWT_SECRET_KEY: ci-test-secret-key-minimum-32-karakter-uzunlugunda
+  
 ============================= test session starts ==============================
 platform linux -- Python 3.11.15, pytest-9.0.2, pluggy-1.6.0 -- /opt/hostedtoolcache/Python/3.11.15/x64/bin/python
 cachedir: .pytest_cache
@@ -91,122 +92,11 @@ tests/unit/use_cases/test_urun_use_cases.py::TestUrunListeleUseCase::test_filtre
 tests/unit/use_cases/test_urun_use_cases.py::TestUrunSilUseCase::test_basarili_silme PASSED [ 98%]
 tests/unit/use_cases/test_urun_use_cases.py::TestUrunSilUseCase::test_olmayan_urun_silme PASSED [100%]
 
-=============================== warnings summary ===============================
-database.py:21
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/database.py:21: MovedIn20Warning: The ``declarative_base()`` function is now available as sqlalchemy.orm.declarative_base(). (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
-    Base = declarative_base()
-
-../../../../../../opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/passlib/utils/__init__.py:854
-  /opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
-    from crypt import crypt as _crypt
-
-schemas.py:23
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:23: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class MarkaResponse(MarkaBase):
-
-schemas.py:48
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:48: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class KategoriResponse(KategoriBase):
-
-schemas.py:75
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:75: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class DepoResponse(DepoBase):
-
-schemas.py:104
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:104: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class RafResponse(RafBase):
-
-schemas.py:138
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:138: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class TedarikciResponse(TedarikciBase):
-
-schemas.py:183
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:183: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class UrunResponse(UrunBase):
-
-schemas.py:197
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:197: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class UrunListResponse(BaseModel):
-
-schemas.py:239
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:239: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class LotResponse(LotBase):
-
-schemas.py:247
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:247: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class LotDetailResponse(LotResponse):
-
-schemas.py:276
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:276: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class PaletResponse(PaletBase):
-
-schemas.py:285
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:285: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class PaletDetailResponse(PaletResponse):
-
-schemas.py:313
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:313: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class StokHareketiResponse(StokHareketiBase):
-
-schemas.py:339
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:339: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class SistemLogResponse(SistemLogBase):
-
-schemas.py:400
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:400: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class KullaniciResponse(KullaniciBase):
-
-schemas.py:471
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:471: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class DestekTalebiResponse(BaseModel):
-
-schemas.py:502
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:502: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class SiparisKalemiResponse(SiparisKalemiBase):
-
-schemas.py:532
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:532: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class SiparisResponse(SiparisBase):
-
-schemas.py:543
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:543: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class SiparisDetayResponse(SiparisResponse):
-
-schemas.py:580
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:580: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class SevkiyatPlaniResponse(SevkiyatPlaniBase):
-
-schemas.py:612
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:612: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class IrsaliyeResponse(IrsaliyeBase):
-
-schemas.py:643
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:643: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class RaporSablonuResponse(RaporSablonuBase):
-
-schemas.py:667
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:667: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class RaporLoguResponse(RaporLoguBase):
-
-schemas.py:700
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:700: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class RaporScheduleResponse(RaporScheduleBase):
-
-schemas.py:723
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:723: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class StokSayimKalemiRead(StokSayimKalemiBase):
-
-schemas.py:736
-  /home/runner/work/DepoUygulamas-/DepoUygulamas-/BackendProje/schemas.py:736: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-    class StokSayimRead(BaseModel):
-
--- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 ================================ tests coverage ================================
 _______________ coverage: platform linux, python 3.11.15-final-0 _______________
 
 Name                                                                          Stmts   Miss  Cover   Missing
 -----------------------------------------------------------------------------------------------------------
-_crud_legacy.py                                                                 698    698     0%   1-1428
 app/__init__.py                                                                   0      0   100%
 app/api/__init__.py                                                               0      0   100%
 app/api/v1/__init__.py                                                            0      0   100%
@@ -309,8 +199,6 @@ crud/urun_crud.py                                                               
 database.py                                                                      15      4    73%   26-30
 limiter.py                                                                        3      0   100%
 main.py                                                                         132     61    54%   55-86, 90-129, 134-136, 179, 225, 238
-migrate_mysql.py                                                                 21     21     0%   1-40
-migrate_refresh_token.py                                                         22     22     0%   5-39
 models.py                                                                       304      6    98%   135-141
 routers/__init__.py                                                               0      0   100%
 routers/auth.py                                                                  56      9    84%   107-111, 134-147
@@ -328,8 +216,7 @@ routers/sevkiyat_planlama.py                                                    
 routers/sistem_loglari.py                                                        14      2    86%   20, 30
 routers/stok_sayim.py                                                            27      6    78%   20, 29, 39, 50, 60, 70
 routers/tedarikciler.py                                                          24      6    75%   20, 29, 38, 48, 57-58
-schemas.py                                                                      528      8    98%   391-398
-seed.py                                                                          90     90     0%   7-276
+schemas.py                                                                      500      8    98%   374-381
 services/__init__.py                                                             14      0   100%
 services/depo_service.py                                                         61     33    46%   14, 18-21, 25, 29-30, 34-35, 42, 46-49, 54-61, 65-69, 73-78
 services/destek_service.py                                                       29     14    52%   22-24, 32-37, 41, 45-50
@@ -376,5 +263,5 @@ tests/unit/entities/test_schemas.py                                             
 tests/unit/use_cases/__init__.py                                                  0      0   100%
 tests/unit/use_cases/test_urun_use_cases.py                                      86      0   100%
 -----------------------------------------------------------------------------------------------------------
-TOTAL                                                                          6820   2934    57%
-======================= 67 passed, 27 warnings in 10.67s =======================
+TOTAL                                                                          5961   2103    65%
+============================= 67 passed in 14.28s ==============================

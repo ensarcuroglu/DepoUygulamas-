@@ -3,7 +3,12 @@
     "allow": [
       "Bash(cd \"/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje\" && pip install pydantic --quiet 2>&1 | tail -3)",
       "Bash(cd \"/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje\" && pip install pydantic --break-system-packages --quiet 2>&1 | tail -3 && python3 -c \"import pydantic; print\\('pydantic', pydantic.__version__\\)\")",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(python -m pytest tests/ -v --tb=short)",
+      "Bash(python3 -m pytest tests/ -v --tb=short)",
+      "Read(//usr/bin/**)",
+      "Bash(pip3 show:*)",
+      "Bash(.venv/bin/python -c \":*)"
     ]
   }
 }
