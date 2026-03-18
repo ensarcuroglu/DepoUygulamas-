@@ -12,6 +12,7 @@ from models import Kullanici, SistemLog
 from auth import (
     verify_password,
     get_password_hash,
+    hash_token,
     create_access_token,
     create_refresh_token,
     verify_and_get_user_from_refresh_token,
@@ -62,7 +63,7 @@ def login(request: Request, login_request: LoginRequest, db: Session = Depends(g
     refresh_token = create_refresh_token()
 
     # Refresh token'ı hashle ve DB'ye kaydet
-    user.refresh_token_hash = get_password_hash(refresh_token)
+    user.refresh_token_hash = hash_token(refresh_token)
     user.refresh_token_son_kullanim = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
     # Sisteme giriş logu

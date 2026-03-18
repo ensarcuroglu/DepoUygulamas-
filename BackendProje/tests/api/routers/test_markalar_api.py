@@ -26,7 +26,7 @@ class TestMarkaEndpoints:
             "aciklama": "Test açıklama",
         })
 
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert response.json()["isim"] == "Yeni Marka"
 
     def test_yetkisiz_erisim(self, client):

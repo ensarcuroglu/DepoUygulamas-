@@ -11,6 +11,7 @@ En kritik iş mantığı burada:
 from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
+import uuid
 
 from sqlalchemy.orm import Session
 
@@ -193,7 +194,7 @@ class StokHareketiOlusturUseCase:
                 auto_commit=False,
             )
 
-        palet_no = f"OTM-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        palet_no = f"OTM-{uuid.uuid4().hex[:16].upper()}"
         yeni_palet = self._palet_repo.olustur(
             Palet(
                 lot_id=lot.id,

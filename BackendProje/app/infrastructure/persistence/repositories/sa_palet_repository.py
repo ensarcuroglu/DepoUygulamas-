@@ -1,5 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import case
 
 from app.core.entities.palet import Palet
 from app.core.repositories.palet_repository import IPaletRepository
@@ -96,8 +97,10 @@ class SqlAlchemyPaletRepository(IPaletRepository):
             PaletORM.aktif == True,
             PaletORM.koli_adedi > 0,
         ).order_by(
-            LotORM.son_kullanma_tarihi.asc().nulls_last(),
-            LotORM.uretim_tarihi.asc().nulls_last(),
+            case((LotORM.son_kullanma_tarihi.is_(None), 1), else_=0),
+            LotORM.son_kullanma_tarihi.asc(),
+            case((LotORM.uretim_tarihi.is_(None), 1), else_=0),
+            LotORM.uretim_tarihi.asc(),
             PaletORM.tarih.asc(),
         )
 

@@ -65,7 +65,7 @@ class TestUrunOlustur:
             "min_stok": 10,
         })
 
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = response.json()
         assert data["isim"] == "API Test Ürün"
         assert data["fiyat"] == 49.90

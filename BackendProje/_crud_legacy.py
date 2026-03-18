@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, case
 from datetime import datetime, timedelta, date
 from fastapi.encoders import jsonable_encoder
+import uuid
 
 from models import (
     Marka, Kategori, Depo, Raf, Tedarikci,
@@ -547,8 +548,10 @@ def _fifo_palet_azalt(db: Session, urun_id: int, miktar: int):
         Palet.aktif == True,
         Palet.koli_adedi > 0
     ).order_by(
-        Lot.son_kullanma_tarihi.asc().nulls_last(),
-        Lot.uretim_tarihi.asc().nulls_last(),
+        case((Lot.son_kullanma_tarihi.is_(None), 1), else_=0),
+        Lot.son_kullanma_tarihi.asc(),
+        case((Lot.uretim_tarihi.is_(None), 1), else_=0),
+        Lot.uretim_tarihi.asc(),
         Palet.tarih.asc()
     ).all()
 
@@ -611,7 +614,7 @@ def create_stok_hareketi(db: Session, hareket: StokHareketiCreate, kullanici_id:
         hareket.lot_id = db_lot.id
         
         # Otomatik bir PALET oluştur ve stok miktarını buraya ekle
-        yeni_palet_no = f"OTM-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        yeni_palet_no = f"OTM-{uuid.uuid4().hex[:16].upper()}"
         db_palet = Palet(
             lot_id=db_lot.id,
             raf_id=hareket.raf_id,

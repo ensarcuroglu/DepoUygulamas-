@@ -72,6 +72,16 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(_truncate_password(password))
 
 
+def hash_token(token: str) -> str:
+    """Refresh token gibi kısa, sabit uzunluklu token'ları hashler (truncation uygulanmaz)."""
+    return pwd_context.hash(token)
+
+
+def verify_token(token: str, hashed: str) -> bool:
+    """Refresh token hash doğrulaması (truncation uygulanmaz)."""
+    return pwd_context.verify(token, hashed)
+
+
 # ========================
 # ACCESS TOKEN
 # ========================
@@ -117,7 +127,7 @@ def verify_and_get_user_from_refresh_token(token: str, db: Session) -> Kullanici
 
     for user in potansiyel_kullanicilar:
         try:
-            if verify_password(token, user.refresh_token_hash):
+            if verify_token(token, user.refresh_token_hash):
                 eslesen_user = user
                 break
         except Exception:
