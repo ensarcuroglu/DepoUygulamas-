@@ -536,7 +536,7 @@ class SevkiyatPlaniBase(BaseModel):
     yukleme_tarihi: date
     cikis_saati: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
     varis_saati: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
-    durum: Optional[Literal["Planlandi", "YolaCikti", "Tamamlandi", "Iptal"]] = "Planlandi"
+    durum: Optional[Literal["Planlandi", "Yukleniyor", "Tamamlandi", "Iptal"]] = "Planlandi"
     notlar: Optional[str] = ""
 
 class SevkiyatPlaniCreate(SevkiyatPlaniBase):
