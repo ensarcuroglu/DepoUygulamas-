@@ -1,4 +1,5 @@
 Run pytest --cov=. --cov-report=term-missing -v
+  
 ============================= test session starts ==============================
 platform linux -- Python 3.11.15, pytest-9.0.2, pluggy-1.6.0 -- /opt/hostedtoolcache/Python/3.11.15/x64/bin/python
 cachedir: .pytest_cache
@@ -7,7 +8,6 @@ configfile: pytest.ini
 testpaths: tests
 plugins: anyio-4.12.1, cov-7.0.0, Faker-40.11.0
 collecting ... collected 178 items
-
 tests/api/routers/test_auth_api.py::TestLoginEndpoint::test_basarili_login PASSED [  0%]
 tests/api/routers/test_auth_api.py::TestLoginEndpoint::test_yanlis_sifre PASSED [  1%]
 tests/api/routers/test_auth_api.py::TestLoginEndpoint::test_olmayan_kullanici PASSED [  1%]
@@ -97,7 +97,7 @@ tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_update_sevk
 tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_delete_sevkiyat_plani PASSED [ 48%]
 tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_delete_sevkiyat_bulunamadi PASSED [ 49%]
 tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_generate_siparis_no_ilk PASSED [ 50%]
-tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_generate_siparis_no_ardisik FAILED [ 50%]
+tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_generate_siparis_no_ardisik PASSED [ 50%]
 tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_create_siparis_tek_kalem PASSED [ 51%]
 tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_create_siparis_cok_kalem PASSED [ 51%]
 tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_create_siparis_sistem_log PASSED [ 52%]
@@ -186,13 +186,10 @@ tests/unit/use_cases/test_urun_use_cases.py::TestUrunListeleUseCase::test_bos_li
 tests/unit/use_cases/test_urun_use_cases.py::TestUrunListeleUseCase::test_filtreli_listeleme PASSED [ 98%]
 tests/unit/use_cases/test_urun_use_cases.py::TestUrunSilUseCase::test_basarili_silme PASSED [ 99%]
 tests/unit/use_cases/test_urun_use_cases.py::TestUrunSilUseCase::test_olmayan_urun_silme PASSED [100%]
-
 =================================== FAILURES ===================================
 _______________ TestIrsaliyeCrud.test_update_irsaliye_bulunamadi _______________
-
-self = <tests.integration.crud.test_irsaliye_crud.TestIrsaliyeCrud object at 0x7ff52c79c690>
-db_session = <sqlalchemy.orm.session.Session object at 0x7ff52e0b2590>
-
+self = <tests.integration.crud.test_irsaliye_crud.TestIrsaliyeCrud object at 0x7fb65661b4d0>
+db_session = <sqlalchemy.orm.session.Session object at 0x7fb657fc8350>
     def test_update_irsaliye_bulunamadi(self, db_session):
         kullanici = KullaniciFactory.create(rol="admin")
 >       dto = IrsaliyeUpdate(durum="X")
@@ -201,13 +198,10 @@ E       pydantic_core._pydantic_core.ValidationError: 1 validation error for Irs
 E       durum
 E         Input should be 'Taslak', 'Kesildi' or 'Gonderildi' [type=literal_error, input_value='X', input_type=str]
 E           For further information visit https://errors.pydantic.dev/2.12/v/literal_error
-
-tests/integration/crud/test_irsaliye_crud.py:161: ValidationError
+tests/integration/crud/test_irsaliye_crud.py:162: ValidationError
 ____________________ TestRaporVerileri.test_get_abc_analiz _____________________
-
-self = <tests.integration.crud.test_rapor_crud.TestRaporVerileri object at 0x7ff52c68bb90>
-db_session = <sqlalchemy.orm.session.Session object at 0x7ff52dff9910>
-
+self = <tests.integration.crud.test_rapor_crud.TestRaporVerileri object at 0x7fb6565945d0>
+db_session = <sqlalchemy.orm.session.Session object at 0x7fb657d0cf10>
     def test_get_abc_analiz(self, db_session):
         """ABC analizi: yüksek değerli ürün A, düşük değerli C olmalı."""
         urun_a = UrunFactory.create(isim="Pahali Urun")
@@ -226,13 +220,10 @@ E       AssertionError: assert 'C' == 'A'
 E         
 E         - A
 E         + C
-
 tests/integration/crud/test_rapor_crud.py:301: AssertionError
 _______________ TestSevkiyatCrud.test_update_sevkiyat_bulunamadi _______________
-
-self = <tests.integration.crud.test_sevkiyat_crud.TestSevkiyatCrud object at 0x7ff52c7f9e50>
-db_session = <sqlalchemy.orm.session.Session object at 0x7ff52de90dd0>
-
+self = <tests.integration.crud.test_sevkiyat_crud.TestSevkiyatCrud object at 0x7fb65650c290>
+db_session = <sqlalchemy.orm.session.Session object at 0x7fb657d478d0>
     def test_update_sevkiyat_bulunamadi(self, db_session):
         kullanici = KullaniciFactory.create(rol="admin")
 >       dto = SevkiyatPlaniUpdate(durum="Yolda")
@@ -241,26 +232,9 @@ E       pydantic_core._pydantic_core.ValidationError: 1 validation error for Sev
 E       durum
 E         Input should be 'Planlandi', 'Yukleniyor', 'Tamamlandi' or 'Iptal' [type=literal_error, input_value='Yolda', input_type=str]
 E           For further information visit https://errors.pydantic.dev/2.12/v/literal_error
-
 tests/integration/crud/test_sevkiyat_crud.py:134: ValidationError
-_______________ TestSiparisCrud.test_generate_siparis_no_ardisik _______________
-
-self = <tests.integration.crud.test_siparis_crud.TestSiparisCrud object at 0x7ff52c75d310>
-db_session = <sqlalchemy.orm.session.Session object at 0x7ff52deda290>
-
-    def test_generate_siparis_no_ardisik(self, db_session):
-        """Mevcut sipariş varsa bir sonraki numara üretilmeli."""
-        SiparisFactory.create()  # SIP-2026-0001
-        no = generate_siparis_no(db_session)
->       assert no.endswith("-0002")
-E       AssertionError: assert False
-E        +  where False = <built-in method endswith of str object at 0x7ff52deb7530>('-0002')
-E        +    where <built-in method endswith of str object at 0x7ff52deb7530> = 'SIP-2026-0024'.endswith
-
-tests/integration/crud/test_siparis_crud.py:37: AssertionError
 ================================ tests coverage ================================
 _______________ coverage: platform linux, python 3.11.15-final-0 _______________
-
 Name                                                                          Stmts   Miss  Cover   Missing
 -----------------------------------------------------------------------------------------------------------
 app/__init__.py                                                                   0      0   100%
@@ -426,11 +400,11 @@ tests/integration/__init__.py                                                   
 tests/integration/conftest.py                                                     6      0   100%
 tests/integration/crud/__init__.py                                                0      0   100%
 tests/integration/crud/test_depo_crud.py                                         60      0   100%
-tests/integration/crud/test_irsaliye_crud.py                                     85      2    98%   163-165
+tests/integration/crud/test_irsaliye_crud.py                                     86      2    98%   164-166
 tests/integration/crud/test_kategori_crud.py                                     63      0   100%
 tests/integration/crud/test_rapor_crud.py                                       166      1    99%   302
 tests/integration/crud/test_sevkiyat_crud.py                                     77      2    97%   136-138
-tests/integration/crud/test_siparis_crud.py                                      93      0   100%
+tests/integration/crud/test_siparis_crud.py                                      95      0   100%
 tests/integration/crud/test_stok_hareketi_crud.py                                48      0   100%
 tests/integration/crud/test_urun_crud.py                                         69      0   100%
 tests/integration/repositories/__init__.py                                        0      0   100%
@@ -442,7 +416,7 @@ tests/unit/entities/test_schemas.py                                             
 tests/unit/use_cases/__init__.py                                                  0      0   100%
 tests/unit/use_cases/test_urun_use_cases.py                                      86      0   100%
 -----------------------------------------------------------------------------------------------------------
-TOTAL                                                                          6816   1700    75%
+TOTAL                                                                          6819   1700    75%
 =========================== short test summary info ============================
 FAILED tests/integration/crud/test_irsaliye_crud.py::TestIrsaliyeCrud::test_update_irsaliye_bulunamadi - pydantic_core._pydantic_core.ValidationError: 1 validation error for IrsaliyeUpdate
 durum
@@ -456,8 +430,5 @@ FAILED tests/integration/crud/test_sevkiyat_crud.py::TestSevkiyatCrud::test_upda
 durum
   Input should be 'Planlandi', 'Yukleniyor', 'Tamamlandi' or 'Iptal' [type=literal_error, input_value='Yolda', input_type=str]
     For further information visit https://errors.pydantic.dev/2.12/v/literal_error
-FAILED tests/integration/crud/test_siparis_crud.py::TestSiparisCrud::test_generate_siparis_no_ardisik - AssertionError: assert False
- +  where False = <built-in method endswith of str object at 0x7ff52deb7530>('-0002')
- +    where <built-in method endswith of str object at 0x7ff52deb7530> = 'SIP-2026-0024'.endswith
-======================== 4 failed, 174 passed in 49.03s ========================
+======================== 3 failed, 175 passed in 46.17s ========================
 Error: Process completed with exit code 1.

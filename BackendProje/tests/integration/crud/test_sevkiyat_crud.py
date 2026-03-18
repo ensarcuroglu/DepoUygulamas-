@@ -131,7 +131,7 @@ class TestSevkiyatCrud:
 
     def test_update_sevkiyat_bulunamadi(self, db_session):
         kullanici = KullaniciFactory.create(rol="admin")
-        dto = SevkiyatPlaniUpdate(durum="Yolda")
+        dto = SevkiyatPlaniUpdate(durum="Planlandi")
 
         result = update_sevkiyat_plani(db_session, 99999, dto, kullanici.id)
 

@@ -286,20 +286,24 @@ class TestRaporVerileri:
         assert result[0]["doluluk_yuzde"] == 0
 
     def test_get_abc_analiz(self, db_session):
-        """ABC analizi: yüksek değerli ürün A, düşük değerli C olmalı."""
-        urun_a = UrunFactory.create(isim="Pahali Urun")
-        urun_c = UrunFactory.create(isim="Ucuz Urun")
+        """ABC analizi: kümülatif %70 A, %90 B, kalan C."""
+        urun_a = UrunFactory.create(isim="Urun A")
+        urun_b = UrunFactory.create(isim="Urun B")
+        urun_c = UrunFactory.create(isim="Urun C")
 
         siparis = SiparisFactory.create(durum="Bekleme")
-        SiparisKalemiFactory.create(siparis=siparis, urun=urun_a, miktar=100, birim_fiyat=1000.0, toplam=100000.0)
-        SiparisKalemiFactory.create(siparis=siparis, urun=urun_c, miktar=1, birim_fiyat=10.0, toplam=10.0)
+        # Kümülatif: A=70/100=70%→A, B=90/100=90%→B, C=100/100→C
+        SiparisKalemiFactory.create(siparis=siparis, urun=urun_a, miktar=70, birim_fiyat=1.0, toplam=70.0)
+        SiparisKalemiFactory.create(siparis=siparis, urun=urun_b, miktar=20, birim_fiyat=1.0, toplam=20.0)
+        SiparisKalemiFactory.create(siparis=siparis, urun=urun_c, miktar=10, birim_fiyat=1.0, toplam=10.0)
 
         result = get_abc_analiz(db_session)
 
-        assert len(result) == 2
+        assert len(result) == 3
         siniflar = {r["urun_isim"]: r["sinif"] for r in result}
-        assert siniflar["Pahali Urun"] == "A"
-        assert siniflar["Ucuz Urun"] == "C"
+        assert siniflar["Urun A"] == "A"
+        assert siniflar["Urun B"] == "B"
+        assert siniflar["Urun C"] == "C"
 
     def test_get_abc_analiz_bos(self, db_session):
         """Sipariş yoksa boş liste dönmeli."""

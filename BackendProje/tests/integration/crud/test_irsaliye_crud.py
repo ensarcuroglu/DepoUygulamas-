@@ -159,7 +159,7 @@ class TestIrsaliyeCrud:
 
     def test_update_irsaliye_bulunamadi(self, db_session):
         kullanici = KullaniciFactory.create(rol="admin")
-        dto = IrsaliyeUpdate(durum="X")
+        dto = IrsaliyeUpdate(durum="Kesildi")
 
         result = update_irsaliye(db_session, 99999, dto, kullanici.id)
 
