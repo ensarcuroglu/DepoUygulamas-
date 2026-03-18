@@ -573,7 +573,7 @@ class IrsaliyeBase(BaseModel):
     belge_turu: Optional[Literal["SevkIrsaliyesi", "AlimIrsaliyesi"]] = "SevkIrsaliyesi"
     tir_plaka: Optional[str] = None
     sofor_adi: Optional[str] = None
-    durum: Optional[Literal["Taslak", "Onaylandi", "Iptal"]] = "Taslak"
+    durum: Optional[Literal["Taslak", "Kesildi", "Gonderildi"]] = "Taslak"
 
 class IrsaliyeCreate(IrsaliyeBase):
     pass
