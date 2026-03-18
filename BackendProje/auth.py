@@ -50,16 +50,26 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7      # 7 gün
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+def _truncate_password(password: str) -> str:
+    """
+    Şifreyi bcrypt'in 72 bayt limitine göre kısaltır.
+    UTF-8 bayt bazında kesme yapar ve geçerli bir UTF-8 stringi döndürür.
+    """
+    password_bytes = password.encode("utf-8")
+    if len(password_bytes) <= 72:
+        return password
+    truncated = password_bytes[:72]
+    return truncated.decode("utf-8", errors="ignore")
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Kullanıcının girdiği şifreyi hash ile karşılaştırır."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Kullanıcının girdiği şifreyi hash ile karşılaştırır (72 bayt sınırına göre kısaltma uygulanır)."""
+    return pwd_context.verify(_truncate_password(plain_password), hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    """Şifreyi bcrypt ile hashler."""
-    if len(password) > 128:
-        raise ValueError("Şifre 128 karakterden uzun olamaz.")
-    return pwd_context.hash(password)
+    """Şifreyi bcrypt ile hashler (72 bayt sınırına göre otomatik kısaltma uygulanır)."""
+    return pwd_context.hash(_truncate_password(password))
 
 
 # ========================
@@ -107,7 +117,7 @@ def verify_and_get_user_from_refresh_token(token: str, db: Session) -> Kullanici
 
     for user in potansiyel_kullanicilar:
         try:
-            if pwd_context.verify(token, user.refresh_token_hash):
+            if verify_password(token, user.refresh_token_hash):
                 eslesen_user = user
                 break
         except Exception:

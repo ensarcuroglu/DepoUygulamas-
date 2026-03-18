@@ -5,6 +5,7 @@ pymysql
 cryptography
 python-jose[cryptography]
 passlib[bcrypt]
+bcrypt>=3.2,<4.1
 python-dotenv
 python-multipart
 openpyxl

@@ -16,7 +16,6 @@ from auth import (
     create_refresh_token,
     verify_and_get_user_from_refresh_token,
     get_current_user,
-    pwd_context,
     REFRESH_TOKEN_EXPIRE_DAYS,
 )
 from schemas import (
@@ -63,7 +62,7 @@ def login(request: Request, login_request: LoginRequest, db: Session = Depends(g
     refresh_token = create_refresh_token()
 
     # Refresh token'ı hashle ve DB'ye kaydet
-    user.refresh_token_hash = pwd_context.hash(refresh_token)
+    user.refresh_token_hash = get_password_hash(refresh_token)
     user.refresh_token_son_kullanim = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
     # Sisteme giriş logu

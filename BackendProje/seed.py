@@ -9,11 +9,10 @@ from models import (
     Base, Marka, Kategori, Depo, Raf, Tedarikci,
     Urun, Lot, Palet, StokHareketi, Kullanici
 )
-from passlib.context import CryptContext
 from datetime import datetime, timedelta, date
 import random
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from auth import get_password_hash
 
 
 def seed():
@@ -159,7 +158,7 @@ def seed():
         # ==================
         admin = Kullanici(
             kullanici_adi="admin",
-            sifre_hash=pwd_context.hash("admin123"),
+            sifre_hash=get_password_hash("admin123"),
             ad_soyad="Sistem Yöneticisi",
             rol="admin",
             telefon="0555-000-0001",
@@ -170,7 +169,7 @@ def seed():
         )
         depocu = Kullanici(
             kullanici_adi="depocu1",
-            sifre_hash=pwd_context.hash("depo123"),
+            sifre_hash=get_password_hash("depo123"),
             ad_soyad="Ahmet Yılmaz",
             rol="depocu",
             telefon="0555-100-0001",
