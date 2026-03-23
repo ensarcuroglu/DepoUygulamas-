@@ -42,6 +42,14 @@ class SqlAlchemyMarkaRepository(IMarkaRepository):
         self._db.refresh(orm)
         return marka_to_entity(orm)
 
+    def getir_isim_ile(self, isim: str) -> Optional[Marka]:
+        orm = (
+            self._db.query(MarkaORM)
+            .filter(MarkaORM.isim.ilike(isim))
+            .first()
+        )
+        return marka_to_entity(orm) if orm else None
+
     def sil(self, marka_id: int) -> bool:
         orm = self._db.query(MarkaORM).filter(MarkaORM.id == marka_id).first()
         if not orm:

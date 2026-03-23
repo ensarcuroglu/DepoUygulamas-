@@ -26,5 +26,10 @@ class IRafRepository(ABC):
         ...
 
     @abstractmethod
+    def getir_kod_ile(self, kod: str, depo_id: int) -> Optional[Raf]:
+        """Depo içinde raf koduna göre arar (case-insensitive)."""
+        ...
+
+    @abstractmethod
     def sil(self, raf_id: int) -> bool:
         ...

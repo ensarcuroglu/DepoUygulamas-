@@ -23,6 +23,11 @@ class IMarkaRepository(ABC):
         ...
 
     @abstractmethod
+    def getir_isim_ile(self, isim: str) -> Optional[Marka]:
+        """İsme göre marka arar (case-insensitive)."""
+        ...
+
+    @abstractmethod
     def sil(self, marka_id: int) -> bool:
         """Soft delete — aktif=False yapar."""
         ...

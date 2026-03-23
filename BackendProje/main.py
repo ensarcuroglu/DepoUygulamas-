@@ -34,12 +34,17 @@ from app.api.v1.routers import (
     urunler_router as v1_urunler_router,
     stok_hareketleri_router as v1_stok_hareketleri_router,
     siparisler_router as v1_siparisler_router,
+    markalar_router as v1_markalar_router,
+    kategoriler_router as v1_kategoriler_router,
+    tedarikciler_router as v1_tedarikciler_router,
+    depolar_router as v1_depolar_router,
+    raflar_router as v1_raflar_router,
 )
 
 # ── ESKİ Router'lar (henüz use case'e dönüştürülmemiş modüller) ──
 from routers import (
-    kategoriler, auth,
-    kullanicilar, tedarikciler, markalar, depolar, lotlar, paletler, raflar, sistem_loglari, destek,
+    auth,
+    kullanicilar, lotlar, paletler, sistem_loglari, destek,
     sevkiyat_planlama, irsaliyeler, raporlar, stok_sayim
 )
 
@@ -201,17 +206,17 @@ app.add_middleware(
 app.include_router(v1_urunler_router)
 app.include_router(v1_stok_hareketleri_router)
 app.include_router(v1_siparisler_router)
+app.include_router(v1_markalar_router)
+app.include_router(v1_kategoriler_router)
+app.include_router(v1_tedarikciler_router)
+app.include_router(v1_depolar_router)
+app.include_router(v1_raflar_router)
 
 # ESKİ Router'lar (henüz dönüştürülmemiş modüller)
 app.include_router(auth.router)
-app.include_router(markalar.router)
-app.include_router(kategoriler.router)
-app.include_router(depolar.router)
 app.include_router(lotlar.router)
 app.include_router(paletler.router)
-app.include_router(raflar.router)
 app.include_router(kullanicilar.router)
-app.include_router(tedarikciler.router)
 app.include_router(sistem_loglari.router)
 app.include_router(destek.router)
 app.include_router(sevkiyat_planlama.router)

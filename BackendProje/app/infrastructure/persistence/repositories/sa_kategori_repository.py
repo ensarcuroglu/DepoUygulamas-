@@ -41,6 +41,14 @@ class SqlAlchemyKategoriRepository(IKategoriRepository):
         self._db.refresh(orm)
         return kategori_to_entity(orm)
 
+    def getir_isim_ile(self, isim: str) -> Optional[Kategori]:
+        orm = (
+            self._db.query(KategoriORM)
+            .filter(KategoriORM.isim.ilike(isim))
+            .first()
+        )
+        return kategori_to_entity(orm) if orm else None
+
     def sil(self, kategori_id: int) -> bool:
         orm = self._db.query(KategoriORM).filter(KategoriORM.id == kategori_id).first()
         if not orm:

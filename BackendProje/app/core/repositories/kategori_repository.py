@@ -23,5 +23,10 @@ class IKategoriRepository(ABC):
         ...
 
     @abstractmethod
+    def getir_isim_ile(self, isim: str) -> Optional[Kategori]:
+        """İsme göre kategori arar (case-insensitive)."""
+        ...
+
+    @abstractmethod
     def sil(self, kategori_id: int) -> bool:
         ...

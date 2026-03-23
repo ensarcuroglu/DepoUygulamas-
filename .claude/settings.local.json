@@ -8,7 +8,8 @@
       "Bash(python3 -m pytest tests/ -v --tb=short)",
       "Read(//usr/bin/**)",
       "Bash(pip3 show:*)",
-      "Bash(.venv/bin/python -c \":*)"
+      "Bash(.venv/bin/python -c \":*)",
+      "Bash(python -c \":*)"
     ]
   }
 }

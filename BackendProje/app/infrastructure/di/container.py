@@ -24,23 +24,61 @@ from app.infrastructure.persistence.repositories import (
     SqlAlchemyStokHareketiRepository,
     SqlAlchemySistemLogRepository,
     SqlAlchemySiparisRepository,
+    SqlAlchemyMarkaRepository,
+    SqlAlchemyKategoriRepository,
+    SqlAlchemyTedarikciRepository,
+    SqlAlchemyDepoRepository,
+    SqlAlchemyRafRepository,
 )
 
 # ── Use Case sınıfları ──
 from app.application.use_cases import (
+    # Ürün
     UrunListeleUseCase,
     UrunGetirUseCase,
     UrunOlusturUseCase,
     UrunGuncelleUseCase,
     UrunSilUseCase,
     KritikUrunleriGetirUseCase,
+    # Stok Hareketi
     StokHareketiListeleUseCase,
     StokHareketiOlusturUseCase,
+    # Sipariş
     SiparisListeleUseCase,
     SiparisGetirUseCase,
     SiparisOlusturUseCase,
     SiparisGuncelleUseCase,
     SiparisSilUseCase,
+    # Marka
+    MarkaListeleUseCase,
+    MarkaGetirUseCase,
+    MarkaOlusturUseCase,
+    MarkaGuncelleUseCase,
+    MarkaSilUseCase,
+    # Kategori
+    KategoriListeleUseCase,
+    KategoriGetirUseCase,
+    KategoriOlusturUseCase,
+    KategoriGuncelleUseCase,
+    KategoriSilUseCase,
+    # Tedarikçi
+    TedarikciListeleUseCase,
+    TedarikciGetirUseCase,
+    TedarikciOlusturUseCase,
+    TedarikciGuncelleUseCase,
+    TedarikciSilUseCase,
+    # Depo
+    DepoListeleUseCase,
+    DepoGetirUseCase,
+    DepoOlusturUseCase,
+    DepoGuncelleUseCase,
+    DepoSilUseCase,
+    # Raf
+    RafListeleUseCase,
+    RafGetirUseCase,
+    RafOlusturUseCase,
+    RafGuncelleUseCase,
+    RafSilUseCase,
 )
 
 
@@ -70,6 +108,26 @@ def get_log_repo(db: Session = Depends(get_db)):
 
 def get_siparis_repo(db: Session = Depends(get_db)):
     return SqlAlchemySiparisRepository(db)
+
+
+def get_marka_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyMarkaRepository(db)
+
+
+def get_kategori_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyKategoriRepository(db)
+
+
+def get_tedarikci_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyTedarikciRepository(db)
+
+
+def get_depo_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyDepoRepository(db)
+
+
+def get_raf_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyRafRepository(db)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -173,3 +231,189 @@ def get_siparis_sil_uc(
     log_repo=Depends(get_log_repo),
 ):
     return SiparisSilUseCase(siparis_repo, log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# MARKA USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_marka_listele_uc(
+    marka_repo=Depends(get_marka_repo),
+):
+    return MarkaListeleUseCase(marka_repo)
+
+
+def get_marka_getir_uc(
+    marka_repo=Depends(get_marka_repo),
+):
+    return MarkaGetirUseCase(marka_repo)
+
+
+def get_marka_olustur_uc(
+    marka_repo=Depends(get_marka_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return MarkaOlusturUseCase(marka_repo, log_repo)
+
+
+def get_marka_guncelle_uc(
+    marka_repo=Depends(get_marka_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return MarkaGuncelleUseCase(marka_repo, log_repo)
+
+
+def get_marka_sil_uc(
+    marka_repo=Depends(get_marka_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return MarkaSilUseCase(marka_repo, log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# KATEGORİ USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_kategori_listele_uc(
+    kategori_repo=Depends(get_kategori_repo),
+):
+    return KategoriListeleUseCase(kategori_repo)
+
+
+def get_kategori_getir_uc(
+    kategori_repo=Depends(get_kategori_repo),
+):
+    return KategoriGetirUseCase(kategori_repo)
+
+
+def get_kategori_olustur_uc(
+    kategori_repo=Depends(get_kategori_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return KategoriOlusturUseCase(kategori_repo, log_repo)
+
+
+def get_kategori_guncelle_uc(
+    kategori_repo=Depends(get_kategori_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return KategoriGuncelleUseCase(kategori_repo, log_repo)
+
+
+def get_kategori_sil_uc(
+    kategori_repo=Depends(get_kategori_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return KategoriSilUseCase(kategori_repo, log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# TEDARİKÇİ USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_tedarikci_listele_uc(
+    tedarikci_repo=Depends(get_tedarikci_repo),
+):
+    return TedarikciListeleUseCase(tedarikci_repo)
+
+
+def get_tedarikci_getir_uc(
+    tedarikci_repo=Depends(get_tedarikci_repo),
+):
+    return TedarikciGetirUseCase(tedarikci_repo)
+
+
+def get_tedarikci_olustur_uc(
+    tedarikci_repo=Depends(get_tedarikci_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return TedarikciOlusturUseCase(tedarikci_repo, log_repo)
+
+
+def get_tedarikci_guncelle_uc(
+    tedarikci_repo=Depends(get_tedarikci_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return TedarikciGuncelleUseCase(tedarikci_repo, log_repo)
+
+
+def get_tedarikci_sil_uc(
+    tedarikci_repo=Depends(get_tedarikci_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return TedarikciSilUseCase(tedarikci_repo, log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# DEPO USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_depo_listele_uc(
+    depo_repo=Depends(get_depo_repo),
+):
+    return DepoListeleUseCase(depo_repo)
+
+
+def get_depo_getir_uc(
+    depo_repo=Depends(get_depo_repo),
+):
+    return DepoGetirUseCase(depo_repo)
+
+
+def get_depo_olustur_uc(
+    depo_repo=Depends(get_depo_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return DepoOlusturUseCase(depo_repo, log_repo)
+
+
+def get_depo_guncelle_uc(
+    depo_repo=Depends(get_depo_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return DepoGuncelleUseCase(depo_repo, log_repo)
+
+
+def get_depo_sil_uc(
+    depo_repo=Depends(get_depo_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return DepoSilUseCase(depo_repo, log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# RAF USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_raf_listele_uc(
+    raf_repo=Depends(get_raf_repo),
+):
+    return RafListeleUseCase(raf_repo)
+
+
+def get_raf_getir_uc(
+    raf_repo=Depends(get_raf_repo),
+):
+    return RafGetirUseCase(raf_repo)
+
+
+def get_raf_olustur_uc(
+    raf_repo=Depends(get_raf_repo),
+    depo_repo=Depends(get_depo_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return RafOlusturUseCase(raf_repo, depo_repo, log_repo)
+
+
+def get_raf_guncelle_uc(
+    raf_repo=Depends(get_raf_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return RafGuncelleUseCase(raf_repo, log_repo)
+
+
+def get_raf_sil_uc(
+    raf_repo=Depends(get_raf_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return RafSilUseCase(raf_repo, log_repo)

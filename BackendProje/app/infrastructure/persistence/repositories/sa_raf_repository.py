@@ -48,6 +48,14 @@ class SqlAlchemyRafRepository(IRafRepository):
         self._db.refresh(orm)
         return raf_to_entity(orm)
 
+    def getir_kod_ile(self, kod: str, depo_id: int) -> Optional[Raf]:
+        orm = (
+            self._db.query(RafORM)
+            .filter(RafORM.depo_id == depo_id, RafORM.kod.ilike(kod))
+            .first()
+        )
+        return raf_to_entity(orm) if orm else None
+
     def sil(self, raf_id: int) -> bool:
         orm = self._db.query(RafORM).filter(RafORM.id == raf_id).first()
         if not orm:
