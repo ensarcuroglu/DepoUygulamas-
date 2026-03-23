@@ -29,6 +29,8 @@ from app.infrastructure.persistence.repositories import (
     SqlAlchemyTedarikciRepository,
     SqlAlchemyDepoRepository,
     SqlAlchemyRafRepository,
+    SqlAlchemyKullaniciRepository,
+    SqlAlchemyDestekTalebiRepository,
 )
 
 # ── Use Case sınıfları ──
@@ -79,7 +81,38 @@ from app.application.use_cases import (
     RafOlusturUseCase,
     RafGuncelleUseCase,
     RafSilUseCase,
+    # Lot
+    LotListeleUseCase,
+    LotGetirUseCase,
+    LotSktYaklasanUseCase,
+    LotOlusturUseCase,
+    LotGuncelleUseCase,
+    LotSilUseCase,
+    # Palet
+    PaletListeleUseCase,
+    PaletGetirUseCase,
+    PaletBarkodIleGetirUseCase,
+    PaletSonrakiNumaraUseCase,
+    PaletOlusturUseCase,
+    PaletGuncelleUseCase,
+    PaletSilUseCase,
+    # Kullanıcı
+    KullaniciListeleUseCase,
+    KullaniciGetirUseCase,
+    KullaniciGuncelleUseCase,
+    KullaniciSilUseCase,
+    # Destek Talebi
+    DestekTalebiListeleUseCase,
+    DestekTalebiGetirUseCase,
+    DestekTalebiOlusturUseCase,
+    DestekTalebiGuncelleUseCase,
+    # Sistem Log
+    SistemLogListeleUseCase,
+    SistemLogOlusturUseCase,
 )
+
+# ── Şifre hash fonksiyonu (Kullanıcı use case'i için) ──
+from auth import get_password_hash
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -128,6 +161,14 @@ def get_depo_repo(db: Session = Depends(get_db)):
 
 def get_raf_repo(db: Session = Depends(get_db)):
     return SqlAlchemyRafRepository(db)
+
+
+def get_kullanici_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyKullaniciRepository(db)
+
+
+def get_destek_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyDestekTalebiRepository(db)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -417,3 +458,173 @@ def get_raf_sil_uc(
     log_repo=Depends(get_log_repo),
 ):
     return RafSilUseCase(raf_repo, log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# LOT USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_lot_listele_uc(
+    lot_repo=Depends(get_lot_repo),
+):
+    return LotListeleUseCase(lot_repo)
+
+
+def get_lot_getir_uc(
+    lot_repo=Depends(get_lot_repo),
+):
+    return LotGetirUseCase(lot_repo)
+
+
+def get_lot_skt_yaklasan_uc(
+    lot_repo=Depends(get_lot_repo),
+):
+    return LotSktYaklasanUseCase(lot_repo)
+
+
+def get_lot_olustur_uc(
+    lot_repo=Depends(get_lot_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return LotOlusturUseCase(lot_repo, log_repo)
+
+
+def get_lot_guncelle_uc(
+    lot_repo=Depends(get_lot_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return LotGuncelleUseCase(lot_repo, log_repo)
+
+
+def get_lot_sil_uc(
+    lot_repo=Depends(get_lot_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return LotSilUseCase(lot_repo, log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# PALET USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_palet_listele_uc(
+    palet_repo=Depends(get_palet_repo),
+):
+    return PaletListeleUseCase(palet_repo)
+
+
+def get_palet_getir_uc(
+    palet_repo=Depends(get_palet_repo),
+):
+    return PaletGetirUseCase(palet_repo)
+
+
+def get_palet_barkod_ile_getir_uc(
+    palet_repo=Depends(get_palet_repo),
+):
+    return PaletBarkodIleGetirUseCase(palet_repo)
+
+
+def get_palet_sonraki_numara_uc(
+    palet_repo=Depends(get_palet_repo),
+):
+    return PaletSonrakiNumaraUseCase(palet_repo)
+
+
+def get_palet_olustur_uc(
+    palet_repo=Depends(get_palet_repo),
+    lot_repo=Depends(get_lot_repo),
+    raf_repo=Depends(get_raf_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return PaletOlusturUseCase(palet_repo, lot_repo, raf_repo, log_repo)
+
+
+def get_palet_guncelle_uc(
+    palet_repo=Depends(get_palet_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return PaletGuncelleUseCase(palet_repo, log_repo)
+
+
+def get_palet_sil_uc(
+    palet_repo=Depends(get_palet_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return PaletSilUseCase(palet_repo, log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# KULLANICI USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_kullanici_listele_uc(
+    kullanici_repo=Depends(get_kullanici_repo),
+):
+    return KullaniciListeleUseCase(kullanici_repo)
+
+
+def get_kullanici_getir_uc(
+    kullanici_repo=Depends(get_kullanici_repo),
+):
+    return KullaniciGetirUseCase(kullanici_repo)
+
+
+def get_kullanici_guncelle_uc(
+    kullanici_repo=Depends(get_kullanici_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return KullaniciGuncelleUseCase(kullanici_repo, log_repo, password_hasher=get_password_hash)
+
+
+def get_kullanici_sil_uc(
+    kullanici_repo=Depends(get_kullanici_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return KullaniciSilUseCase(kullanici_repo, log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# DESTEK TALEBİ USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_destek_listele_uc(
+    destek_repo=Depends(get_destek_repo),
+):
+    return DestekTalebiListeleUseCase(destek_repo)
+
+
+def get_destek_getir_uc(
+    destek_repo=Depends(get_destek_repo),
+):
+    return DestekTalebiGetirUseCase(destek_repo)
+
+
+def get_destek_olustur_uc(
+    destek_repo=Depends(get_destek_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return DestekTalebiOlusturUseCase(destek_repo, log_repo)
+
+
+def get_destek_guncelle_uc(
+    destek_repo=Depends(get_destek_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return DestekTalebiGuncelleUseCase(destek_repo, log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# SİSTEM LOG USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_sistem_log_listele_uc(
+    log_repo=Depends(get_log_repo),
+):
+    return SistemLogListeleUseCase(log_repo)
+
+
+def get_sistem_log_olustur_uc(
+    log_repo=Depends(get_log_repo),
+):
+    return SistemLogOlusturUseCase(log_repo)

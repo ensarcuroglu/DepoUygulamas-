@@ -39,12 +39,16 @@ from app.api.v1.routers import (
     tedarikciler_router as v1_tedarikciler_router,
     depolar_router as v1_depolar_router,
     raflar_router as v1_raflar_router,
+    lotlar_router as v1_lotlar_router,
+    paletler_router as v1_paletler_router,
+    kullanicilar_router as v1_kullanicilar_router,
+    destek_router as v1_destek_router,
+    sistem_loglari_router as v1_sistem_loglari_router,
 )
 
 # ── ESKİ Router'lar (henüz use case'e dönüştürülmemiş modüller) ──
 from routers import (
     auth,
-    kullanicilar, lotlar, paletler, sistem_loglari, destek,
     sevkiyat_planlama, irsaliyeler, raporlar, stok_sayim
 )
 
@@ -211,14 +215,14 @@ app.include_router(v1_kategoriler_router)
 app.include_router(v1_tedarikciler_router)
 app.include_router(v1_depolar_router)
 app.include_router(v1_raflar_router)
+app.include_router(v1_lotlar_router)
+app.include_router(v1_paletler_router)
+app.include_router(v1_kullanicilar_router)
+app.include_router(v1_destek_router)
+app.include_router(v1_sistem_loglari_router)
 
 # ESKİ Router'lar (henüz dönüştürülmemiş modüller)
 app.include_router(auth.router)
-app.include_router(lotlar.router)
-app.include_router(paletler.router)
-app.include_router(kullanicilar.router)
-app.include_router(sistem_loglari.router)
-app.include_router(destek.router)
 app.include_router(sevkiyat_planlama.router)
 app.include_router(irsaliyeler.router)
 app.include_router(raporlar.router)
