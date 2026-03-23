@@ -33,7 +33,11 @@ import StokSayimPage from './pages/StokSayimPage';
  */
 function DefaultRedirect() {
   const { user } = useAuth();
-  const target = (user?.rol === 'depocu' || user?.rol === 'lojistik') ? '/stok-hareketleri' : '/dashboard';
+  const target = (user?.rol === 'depocu' || user?.rol === 'lojistik') 
+    ? '/stok-hareketleri' 
+    : (user?.rol === 'goruntuleyen') 
+      ? '/profil-ayarlari' 
+      : '/dashboard';
   return <Navigate to={target} replace />;
 }
 

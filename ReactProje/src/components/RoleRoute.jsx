@@ -15,10 +15,14 @@ export default function RoleRoute({ allowedRoles = [] }) {
     const { user } = useAuth();
 
     if (!user || !allowedRoles.includes(user.rol)) {
-        // Depocu veya Lojistik ise stok hareketlerine, değilse login'e yönlendir
-        const redirectTo = (user?.rol === 'depocu' || user?.rol === 'lojistik') ? '/stok-hareketleri' : '/login';
+        // Yetkisiz erişim: rolüne göre uygun sayfaya yönlendir (login'e değil)
+        const redirectTo = (user?.rol === 'depocu' || user?.rol === 'lojistik') 
+            ? '/stok-hareketleri' 
+            : (user?.rol === 'goruntuleyen') 
+            ? '/profil-ayarlari' 
+            : '/login';
         return <Navigate to={redirectTo} replace />;
-    }
+        }
 
     return <Outlet />;
 }

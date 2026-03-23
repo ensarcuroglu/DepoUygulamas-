@@ -28,7 +28,11 @@ export default function LoginPage() {
         try {
             const userData = await login(kullaniciAdi, sifre);
             toast.success('Giriş başarılı! Hoş geldiniz.');
-            const target = (userData.rol === 'depocu' || userData.rol === 'lojistik') ? '/stok-hareketleri' : '/dashboard';
+            const target = (userData.rol === 'depocu' || userData.rol === 'lojistik') 
+                ? '/stok-hareketleri' 
+                : (userData.rol === 'goruntuleyen') 
+                    ? '/profil-ayarlari' 
+                    : '/dashboard';
             navigate(target, { replace: true });
         } catch (err) {
             const message = hataMetni(err, 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.');
