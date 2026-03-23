@@ -18,6 +18,7 @@ from app.application.dto.destek_talebi_dto import (
     DestekTalebiGuncelleRequestDTO,
     DestekTalebiResponseDTO,
 )
+from app.application.helpers import admin_mi
 
 
 class DestekTalebiListeleUseCase:
@@ -33,7 +34,7 @@ class DestekTalebiListeleUseCase:
     ) -> List[DestekTalebiResponseDTO]:
         limit = min(limit, 500)
         # Admin tüm talepleri, normal kullanıcı kendi taleplerini görür
-        kullanici_id = None if current_user.admin_mi() else current_user.id
+        kullanici_id = None if admin_mi(current_user) else current_user.id
         talepler = self._destek_repo.getir_hepsi(
             skip=skip, limit=limit, kullanici_id=kullanici_id, durum=durum
         )
@@ -49,7 +50,7 @@ class DestekTalebiGetirUseCase:
         if not talep:
             raise KayitBulunamadiError("Destek talebi", talep_id)
         # Normal kullanıcı sadece kendi talebini görebilir
-        if not current_user.admin_mi() and talep.kullanici_id != current_user.id:
+        if not admin_mi(current_user) and talep.kullanici_id != current_user.id:
             raise YetkisizIslemError("Bu talebe erişim yetkiniz yok")
         return DestekTalebiResponseDTO.from_entity(talep)
 

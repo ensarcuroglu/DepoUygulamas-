@@ -5,7 +5,7 @@ Lot veri transfer nesneleri (DTO).
 from __future__ import annotations
 from datetime import datetime, date
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from app.core.entities.lot import Lot
 

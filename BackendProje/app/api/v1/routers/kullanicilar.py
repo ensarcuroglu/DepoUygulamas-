@@ -5,7 +5,7 @@ NOT: Login/register auth.py router'ında kalır.
 """
 
 from fastapi import APIRouter, Depends, Query, Request
-from typing import List
+from typing import List, Optional
 
 from auth import get_current_user, require_role
 from models import Kullanici
@@ -35,10 +35,12 @@ router = APIRouter(prefix="/api/kullanicilar", tags=["Kullanıcı Yönetimi"])
 @limiter.limit("100/minute")
 def kullanicilari_listele(
     request: Request,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=500),
     current_user: Kullanici = Depends(require_role("admin")),
     uc: KullaniciListeleUseCase = Depends(get_kullanici_listele_uc),
 ):
-    return uc.execute()
+    return uc.execute(skip=skip, limit=limit)
 
 
 @router.get("/{kullanici_id}", response_model=KullaniciResponseDTO)

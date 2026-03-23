@@ -54,7 +54,7 @@ def get_destek_talebi(
     return uc.execute(talep_id, current_user=current_user)
 
 
-@router.post("/", response_model=DestekTalebiResponseDTO)
+@router.post("/", response_model=DestekTalebiResponseDTO, status_code=201)
 @limiter.limit("50/minute")
 def create_destek_talebi(
     request: Request,

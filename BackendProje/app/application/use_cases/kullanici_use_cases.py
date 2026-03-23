@@ -10,7 +10,7 @@ from typing import List
 
 from app.core.repositories.kullanici_repository import IKullaniciRepository
 from app.core.repositories.sistem_log_repository import ISistemLogRepository
-from app.core.entities.kullanici import Kullanici, KullaniciRol
+from app.core.entities.kullanici import Kullanici
 from app.core.entities.sistem_log import SistemLog, IslemTipi
 from app.core.exceptions import (
     KayitBulunamadiError,
@@ -18,15 +18,11 @@ from app.core.exceptions import (
     YetkisizIslemError,
     GecersizIslemError,
 )
-
-
-def _admin_mi(user) -> bool:
-    """ORM model veya entity farketmeksizin admin kontrolü."""
-    return getattr(user, "rol", None) == KullaniciRol.ADMIN
 from app.application.dto.kullanici_dto import (
     KullaniciGuncelleRequestDTO,
     KullaniciResponseDTO,
 )
+from app.application.helpers import admin_mi
 
 
 class KullaniciListeleUseCase:
@@ -68,7 +64,7 @@ class KullaniciGuncelleUseCase:
         current_user: Kullanici,
     ) -> KullaniciResponseDTO:
         # Yetki: admin değilse sadece kendi hesabını güncelleyebilir
-        if not _admin_mi(current_user) and current_user.id != kullanici_id:
+        if not admin_mi(current_user) and current_user.id != kullanici_id:
             raise YetkisizIslemError(
                 "Bu işlem için yönetici yetkisi veya hesap sahibi olmanız gereklidir"
             )
@@ -91,7 +87,7 @@ class KullaniciGuncelleUseCase:
         # Rol değişikliği sadece admin yapabilir
         yeni_rol = guncel.get("rol")
         if yeni_rol and yeni_rol != mevcut.rol:
-            if not _admin_mi(current_user):
+            if not admin_mi(current_user):
                 raise YetkisizIslemError("Sadece yöneticiler rol değiştirebilir")
             mevcut.rol_degistir(yeni_rol)
 

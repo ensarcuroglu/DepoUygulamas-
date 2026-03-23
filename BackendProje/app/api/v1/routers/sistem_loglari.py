@@ -29,11 +29,12 @@ router = APIRouter(prefix="/api/sistem-loglari", tags=["Sistem Logları"])
 @limiter.limit("100/minute")
 def get_loglar(
     request: Request,
+    skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
     current_user: Kullanici = Depends(require_role("admin")),
     uc: SistemLogListeleUseCase = Depends(get_sistem_log_listele_uc),
 ):
-    return uc.execute(limit=limit)
+    return uc.execute(skip=skip, limit=limit)
 
 
 @router.post("/", response_model=SistemLogResponseDTO)

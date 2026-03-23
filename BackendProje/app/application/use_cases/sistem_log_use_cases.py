@@ -19,9 +19,9 @@ class SistemLogListeleUseCase:
     def __init__(self, log_repo: ISistemLogRepository):
         self._log_repo = log_repo
 
-    def execute(self, limit: int = 100) -> List[SistemLogResponseDTO]:
+    def execute(self, skip: int = 0, limit: int = 100) -> List[SistemLogResponseDTO]:
         limit = min(limit, 1000)
-        loglar = self._log_repo.getir_hepsi(limit=limit)
+        loglar = self._log_repo.getir_hepsi(skip=skip, limit=limit)
         return [SistemLogResponseDTO.from_entity(l) for l in loglar]
 
 
