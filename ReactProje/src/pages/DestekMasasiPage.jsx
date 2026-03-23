@@ -104,7 +104,7 @@ export default function DestekMasasiPage() {
             setTalepler(res.data);
         } catch (error) {
             console.error("Talepler yüklenemedi:", error);
-            toast.error("Talepler yüklenirken bir sorun oluştu.");
+            toast.error(hataMetni(error, 'Talepler yüklenirken bir sorun oluştu.'));
         } finally {
             setLoading(false);
         }
