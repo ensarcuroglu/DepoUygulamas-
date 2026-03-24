@@ -12,7 +12,7 @@ class SayimDurum:
 
     _GECISLER = {
         OLUSTURULDU: {DEVAM_EDIYOR},
-        DEVAM_EDIYOR: {BITTI},
+        DEVAM_EDIYOR: {BITTI, ONAYLANDI},
         BITTI: {ONAYLANDI},
         ONAYLANDI: set(),
     }

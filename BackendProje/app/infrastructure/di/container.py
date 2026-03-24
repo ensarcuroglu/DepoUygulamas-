@@ -33,6 +33,7 @@ from app.infrastructure.persistence.repositories import (
     SqlAlchemyDestekTalebiRepository,
     SqlAlchemyIrsaliyeRepository,
     SqlAlchemySevkiyatPlaniRepository,
+    SqlAlchemyStokSayimRepository,
 )
 
 # ── Use Case sınıfları ──
@@ -123,6 +124,13 @@ from app.application.use_cases import (
     SevkiyatPlaniOlusturUseCase,
     SevkiyatPlaniGuncelleUseCase,
     SevkiyatPlaniSilUseCase,
+    # Stok Sayım
+    StokSayimListeleUseCase,
+    StokSayimGetirUseCase,
+    StokSayimBaslatUseCase,
+    StokSayimKalemKaydetUseCase,
+    StokSayimVaryansHesaplaUseCase,
+    StokSayimOnaylaUseCase,
 )
 
 # ── Domain Service ──
@@ -194,6 +202,10 @@ def get_irsaliye_repo(db: Session = Depends(get_db)):
 
 def get_sevkiyat_repo(db: Session = Depends(get_db)):
     return SqlAlchemySevkiyatPlaniRepository(db)
+
+
+def get_stok_sayim_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyStokSayimRepository(db)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -749,3 +761,47 @@ def get_sevkiyat_sil_uc(
     log_repo=Depends(get_log_repo),
 ):
     return SevkiyatPlaniSilUseCase(sevkiyat_repo, log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# STOK SAYIM USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_stok_sayim_listele_uc(
+    sayim_repo=Depends(get_stok_sayim_repo),
+):
+    return StokSayimListeleUseCase(sayim_repo)
+
+
+def get_stok_sayim_getir_uc(
+    sayim_repo=Depends(get_stok_sayim_repo),
+):
+    return StokSayimGetirUseCase(sayim_repo)
+
+
+def get_stok_sayim_baslat_uc(
+    sayim_repo=Depends(get_stok_sayim_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return StokSayimBaslatUseCase(sayim_repo, log_repo)
+
+
+def get_stok_sayim_kalem_kaydet_uc(
+    sayim_repo=Depends(get_stok_sayim_repo),
+    urun_repo=Depends(get_urun_repo),
+):
+    return StokSayimKalemKaydetUseCase(sayim_repo, urun_repo)
+
+
+def get_stok_sayim_varyans_uc(
+    sayim_repo=Depends(get_stok_sayim_repo),
+    urun_repo=Depends(get_urun_repo),
+):
+    return StokSayimVaryansHesaplaUseCase(sayim_repo, urun_repo)
+
+
+def get_stok_sayim_onayla_uc(
+    sayim_repo=Depends(get_stok_sayim_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return StokSayimOnaylaUseCase(sayim_repo, log_repo)

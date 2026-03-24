@@ -26,7 +26,7 @@
 |---|-------|--------|----------------|---------|-----------|-----|-------------|-------------|
 | 14 | İrsaliye | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | Düşük (61 satır router, 90+127 service/crud) |
 | 15 | Sevkiyat Planlama | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | Düşük (66 satır router, 49+110 service/crud) |
-| 16 | Stok Sayım | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | Orta (70 satır router, 196 service) |
+| 16 | Stok Sayım | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Orta (70 satır router, 196 service) |
 | 17 | Rapor | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | Yüksek (303 satır router, 189+345 service/crud) |
 
 ### Ek Geçirilecekler
@@ -72,11 +72,12 @@
 - [x] 2.4 — DI container + router __init__ güncelle
 - [x] 2.5 — `ISevkiyatPlaniRepository.getir_siparis_id_ile()` metodu ekle (İrsaliye stok kontrolü için)
 
-### Adım 3: Stok Sayım Modülü (Orta Karmaşıklık)
-- [ ] 3.1 — `app/application/dto/stok_sayim_dto.py` oluştur (Sayım + SayımKalemi DTO'ları)
-- [ ] 3.2 — `app/application/use_cases/stok_sayim_use_cases.py` oluştur (Listele, Getir, Olustur, Baslat, Bitir, Onayla, KalemEkle, Fark)
-- [ ] 3.3 — `app/api/v1/routers/stok_sayim.py` oluştur
-- [ ] 3.4 — DI container + router __init__ güncelle
+### Adım 3: Stok Sayım Modülü (Orta Karmaşıklık) ✅
+- [x] 3.1 — `app/application/dto/stok_sayim_dto.py` oluştur (Sayım + SayımKalemi + Varyans DTO'ları)
+- [x] 3.2 — `app/application/use_cases/stok_sayim_use_cases.py` oluştur (Listele, Getir, Baslat, KalemKaydet, VaryansHesapla, Onayla)
+- [x] 3.3 — `app/api/v1/routers/stok_sayim.py` oluştur
+- [x] 3.4 — DI container + router __init__ + main.py güncelle
+- [x] 3.5 — Repo interface'e `kalem_getir_by_sayim_urun()` ve `stok_snapshot_getir()` ekle + SA impl
 
 ### Adım 4: Rapor Modülü (Yüksek Karmaşıklık)
 - [ ] 4.1 — `app/application/dto/rapor_dto.py` oluştur (Sablon, Log, Schedule, Oluşturma DTO'ları)

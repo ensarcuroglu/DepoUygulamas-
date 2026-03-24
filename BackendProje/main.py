@@ -44,12 +44,14 @@ from app.api.v1.routers import (
     kullanicilar_router as v1_kullanicilar_router,
     destek_router as v1_destek_router,
     sistem_loglari_router as v1_sistem_loglari_router,
+    irsaliyeler_router as v1_irsaliyeler_router,
+    sevkiyat_planlama_router as v1_sevkiyat_planlama_router,
+    stok_sayim_router as v1_stok_sayim_router,
 )
 
 # ── ESKİ Router'lar (henüz use case'e dönüştürülmemiş modüller) ──
 from routers import (
-    auth,
-    sevkiyat_planlama, irsaliyeler, raporlar, stok_sayim
+    auth, raporlar
 )
 
 # ========================
@@ -221,12 +223,14 @@ app.include_router(v1_kullanicilar_router)
 app.include_router(v1_destek_router)
 app.include_router(v1_sistem_loglari_router)
 
+# CA Router'lar (Faz 3a + 3b)
+app.include_router(v1_irsaliyeler_router)
+app.include_router(v1_sevkiyat_planlama_router)
+app.include_router(v1_stok_sayim_router)
+
 # ESKİ Router'lar (henüz dönüştürülmemiş modüller)
 app.include_router(auth.router)
-app.include_router(sevkiyat_planlama.router)
-app.include_router(irsaliyeler.router)
 app.include_router(raporlar.router)
-app.include_router(stok_sayim.router)
 
 
 @app.get("/")

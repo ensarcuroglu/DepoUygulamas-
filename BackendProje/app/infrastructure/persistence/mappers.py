@@ -729,7 +729,7 @@ def stok_sayim_to_entity(orm: StokSayimORM, kalemler_dahil: bool = True) -> Stok
     if kalemler_dahil:
         try:
             kalemler = [stok_sayim_kalemi_to_entity(k) for k in orm.sayim_kalemleri]
-        except Exception:
+        except AttributeError:
             pass
 
     return StokSayim(

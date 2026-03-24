@@ -1,5 +1,6 @@
-from typing import List, Optional
-from sqlalchemy.orm import Session, joinedload
+from typing import Dict, List, Optional
+from sqlalchemy import func
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.entities.stok_sayim import StokSayim, StokSayimKalemi
 from app.core.repositories.stok_sayim_repository import IStokSayimRepository
@@ -7,7 +8,13 @@ from app.infrastructure.persistence.mappers import (
     stok_sayim_to_entity, stok_sayim_to_orm,
     stok_sayim_kalemi_to_entity, stok_sayim_kalemi_to_orm,
 )
-from models import StokSayim as StokSayimORM, StokSayimKalemi as StokSayimKalemiORM
+from models import (
+    StokSayim as StokSayimORM,
+    StokSayimKalemi as StokSayimKalemiORM,
+    Urun as UrunORM,
+    Lot as LotORM,
+    Palet as PaletORM,
+)
 
 
 class SqlAlchemyStokSayimRepository(IStokSayimRepository):
@@ -16,9 +23,9 @@ class SqlAlchemyStokSayimRepository(IStokSayimRepository):
         self._db = db
 
     def getir_hepsi(self, skip: int = 0, limit: int = 100) -> List[StokSayim]:
+        # selectinload: one-to-many ile offset/limit doğru çalışır (joinedload pagination bozar)
         orm_list = self._db.query(StokSayimORM).options(
-            joinedload(StokSayimORM.sayim_kalemleri),
-            joinedload(StokSayimORM.kontrol_eden),
+            selectinload(StokSayimORM.sayim_kalemleri),
         ).order_by(
             StokSayimORM.olusturma_tarihi.desc()
         ).offset(skip).limit(limit).all()
@@ -27,8 +34,6 @@ class SqlAlchemyStokSayimRepository(IStokSayimRepository):
     def getir_id_ile(self, sayim_id: int) -> Optional[StokSayim]:
         orm = self._db.query(StokSayimORM).options(
             joinedload(StokSayimORM.sayim_kalemleri),
-            joinedload(StokSayimORM.kontrol_eden),
-            joinedload(StokSayimORM.onaylayan),
         ).filter(StokSayimORM.id == sayim_id).first()
         return stok_sayim_to_entity(orm) if orm else None
 
@@ -80,3 +85,24 @@ class SqlAlchemyStokSayimRepository(IStokSayimRepository):
         self._db.commit()
         self._db.refresh(orm)
         return stok_sayim_kalemi_to_entity(orm)
+
+    def kalem_getir_by_sayim_urun(self, sayim_id: int, urun_id: int) -> Optional[StokSayimKalemi]:
+        orm = self._db.query(StokSayimKalemiORM).filter(
+            StokSayimKalemiORM.sayim_id == sayim_id,
+            StokSayimKalemiORM.urun_id == urun_id,
+        ).first()
+        return stok_sayim_kalemi_to_entity(orm) if orm else None
+
+    def stok_snapshot_getir(self) -> Dict[int, int]:
+        rows = (
+            self._db.query(
+                UrunORM.id,
+                func.coalesce(func.sum(PaletORM.koli_adedi), 0),
+            )
+            .outerjoin(LotORM, (LotORM.urun_id == UrunORM.id) & (LotORM.aktif == True))
+            .outerjoin(PaletORM, (PaletORM.lot_id == LotORM.id) & (PaletORM.aktif == True))
+            .filter(UrunORM.aktif == True)
+            .group_by(UrunORM.id)
+            .all()
+        )
+        return {urun_id: int(toplam) for urun_id, toplam in rows}

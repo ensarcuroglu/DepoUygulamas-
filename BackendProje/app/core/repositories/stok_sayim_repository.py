@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from app.core.entities.stok_sayim import StokSayim, StokSayimKalemi
 
@@ -29,4 +29,14 @@ class IStokSayimRepository(ABC):
 
     @abstractmethod
     def kalem_guncelle(self, kalem: StokSayimKalemi) -> StokSayimKalemi:
+        ...
+
+    @abstractmethod
+    def kalem_getir_by_sayim_urun(self, sayim_id: int, urun_id: int) -> Optional[StokSayimKalemi]:
+        """Sayım + ürün çiftine göre kalemi getirir (upsert desteği için)."""
+        ...
+
+    @abstractmethod
+    def stok_snapshot_getir(self) -> Dict[int, int]:
+        """Aktif ürünlerin palet bazlı stok toplamını döner: {urun_id: toplam_koli}."""
         ...
