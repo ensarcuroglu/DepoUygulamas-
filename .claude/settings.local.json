@@ -19,7 +19,9 @@
       "Bash(python3 -m py_compile app/application/use_cases/kullanici_use_cases.py)",
       "Bash(python3 -m py_compile app/application/use_cases/destek_talebi_use_cases.py)",
       "Bash(python3 -m py_compile app/api/v1/routers/kullanicilar.py)",
-      "Bash(python3 -m py_compile app/api/v1/routers/destek.py)"
+      "Bash(python3 -m py_compile app/api/v1/routers/destek.py)",
+      "Bash(python3:*)",
+      "Bash(ls /usr/bin/python*)"
     ]
   }
 }

@@ -31,6 +31,8 @@ from app.infrastructure.persistence.repositories import (
     SqlAlchemyRafRepository,
     SqlAlchemyKullaniciRepository,
     SqlAlchemyDestekTalebiRepository,
+    SqlAlchemyIrsaliyeRepository,
+    SqlAlchemySevkiyatPlaniRepository,
 )
 
 # ── Use Case sınıfları ──
@@ -109,7 +111,22 @@ from app.application.use_cases import (
     # Sistem Log
     SistemLogListeleUseCase,
     SistemLogOlusturUseCase,
+    # İrsaliye
+    IrsaliyeListeleUseCase,
+    IrsaliyeGetirUseCase,
+    IrsaliyeOlusturUseCase,
+    IrsaliyeGuncelleUseCase,
+    IrsaliyeYazdirVerisiGetirUseCase,
+    # Sevkiyat Planı
+    SevkiyatPlaniListeleUseCase,
+    SevkiyatPlaniGetirUseCase,
+    SevkiyatPlaniOlusturUseCase,
+    SevkiyatPlaniGuncelleUseCase,
+    SevkiyatPlaniSilUseCase,
 )
+
+# ── Domain Service ──
+from app.core.services.stok_cikis_domain_service import StokCikisDomainService
 
 # ── Şifre hash fonksiyonu (Kullanıcı use case'i için) ──
 from auth import get_password_hash
@@ -169,6 +186,14 @@ def get_kullanici_repo(db: Session = Depends(get_db)):
 
 def get_destek_repo(db: Session = Depends(get_db)):
     return SqlAlchemyDestekTalebiRepository(db)
+
+
+def get_irsaliye_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyIrsaliyeRepository(db)
+
+
+def get_sevkiyat_repo(db: Session = Depends(get_db)):
+    return SqlAlchemySevkiyatPlaniRepository(db)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -628,3 +653,99 @@ def get_sistem_log_olustur_uc(
     log_repo=Depends(get_log_repo),
 ):
     return SistemLogOlusturUseCase(log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# STOK ÇIKIŞ DOMAİN SERVİSİ FACTORY
+# ═══════════════════════════════════════════════════════════════
+
+def get_stok_cikis_service(
+    palet_repo=Depends(get_palet_repo),
+    hareket_repo=Depends(get_hareket_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return StokCikisDomainService(palet_repo, hareket_repo, log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# İRSALİYE USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_irsaliye_listele_uc(
+    irsaliye_repo=Depends(get_irsaliye_repo),
+):
+    return IrsaliyeListeleUseCase(irsaliye_repo)
+
+
+def get_irsaliye_getir_uc(
+    irsaliye_repo=Depends(get_irsaliye_repo),
+):
+    return IrsaliyeGetirUseCase(irsaliye_repo)
+
+
+def get_irsaliye_olustur_uc(
+    db: Session = Depends(get_db),
+    irsaliye_repo=Depends(get_irsaliye_repo),
+    siparis_repo=Depends(get_siparis_repo),
+    sevkiyat_repo=Depends(get_sevkiyat_repo),
+    log_repo=Depends(get_log_repo),
+    stok_cikis_service=Depends(get_stok_cikis_service),
+):
+    return IrsaliyeOlusturUseCase(
+        irsaliye_repo, siparis_repo, sevkiyat_repo, log_repo, stok_cikis_service, db
+    )
+
+
+def get_irsaliye_guncelle_uc(
+    irsaliye_repo=Depends(get_irsaliye_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return IrsaliyeGuncelleUseCase(irsaliye_repo, log_repo)
+
+
+def get_irsaliye_yazdir_uc(
+    irsaliye_repo=Depends(get_irsaliye_repo),
+    siparis_repo=Depends(get_siparis_repo),
+):
+    return IrsaliyeYazdirVerisiGetirUseCase(irsaliye_repo, siparis_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# SEVKIYAT PLANI USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_sevkiyat_listele_uc(
+    sevkiyat_repo=Depends(get_sevkiyat_repo),
+):
+    return SevkiyatPlaniListeleUseCase(sevkiyat_repo)
+
+
+def get_sevkiyat_getir_uc(
+    sevkiyat_repo=Depends(get_sevkiyat_repo),
+):
+    return SevkiyatPlaniGetirUseCase(sevkiyat_repo)
+
+
+def get_sevkiyat_olustur_uc(
+    sevkiyat_repo=Depends(get_sevkiyat_repo),
+    siparis_repo=Depends(get_siparis_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return SevkiyatPlaniOlusturUseCase(sevkiyat_repo, siparis_repo, log_repo)
+
+
+def get_sevkiyat_guncelle_uc(
+    db: Session = Depends(get_db),
+    sevkiyat_repo=Depends(get_sevkiyat_repo),
+    siparis_repo=Depends(get_siparis_repo),
+    log_repo=Depends(get_log_repo),
+    stok_cikis_service=Depends(get_stok_cikis_service),
+):
+    return SevkiyatPlaniGuncelleUseCase(sevkiyat_repo, siparis_repo, log_repo, stok_cikis_service, db)
+
+
+def get_sevkiyat_sil_uc(
+    sevkiyat_repo=Depends(get_sevkiyat_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return SevkiyatPlaniSilUseCase(sevkiyat_repo, log_repo)

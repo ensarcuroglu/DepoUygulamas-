@@ -11,6 +11,8 @@ from .paletler import router as paletler_router
 from .kullanicilar import router as kullanicilar_router
 from .destek import router as destek_router
 from .sistem_loglari import router as sistem_loglari_router
+from .irsaliyeler import router as irsaliyeler_router
+from .sevkiyat_planlama import router as sevkiyat_planlama_router
 
 __all__ = [
     "urunler_router",
@@ -26,4 +28,6 @@ __all__ = [
     "kullanicilar_router",
     "destek_router",
     "sistem_loglari_router",
+    "irsaliyeler_router",
+    "sevkiyat_planlama_router",
 ]

@@ -41,6 +41,12 @@ class SqlAlchemySevkiyatPlaniRepository(ISevkiyatPlaniRepository):
         ).filter(SevkiyatPlaniORM.id == plan_id).first()
         return sevkiyat_plani_to_entity(orm) if orm else None
 
+    def getir_siparis_id_ile(self, siparis_id: int) -> Optional[SevkiyatPlani]:
+        orm = self._db.query(SevkiyatPlaniORM).filter(
+            SevkiyatPlaniORM.siparis_id == siparis_id
+        ).first()
+        return sevkiyat_plani_to_entity(orm) if orm else None
+
     def olustur(self, plan: SevkiyatPlani) -> SevkiyatPlani:
         orm = sevkiyat_plani_to_orm(plan)
         orm.id = None

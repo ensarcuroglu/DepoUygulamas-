@@ -29,5 +29,10 @@ class ISevkiyatPlaniRepository(ABC):
         ...
 
     @abstractmethod
+    def getir_siparis_id_ile(self, siparis_id: int) -> Optional[SevkiyatPlani]:
+        """Siparişe ait sevkiyat planını getirir (varsa)."""
+        ...
+
+    @abstractmethod
     def sil(self, plan_id: int) -> bool:
         ...

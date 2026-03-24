@@ -17,9 +17,15 @@ class SevkiyatDurum:
         TESLIM_EDILDI: set(),
     }
 
+    _STOK_CIKARILMIS = {YUKLENIYOR, YOLDA, TESLIM_EDILDI}
+
     @classmethod
     def gecis_gecerli_mi(cls, mevcut: str, hedef: str) -> bool:
         return hedef in cls._GECISLER.get(mevcut, set())
+
+    @classmethod
+    def stok_cikarilmis_mi(cls, durum: str) -> bool:
+        return durum in cls._STOK_CIKARILMIS
 
 
 @dataclass

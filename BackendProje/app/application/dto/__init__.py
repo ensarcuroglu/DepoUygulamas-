@@ -64,6 +64,20 @@ from .sistem_log_dto import (
     SistemLogOlusturRequestDTO,
     SistemLogResponseDTO,
 )
+from .irsaliye_dto import (
+    IrsaliyeOlusturRequestDTO,
+    IrsaliyeGuncelleRequestDTO,
+    IrsaliyeResponseDTO,
+    IrsaliyeYazdirResponseDTO,
+    IrsaliyeYazdirIrsaliyeDTO,
+    IrsaliyeYazdirSiparisDTO,
+    IrsaliyeYazdirKalemDTO,
+)
+from .sevkiyat_plani_dto import (
+    SevkiyatPlaniOlusturRequestDTO,
+    SevkiyatPlaniGuncelleRequestDTO,
+    SevkiyatPlaniResponseDTO,
+)
 
 __all__ = [
     # Ürün
@@ -95,4 +109,11 @@ __all__ = [
     "DestekTalebiOlusturRequestDTO", "DestekTalebiGuncelleRequestDTO", "DestekTalebiResponseDTO",
     # Sistem Log
     "SistemLogOlusturRequestDTO", "SistemLogResponseDTO",
+    # İrsaliye
+    "IrsaliyeOlusturRequestDTO", "IrsaliyeGuncelleRequestDTO",
+    "IrsaliyeResponseDTO", "IrsaliyeYazdirResponseDTO",
+    "IrsaliyeYazdirIrsaliyeDTO", "IrsaliyeYazdirSiparisDTO", "IrsaliyeYazdirKalemDTO",
+    # Sevkiyat Planı
+    "SevkiyatPlaniOlusturRequestDTO", "SevkiyatPlaniGuncelleRequestDTO",
+    "SevkiyatPlaniResponseDTO",
 ]

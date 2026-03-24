@@ -85,6 +85,20 @@ from .sistem_log_use_cases import (
     SistemLogListeleUseCase,
     SistemLogOlusturUseCase,
 )
+from .irsaliye_use_cases import (
+    IrsaliyeListeleUseCase,
+    IrsaliyeGetirUseCase,
+    IrsaliyeOlusturUseCase,
+    IrsaliyeGuncelleUseCase,
+    IrsaliyeYazdirVerisiGetirUseCase,
+)
+from .sevkiyat_plani_use_cases import (
+    SevkiyatPlaniListeleUseCase,
+    SevkiyatPlaniGetirUseCase,
+    SevkiyatPlaniOlusturUseCase,
+    SevkiyatPlaniGuncelleUseCase,
+    SevkiyatPlaniSilUseCase,
+)
 
 __all__ = [
     # Ürün
@@ -125,4 +139,11 @@ __all__ = [
     "DestekTalebiOlusturUseCase", "DestekTalebiGuncelleUseCase",
     # Sistem Log
     "SistemLogListeleUseCase", "SistemLogOlusturUseCase",
+    # İrsaliye
+    "IrsaliyeListeleUseCase", "IrsaliyeGetirUseCase", "IrsaliyeOlusturUseCase",
+    "IrsaliyeGuncelleUseCase", "IrsaliyeYazdirVerisiGetirUseCase",
+    # Sevkiyat Planı
+    "SevkiyatPlaniListeleUseCase", "SevkiyatPlaniGetirUseCase",
+    "SevkiyatPlaniOlusturUseCase", "SevkiyatPlaniGuncelleUseCase",
+    "SevkiyatPlaniSilUseCase",
 ]
