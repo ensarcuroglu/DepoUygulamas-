@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
+from datetime import date
 
 from app.core.entities.rapor import RaporSablonu, RaporLogu, RaporSchedule
 
@@ -67,4 +68,42 @@ class IRaporScheduleRepository(ABC):
 
     @abstractmethod
     def sil(self, schedule_id: int) -> bool:
+        ...
+
+
+class IRaporVeriRepository(ABC):
+    """Rapor veri sorgulama repository arayüzü."""
+
+    @abstractmethod
+    def stok_verisi(self, urun_id: Optional[int] = None) -> List[Any]:
+        ...
+
+    @abstractmethod
+    def siparis_verisi(
+        self, baslang_tarihi: Optional[date] = None,
+        bitis_tarihi: Optional[date] = None,
+    ) -> List[Any]:
+        ...
+
+    @abstractmethod
+    def hareket_verisi(
+        self, baslang_tarihi: Optional[date] = None,
+        bitis_tarihi: Optional[date] = None,
+    ) -> List[Any]:
+        ...
+
+    @abstractmethod
+    def kritik_stok(self) -> List[Dict[str, Any]]:
+        ...
+
+    @abstractmethod
+    def skt_yaklasan(self, gun: int = 30) -> List[Dict[str, Any]]:
+        ...
+
+    @abstractmethod
+    def abc_analiz(self) -> List[Dict[str, Any]]:
+        ...
+
+    @abstractmethod
+    def depo_doluluk(self) -> List[Dict[str, Any]]:
         ...

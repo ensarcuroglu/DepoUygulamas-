@@ -17,6 +17,7 @@ from .sa_rapor_repository import (
     SqlAlchemyRaporSablonuRepository,
     SqlAlchemyRaporLoguRepository,
     SqlAlchemyRaporScheduleRepository,
+    SqlAlchemyRaporVeriRepository,
 )
 from .sa_stok_sayim_repository import SqlAlchemyStokSayimRepository
 
@@ -39,5 +40,6 @@ __all__ = [
     "SqlAlchemyRaporSablonuRepository",
     "SqlAlchemyRaporLoguRepository",
     "SqlAlchemyRaporScheduleRepository",
+    "SqlAlchemyRaporVeriRepository",
     "SqlAlchemyStokSayimRepository",
 ]

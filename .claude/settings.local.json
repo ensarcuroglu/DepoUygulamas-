@@ -21,7 +21,8 @@
       "Bash(python3 -m py_compile app/api/v1/routers/kullanicilar.py)",
       "Bash(python3 -m py_compile app/api/v1/routers/destek.py)",
       "Bash(python3:*)",
-      "Bash(ls /usr/bin/python*)"
+      "Bash(ls /usr/bin/python*)",
+      "Bash(grep -r 'Faz 3' '/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje/' --include=*.md)"
     ]
   }
 }

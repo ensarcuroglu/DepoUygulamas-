@@ -1,9 +1,12 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
+from datetime import date, datetime, timedelta
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 
 from app.core.entities.rapor import RaporSablonu, RaporLogu, RaporSchedule
 from app.core.repositories.rapor_repository import (
     IRaporSablonuRepository, IRaporLoguRepository, IRaporScheduleRepository,
+    IRaporVeriRepository,
 )
 from app.infrastructure.persistence.mappers import (
     rapor_sablonu_to_entity, rapor_sablonu_to_orm,
@@ -14,6 +17,8 @@ from models import (
     RaporSablonu as RaporSablonuORM,
     RaporLogu as RaporLoguORM,
     RaporSchedule as RaporScheduleORM,
+    Urun, Marka, Kategori, Siparis, SiparisKalemi,
+    StokHareketi, Kullanici, Lot, Palet, Raf,
 )
 
 
@@ -166,3 +171,163 @@ class SqlAlchemyRaporScheduleRepository(IRaporScheduleRepository):
         self._db.delete(orm)
         self._db.commit()
         return True
+
+
+# ════════════════════════════════════════════
+# RAPOR VERİ SORGULARI
+# ════════════════════════════════════════════
+
+class SqlAlchemyRaporVeriRepository(IRaporVeriRepository):
+
+    def __init__(self, db: Session):
+        self._db = db
+
+    def stok_verisi(self, urun_id: Optional[int] = None) -> List[Any]:
+        query = self._db.query(
+            Urun.id,
+            Urun.isim,
+            Urun.stok_miktari,
+            Urun.min_stok,
+            Marka.isim.label("marka"),
+            Kategori.isim.label("kategori"),
+        ).outerjoin(Marka).outerjoin(Kategori).filter(Urun.aktif == True)
+        if urun_id:
+            query = query.filter(Urun.id == urun_id)
+        return query.all()
+
+    def siparis_verisi(
+        self, baslang_tarihi: Optional[date] = None,
+        bitis_tarihi: Optional[date] = None,
+    ) -> List[Any]:
+        query = self._db.query(
+            Siparis.siparis_no,
+            Siparis.musteri_adi,
+            Siparis.teslimat_tarihi,
+            Siparis.durum,
+            Siparis.top_miktar,
+            Siparis.top_tutar,
+            func.count(SiparisKalemi.id).label("kalem_sayisi"),
+        ).outerjoin(SiparisKalemi).filter(Siparis.aktif == True)
+        if baslang_tarihi:
+            query = query.filter(Siparis.olusturma_tarihi >= baslang_tarihi)
+        if bitis_tarihi:
+            query = query.filter(Siparis.olusturma_tarihi <= bitis_tarihi)
+        return query.group_by(Siparis.id).all()
+
+    def hareket_verisi(
+        self, baslang_tarihi: Optional[date] = None,
+        bitis_tarihi: Optional[date] = None,
+    ) -> List[Any]:
+        query = self._db.query(
+            StokHareketi.hareket_tipi,
+            Urun.isim,
+            StokHareketi.miktar,
+            StokHareketi.tarih,
+            Kullanici.ad_soyad,
+        ).join(Urun).outerjoin(Kullanici)
+        if baslang_tarihi:
+            query = query.filter(StokHareketi.tarih >= baslang_tarihi)
+        if bitis_tarihi:
+            query = query.filter(StokHareketi.tarih <= bitis_tarihi)
+        return query.order_by(StokHareketi.tarih.desc()).all()
+
+    def kritik_stok(self) -> List[Dict[str, Any]]:
+        rows = self._db.query(
+            Urun.id,
+            Urun.isim,
+            Urun.stok_miktari,
+            Urun.min_stok,
+            Marka.isim.label("marka"),
+            Kategori.isim.label("kategori"),
+        ).outerjoin(Marka).outerjoin(Kategori).filter(
+            Urun.aktif == True,
+            Urun.stok_miktari <= Urun.min_stok,
+        ).order_by(Urun.stok_miktari.asc()).all()
+        return [dict(r._mapping) for r in rows]
+
+    def skt_yaklasan(self, gun: int = 30) -> List[Dict[str, Any]]:
+        sinir_tarihi = datetime.utcnow().date() + timedelta(days=gun)
+        rows = self._db.query(
+            Lot.id,
+            Lot.lot_no,
+            Lot.son_kullanma_tarihi,
+            Urun.isim.label("urun_isim"),
+            func.sum(Palet.koli_adedi).label("toplam_stok"),
+        ).join(Urun).outerjoin(
+            Palet, (Palet.lot_id == Lot.id) & (Palet.aktif == True),
+        ).filter(
+            Lot.aktif == True,
+            Lot.son_kullanma_tarihi != None,
+            Lot.son_kullanma_tarihi <= sinir_tarihi,
+            Lot.son_kullanma_tarihi >= datetime.utcnow().date(),
+        ).group_by(
+            Lot.id, Lot.lot_no, Lot.son_kullanma_tarihi, Urun.isim,
+        ).order_by(Lot.son_kullanma_tarihi.asc()).all()
+        return [dict(r._mapping) for r in rows]
+
+    def abc_analiz(self) -> List[Dict[str, Any]]:
+        satislar = self._db.query(
+            SiparisKalemi.urun_id,
+            Urun.isim.label("urun_isim"),
+            func.sum(SiparisKalemi.toplam).label("toplam_deger"),
+            func.sum(SiparisKalemi.miktar).label("toplam_miktar"),
+        ).join(Urun).join(Siparis).filter(
+            Siparis.aktif == True,
+            Siparis.durum != "Iptal",
+        ).group_by(SiparisKalemi.urun_id, Urun.isim).order_by(
+            func.sum(SiparisKalemi.toplam).desc(),
+        ).all()
+
+        if not satislar:
+            return []
+
+        genel_toplam = sum(s.toplam_deger or 0 for s in satislar)
+        if genel_toplam == 0:
+            return []
+
+        sonuclar = []
+        kumulatif = 0.0
+        for s in satislar:
+            deger = s.toplam_deger or 0
+            kumulatif += deger
+            yuzde = (kumulatif / genel_toplam) * 100
+            if yuzde <= 70:
+                sinif = "A"
+            elif yuzde <= 90:
+                sinif = "B"
+            else:
+                sinif = "C"
+            sonuclar.append({
+                "urun_id": s.urun_id,
+                "urun_isim": s.urun_isim,
+                "toplam_deger": round(deger, 2),
+                "toplam_miktar": s.toplam_miktar,
+                "sinif": sinif,
+            })
+        return sonuclar
+
+    def depo_doluluk(self) -> List[Dict[str, Any]]:
+        palet_sayilari = self._db.query(
+            Palet.raf_id,
+            func.count(Palet.id).label("dolu"),
+        ).filter(Palet.aktif == True).group_by(Palet.raf_id).subquery()
+
+        sonuclar_raw = self._db.query(
+            Raf.id,
+            Raf.kod,
+            Raf.kapasite,
+            func.coalesce(palet_sayilari.c.dolu, 0).label("dolu"),
+        ).outerjoin(
+            palet_sayilari, Raf.id == palet_sayilari.c.raf_id,
+        ).filter(Raf.aktif == True).all()
+
+        return [
+            {
+                "raf_id": row.id,
+                "raf_kodu": row.kod,
+                "kapasite": row.kapasite,
+                "dolu": row.dolu,
+                "doluluk_yuzde": round((row.dolu / row.kapasite) * 100, 1) if row.kapasite > 0 else 0,
+            }
+            for row in sonuclar_raw
+        ]

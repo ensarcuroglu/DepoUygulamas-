@@ -1,10 +1,10 @@
 # Clean Architecture Geçiş Planı — Faz 3 (Son Faz)
 
-13/17 modül Clean Architecture'a taşındı (%76). Bu plan kalan 4 modülü + auth router + dashboard endpoint'i migrate ederek geçişi tamamlar.
+17/17 modül Clean Architecture'a taşındı (%100). Bu plan kalan auth router + dashboard endpoint'i migrate ederek geçişi tamamlar.
 
 ## Mevcut Durum
 
-### Tamamlanan Modüller (13/17) ✅
+### Tamamlanan Modüller (17/17) ✅
 | # | Modül | Entity | Repo Interface | SA Repo | Use Cases | DTO | Router (CA) |
 |---|-------|--------|----------------|---------|-----------|-----|-------------|
 | 1 | Ürün | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -20,14 +20,10 @@
 | 11 | Kullanıcı | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 12 | Destek Talebi | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 13 | Sistem Log | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-
-### Kalan Modüller (4/17) ❌
-| # | Modül | Entity | Repo Interface | SA Repo | Use Cases | DTO | Router (CA) | Karmaşıklık |
-|---|-------|--------|----------------|---------|-----------|-----|-------------|-------------|
-| 14 | İrsaliye | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | Düşük (61 satır router, 90+127 service/crud) |
-| 15 | Sevkiyat Planlama | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | Düşük (66 satır router, 49+110 service/crud) |
-| 16 | Stok Sayım | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Orta (70 satır router, 196 service) |
-| 17 | Rapor | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | Yüksek (303 satır router, 189+345 service/crud) |
+| 14 | İrsaliye | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 15 | Sevkiyat Planlama | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 16 | Stok Sayım | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 17 | Rapor | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ### Ek Geçirilecekler
 | Bileşen | Durum | Not |
@@ -40,7 +36,7 @@
 ## Scope
 
 ### In:
-- Kalan 4 modülün (İrsaliye, Sevkiyat, StokSayım, Rapor) Use Case + DTO + Router geçişi
+- ~~Kalan 4 modülün (İrsaliye, Sevkiyat, StokSayım, Rapor) Use Case + DTO + Router geçişi~~ ✅ Tamamlandı
 - Auth router'ın Clean Architecture'a taşınması
 - Dashboard endpoint'in ayrı router'a çıkarılması
 - DI Container'a yeni modüllerin eklenmesi
@@ -79,11 +75,11 @@
 - [x] 3.4 — DI container + router __init__ + main.py güncelle
 - [x] 3.5 — Repo interface'e `kalem_getir_by_sayim_urun()` ve `stok_snapshot_getir()` ekle + SA impl
 
-### Adım 4: Rapor Modülü (Yüksek Karmaşıklık)
-- [ ] 4.1 — `app/application/dto/rapor_dto.py` oluştur (Sablon, Log, Schedule, Oluşturma DTO'ları)
-- [ ] 4.2 — `app/application/use_cases/rapor_use_cases.py` oluştur (SablonCRUD, RaporOlustur, LogListele, ScheduleCRUD)
-- [ ] 4.3 — `app/api/v1/routers/raporlar.py` oluştur (303 satırlık router mantığını CA'ya taşı)
-- [ ] 4.4 — DI container + router __init__ güncelle
+### Adım 4: Rapor Modülü (Yüksek Karmaşıklık) ✅
+- [x] 4.1 — `app/application/dto/rapor_dto.py` oluştur (Sablon, Log, Schedule, Oluşturma DTO'ları)
+- [x] 4.2 — `app/application/use_cases/rapor_use_cases.py` oluştur (SablonCRUD, RaporOlustur, LogListele, ScheduleCRUD)
+- [x] 4.3 — `app/api/v1/routers/raporlar.py` oluştur (303 satırlık router mantığını CA'ya taşı)
+- [x] 4.4 — DI container + router __init__ güncelle
 
 ### Adım 5: Auth Router Geçişi
 - [ ] 5.1 — `app/api/v1/routers/auth.py` oluştur (login, register, me endpoint'lerini taşı)
@@ -116,10 +112,10 @@
 ## Tahmini İş Sırası ve Öncelik
 
 ```
-Faz 3a (Basit modüller):  Adım 1 + Adım 2  → İrsaliye + Sevkiyat
-Faz 3b (Orta modül):      Adım 3            → Stok Sayım
-Faz 3c (Karmaşık modül):  Adım 4            → Rapor
-Faz 3d (Cross-cutting):   Adım 5 + Adım 6   → Auth + Dashboard
+Faz 3a (Basit modüller):  Adım 1 + Adım 2  → İrsaliye + Sevkiyat           ✅ Tamamlandı
+Faz 3b (Orta modül):      Adım 3            → Stok Sayım                   ✅ Tamamlandı
+Faz 3c (Karmaşık modül):  Adım 4            → Rapor                        ✅ Tamamlandı
+Faz 3d (Cross-cutting):   Adım 5 + Adım 6   → Auth + Dashboard            ⬜ Sırada
 Faz 3e (Temizlik):        Adım 7 + Adım 8 + Adım 9 → main.py + legacy silme + doğrulama
 ```
 
