@@ -22,7 +22,9 @@
       "Bash(python3 -m py_compile app/api/v1/routers/destek.py)",
       "Bash(python3:*)",
       "Bash(ls /usr/bin/python*)",
-      "Bash(grep -r 'Faz 3' '/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje/' --include=*.md)"
+      "Bash(grep -r 'Faz 3' '/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje/' --include=*.md)",
+      "Bash(source .venv/bin/activate)",
+      "Bash(JWT_SECRET_KEY=\"test-key-for-validation-minimum-32chars\" python3 -c \"from main import app; print\\(''Import OK — routes:'', len\\(app.routes\\)\\)\")"
     ]
   }
 }
