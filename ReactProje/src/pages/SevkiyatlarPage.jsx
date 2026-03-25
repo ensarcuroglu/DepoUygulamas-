@@ -14,10 +14,57 @@ import {
     MapPin,
     Package,
     ArrowUpRight,
-    Loader2
+    Loader2,
+    Filter,
+    RotateCcw
 } from 'lucide-react';
 import { getStokHareketleri, getUrunler } from '../services/api';
 import toast from 'react-hot-toast';
+
+// Tarih yardımcı fonksiyonları
+function gunBaslangici(tarih) {
+    const d = new Date(tarih);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function ayBaslangici() {
+    const d = new Date();
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function haftaBaslangici() {
+    const d = new Date();
+    const gun = d.getDay();
+    const fark = gun === 0 ? 6 : gun - 1; // Pazartesi başlangıç
+    d.setDate(d.getDate() - fark);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function gunOnce(n) {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function tarihToInput(tarih) {
+    if (!tarih) return '';
+    const d = new Date(tarih);
+    return d.toISOString().split('T')[0];
+}
+
+const HIZLI_FILTRELER = [
+    { etiket: 'Bugün', key: 'bugun', hesapla: () => ({ bas: gunBaslangici(new Date()), bit: null }) },
+    { etiket: 'Bu Hafta', key: 'bu_hafta', hesapla: () => ({ bas: haftaBaslangici(), bit: null }) },
+    { etiket: 'Bu Ay', key: 'bu_ay', hesapla: () => ({ bas: ayBaslangici(), bit: null }) },
+    { etiket: 'Son 7 Gün', key: 'son_7', hesapla: () => ({ bas: gunOnce(7), bit: null }) },
+    { etiket: 'Son 30 Gün', key: 'son_30', hesapla: () => ({ bas: gunOnce(30), bit: null }) },
+    { etiket: 'Tümü', key: 'tumu', hesapla: () => ({ bas: null, bit: null }) },
+];
 
 export default function SevkiyatlarPage() {
     // State tanımlamaları
@@ -28,6 +75,27 @@ export default function SevkiyatlarPage() {
     const [seciliSevkiyat, setSeciliSevkiyat] = useState(null);
     const [mevcutSayfa, setMevcutSayfa] = useState(1);
     const sayfaBasinaKayit = 10;
+
+    // Tarih filtresi state — varsayılan: Bu Ay
+    const [baslangicTarih, setBaslangicTarih] = useState(ayBaslangici());
+    const [bitisTarih, setBitisTarih] = useState(null);
+    const [aktifHizliFiltre, setAktifHizliFiltre] = useState('bu_ay');
+
+    const hizliFiltreSec = (filtre) => {
+        const { bas, bit } = filtre.hesapla();
+        setBaslangicTarih(bas);
+        setBitisTarih(bit);
+        setAktifHizliFiltre(filtre.key);
+    };
+
+    const filtreleriSifirla = () => {
+        setAramaMetni('');
+        setBaslangicTarih(ayBaslangici());
+        setBitisTarih(null);
+        setAktifHizliFiltre('bu_ay');
+    };
+
+    const filtreAktifMi = aramaMetni || aktifHizliFiltre !== 'bu_ay';
 
     // API Verilerini Çek
     useEffect(() => {
@@ -59,20 +127,37 @@ export default function SevkiyatlarPage() {
         return urun ? urun.isim : `Ürün #${urun_id}`;
     };
 
-    // Arama değiştiğinde sayfayı sıfırla
+    // Filtreler değiştiğinde sayfayı sıfırla
     useEffect(() => {
         setMevcutSayfa(1);
-    }, [aramaMetni]);
+    }, [aramaMetni, baslangicTarih, bitisTarih]);
 
-    // Arama Filitresi: Plaka, Sipariş, Depocu adına göre
+    // Arama + Tarih Filitresi
     const filtrelenmisCikislar = cikislar.filter(c => {
+        // Metin araması
         const arama = aramaMetni.toLowerCase();
-        return (
+        const metinUygun = !aramaMetni || (
             (c.tir_plaka && c.tir_plaka.toLowerCase().includes(arama)) ||
             (c.siparis_no && c.siparis_no.toLowerCase().includes(arama)) ||
             (c.kullanici && c.kullanici.ad_soyad.toLowerCase().includes(arama)) ||
             (getUrunIsmi(c.urun_id).toLowerCase().includes(arama))
         );
+
+        // Tarih filtresi
+        let tarihUygun = true;
+        if (baslangicTarih || bitisTarih) {
+            const kayitTarih = new Date(c.tarih);
+            if (baslangicTarih) {
+                tarihUygun = kayitTarih >= baslangicTarih;
+            }
+            if (tarihUygun && bitisTarih) {
+                const bitisGunSonu = new Date(bitisTarih);
+                bitisGunSonu.setHours(23, 59, 59, 999);
+                tarihUygun = kayitTarih <= bitisGunSonu;
+            }
+        }
+
+        return metinUygun && tarihUygun;
     });
 
     // Sayfalama hesaplamaları
@@ -277,8 +362,8 @@ export default function SevkiyatlarPage() {
     return (
         <div className="max-w-[1200px] mx-auto px-4 py-6 sm:px-6 lg:px-8">
 
-            {/* Sayfa Başlığı ve Arama (Header) */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            {/* Sayfa Başlığı */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
                         <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-inner">
@@ -290,16 +375,96 @@ export default function SevkiyatlarPage() {
                         Depodan sevk edilen ürünler, tır ve kapı bilgileri.
                     </p>
                 </div>
+            </div>
 
-                <div className="relative w-full sm:w-[350px]">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder="Plaka, sipariş veya personel ara..."
-                        value={aramaMetni}
-                        onChange={(e) => setAramaMetni(e.target.value)}
-                        className="w-full h-14 pl-12 pr-4 text-sm font-semibold rounded-2xl border-2 border-slate-200 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-slate-700 shadow-sm"
-                    />
+            {/* Filtre Barı */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-6 shadow-sm">
+                {/* Üst satır: Arama + Tarih aralığı + Sıfırla */}
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+                    {/* Arama */}
+                    <div className="relative flex-1 min-w-0">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Plaka, sipariş veya personel ara..."
+                            value={aramaMetni}
+                            onChange={(e) => setAramaMetni(e.target.value)}
+                            className="w-full h-11 pl-11 pr-4 text-sm font-semibold rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-slate-700"
+                        />
+                    </div>
+
+                    {/* Tarih Aralığı */}
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 bg-slate-50/80 border border-slate-200 rounded-xl px-3 h-11">
+                            <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                            <input
+                                type="date"
+                                value={tarihToInput(baslangicTarih)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setBaslangicTarih(val ? gunBaslangici(new Date(val)) : null);
+                                    setAktifHizliFiltre(null);
+                                }}
+                                className="bg-transparent text-sm font-semibold text-slate-700 outline-none w-[130px] cursor-pointer"
+                            />
+                            <span className="text-slate-300 font-bold text-xs px-1">—</span>
+                            <input
+                                type="date"
+                                value={tarihToInput(bitisTarih)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setBitisTarih(val ? new Date(val) : null);
+                                    setAktifHizliFiltre(null);
+                                }}
+                                className="bg-transparent text-sm font-semibold text-slate-700 outline-none w-[130px] cursor-pointer"
+                            />
+                        </div>
+
+                        {/* Sıfırla Butonu */}
+                        {filtreAktifMi && (
+                            <button
+                                onClick={filtreleriSifirla}
+                                className="h-11 px-3.5 rounded-xl border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-300 transition-all flex items-center gap-1.5 flex-shrink-0"
+                                title="Filtreleri sıfırla"
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                                <span className="text-xs font-bold hidden sm:inline">Sıfırla</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Alt satır: Hızlı filtre butonları + Sonuç göstergesi */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-3 pt-3 border-t border-slate-100">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        <Filter className="w-3.5 h-3.5 text-slate-400 mr-1" />
+                        {HIZLI_FILTRELER.map((filtre) => (
+                            <button
+                                key={filtre.key}
+                                onClick={() => hizliFiltreSec(filtre)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all
+                                    ${aktifHizliFiltre === filtre.key
+                                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                                    }`}
+                            >
+                                {filtre.etiket}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Sonuç Göstergesi */}
+                    {!loading && (
+                        <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5 flex-shrink-0">
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                            <span>
+                                {filtrelenmisCikislar.length === cikislar.length
+                                    ? <>{cikislar.length} kayıt</>
+                                    : <><span className="text-blue-600 font-bold">{filtrelenmisCikislar.length}</span> / {cikislar.length} kayıt gösteriliyor</>
+                                }
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 
