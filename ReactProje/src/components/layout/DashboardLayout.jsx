@@ -10,8 +10,9 @@ export default function DashboardLayout() {
     const [isMobile, setIsMobile] = useState(false);
     const location = useLocation();
 
-    // Mobilde sayfa geçişinde menüyü otomatik kapat
+    // Sayfa geçişinde scroll'u sıfırla ve mobil menüyü kapat
     useEffect(() => {
+        window.scrollTo(0, 0);
         setMobileOpen(false);
     }, [location.pathname]);
 
