@@ -9,6 +9,8 @@ import {
     Printer,
     X,
     ChevronDown,
+    ChevronLeft,
+    ChevronRight,
     MapPin,
     Package,
     ArrowUpRight,
@@ -24,6 +26,8 @@ export default function SevkiyatlarPage() {
     const [loading, setLoading] = useState(true);
     const [aramaMetni, setAramaMetni] = useState('');
     const [seciliSevkiyat, setSeciliSevkiyat] = useState(null);
+    const [mevcutSayfa, setMevcutSayfa] = useState(1);
+    const sayfaBasinaKayit = 10;
 
     // API Verilerini Çek
     useEffect(() => {
@@ -55,6 +59,11 @@ export default function SevkiyatlarPage() {
         return urun ? urun.isim : `Ürün #${urun_id}`;
     };
 
+    // Arama değiştiğinde sayfayı sıfırla
+    useEffect(() => {
+        setMevcutSayfa(1);
+    }, [aramaMetni]);
+
     // Arama Filitresi: Plaka, Sipariş, Depocu adına göre
     const filtrelenmisCikislar = cikislar.filter(c => {
         const arama = aramaMetni.toLowerCase();
@@ -65,6 +74,11 @@ export default function SevkiyatlarPage() {
             (getUrunIsmi(c.urun_id).toLowerCase().includes(arama))
         );
     });
+
+    // Sayfalama hesaplamaları
+    const toplamSayfa = Math.ceil(filtrelenmisCikislar.length / sayfaBasinaKayit);
+    const baslangicIndex = (mevcutSayfa - 1) * sayfaBasinaKayit;
+    const sayfadakiKayitlar = filtrelenmisCikislar.slice(baslangicIndex, baslangicIndex + sayfaBasinaKayit);
 
     // İrsaliye Yazdırma Şablonu (Endüstriyel WMS Tasarımı)
     const handleYazdir = (sevkiyat) => {
@@ -305,7 +319,7 @@ export default function SevkiyatlarPage() {
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {filtrelenmisCikislar.map((sevkiyat) => {
+                    {sayfadakiKayitlar.map((sevkiyat) => {
                         const isExpanded = seciliSevkiyat?.id === sevkiyat.id;
                         const urunAdi = getUrunIsmi(sevkiyat.urun_id);
                         const isOk = sevkiyat.tir_plaka && sevkiyat.siparis_no; // Plaka ve Sipariş varsa OK
@@ -443,6 +457,69 @@ export default function SevkiyatlarPage() {
                             </div>
                         );
                     })}
+
+                    {/* Sayfalama */}
+                    {toplamSayfa > 1 && (
+                        <div className="flex items-center justify-between pt-6 pb-2">
+                            <p className="text-sm font-semibold text-slate-500">
+                                Toplam {filtrelenmisCikislar.length} kayıt, sayfa {mevcutSayfa}/{toplamSayfa}
+                            </p>
+
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    onClick={() => setMevcutSayfa(s => Math.max(1, s - 1))}
+                                    disabled={mevcutSayfa === 1}
+                                    className="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                </button>
+
+                                {Array.from({ length: toplamSayfa }, (_, i) => i + 1)
+                                    .filter(sayfa => {
+                                        if (toplamSayfa <= 7) return true;
+                                        if (sayfa === 1 || sayfa === toplamSayfa) return true;
+                                        return Math.abs(sayfa - mevcutSayfa) <= 1;
+                                    })
+                                    .reduce((acc, sayfa, idx, arr) => {
+                                        if (idx > 0 && sayfa - arr[idx - 1] > 1) {
+                                            acc.push('ellipsis-' + sayfa);
+                                        }
+                                        acc.push(sayfa);
+                                        return acc;
+                                    }, [])
+                                    .map((item) => {
+                                        if (typeof item === 'string') {
+                                            return (
+                                                <span key={item} className="w-10 h-10 flex items-center justify-center text-slate-400 font-bold text-sm">
+                                                    ...
+                                                </span>
+                                            );
+                                        }
+                                        return (
+                                            <button
+                                                key={item}
+                                                onClick={() => setMevcutSayfa(item)}
+                                                className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all shadow-sm
+                                                    ${mevcutSayfa === item
+                                                        ? 'bg-blue-600 text-white border border-blue-600 shadow-md shadow-blue-500/20'
+                                                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-blue-200'
+                                                    }`}
+                                            >
+                                                {item}
+                                            </button>
+                                        );
+                                    })}
+
+                                <button
+                                    onClick={() => setMevcutSayfa(s => Math.min(toplamSayfa, s + 1))}
+                                    disabled={mevcutSayfa === toplamSayfa}
+                                    className="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                                >
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
