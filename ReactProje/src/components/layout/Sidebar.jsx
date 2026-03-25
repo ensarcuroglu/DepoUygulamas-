@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -24,45 +24,280 @@ import {
     Route,
     FileText,
     BarChart3,
-    Clock,
-    ClipboardCheck
+    ClipboardCheck,
+    ChevronDown,
 } from 'lucide-react';
 
-const menuItems = [
-    { path: '/dashboard', label: 'İş Zekası & Özet', icon: LayoutDashboard, roles: ['admin'] },
-    { path: '/urunler', label: 'Ürün Yönetimi', icon: Package, roles: ['admin'] },
-    { path: '/kategoriler', label: 'Kategori Ağacı', icon: FolderOpen, roles: ['admin'] },
-    { path: '/lotlar', label: 'LOT Takibi', icon: Layers, roles: ['admin'] },
-    { path: '/paletler', label: 'Palet Yönetimi', icon: Container, roles: ['admin'] },
-    { path: '/stok-hareketleri', label: 'Stok İşlemleri', icon: ArrowLeftRight, roles: ['admin', 'depocu', 'lojistik'] },
-    { path: '/stok-sayim', label: 'Stok Sayımı', icon: ClipboardCheck, roles: ['admin', 'depocu'] },
-    { path: '/sevkiyatlar', label: 'Sevkiyatlar (Çıkış)', icon: ArrowUpFromLine, roles: ['admin', 'depocu', 'lojistik'] },
-    { path: '/siparisler', label: 'Siparişler', icon: ClipboardList, roles: ['admin', 'lojistik'] },
-    { path: '/sevkiyat-planlama', label: 'Sevkiyat Planlama', icon: Route, roles: ['admin', 'lojistik'] },
-    { path: '/irsaliyeler', label: 'İrsaliyeler', icon: FileText, roles: ['admin', 'lojistik', 'depocu'] },
-    { path: '/raporlar', label: 'Raporlama Merkezi', icon: BarChart3, roles: ['admin', 'lojistik'] },
-    { path: '/kullanicilar', label: 'Kullanıcı Yönetimi', icon: Users, roles: ['admin'] },
-    { path: '/tedarikciler', label: 'Tedarikçi Yönetimi', icon: Truck, roles: ['admin'] },
-    { path: '/depolar', label: 'Depo & Raf', icon: Warehouse, roles: ['admin', 'lojistik'] },
-    { path: '/depo-kroki', label: 'Depo Kroki', icon: LayoutDashboard, roles: ['admin', 'lojistik'] },
+/* ───────────────────────────────────────────
+   MENU STRUCTURE — grouped with accordion
+   ─────────────────────────────────────────── */
+const menuGroups = [
+    {
+        id: 'genel',
+        label: 'Genel',
+        items: [
+            { path: '/dashboard', label: 'İş Zekası & Özet', icon: LayoutDashboard, roles: ['admin'], badge: null },
+        ],
+    },
+    {
+        id: 'urun-stok',
+        label: 'Ürün & Stok',
+        items: [
+            { path: '/urunler', label: 'Ürün Yönetimi', icon: Package, roles: ['admin'], badge: null },
+            { path: '/kategoriler', label: 'Kategori Ağacı', icon: FolderOpen, roles: ['admin'], badge: null },
+            { path: '/lotlar', label: 'LOT Takibi', icon: Layers, roles: ['admin'], badge: null },
+            { path: '/paletler', label: 'Palet Yönetimi', icon: Container, roles: ['admin'], badge: null },
+            { path: '/stok-hareketleri', label: 'Stok İşlemleri', icon: ArrowLeftRight, roles: ['admin', 'depocu', 'lojistik'], badge: null },
+            { path: '/stok-sayim', label: 'Stok Sayımı', icon: ClipboardCheck, roles: ['admin', 'depocu'], badge: null },
+        ],
+    },
+    {
+        id: 'lojistik',
+        label: 'Lojistik & Sevkiyat',
+        items: [
+            { path: '/sevkiyatlar', label: 'Sevkiyatlar (Çıkış)', icon: ArrowUpFromLine, roles: ['admin', 'depocu', 'lojistik'], badge: null },
+            { path: '/siparisler', label: 'Siparişler', icon: ClipboardList, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/sevkiyat-planlama', label: 'Sevkiyat Planlama', icon: Route, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/irsaliyeler', label: 'İrsaliyeler', icon: FileText, roles: ['admin', 'lojistik', 'depocu'], badge: null },
+        ],
+    },
+    {
+        id: 'yonetim',
+        label: 'Yönetim & Rapor',
+        items: [
+            { path: '/raporlar', label: 'Raporlama Merkezi', icon: BarChart3, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/kullanicilar', label: 'Kullanıcı Yönetimi', icon: Users, roles: ['admin'], badge: null },
+            { path: '/tedarikciler', label: 'Tedarikçi Yönetimi', icon: Truck, roles: ['admin'], badge: null },
+            { path: '/depolar', label: 'Depo & Raf', icon: Warehouse, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/depo-kroki', label: 'Depo Kroki', icon: LayoutDashboard, roles: ['admin', 'lojistik'], badge: null },
+        ],
+    },
 ];
 
 const bottomItems = [
-    { path: '/sistem-loglari', label: 'Sistem Logları', icon: ShieldAlert, roles: ['admin'] },
-    { path: '/destek-masasi', label: 'Destek Masası', icon: HelpCircle, roles: ['admin', 'depocu', 'lojistik'] },
-    { path: '/ayarlar', label: 'Sistem Tercihleri', icon: Settings, roles: ['admin'] },
+    { path: '/sistem-loglari', label: 'Sistem Logları', icon: ShieldAlert, roles: ['admin'], badge: null },
+    { path: '/destek-masasi', label: 'Destek Masası', icon: HelpCircle, roles: ['admin', 'depocu', 'lojistik'], badge: null },
+    { path: '/ayarlar', label: 'Sistem Tercihleri', icon: Settings, roles: ['admin'], badge: null },
 ];
 
+/* ───────────────────────────────────────────
+   TOOLTIP — collapsed desktop only
+   ─────────────────────────────────────────── */
+function Tooltip({ children, label, show }) {
+    const [visible, setVisible] = useState(false);
+    const [coords, setCoords] = useState({ top: 0 });
+    const ref = useRef(null);
+
+    const handleEnter = useCallback(() => {
+        if (!show) return;
+        const rect = ref.current?.getBoundingClientRect();
+        if (rect) setCoords({ top: rect.top + rect.height / 2 });
+        setVisible(true);
+    }, [show]);
+
+    const handleLeave = useCallback(() => setVisible(false), []);
+
+    return (
+        <div
+            ref={ref}
+            onMouseEnter={handleEnter}
+            onMouseLeave={handleLeave}
+            className="relative"
+        >
+            {children}
+            {show && visible && (
+                <div
+                    className="fixed z-[9999] pointer-events-none"
+                    style={{ top: coords.top, left: 96, transform: 'translateY(-50%)' }}
+                >
+                    <div className="bg-slate-800 text-slate-100 text-xs font-semibold px-3 py-2 rounded-lg shadow-xl shadow-black/30 border border-slate-700/60 whitespace-nowrap animate-tooltip-in">
+                        {label}
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-[5px] w-[10px] h-[10px] bg-slate-800 border-l border-b border-slate-700/60 rotate-45" />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ───────────────────────────────────────────
+   BADGE
+   ─────────────────────────────────────────── */
+function Badge({ count, collapsed }) {
+    if (!count) return null;
+    const display = count > 99 ? '99+' : count;
+    return (
+        <span
+            className={`inline-flex items-center justify-center font-bold rounded-full bg-rose-500/90 text-white shadow-lg shadow-rose-500/25 flex-shrink-0 leading-none
+                ${collapsed ? 'absolute -top-1 -right-1 text-[9px] min-w-[18px] h-[18px] px-1' : 'text-[10px] min-w-[20px] h-[20px] px-1.5 ml-auto'}`}
+        >
+            {display}
+        </span>
+    );
+}
+
+/* ───────────────────────────────────────────
+   MENU ITEM
+   ─────────────────────────────────────────── */
+function MenuItem({ item, showLabel, collapsed, isMobile }) {
+    const location = useLocation();
+    const Icon = item.icon;
+    const isActive = location.pathname.startsWith(item.path);
+    const showTooltip = !isMobile && collapsed;
+
+    const content = (
+        <NavLink
+            to={item.path}
+            className={`group flex items-center gap-3.5 rounded-xl text-[13.5px] font-semibold tracking-wide transition-all duration-250 relative overflow-hidden
+                ${isActive
+                    ? 'bg-gradient-to-r from-sky-500/[0.13] to-sky-500/[0.06] text-sky-400'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.04]'
+                }
+                ${!showLabel ? 'justify-center p-3 mx-auto w-12 h-12' : 'px-3.5 py-[11px]'}`}
+        >
+            {/* Active indicator */}
+            {isActive && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.6)]" />
+            )}
+
+            {/* Hover shimmer */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] via-white/[0.04] to-transparent" />
+            </div>
+
+            <div className="relative">
+                <Icon
+                    className={`flex-shrink-0 transition-all duration-250
+                        ${!showLabel ? 'w-[22px] h-[22px]' : 'w-[18px] h-[18px]'}
+                        ${isActive ? 'text-sky-400' : 'text-slate-500 group-hover:text-slate-300'}`}
+                    strokeWidth={isActive ? 2.2 : 1.8}
+                />
+                {!showLabel && <Badge count={item.badge} collapsed />}
+            </div>
+
+            {showLabel && (
+                <>
+                    <span className="whitespace-nowrap transition-transform duration-250 group-hover:translate-x-0.5 leading-none">{item.label}</span>
+                    <Badge count={item.badge} />
+                </>
+            )}
+        </NavLink>
+    );
+
+    if (showTooltip) {
+        return <Tooltip label={item.label} show>{content}</Tooltip>;
+    }
+    return content;
+}
+
+/* ───────────────────────────────────────────
+   ACCORDION GROUP
+   ─────────────────────────────────────────── */
+function AccordionGroup({ group, showLabel, collapsed, isMobile, userRole, openGroups, toggleGroup }) {
+    const location = useLocation();
+    const contentRef = useRef(null);
+    const [contentHeight, setContentHeight] = useState(0);
+
+    const filteredItems = useMemo(
+        () => group.items.filter(item => !item.roles || item.roles.includes(userRole)),
+        [group.items, userRole]
+    );
+
+    const isOpen = openGroups.has(group.id);
+    const hasActiveChild = filteredItems.some(item => location.pathname.startsWith(item.path));
+
+    useEffect(() => {
+        if (contentRef.current) {
+            setContentHeight(contentRef.current.scrollHeight);
+        }
+    }, [filteredItems]);
+
+    if (filteredItems.length === 0) return null;
+
+    // Collapsed mode — show items directly without group header
+    if (!showLabel) {
+        return (
+            <div className="space-y-1">
+                {filteredItems.map(item => (
+                    <MenuItem key={item.path} item={item} showLabel={false} collapsed={collapsed} isMobile={isMobile} />
+                ))}
+            </div>
+        );
+    }
+
+    return (
+        <div className="mb-1">
+            {/* Group header */}
+            <button
+                onClick={() => toggleGroup(group.id)}
+                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-[10.5px] font-bold uppercase tracking-[0.12em] transition-colors duration-200 group
+                    ${hasActiveChild ? 'text-sky-400/80' : 'text-slate-500 hover:text-slate-400'}`}
+            >
+                <span>{group.label}</span>
+                <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform duration-300 ease-out
+                        ${isOpen ? 'rotate-0' : '-rotate-90'}
+                        ${hasActiveChild ? 'text-sky-400/60' : 'text-slate-600 group-hover:text-slate-500'}`}
+                />
+            </button>
+
+            {/* Collapsible content */}
+            <div
+                className="overflow-hidden transition-[max-height,opacity] duration-300 ease-out"
+                style={{
+                    maxHeight: isOpen ? contentHeight + 16 : 0,
+                    opacity: isOpen ? 1 : 0,
+                }}
+            >
+                <div ref={contentRef} className="space-y-0.5 pt-1">
+                    {filteredItems.map(item => (
+                        <MenuItem key={item.path} item={item} showLabel collapsed={collapsed} isMobile={isMobile} />
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ───────────────────────────────────────────
+   SIDEBAR (main export)
+   ─────────────────────────────────────────── */
 export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
     const location = useLocation();
     const { user } = useAuth();
     const [isMobile, setIsMobile] = useState(false);
 
-    const filteredMenuItems = menuItems.filter(item =>
-        !item.roles || item.roles.includes(user?.rol)
-    );
-    const filteredBottomItems = bottomItems.filter(item =>
-        !item.roles || item.roles.includes(user?.rol)
+    // Accordion state — start with all open
+    const [openGroups, setOpenGroups] = useState(() => new Set(menuGroups.map(g => g.id)));
+
+    const toggleGroup = useCallback((id) => {
+        setOpenGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    }, []);
+
+    // Auto-open group containing active route
+    useEffect(() => {
+        for (const group of menuGroups) {
+            const hasActive = group.items.some(item => location.pathname.startsWith(item.path));
+            if (hasActive) {
+                setOpenGroups(prev => {
+                    if (prev.has(group.id)) return prev;
+                    const next = new Set(prev);
+                    next.add(group.id);
+                    return next;
+                });
+                break;
+            }
+        }
+    }, [location.pathname]);
+
+    const filteredBottomItems = useMemo(
+        () => bottomItems.filter(item => !item.roles || item.roles.includes(user?.rol)),
+        [user?.rol]
     );
 
     useEffect(() => {
@@ -83,182 +318,177 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
 
     return (
         <>
-            {/* Mobile Overlay with Glassmorphism */}
+            {/* ── Global Styles ── */}
+            <style>{`
+                @keyframes tooltipIn {
+                    from { opacity: 0; transform: translateY(-50%) translateX(-6px); }
+                    to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+                }
+                .animate-tooltip-in {
+                    animation: tooltipIn 0.15s ease-out forwards;
+                }
+                .sidebar-scroll {
+                    scrollbar-width: thin;
+                    scrollbar-color: rgba(51,65,85,0.4) transparent;
+                }
+                .sidebar-scroll::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .sidebar-scroll::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .sidebar-scroll::-webkit-scrollbar-thumb {
+                    background: rgba(51,65,85,0.4);
+                    border-radius: 4px;
+                }
+                .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+                    background: rgba(71,85,105,0.6);
+                }
+            `}</style>
+
+            {/* ── Mobile Overlay ── */}
             {isMobile && (
                 <div
-                    className={`fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 ${mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                    className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-[6px] transition-opacity duration-300
+                        ${mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                     onClick={() => setMobileOpen(false)}
                 />
             )}
 
+            {/* ── Sidebar Shell ── */}
             <aside
-                className={`fixed top-0 left-0 h-[100dvh] z-50 flex flex-col bg-[#050B14] shadow-[4px_0_30px_rgba(0,0,0,0.3)]
-                transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)]
-                ${isMobile
-                        ? (mobileOpen ? 'w-[300px] translate-x-0 rounded-r-[32px]' : 'w-[300px] -translate-x-[110%] rounded-r-[32px]')
-                        : (collapsed ? 'w-[88px] border-r border-slate-800/60' : 'w-[290px] border-r border-slate-800/60')
+                className={`fixed top-0 left-0 h-[100dvh] z-50 flex flex-col
+                    bg-[#060C17] transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)]
+                    ${isMobile
+                        ? (mobileOpen
+                            ? 'w-[300px] translate-x-0 shadow-[8px_0_40px_rgba(0,0,0,0.5)] rounded-r-3xl'
+                            : 'w-[300px] -translate-x-full rounded-r-3xl')
+                        : (collapsed
+                            ? 'w-[80px] border-r border-white/[0.06]'
+                            : 'w-[272px] border-r border-white/[0.06]')
                     }`}
             >
-                {/* Brand Logo Area */}
-                <div className={`relative flex items-center h-[90px] px-6 mb-2 mt-2
-                    ${collapsed && !isMobile ? 'justify-center px-0' : 'gap-4'}`}>
-
-                    <div className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800" />
-
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20 relative group overflow-hidden">
-                        <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out skew-x-12" />
-                        <Warehouse className="w-6 h-6 text-white drop-shadow-md relative z-10" />
+                {/* ── Brand Area ── */}
+                <div className={`relative flex items-center h-[72px] flex-shrink-0
+                    ${collapsed && !isMobile ? 'justify-center px-4' : 'px-5 gap-3.5'}`}
+                >
+                    {/* Logo */}
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-sky-500/20 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-white/10" />
+                        <Warehouse className="w-5 h-5 text-white relative z-10" strokeWidth={2} />
                     </div>
 
                     {showLabel && (
-                        <div className="animate-fade-in overflow-hidden whitespace-nowrap flex flex-col justify-center flex-1">
-                            <h1 className="text-[17px] font-black tracking-tight leading-none mb-1 text-white">Depo Yönetim</h1>
-                            <div className="flex items-center gap-1.5 mt-1">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
-                                <p className="text-[11px] text-emerald-400 font-bold tracking-[0.2em] uppercase leading-none">Sistem Aktif</p>
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-[15px] font-extrabold tracking-tight text-white leading-tight">Depo Yönetim</h1>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]" />
+                                <p className="text-[10px] text-emerald-400/90 font-semibold tracking-[0.15em] uppercase">Aktif</p>
                             </div>
                         </div>
                     )}
 
-                    {/* Mobile close button */}
+                    {/* Mobile close */}
                     {isMobile && showLabel && (
                         <button
                             onClick={() => setMobileOpen(false)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-all active:scale-95 flex-shrink-0"
+                            className="w-9 h-9 rounded-xl bg-white/[0.05] flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/[0.1] transition-all duration-200 active:scale-95 flex-shrink-0"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-4.5 h-4.5" />
                         </button>
                     )}
                 </div>
 
-                {/* Navigation Menu */}
-                <div className="flex-1 flex flex-col justify-between py-4 px-4 overflow-y-auto custom-scrollbar">
+                {/* Divider */}
+                <div className="mx-5 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent flex-shrink-0" />
 
-                    {/* Main Menu */}
-                    <nav className="space-y-1.5">
+                {/* ── Navigation ── */}
+                <div className="flex-1 flex flex-col overflow-y-auto sidebar-scroll py-4 px-3">
+
+                    {/* Main Menu Groups */}
+                    <nav className="flex-1 space-y-0.5">
+                        {menuGroups.map(group => (
+                            <AccordionGroup
+                                key={group.id}
+                                group={group}
+                                showLabel={showLabel}
+                                collapsed={collapsed}
+                                isMobile={isMobile}
+                                userRole={user?.rol}
+                                openGroups={openGroups}
+                                toggleGroup={toggleGroup}
+                            />
+                        ))}
+                    </nav>
+
+                    {/* ── Bottom Section ── */}
+                    <div className="mt-auto pt-4">
+                        <div className="mx-1 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent mb-4" />
+
                         {showLabel && (
-                            <div className="px-3 mb-4 mt-2">
-                                <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest relative inline-block">
-                                    Ana Menü
-                                </p>
+                            <div className="px-3.5 mb-2">
+                                <p className="text-[10.5px] font-bold text-slate-500 uppercase tracking-[0.12em]">Sistem</p>
                             </div>
                         )}
 
-                        {filteredMenuItems.map((item) => {
-                            const Icon = item.icon;
-                            // Exact match combined with startsWith for nested routes
-                            const isActive = location.pathname.startsWith(item.path);
-
-                            return (
-                                <NavLink
-                                    key={item.path}
-                                    to={item.path}
-                                    title={!showLabel ? item.label : ''}
-                                    className={`group flex items-center gap-4 py-3.5 rounded-2xl text-[15px] font-bold tracking-wide transition-all duration-300 relative
-                                    ${isActive
-                                            ? 'bg-blue-600/10 text-blue-400'
-                                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                                        }
-                                    ${!showLabel ? 'justify-center px-0 mx-2' : 'px-4'}`}
-                                >
-                                    {isActive && (
-                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]" />
-                                    )}
-                                    <Icon className={`flex-shrink-0 transition-transform duration-300
-                                        ${!showLabel ? 'w-6 h-6' : 'w-5 h-5'}
-                                        ${isActive ? 'text-blue-500 scale-110' : 'text-slate-500 group-hover:text-slate-300'}`}
-                                    />
-                                    {showLabel && <span className="whitespace-nowrap translate-x-0 group-hover:translate-x-1 transition-transform duration-300">{item.label}</span>}
-                                </NavLink>
-                            );
-                        })}
-                    </nav>
-
-                    {/* Bottom Section */}
-                    <div className="mt-8">
-                        <nav className="space-y-1.5 relative pt-6 mb-6">
-                            <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800" />
-
-                            {showLabel && (
-                                <div className="px-3 mb-3">
-                                    <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest relative inline-block">
-                                        Sistem Ayarları
-                                    </p>
-                                </div>
-                            )}
-
-                            {filteredBottomItems.map((item) => {
-                                const Icon = item.icon;
-                                const isActive = location.pathname.startsWith(item.path);
-                                return (
-                                    <NavLink
-                                        key={item.path}
-                                        to={item.path}
-                                        title={!showLabel ? item.label : ''}
-                                        className={`group flex items-center gap-4 py-3 rounded-2xl text-[14px] font-bold transition-all duration-300 relative
-                                        ${isActive
-                                                ? 'bg-slate-800 text-white'
-                                                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                                            }
-                                        ${!showLabel ? 'justify-center px-0 mx-2' : 'px-4'}`}
-                                    >
-                                        <Icon className={`flex-shrink-0 transition-transform duration-300
-                                            ${!showLabel ? 'w-5 h-5' : 'w-5 h-5'}
-                                            ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'}`}
-                                        />
-                                        {showLabel && <span className="whitespace-nowrap translate-x-0 group-hover:translate-x-1 transition-transform duration-300">{item.label}</span>}
-                                    </NavLink>
-                                );
-                            })}
+                        <nav className="space-y-0.5">
+                            {filteredBottomItems.map(item => (
+                                <MenuItem key={item.path} item={item} showLabel={showLabel} collapsed={collapsed} isMobile={isMobile} />
+                            ))}
                         </nav>
 
-                        {/* User Profile Snippet for Mobile/Expanded */}
+                        {/* User Profile */}
                         {showLabel && (
-                            <div className="mx-2 mb-2 p-3 rounded-2xl bg-slate-800/30 border border-slate-700/50 flex items-center justify-between group cursor-pointer hover:bg-slate-800/80 transition-colors">
-                                <div className="flex items-center gap-3 overflow-hidden">
-                                    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0">
-                                        <UserCircle className="w-6 h-6 text-slate-300" />
+                            <div className="mt-4 mx-0.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between group hover:bg-white/[0.05] transition-colors duration-200 cursor-pointer">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center flex-shrink-0 shadow-inner">
+                                        <UserCircle className="w-5 h-5 text-slate-300" strokeWidth={1.8} />
                                     </div>
-                                    <div className="overflow-hidden">
-                                        <p className="text-[13px] font-bold text-slate-200 truncate">{user?.ad_soyad || 'Kullanıcı'}</p>
-                                        <p className="text-[11px] font-semibold text-slate-500 truncate capitalize">{user?.rol || 'Rol Yok'}</p>
+                                    <div className="min-w-0">
+                                        <p className="text-[13px] font-semibold text-slate-200 truncate leading-tight">{user?.ad_soyad || 'Kullanıcı'}</p>
+                                        <p className="text-[11px] font-medium text-slate-500 truncate capitalize leading-tight mt-0.5">{user?.rol || 'Rol Yok'}</p>
                                     </div>
                                 </div>
-                                <button title="Çıkış Yap" className="w-8 h-8 rounded-full bg-slate-700/50 flex items-center justify-center text-slate-400 hover:bg-red-500/20 hover:text-red-400 transition-colors flex-shrink-0">
-                                    <LogOut className="w-4 h-4" />
+                                <button
+                                    title="Çıkış Yap"
+                                    className="w-8 h-8 rounded-lg bg-transparent flex items-center justify-center text-slate-500 hover:bg-rose-500/10 hover:text-rose-400 transition-all duration-200 flex-shrink-0"
+                                >
+                                    <LogOut className="w-4 h-4" strokeWidth={2} />
                                 </button>
                             </div>
                         )}
 
-                        {/* Just Logout Icon for Collapsed Desktop */}
+                        {/* Collapsed — logout only */}
                         {!showLabel && (
-                            <button
-                                title="Sistemden Çıkış"
-                                className="w-full flex items-center justify-center py-3 rounded-2xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors px-0 mx-2"
-                            >
-                                <LogOut className="w-6 h-6" />
-                            </button>
+                            <Tooltip label="Çıkış Yap" show={!isMobile && collapsed}>
+                                <button
+                                    title="Çıkış Yap"
+                                    className="w-12 h-12 mx-auto flex items-center justify-center rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-200 mt-2"
+                                >
+                                    <LogOut className="w-[22px] h-[22px]" strokeWidth={1.8} />
+                                </button>
+                            </Tooltip>
                         )}
                     </div>
                 </div>
 
-                {/* Collapse Toggle — only on desktop */}
+                {/* ── Collapse Toggle (desktop only) ── */}
                 {!isMobile && (
-                    <div className="p-4 relative">
-                        <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800" />
+                    <div className="flex-shrink-0 px-3 pb-4 pt-2">
+                        <div className="mx-1 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent mb-3" />
                         <button
                             onClick={() => setCollapsed(!collapsed)}
-                            className={`w-full flex items-center gap-3 py-4 rounded-2xl text-[13px] font-black uppercase tracking-wider
-                            text-slate-500 hover:text-white hover:bg-slate-800/80 transition-all duration-300
-                            ${collapsed ? 'justify-center px-0 mx-2' : 'px-4'}`}
+                            className={`w-full flex items-center gap-2.5 py-3 rounded-xl text-[12px] font-bold uppercase tracking-wider
+                                text-slate-500 hover:text-slate-300 hover:bg-white/[0.04] transition-all duration-250
+                                ${collapsed ? 'justify-center' : 'px-3.5'}`}
                             title={collapsed ? 'Menüyü Genişlet' : 'Daralt'}
                         >
                             {collapsed ? (
-                                <Menu className="w-6 h-6" />
+                                <Menu className="w-5 h-5" strokeWidth={1.8} />
                             ) : (
                                 <>
-                                    <ChevronLeft className="w-5 h-5" />
-                                    <span>Menüyü Daralt</span>
+                                    <ChevronLeft className="w-4 h-4" strokeWidth={2} />
+                                    <span>Daralt</span>
                                 </>
                             )}
                         </button>
