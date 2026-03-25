@@ -100,11 +100,12 @@
 - [x] 7.2 — Tüm CA router'lar import/include edildi
 - [x] 7.3 — `main.py`'de sadece app setup, middleware, lifespan, exception handler ve APScheduler kaldı
 
-### Adım 8: Legacy Dosya Temizliği
-- [ ] 8.1 — Eski `routers/` klasöründeki taşınan dosyaları sil (auth, irsaliyeler, raporlar, sevkiyat_planlama, stok_sayim)
-- [ ] 8.2 — Eski `services/` klasöründeki karşılık gelen service dosyalarını sil (irsaliye_service, rapor_service, sevkiyat_service, stok_sayim_service)
-- [ ] 8.3 — Eski `crud/` klasöründeki karşılık gelen dosyaları sil (irsaliye_crud, rapor_crud, sevkiyat_crud, dashboard_crud)
-- [ ] 8.4 — `routers/__init__.py`, `services/__init__.py`, `crud/__init__.py` export'larını güncelle
+### Adım 8: Legacy Dosya Temizliği ✅
+- [x] 8.1 — `routers/` klasörü tamamen silindi (17 dosya — tüm eski router'lar CA'ya taşınmıştı)
+- [x] 8.2 — `services/` klasörü tamamen silindi (14 dosya — iş mantığı use case'lere taşınmıştı)
+- [x] 8.3 — `crud/` klasörü tamamen silindi (16 dosya — sorgu mantığı repository'lere taşınmıştı)
+- [x] 8.4 — `_crud_legacy.py` silindi (hiçbir yerde import edilmiyordu)
+- [x] 8.5 — `tests/integration/crud/` ve `tests/integration/services/` eski testleri silindi (legacy kodu test ediyorlardı)
 
 ### Adım 9: Doğrulama
 - [ ] 9.1 — `uvicorn main:app` ile sunucuyu başlat, tüm endpoint'lerin `/docs`'ta göründüğünü doğrula
@@ -120,7 +121,8 @@ Faz 3a (Basit modüller):  Adım 1 + Adım 2  → İrsaliye + Sevkiyat          
 Faz 3b (Orta modül):      Adım 3            → Stok Sayım                   ✅ Tamamlandı
 Faz 3c (Karmaşık modül):  Adım 4            → Rapor                        ✅ Tamamlandı
 Faz 3d (Cross-cutting):   Adım 5 + Adım 6 + Adım 7 → Auth + Dashboard + main.py  ✅ Tamamlandı
-Faz 3e (Temizlik):        Adım 8 + Adım 9   → legacy silme + doğrulama     ⬜ Sırada
+Faz 3e (Temizlik):        Adım 8             → legacy silme                 ✅ Tamamlandı
+Faz 3f (Doğrulama):       Adım 9             → test + doğrulama             ⬜ Sırada
 ```
 
 ## Referans: Bir Modülün CA Katman Yapısı
