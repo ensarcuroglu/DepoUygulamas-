@@ -48,11 +48,7 @@ from app.api.v1.routers import (
     sevkiyat_planlama_router as v1_sevkiyat_planlama_router,
     stok_sayim_router as v1_stok_sayim_router,
     raporlar_router as v1_raporlar_router,
-)
-
-# ── ESKİ Router'lar (henüz use case'e dönüştürülmemiş modüller) ──
-from routers import (
-    auth,
+    auth_router as v1_auth_router,
 )
 
 # ========================
@@ -230,8 +226,8 @@ app.include_router(v1_sevkiyat_planlama_router)
 app.include_router(v1_stok_sayim_router)
 app.include_router(v1_raporlar_router)
 
-# ESKİ Router'lar (henüz dönüştürülmemiş modüller)
-app.include_router(auth.router)
+# Auth Router (CA)
+app.include_router(v1_auth_router)
 
 
 @app.get("/")

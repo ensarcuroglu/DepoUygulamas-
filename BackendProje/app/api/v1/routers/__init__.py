@@ -15,6 +15,7 @@ from .irsaliyeler import router as irsaliyeler_router
 from .sevkiyat_planlama import router as sevkiyat_planlama_router
 from .stok_sayim import router as stok_sayim_router
 from .raporlar import router as raporlar_router
+from .auth import router as auth_router
 
 __all__ = [
     "urunler_router",
@@ -34,4 +35,5 @@ __all__ = [
     "sevkiyat_planlama_router",
     "stok_sayim_router",
     "raporlar_router",
+    "auth_router",
 ]
