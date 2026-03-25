@@ -378,9 +378,9 @@ export default function SevkiyatlarPage() {
             </div>
 
             {/* Filtre Barı */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-6 shadow-sm">
+            <div className="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4 mb-5 sm:mb-6 shadow-sm">
                 {/* Üst satır: Arama + Tarih aralığı + Sıfırla */}
-                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+                <div className="flex flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-center">
                     {/* Arama */}
                     <div className="relative flex-1 min-w-0">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
@@ -393,56 +393,62 @@ export default function SevkiyatlarPage() {
                         />
                     </div>
 
-                    {/* Tarih Aralığı */}
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5 bg-slate-50/80 border border-slate-200 rounded-xl px-3 h-11">
-                            <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                            <input
-                                type="date"
-                                value={tarihToInput(baslangicTarih)}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setBaslangicTarih(val ? gunBaslangici(new Date(val)) : null);
-                                    setAktifHizliFiltre(null);
-                                }}
-                                className="bg-transparent text-sm font-semibold text-slate-700 outline-none w-[130px] cursor-pointer"
-                            />
-                            <span className="text-slate-300 font-bold text-xs px-1">—</span>
-                            <input
-                                type="date"
-                                value={tarihToInput(bitisTarih)}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setBitisTarih(val ? new Date(val) : null);
-                                    setAktifHizliFiltre(null);
-                                }}
-                                className="bg-transparent text-sm font-semibold text-slate-700 outline-none w-[130px] cursor-pointer"
-                            />
+                    {/* Tarih Aralığı + Sıfırla */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        {/* Tarih input'ları — mobilde alt alta, sm+ yan yana */}
+                        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-0 bg-slate-50/80 border border-slate-200 rounded-xl px-3 py-2.5 sm:py-0 sm:h-11">
+                            <div className="flex items-center gap-2 sm:gap-1.5">
+                                <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0 sm:mr-0.5" />
+                                <input
+                                    type="date"
+                                    value={tarihToInput(baslangicTarih)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setBaslangicTarih(val ? gunBaslangici(new Date(val)) : null);
+                                        setAktifHizliFiltre(null);
+                                    }}
+                                    className="bg-transparent text-sm font-semibold text-slate-700 outline-none w-full sm:w-[130px] cursor-pointer"
+                                />
+                            </div>
+                            <span className="hidden sm:flex text-slate-300 font-bold text-xs px-1 items-center justify-center">—</span>
+                            <div className="flex items-center gap-2 sm:gap-1.5">
+                                <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0 sm:hidden" />
+                                <input
+                                    type="date"
+                                    value={tarihToInput(bitisTarih)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setBitisTarih(val ? new Date(val) : null);
+                                        setAktifHizliFiltre(null);
+                                    }}
+                                    className="bg-transparent text-sm font-semibold text-slate-700 outline-none w-full sm:w-[130px] cursor-pointer"
+                                />
+                            </div>
                         </div>
 
                         {/* Sıfırla Butonu */}
                         {filtreAktifMi && (
                             <button
                                 onClick={filtreleriSifirla}
-                                className="h-11 px-3.5 rounded-xl border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-300 transition-all flex items-center gap-1.5 flex-shrink-0"
+                                className="h-11 px-3.5 rounded-xl border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-300 transition-all flex items-center justify-center gap-1.5 flex-shrink-0"
                                 title="Filtreleri sıfırla"
                             >
                                 <RotateCcw className="w-4 h-4" />
-                                <span className="text-xs font-bold hidden sm:inline">Sıfırla</span>
+                                <span className="text-xs font-bold">Sıfırla</span>
                             </button>
                         )}
                     </div>
                 </div>
 
                 {/* Alt satır: Hızlı filtre butonları + Sonuç göstergesi */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-3 pt-3 border-t border-slate-100">
+                <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between mt-3 pt-3 border-t border-slate-100">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                        <Filter className="w-3.5 h-3.5 text-slate-400 mr-1" />
+                        <Filter className="w-3.5 h-3.5 text-slate-400 mr-0.5" />
                         {HIZLI_FILTRELER.map((filtre) => (
                             <button
                                 key={filtre.key}
                                 onClick={() => hizliFiltreSec(filtre)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all
+                                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all
                                     ${aktifHizliFiltre === filtre.key
                                         ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
                                         : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
@@ -455,7 +461,7 @@ export default function SevkiyatlarPage() {
 
                     {/* Sonuç Göstergesi */}
                     {!loading && (
-                        <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5 flex-shrink-0">
+                        <div className="text-[11px] sm:text-xs font-semibold text-slate-400 flex items-center gap-1.5 flex-shrink-0">
                             <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
                             <span>
                                 {filtrelenmisCikislar.length === cikislar.length
@@ -625,23 +631,23 @@ export default function SevkiyatlarPage() {
 
                     {/* Sayfalama */}
                     {toplamSayfa > 1 && (
-                        <div className="flex items-center justify-between pt-6 pb-2">
-                            <p className="text-sm font-semibold text-slate-500">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-5 sm:pt-6 pb-2">
+                            <p className="text-xs sm:text-sm font-semibold text-slate-500 order-2 sm:order-1">
                                 Toplam {filtrelenmisCikislar.length} kayıt, sayfa {mevcutSayfa}/{toplamSayfa}
                             </p>
 
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1 sm:gap-1.5 order-1 sm:order-2">
                                 <button
                                     onClick={() => setMevcutSayfa(s => Math.max(1, s - 1))}
                                     disabled={mevcutSayfa === 1}
-                                    className="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
                                 >
-                                    <ChevronLeft className="w-5 h-5" />
+                                    <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
 
                                 {Array.from({ length: toplamSayfa }, (_, i) => i + 1)
                                     .filter(sayfa => {
-                                        if (toplamSayfa <= 7) return true;
+                                        if (toplamSayfa <= 5) return true;
                                         if (sayfa === 1 || sayfa === toplamSayfa) return true;
                                         return Math.abs(sayfa - mevcutSayfa) <= 1;
                                     })
@@ -655,7 +661,7 @@ export default function SevkiyatlarPage() {
                                     .map((item) => {
                                         if (typeof item === 'string') {
                                             return (
-                                                <span key={item} className="w-10 h-10 flex items-center justify-center text-slate-400 font-bold text-sm">
+                                                <span key={item} className="w-7 sm:w-10 h-9 sm:h-10 flex items-center justify-center text-slate-400 font-bold text-xs sm:text-sm">
                                                     ...
                                                 </span>
                                             );
@@ -664,7 +670,7 @@ export default function SevkiyatlarPage() {
                                             <button
                                                 key={item}
                                                 onClick={() => setMevcutSayfa(item)}
-                                                className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all shadow-sm
+                                                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm transition-all shadow-sm
                                                     ${mevcutSayfa === item
                                                         ? 'bg-blue-600 text-white border border-blue-600 shadow-md shadow-blue-500/20'
                                                         : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-blue-200'
@@ -678,9 +684,9 @@ export default function SevkiyatlarPage() {
                                 <button
                                     onClick={() => setMevcutSayfa(s => Math.min(toplamSayfa, s + 1))}
                                     disabled={mevcutSayfa === toplamSayfa}
-                                    className="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
                                 >
-                                    <ChevronRight className="w-5 h-5" />
+                                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
                             </div>
                         </div>
