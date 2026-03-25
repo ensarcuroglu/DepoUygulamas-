@@ -1,6 +1,6 @@
 # Clean Architecture Geçiş Planı — Faz 3 (Son Faz)
 
-17/17 modül Clean Architecture'a taşındı (%100). Bu plan kalan auth router + dashboard endpoint'i migrate ederek geçişi tamamlar.
+17/17 modül + Auth + Dashboard Clean Architecture'a taşındı. Kalan iş: legacy dosya temizliği ve doğrulama.
 
 ## Mevcut Durum
 
@@ -28,8 +28,8 @@
 ### Ek Geçirilecekler
 | Bileşen | Durum | Not |
 |---------|-------|-----|
-| Auth Router | ❌ | 223 satır, eski `routers/auth.py`'de — JWT login/register/me |
-| Dashboard Endpoint | ❌ | `main.py` içinde inline, `crud.get_dashboard_stats` kullanıyor (28 satır) |
+| Auth Router | ✅ | `app/api/v1/routers/auth.py`'ye taşındı — cross-cutting concern, use case gerekmedi |
+| Dashboard Endpoint | ✅ | Tam CA: Repo + UseCase + DTO + Router. `main.py`'den `import crud` kaldırıldı |
 
 ---
 
@@ -37,10 +37,10 @@
 
 ### In:
 - ~~Kalan 4 modülün (İrsaliye, Sevkiyat, StokSayım, Rapor) Use Case + DTO + Router geçişi~~ ✅ Tamamlandı
-- Auth router'ın Clean Architecture'a taşınması
-- Dashboard endpoint'in ayrı router'a çıkarılması
-- DI Container'a yeni modüllerin eklenmesi
-- `main.py`'den eski router import'larının temizlenmesi
+- ~~Auth router'ın Clean Architecture'a taşınması~~ ✅ Tamamlandı
+- ~~Dashboard endpoint'in ayrı router'a çıkarılması~~ ✅ Tamamlandı
+- ~~DI Container'a yeni modüllerin eklenmesi~~ ✅ Tamamlandı
+- ~~`main.py`'den eski router import'larının temizlenmesi~~ ✅ Tamamlandı
 - Eski `crud/`, `services/`, `routers/` dosyalarının deprecated işaretlenmesi veya silinmesi
 
 ### Out:
@@ -81,20 +81,24 @@
 - [x] 4.3 — `app/api/v1/routers/raporlar.py` oluştur (303 satırlık router mantığını CA'ya taşı)
 - [x] 4.4 — DI container + router __init__ güncelle
 
-### Adım 5: Auth Router Geçişi
-- [ ] 5.1 — `app/api/v1/routers/auth.py` oluştur (login, register, me endpoint'lerini taşı)
-- [ ] 5.2 — Auth iş mantığını mevcut `auth.py` modülünden use case'e çevirmeye **gerek yok** — auth cross-cutting concern olarak kalabilir; sadece router lokasyonu değişir
+### Adım 5: Auth Router Geçişi ✅
+- [x] 5.1 — `app/api/v1/routers/auth.py` oluştur (login, refresh, logout, me, register endpoint'lerini taşı)
+- [x] 5.2 — `main.py`'den eski `from routers import auth` kaldırıldı, yeni CA router eklendi
+- [x] 5.3 — Auth cross-cutting concern olarak kaldı; use case katmanı gerekmedi
 
-### Adım 6: Dashboard Endpoint Taşıma
-- [ ] 6.1 — `app/application/use_cases/dashboard_use_cases.py` oluştur (GetDashboardStats)
-- [ ] 6.2 — `app/application/dto/dashboard_dto.py` oluştur
-- [ ] 6.3 — `app/api/v1/routers/dashboard.py` oluştur
-- [ ] 6.4 — `main.py`'deki inline dashboard endpoint'i kaldır
+### Adım 6: Dashboard Endpoint Taşıma ✅
+- [x] 6.1 — `app/core/repositories/dashboard_repository.py` oluştur (IDashboardRepository + DashboardIstatistik value object)
+- [x] 6.2 — `app/infrastructure/persistence/repositories/sa_dashboard_repository.py` oluştur
+- [x] 6.3 — `app/application/dto/dashboard_dto.py` oluştur (DashboardStatsResponseDTO)
+- [x] 6.4 — `app/application/use_cases/dashboard_use_cases.py` oluştur (DashboardIstatistikGetirUseCase)
+- [x] 6.5 — `app/api/v1/routers/dashboard.py` oluştur
+- [x] 6.6 — DI container'a dashboard repo factory + use case factory eklendi
+- [x] 6.7 — `main.py`'den inline dashboard endpoint, `import crud`, `DashboardStats` import'u kaldırıldı
 
-### Adım 7: main.py Temizliği
-- [ ] 7.1 — Eski `from routers import ...` satırlarını kaldır
-- [ ] 7.2 — Yeni CA router'ların import/include'larını ekle
-- [ ] 7.3 — `main.py`'de sadece app setup, middleware, lifespan ve exception handler kalacak şekilde sadeleştir
+### Adım 7: main.py Temizliği ✅ (Adım 5+6 ile birlikte yapıldı)
+- [x] 7.1 — Eski `from routers import ...` satırları kaldırıldı
+- [x] 7.2 — Tüm CA router'lar import/include edildi
+- [x] 7.3 — `main.py`'de sadece app setup, middleware, lifespan, exception handler ve APScheduler kaldı
 
 ### Adım 8: Legacy Dosya Temizliği
 - [ ] 8.1 — Eski `routers/` klasöründeki taşınan dosyaları sil (auth, irsaliyeler, raporlar, sevkiyat_planlama, stok_sayim)
@@ -115,8 +119,8 @@
 Faz 3a (Basit modüller):  Adım 1 + Adım 2  → İrsaliye + Sevkiyat           ✅ Tamamlandı
 Faz 3b (Orta modül):      Adım 3            → Stok Sayım                   ✅ Tamamlandı
 Faz 3c (Karmaşık modül):  Adım 4            → Rapor                        ✅ Tamamlandı
-Faz 3d (Cross-cutting):   Adım 5 + Adım 6   → Auth + Dashboard            ⬜ Sırada
-Faz 3e (Temizlik):        Adım 7 + Adım 8 + Adım 9 → main.py + legacy silme + doğrulama
+Faz 3d (Cross-cutting):   Adım 5 + Adım 6 + Adım 7 → Auth + Dashboard + main.py  ✅ Tamamlandı
+Faz 3e (Temizlik):        Adım 8 + Adım 9   → legacy silme + doğrulama     ⬜ Sırada
 ```
 
 ## Referans: Bir Modülün CA Katman Yapısı
@@ -147,5 +151,5 @@ app/
 ## Open Questions
 
 1. **`models.py` ve `schemas.py` ne zaman kaldırılacak?** — Mapper'lar ve auth hâlâ bunlara bağımlı. Tam kaldırma için ayrı bir refactoring fazı gerekiyor.
-2. **Eski `crud/__init__.py` main.py'de hâlâ import ediliyor** — Dashboard taşındıktan sonra `import crud` satırı silinebilir mi, yoksa başka bağımlılıklar var mı kontrol edilmeli.
+2. ~~**Eski `crud/__init__.py` main.py'de hâlâ import ediliyor**~~ ✅ Çözüldü — Dashboard taşındıktan sonra `import crud` satırı kaldırıldı.
 3. **APScheduler `main.py`'de inline** — Zamanlı rapor tetikleme mantığı bir servis/use case'e mi taşınmalı, yoksa infrastructure concern olarak mı kalmalı?

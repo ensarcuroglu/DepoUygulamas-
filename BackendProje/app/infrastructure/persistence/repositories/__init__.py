@@ -20,6 +20,7 @@ from .sa_rapor_repository import (
     SqlAlchemyRaporVeriRepository,
 )
 from .sa_stok_sayim_repository import SqlAlchemyStokSayimRepository
+from .sa_dashboard_repository import SqlAlchemyDashboardRepository
 
 __all__ = [
     "SqlAlchemyMarkaRepository",
@@ -42,4 +43,5 @@ __all__ = [
     "SqlAlchemyRaporScheduleRepository",
     "SqlAlchemyRaporVeriRepository",
     "SqlAlchemyStokSayimRepository",
+    "SqlAlchemyDashboardRepository",
 ]

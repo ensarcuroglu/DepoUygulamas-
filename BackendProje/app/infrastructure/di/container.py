@@ -38,6 +38,7 @@ from app.infrastructure.persistence.repositories import (
     SqlAlchemyRaporLoguRepository,
     SqlAlchemyRaporScheduleRepository,
     SqlAlchemyRaporVeriRepository,
+    SqlAlchemyDashboardRepository,
 )
 
 # ── Use Case sınıfları ──
@@ -152,6 +153,7 @@ from app.application.use_cases import (
     RaporVeriSorgulaUseCase,
     RaporExportUseCase,
 )
+from app.application.use_cases.dashboard_use_cases import DashboardIstatistikGetirUseCase
 
 # ── Domain Service ──
 from app.core.services.stok_cikis_domain_service import StokCikisDomainService
@@ -960,3 +962,17 @@ def get_rapor_export_uc(
     rapor_log_repo=Depends(get_rapor_log_repo),
 ):
     return RaporExportUseCase(veri_repo, rapor_log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# DASHBOARD REPOSITORY + USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_dashboard_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyDashboardRepository(db)
+
+
+def get_dashboard_istatistik_uc(
+    dashboard_repo=Depends(get_dashboard_repo),
+):
+    return DashboardIstatistikGetirUseCase(dashboard_repo)

@@ -1,20 +1,16 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 from datetime import datetime
 import logging
-from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from fastapi.responses import JSONResponse
 from fastapi import Request
 
-from database import engine, get_db, SessionLocal
-from models import Base, Kullanici, RaporSchedule
-from auth import get_current_user, require_role, SECRET_KEY
-import crud
-from schemas import DashboardStats
+from database import engine, SessionLocal
+from models import Base, RaporSchedule
+from auth import SECRET_KEY
 from limiter import limiter
 
 # ── Birleşik exception yapısı ──
@@ -49,6 +45,7 @@ from app.api.v1.routers import (
     stok_sayim_router as v1_stok_sayim_router,
     raporlar_router as v1_raporlar_router,
     auth_router as v1_auth_router,
+    dashboard_router as v1_dashboard_router,
 )
 
 # ========================
@@ -226,8 +223,9 @@ app.include_router(v1_sevkiyat_planlama_router)
 app.include_router(v1_stok_sayim_router)
 app.include_router(v1_raporlar_router)
 
-# Auth Router (CA)
+# Auth + Dashboard Router (CA — Faz 3d)
 app.include_router(v1_auth_router)
+app.include_router(v1_dashboard_router)
 
 
 @app.get("/")
@@ -237,14 +235,5 @@ def ana_sayfa():
         "docs": "/docs",
         "versiyon": "2.0.0"
     }
-
-
-@app.get("/api/dashboard", response_model=DashboardStats)
-def dashboard_istatistikleri(
-    db: Session = Depends(get_db),
-    current_user: Kullanici = Depends(require_role("admin"))
-):
-    """Dashboard için toplam ürün, kritik stok, günlük hareket ve toplam değer istatistikleri"""
-    return crud.get_dashboard_stats(db)
 
 # uvicorn main:app --reload --host 127.0.0.1 --port 8000
