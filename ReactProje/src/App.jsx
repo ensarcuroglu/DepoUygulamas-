@@ -27,6 +27,7 @@ import RaporOlusturPage from './pages/RaporOlusturPage';
 import RaporSablonlarPage from './pages/RaporSablonlarPage';
 import RaporZamanliPage from './pages/RaporZamanliPage';
 import StokSayimPage from './pages/StokSayimPage';
+import MalKabulIrsaliyeleriPage from './pages/MalKabulIrsaliyeleriPage';
 
 /**
  * Varsayılan yönlendirme: Depocu → stok-hareketleri, Admin → dashboard
@@ -77,6 +78,7 @@ function App() {
               {/* İrsaliye Yönetimi (Admin + Lojistik + Depocu) */}
               <Route element={<RoleRoute allowedRoles={['admin', 'lojistik', 'depocu']} />}>
                 <Route path="/irsaliyeler" element={<IrsaliyelerPage />} />
+                <Route path="/mal-kabul-irsaliyeleri" element={<MalKabulIrsaliyeleriPage />} />
               </Route>
 
               {/* Stok Sayımı (Admin + Depocu) */}

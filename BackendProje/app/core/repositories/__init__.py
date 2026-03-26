@@ -16,6 +16,7 @@ from .irsaliye_repository import IIrsaliyeRepository
 from .rapor_repository import IRaporSablonuRepository, IRaporLoguRepository, IRaporScheduleRepository
 from .stok_sayim_repository import IStokSayimRepository
 from .dashboard_repository import IDashboardRepository
+from .mal_kabul_irsaliye_repository import IMalKabulIrsaliyeRepository
 
 __all__ = [
     "IMarkaRepository", "IKategoriRepository", "IDepoRepository",
@@ -26,4 +27,5 @@ __all__ = [
     "IRaporSablonuRepository", "IRaporLoguRepository", "IRaporScheduleRepository",
     "IStokSayimRepository",
     "IDashboardRepository",
+    "IMalKabulIrsaliyeRepository",
 ]

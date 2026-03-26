@@ -382,6 +382,55 @@ class Irsaliye(Base):
 
 
 # ========================
+# MAL KABUL İRSALİYESİ
+# ========================
+
+class MalKabulIrsaliye(Base):
+    __tablename__ = "mal_kabul_irsaliyeleri"
+
+    id = Column(Integer, primary_key=True, index=True)
+    irsaliye_no = Column(String(50), unique=True, nullable=False, index=True)  # MKI-2026-00001
+    tedarikci_id = Column(Integer, ForeignKey("tedarikciler.id"), nullable=False)
+    depo_id = Column(Integer, ForeignKey("depolar.id"), nullable=False)
+    tir_plaka = Column(String(20), nullable=True)
+    sofor_adi = Column(String(100), nullable=True)
+    durum = Column(String(20), default="Taslak")  # Taslak, Onaylandi, Tamamlandi
+    tarih = Column(Date, nullable=False)
+    olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
+    guncelleme_tarihi = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # İlişkiler
+    tedarikci = relationship("Tedarikci")
+    depo = relationship("Depo")
+    kalemler = relationship("MalKabulKalemi", back_populates="irsaliye", cascade="all, delete-orphan")
+
+
+# ========================
+# MAL KABUL KALEMİ
+# ========================
+
+class MalKabulKalemi(Base):
+    __tablename__ = "mal_kabul_kalemleri"
+
+    id = Column(Integer, primary_key=True, index=True)
+    mal_kabul_irsaliyesi_id = Column(Integer, ForeignKey("mal_kabul_irsaliyeleri.id"), nullable=False)
+    palet_no = Column(String(30), unique=True, nullable=False, index=True)  # PLT-2026-00001
+    urun_id = Column(Integer, ForeignKey("urunler.id"), nullable=False)
+    lot_no = Column(String(50), nullable=True)
+    miktar = Column(Integer, nullable=False)
+    raf_id = Column(Integer, ForeignKey("raflar.id"), nullable=True)
+    durum = Column(String(20), default="Bekliyor")  # Bekliyor, GirisYapildi
+    uretim_tarihi = Column(Date, nullable=True)
+    son_kullanma_tarihi = Column(Date, nullable=True)
+    olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
+
+    # İlişkiler
+    irsaliye = relationship("MalKabulIrsaliye", back_populates="kalemler")
+    urun = relationship("Urun")
+    raf = relationship("Raf")
+
+
+# ========================
 # RAPOR ŞABLONU
 # ========================
 

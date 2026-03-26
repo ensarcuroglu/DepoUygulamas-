@@ -15,6 +15,7 @@ from .sevkiyat_plani import SevkiyatPlani
 from .irsaliye import Irsaliye
 from .rapor import RaporSablonu, RaporLogu, RaporSchedule
 from .stok_sayim import StokSayim, StokSayimKalemi
+from .mal_kabul_irsaliye import MalKabulIrsaliye, MalKabulKalemi
 
 __all__ = [
     "Marka", "Kategori", "Depo", "Raf", "Tedarikci",
@@ -23,4 +24,5 @@ __all__ = [
     "Siparis", "SiparisKalemi", "SevkiyatPlani", "Irsaliye",
     "RaporSablonu", "RaporLogu", "RaporSchedule",
     "StokSayim", "StokSayimKalemi",
+    "MalKabulIrsaliye", "MalKabulKalemi",
 ]

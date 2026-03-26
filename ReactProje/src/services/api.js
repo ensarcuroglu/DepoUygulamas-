@@ -282,6 +282,15 @@ export const updateSiparis = (id, data) => api.put(`/siparisler/${id}`, data);
 export const deleteSiparis = (id) => api.delete(`/siparisler/${id}`);
 
 // ========================
+// MAL KABUL İRSALİYELERİ
+// ========================
+export const getMalKabulIrsaliyeleri = (params = {}) => api.get('/mal-kabul-irsaliyeleri/', { params });
+export const getMalKabulIrsaliye = (id) => api.get(`/mal-kabul-irsaliyeleri/${id}`);
+export const createMalKabulIrsaliye = (data) => api.post('/mal-kabul-irsaliyeleri/', data);
+export const updateMalKabulIrsaliye = (id, data) => api.put(`/mal-kabul-irsaliyeleri/${id}`, data);
+export const deleteMalKabulIrsaliye = (id) => api.delete(`/mal-kabul-irsaliyeleri/${id}`);
+
+// ========================
 // SEVKİYAT PLANLAMA
 // ========================
 export const getSevkiyatPlanlari = (params = {}) => api.get('/sevkiyat-planlama/', { params });

@@ -46,6 +46,7 @@ from app.api.v1.routers import (
     raporlar_router as v1_raporlar_router,
     auth_router as v1_auth_router,
     dashboard_router as v1_dashboard_router,
+    mal_kabul_irsaliyeleri_router as v1_mal_kabul_irsaliyeleri_router,
 )
 
 # ========================
@@ -222,6 +223,7 @@ app.include_router(v1_irsaliyeler_router)
 app.include_router(v1_sevkiyat_planlama_router)
 app.include_router(v1_stok_sayim_router)
 app.include_router(v1_raporlar_router)
+app.include_router(v1_mal_kabul_irsaliyeleri_router)
 
 # Auth + Dashboard Router (CA — Faz 3d)
 app.include_router(v1_auth_router)

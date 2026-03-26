@@ -87,6 +87,14 @@ from .stok_sayim_dto import (
     VaryansKalemDTO,
 )
 
+from .mal_kabul_irsaliye_dto import (
+    MalKabulKalemiOlusturDTO,
+    MalKabulKalemiResponseDTO,
+    MalKabulIrsaliyeOlusturRequestDTO,
+    MalKabulIrsaliyeGuncelleRequestDTO,
+    MalKabulIrsaliyeResponseDTO,
+)
+
 __all__ = [
     # Ürün
     "UrunOlusturRequestDTO", "UrunGuncelleRequestDTO",
@@ -128,4 +136,8 @@ __all__ = [
     "StokSayimOlusturRequestDTO", "StokSayimKalemiKaydetRequestDTO",
     "StokSayimResponseDTO", "StokSayimKalemiResponseDTO",
     "VaryansResponseDTO", "VaryansKalemDTO",
+    # Mal Kabul İrsaliyesi
+    "MalKabulKalemiOlusturDTO", "MalKabulKalemiResponseDTO",
+    "MalKabulIrsaliyeOlusturRequestDTO", "MalKabulIrsaliyeGuncelleRequestDTO",
+    "MalKabulIrsaliyeResponseDTO",
 ]

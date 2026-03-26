@@ -125,6 +125,14 @@ from .rapor_use_cases import (
     RaporExportUseCase,
 )
 
+from .mal_kabul_irsaliye_use_cases import (
+    MalKabulIrsaliyeListeleUseCase,
+    MalKabulIrsaliyeGetirUseCase,
+    MalKabulIrsaliyeOlusturUseCase,
+    MalKabulIrsaliyeGuncelleUseCase,
+    MalKabulIrsaliyeSilUseCase,
+)
+
 __all__ = [
     # Ürün
     "UrunListeleUseCase", "UrunGetirUseCase", "UrunOlusturUseCase",
@@ -181,4 +189,8 @@ __all__ = [
     "RaporScheduleListeleUseCase", "RaporScheduleGetirUseCase", "RaporScheduleOlusturUseCase",
     "RaporScheduleGuncelleUseCase", "RaporScheduleSilUseCase", "RaporScheduleTetikleUseCase",
     "RaporVeriSorgulaUseCase", "RaporExportUseCase",
+    # Mal Kabul İrsaliyesi
+    "MalKabulIrsaliyeListeleUseCase", "MalKabulIrsaliyeGetirUseCase",
+    "MalKabulIrsaliyeOlusturUseCase", "MalKabulIrsaliyeGuncelleUseCase",
+    "MalKabulIrsaliyeSilUseCase",
 ]

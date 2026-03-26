@@ -39,6 +39,7 @@ from app.infrastructure.persistence.repositories import (
     SqlAlchemyRaporScheduleRepository,
     SqlAlchemyRaporVeriRepository,
     SqlAlchemyDashboardRepository,
+    SqlAlchemyMalKabulIrsaliyeRepository,
 )
 
 # ── Use Case sınıfları ──
@@ -152,6 +153,12 @@ from app.application.use_cases import (
     RaporScheduleTetikleUseCase,
     RaporVeriSorgulaUseCase,
     RaporExportUseCase,
+    # Mal Kabul İrsaliyesi
+    MalKabulIrsaliyeListeleUseCase,
+    MalKabulIrsaliyeGetirUseCase,
+    MalKabulIrsaliyeOlusturUseCase,
+    MalKabulIrsaliyeGuncelleUseCase,
+    MalKabulIrsaliyeSilUseCase,
 )
 from app.application.use_cases.dashboard_use_cases import DashboardIstatistikGetirUseCase
 
@@ -976,3 +983,48 @@ def get_dashboard_istatistik_uc(
     dashboard_repo=Depends(get_dashboard_repo),
 ):
     return DashboardIstatistikGetirUseCase(dashboard_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# MAL KABUL İRSALİYESİ REPOSITORY + USE CASE FACTORY'LERİ
+# ═══════════════════════════════════════════════════════════════
+
+def get_mal_kabul_irsaliye_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyMalKabulIrsaliyeRepository(db)
+
+
+def get_mal_kabul_irsaliye_listele_uc(
+    repo=Depends(get_mal_kabul_irsaliye_repo),
+):
+    return MalKabulIrsaliyeListeleUseCase(repo)
+
+
+def get_mal_kabul_irsaliye_getir_uc(
+    repo=Depends(get_mal_kabul_irsaliye_repo),
+):
+    return MalKabulIrsaliyeGetirUseCase(repo)
+
+
+def get_mal_kabul_irsaliye_olustur_uc(
+    repo=Depends(get_mal_kabul_irsaliye_repo),
+    tedarikci_repo=Depends(get_tedarikci_repo),
+    depo_repo=Depends(get_depo_repo),
+    urun_repo=Depends(get_urun_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return MalKabulIrsaliyeOlusturUseCase(repo, tedarikci_repo, depo_repo, urun_repo, log_repo)
+
+
+def get_mal_kabul_irsaliye_guncelle_uc(
+    repo=Depends(get_mal_kabul_irsaliye_repo),
+    urun_repo=Depends(get_urun_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return MalKabulIrsaliyeGuncelleUseCase(repo, urun_repo, log_repo)
+
+
+def get_mal_kabul_irsaliye_sil_uc(
+    repo=Depends(get_mal_kabul_irsaliye_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return MalKabulIrsaliyeSilUseCase(repo, log_repo)
