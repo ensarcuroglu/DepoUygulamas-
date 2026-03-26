@@ -21,7 +21,9 @@ from auth import (
     create_refresh_token,
     verify_and_get_user_from_refresh_token,
     get_current_user,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
+    ALGORITHM,
 )
 from schemas import (
     LoginRequest,
@@ -41,7 +43,7 @@ router = APIRouter(prefix="/api/auth", tags=["Kimlik Doğrulama"])
 def login(request: Request, login_request: LoginRequest, db: Session = Depends(get_db)):
     """
     Kullanıcı adı ve şifre ile giriş yapar.
-    Başarılıysa kısa ömürlü access_token (30 dk) ve
+    Başarılıysa kısa ömürlü access_token (8 saat) ve
     uzun ömürlü refresh_token (7 gün) döner.
     """
     user = db.query(Kullanici).filter(
@@ -185,3 +187,14 @@ def register(
     db.refresh(new_user)
 
     return new_user
+
+
+@router.get("/config")
+def get_auth_config():
+    """Auth yapılandırma bilgilerini döndürür (hassas bilgi yok)."""
+    return {
+        "access_token_expire_minutes": ACCESS_TOKEN_EXPIRE_MINUTES,
+        "refresh_token_expire_days": REFRESH_TOKEN_EXPIRE_DAYS,
+        "algorithm": ALGORITHM,
+        "password_hash": "bcrypt",
+    }

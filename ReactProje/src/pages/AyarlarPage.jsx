@@ -1,6 +1,27 @@
+import { useState, useEffect } from 'react';
 import { Settings, Database, Shield, Palette, ChevronRight, AlertCircle, Lock } from 'lucide-react';
+import api from '../services/api';
 
 export default function AyarlarPage() {
+    const [authConfig, setAuthConfig] = useState(null);
+
+    useEffect(() => {
+        api.get('/auth/config')
+            .then(res => setAuthConfig(res.data))
+            .catch(() => setAuthConfig(null));
+    }, []);
+
+    // Token süresini okunabilir formata çevir
+    const formatTokenSuresi = (dakika) => {
+        if (!dakika) return 'Yükleniyor...';
+        if (dakika >= 60) {
+            const saat = Math.floor(dakika / 60);
+            const kalan = dakika % 60;
+            return kalan > 0 ? `${saat} saat ${kalan} dk` : `${saat} saat`;
+        }
+        return `${dakika} dakika`;
+    };
+
     const ayarGruplari = [
         {
             icon: Database,
@@ -17,9 +38,10 @@ export default function AyarlarPage() {
             title: 'Güvenlik',
             desc: 'Kimlik doğrulama, yetkilendirme ve token ayarları',
             items: [
-                { label: 'Auth Yöntemi', value: 'JWT (Faz 3)', isEditable: false },
-                { label: 'Şifreleme Algoritması', value: 'bcrypt', isEditable: true },
-                { label: 'Token Geçerlilik Süresi', value: '24 saat', isEditable: true },
+                { label: 'Auth Yöntemi', value: authConfig ? `JWT (${authConfig.algorithm})` : 'Yükleniyor...', isEditable: false },
+                { label: 'Şifreleme Algoritması', value: authConfig?.password_hash || 'Yükleniyor...', isEditable: false },
+                { label: 'Token Geçerlilik Süresi', value: formatTokenSuresi(authConfig?.access_token_expire_minutes), isEditable: false },
+                { label: 'Refresh Token Süresi', value: authConfig ? `${authConfig.refresh_token_expire_days} gün` : 'Yükleniyor...', isEditable: false },
             ]
         },
         {

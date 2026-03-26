@@ -40,7 +40,7 @@ def _get_secret_key() -> str:
 
 SECRET_KEY = _get_secret_key()
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30   # 30 dakika
+ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 saat
 REFRESH_TOKEN_EXPIRE_DAYS = 7      # 7 gün
 
 # ========================
