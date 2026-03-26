@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import {
     FolderOpen, Plus, Edit3, Trash2, X, Package, Search,
-    LayoutGrid, List, ChevronDown, Sparkles, Tag, Box,
-    Layers, Archive, Bookmark, Star, Zap, Shield, Heart,
-    Globe, Cpu, Settings, Truck, Home, Music, Camera,
-    Coffee, Briefcase, ShoppingBag, Monitor, Smartphone,
-    Watch, Headphones, Wrench, Palette, Leaf, Flame,
-    Anchor, Crown, Diamond, Gem, Key, Lock, Map,
-    Award, Target, TrendingUp, Users, AlertCircle
+    ChevronDown, Sparkles, Tag, Box, Layers, Archive,
+    Bookmark, Star, Zap, Shield, Heart, Globe, Cpu,
+    Settings, Truck, Home, Music, Camera, Coffee,
+    Briefcase, ShoppingBag, Monitor, Smartphone, Watch,
+    Headphones, Wrench, Palette, Leaf, Flame, Anchor,
+    Crown, Diamond, Gem, Key, Lock, Map, Award, Target,
+    TrendingUp, Users, AlertCircle
 } from 'lucide-react';
 import { getKategoriler, createKategori, updateKategori, deleteKategori } from '../services/api';
 import toast from 'react-hot-toast';
@@ -222,7 +222,6 @@ export default function KategorilerPage() {
     const { loading, run } = useAsync(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editKategori, setEditKategori] = useState(null);
-    const [viewMode, setViewMode] = useState('grid');
     const [searchTerm, setSearchTerm] = useState('');
     const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -237,7 +236,7 @@ export default function KategorilerPage() {
 
     useEffect(() => { fetchData(); }, []);
 
-    const handleDelete = async (id, isim) => {
+    const handleDelete = (id, isim) => {
         setDeleteTarget({ id, isim });
     };
 
@@ -317,7 +316,7 @@ export default function KategorilerPage() {
                         </button>
                     </div>
 
-                    {/* Arama & Görünüm Kontrolleri */}
+                    {/* Arama Alanı */}
                     {kategoriler.length > 0 && (
                         <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-100">
                             <div className="relative flex-1 max-w-xs">
@@ -338,30 +337,15 @@ export default function KategorilerPage() {
                                     </button>
                                 )}
                             </div>
-                            <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
-                                <button onClick={() => setViewMode('grid')}
-                                    className={`w-8 h-8 rounded-md flex items-center justify-center transition-all duration-200
-                                    ${viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
-                                    <LayoutGrid className="w-4 h-4" />
-                                </button>
-                                <button onClick={() => setViewMode('list')}
-                                    className={`w-8 h-8 rounded-md flex items-center justify-center transition-all duration-200
-                                    ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
-                                    <List className="w-4 h-4" />
-                                </button>
-                            </div>
                         </div>
                     )}
                 </div>
 
                 {/* ── İçerik ── */}
                 {loading ? (
-                    <div className={viewMode === 'grid'
-                        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-                        : "space-y-2"}>
-                        {[...Array(8)].map((_, i) => (
-                            <div key={i} className={`bg-white border border-slate-100 animate-pulse rounded-xl
-                                ${viewMode === 'grid' ? 'h-40' : 'h-16'}`} />
+                    <div className="space-y-2">
+                        {[...Array(6)].map((_, i) => (
+                            <div key={i} className="bg-white border border-slate-100 animate-pulse rounded-xl h-16" />
                         ))}
                     </div>
                 ) : filtered.length === 0 && searchTerm ? (
@@ -382,64 +366,8 @@ export default function KategorilerPage() {
                             Ürünlerinizi organize etmek için ilk kategorinizi oluşturun
                         </p>
                     </div>
-                ) : viewMode === 'grid' ? (
-                    /* ── Grid View ── */
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {filtered.map((kat, i) => {
-                            const color = COLORS[i % COLORS.length];
-                            const Icon = getIcon(kat.ikon);
-                            return (
-                                <div key={kat.id}
-                                    className="group bg-white rounded-xl border border-slate-200/60 p-5 flex flex-col
-                                    justify-between hover:border-slate-300 transition-all duration-300 animate-cardIn
-                                    hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06)] relative"
-                                    style={{ animationDelay: `${i * 50}ms` }}>
-
-                                    <div>
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className={`w-10 h-10 rounded-xl ${color.bg} flex items-center justify-center
-                                                group-hover:scale-105 transition-transform duration-300`}>
-                                                <Icon className={`w-5 h-5 ${color.text}`} />
-                                            </div>
-
-                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                <button onClick={() => { setEditKategori(kat); setModalOpen(true); }}
-                                                    className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors"
-                                                    title="Düzenle">
-                                                    <Edit3 className="w-3.5 h-3.5 text-slate-400 hover:text-blue-600" />
-                                                </button>
-                                                <button onClick={() => handleDelete(kat.id, kat.isim)}
-                                                    className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors"
-                                                    title="Sil">
-                                                    <Trash2 className="w-3.5 h-3.5 text-slate-400 hover:text-red-500" />
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <h3 className="text-[15px] font-bold text-slate-900 mb-1.5 leading-tight
-                                            group-hover:text-blue-600 transition-colors duration-200">
-                                            {kat.isim}
-                                        </h3>
-                                        <p className="text-[12px] text-slate-400 line-clamp-2 leading-relaxed">
-                                            {kat.aciklama || 'Açıklama eklenmemiş'}
-                                        </p>
-                                    </div>
-
-                                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                                        <span className="text-[10px] font-medium text-slate-300 uppercase tracking-wider">
-                                            #{kat.id.toString().padStart(4, '0')}
-                                        </span>
-                                        <div className="flex items-center gap-1.5">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${color.dot}`} />
-                                            <span className="text-[10px] font-semibold text-slate-400">Aktif</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
                 ) : (
-                    /* ── List View ── */
+                    /* ── Sadece Liste Görünümü ── */
                     <div className="bg-white rounded-xl border border-slate-200/60 divide-y divide-slate-100 overflow-hidden">
                         {filtered.map((kat, i) => {
                             const color = COLORS[i % COLORS.length];
