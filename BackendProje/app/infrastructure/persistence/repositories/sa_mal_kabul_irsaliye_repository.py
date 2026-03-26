@@ -76,7 +76,7 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
         self._db.refresh(orm)
         return mal_kabul_irsaliye_to_entity(orm)
 
-    def guncelle(self, irsaliye: MalKabulIrsaliye) -> MalKabulIrsaliye:
+    def guncelle(self, irsaliye: MalKabulIrsaliye, auto_commit: bool = True) -> MalKabulIrsaliye:
         orm = self._db.query(MalKabulIrsaliyeORM).filter(
             MalKabulIrsaliyeORM.id == irsaliye.id
         ).first()
@@ -92,7 +92,7 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
         orm.guncelleme_tarihi = irsaliye.guncelleme_tarihi
 
         # Kalemler — senkronize et
-        mevcut_kalem_idler = {k.id for k in orm.kalemler if k.id}
+        orm_kalem_map = {k.id: k for k in orm.kalemler if k.id}
         yeni_kalem_idler = {k.id for k in irsaliye.kalemler if k.id}
 
         # Silinen kalemleri kaldır
@@ -102,8 +102,8 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
 
         # Mevcut kalemleri güncelle veya yeni ekle
         for kalem_entity in irsaliye.kalemler:
-            if kalem_entity.id and kalem_entity.id in mevcut_kalem_idler:
-                kalem_orm = next(k for k in orm.kalemler if k.id == kalem_entity.id)
+            if kalem_entity.id and kalem_entity.id in orm_kalem_map:
+                kalem_orm = orm_kalem_map[kalem_entity.id]
                 kalem_orm.palet_no = kalem_entity.palet_no
                 kalem_orm.urun_id = kalem_entity.urun_id
                 kalem_orm.lot_no = kalem_entity.lot_no
@@ -118,8 +118,11 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
                 yeni_orm.mal_kabul_irsaliyesi_id = orm.id
                 orm.kalemler.append(yeni_orm)
 
-        self._db.commit()
-        self._db.refresh(orm)
+        if auto_commit:
+            self._db.commit()
+            self._db.refresh(orm)
+        else:
+            self._db.flush()
         return mal_kabul_irsaliye_to_entity(orm)
 
     def sil(self, irsaliye_id: int) -> bool:

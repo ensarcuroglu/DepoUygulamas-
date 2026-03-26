@@ -164,6 +164,11 @@ from app.application.use_cases.dashboard_use_cases import DashboardIstatistikGet
 
 # ── Domain Service ──
 from app.core.services.stok_cikis_domain_service import StokCikisDomainService
+from app.core.services.palet_bazli_stok_domain_service import PaletBazliStokDomainService
+
+# ── Palet Veri Kaynagi Adapter + Sorgulama ──
+from app.infrastructure.services.irsaliye_palet_veri_kaynagi_service import IrsaliyePaletVeriKaynagiService
+from app.infrastructure.services.palet_sorgulama_service import PaletSorgulamaService
 
 # ── Şifre hash fonksiyonu (Kullanıcı use case'i için) ──
 from auth import get_password_hash
@@ -1028,3 +1033,44 @@ def get_mal_kabul_irsaliye_sil_uc(
     log_repo=Depends(get_log_repo),
 ):
     return MalKabulIrsaliyeSilUseCase(repo, log_repo)
+
+
+# ═══════════════════════════════════════════════════════════════
+# PALET BAZLI STOK İŞLEMLERİ — ADAPTER + DOMAIN SERVICE
+# ════════════════════════════════════════════════════════��══════
+
+def get_irsaliye_palet_veri_kaynagi(
+    mal_kabul_repo=Depends(get_mal_kabul_irsaliye_repo),
+    urun_repo=Depends(get_urun_repo),
+    depo_repo=Depends(get_depo_repo),
+    raf_repo=Depends(get_raf_repo),
+    lot_repo=Depends(get_lot_repo),
+):
+    return IrsaliyePaletVeriKaynagiService(
+        mal_kabul_repo, urun_repo, depo_repo, raf_repo, lot_repo,
+    )
+
+
+def get_palet_bazli_stok_service(
+    veri_kaynagi=Depends(get_irsaliye_palet_veri_kaynagi),
+    palet_repo=Depends(get_palet_repo),
+    lot_repo=Depends(get_lot_repo),
+    hareket_repo=Depends(get_hareket_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return PaletBazliStokDomainService(
+        veri_kaynagi, palet_repo, lot_repo, hareket_repo, log_repo,
+    )
+
+
+def get_palet_sorgulama_service(
+    veri_kaynagi=Depends(get_irsaliye_palet_veri_kaynagi),
+    palet_repo=Depends(get_palet_repo),
+    lot_repo=Depends(get_lot_repo),
+    urun_repo=Depends(get_urun_repo),
+    depo_repo=Depends(get_depo_repo),
+    raf_repo=Depends(get_raf_repo),
+):
+    return PaletSorgulamaService(
+        veri_kaynagi, palet_repo, lot_repo, urun_repo, depo_repo, raf_repo,
+    )

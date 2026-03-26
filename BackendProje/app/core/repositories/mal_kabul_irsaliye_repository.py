@@ -25,7 +25,7 @@ class IMalKabulIrsaliyeRepository(ABC):
         ...
 
     @abstractmethod
-    def guncelle(self, irsaliye: MalKabulIrsaliye) -> MalKabulIrsaliye:
+    def guncelle(self, irsaliye: MalKabulIrsaliye, auto_commit: bool = True) -> MalKabulIrsaliye:
         ...
 
     @abstractmethod

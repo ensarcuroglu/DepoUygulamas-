@@ -94,7 +94,7 @@ export default function IrsaliyelerPage() {
     const isSevk = irsaliye.belge_turu === 'SevkIrsaliyesi';
     const belgeBaslik = isSevk ? 'SEVK İRSALİYESİ' : 'İADE İRSALİYESİ';
     const accentColor = isSevk ? '#1e40af' : '#b45309'; // Kurumsal lacivert veya kiremit
-    
+
     // Tarih formatlama
     const tarih = new Date(irsaliye.irsaliye_tarihi).toLocaleDateString('tr-TR', {
       year: 'numeric', month: 'long', day: 'numeric'
@@ -367,7 +367,7 @@ export default function IrsaliyelerPage() {
     const newWindow = window.open('', '_blank');
     newWindow.document.write(htmlContent);
     newWindow.document.close();
-    
+
     // Fontların ve stillerin tarayıcı tarafından işlenmesi için kısa bekleme
     setTimeout(() => {
       newWindow.focus();
