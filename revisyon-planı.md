@@ -1,6 +1,6 @@
 # Stok İşlemleri Revizyon Planı — Palet Numarası Bazlı Giriş/Çıkış
 
-> **Durum:** Planlandı | **Tarih:** 2026-03-26 | **Yöntem:** Brainstorming → Tasarım → Fazlı Uygulama
+> **Durum:** Faz 1a Tamamlandı | **Tarih:** 2026-03-26 | **Yöntem:** Brainstorming → Tasarım → Fazlı Uygulama
 
 ---
 
@@ -337,16 +337,59 @@ Yeni:    Tip Seç → Palet No Gir → Bilgi Önizleme → Onayla
 
 ## 10. Uygulama Fazları
 
-| Faz | Kapsam | Bağımlılık | Detay |
+| Faz | Kapsam | Durum | Detay |
 |---|---|---|---|
-| **Faz 1a** | MalKabulIrsaliyesi entity + repository + CRUD API + frontend sayfası | Yok | Yeni entity'ler, DB migration, mal kabul sayfası |
-| **Faz 1b** | IPaletVeriKaynagiService + IrsaliyePaletVeriKaynagi adapter | Faz 1a | Soyutlama katmanı, adapter implementasyonu |
-| **Faz 1c** | PaletBazliStokDomainService + stok-islemleri endpoint'leri | Faz 1b | Domain service, yeni API endpoint'leri |
-| **Faz 1d** | Kullanıcı depo ataması + yetki kontrolü | Faz 1c | `kullanicilar.depo_id`, rol bazlı kontrol |
-| **Faz 1e** | Frontend StokHareketleriPage yeni akış | Faz 1c | Palet no bazlı UI, barkod/kamera entegrasyonu |
-| **Faz 1f** | Testler + entegrasyon doğrulama | Faz 1e | Unit, integration, API test suite |
-| **Faz 2** | Toplu palet işlemi (çoklu tarama) | Faz 1 tamamı | Çoklu palet tarama, toplu onay |
-| **Faz 3** | ERP adapter (`ErpPaletVeriKaynagiService`) | Faz 1 tamamı | ERP API entegrasyonu, adapter swap |
+| **Faz 1a** | MalKabulIrsaliyesi entity + repository + CRUD API + frontend sayfası | **TAMAMLANDI** | Entity, ORM, mapper, repository, use case, DTO, router, React sayfası, /simplify review |
+| **Faz 1b** | IPaletVeriKaynagiService + IrsaliyePaletVeriKaynagi adapter | Bekliyor | Soyutlama katmanı, adapter implementasyonu |
+| **Faz 1c** | PaletBazliStokDomainService + stok-islemleri endpoint'leri | Bekliyor | Domain service, yeni API endpoint'leri |
+| **Faz 1d** | Kullanıcı depo ataması + yetki kontrolü | Bekliyor | `kullanicilar.depo_id`, rol bazlı kontrol |
+| **Faz 1e** | Frontend StokHareketleriPage yeni akış | Bekliyor | Palet no bazlı UI, barkod/kamera entegrasyonu |
+| **Faz 1f** | Testler + entegrasyon doğrulama | Bekliyor | Unit, integration, API test suite |
+| **Faz 2** | Toplu palet işlemi (çoklu tarama) | Bekliyor | Çoklu palet tarama, toplu onay |
+| **Faz 3** | ERP adapter (`ErpPaletVeriKaynagiService`) | Bekliyor | ERP API entegrasyonu, adapter swap |
+
+---
+
+## 14. Faz 1a — Tamamlanan Çalışma ve Notlar
+
+**Tamamlanma:** 2026-03-26 | **/simplify review:** Yapıldı (3 agent: reuse, quality, efficiency)
+
+### Oluşturulan Dosyalar
+
+| Katman | Dosya | Not |
+|---|---|---|
+| Entity | `app/core/entities/mal_kabul_irsaliye.py` | `MalKabulDurum` state machine, `MalKabulKalemi`, `MalKabulIrsaliye` (composite) |
+| Repository | `app/core/repositories/mal_kabul_irsaliye_repository.py` | ABC interface, `getir_kalem_palet_no_ile()` Faz 1b'de kullanılacak |
+| SA Repository | `app/infrastructure/persistence/repositories/sa_mal_kabul_irsaliye_repository.py` | joinedload, kalem sync, MKI-YYYY-NNNNN numara |
+| DTO | `app/application/dto/mal_kabul_irsaliye_dto.py` | Olustur/Guncelle/Response DTO'lar, kalem DTO |
+| Use Cases | `app/application/use_cases/mal_kabul_irsaliye_use_cases.py` | Listele, Getir, Olustur, Guncelle, Sil |
+| Router | `app/api/v1/routers/mal_kabul_irsaliyeleri.py` | CRUD endpoint'ler, rol: admin+depocu+lojistik |
+| ORM | `models.py` (ekleme) | `MalKabulIrsaliye`, `MalKabulKalemi` ORM modelleri |
+| Mapper | `mappers.py` (ekleme) | `mal_kabul_*_to_entity/orm` (composite pattern) |
+| DI | `container.py` (ekleme) | Repo + 5 use case factory |
+| Frontend | `ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx` | Expandable list, modal CRUD, durum gecisileri |
+| API | `ReactProje/src/services/api.js` (ekleme) | 5 yeni API fonksiyonu |
+| Route | `App.jsx`, `Sidebar.jsx` (ekleme) | `/mal-kabul-irsaliyeleri` route + nav |
+
+### /simplify Review Sonrası Yapılan Düzeltmeler
+
+1. `ValueError` → `GecersizIslemError` (SilUseCase — HTTP 500 engelendi)
+2. N+1 ürün doğrulama → `_urunleri_dogrula()` helper (deduplicated ID set)
+3. Duplicate kalem mapping → `_dto_to_kalem_entity()` helper
+4. Redundant condition `duzenlenebilir_mi() or eski_durum == TASLAK` → sadece `eski_durum == TASLAK`
+5. Silent `except Exception: pass` kaldırıldı (mapper)
+6. DTO validator: `TASLAK` izinli durumlardan çıkarıldı (domain zaten reddediyordu)
+7. `guncelle()` repo: `return None` → `raise KayitBulunamadiError` (interface kontratı)
+8. Dead state `detayModal` + unused import `Edit3` kaldırıldı
+9. Referans veriler (tedarikci, depo, urun, raf) ayrı `useEffect` ile tek seferde yükleniyor
+
+### Faz 1b'ye Geçiş Notları
+
+- `IMalKabulIrsaliyeRepository.getir_kalem_palet_no_ile(palet_no)` metodu **hazır** — Faz 1b adapter bunu kullanacak
+- `MalKabulKalemi.durum` alanı (`Bekliyor` → `GirisYapildi`) **hazır** — adapter `palet_giris_onayla()` bunu güncelleyecek
+- `IPaletVeriKaynagiService` interface → `app/core/services/` altında oluşturulacak
+- `IrsaliyePaletVeriKaynagiService` adapter → `app/infrastructure/services/` altında, `getir_kalem_palet_no_ile()` çağırarak implement edilecek
+- `PaletBilgiDTO` → use case veya DTO katmanında tanımlanacak (kaynak: Bölüm 6.2)
 
 ---
 
