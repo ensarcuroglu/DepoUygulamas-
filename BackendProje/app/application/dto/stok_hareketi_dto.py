@@ -110,5 +110,5 @@ class StokHareketiResponseDTO(BaseModel):
             aciklama=entity.aciklama,
             kullanici_id=entity.kullanici_id,
             tarih=entity.tarih,
-            palet_no=getattr(entity, "palet_no", None),
+            palet_no=entity.palet_no,
         )

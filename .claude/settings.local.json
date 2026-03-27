@@ -29,7 +29,9 @@
       "Bash(find '/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje/core' -type f -name *.py)",
       "Bash(find '/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje' -type f -name schema*.py -o -name *schema.py)",
       "Bash(find '/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje' -type f \\\\\\(-name *migration* -o -name *alembic* \\\\\\))",
-      "Bash(grep -r \"palet.*giris\\\\|palet.*cikis\\\\|palet-giris\\\\|palet-cikis\" /mnt/d/Ensar Dosya/DepoUygulaması/ReactProje/src --include=*.jsx --include=*.js)"
+      "Bash(grep -r \"palet.*giris\\\\|palet.*cikis\\\\|palet-giris\\\\|palet-cikis\" /mnt/d/Ensar Dosya/DepoUygulaması/ReactProje/src --include=*.jsx --include=*.js)",
+      "Bash(npx --yes acorn-jsx --ecma2020 src/pages/StokHareketleriPage.jsx)",
+      "Bash(node -e \":*)"
     ]
   }
 }

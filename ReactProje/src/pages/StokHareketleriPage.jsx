@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowDownToLine, ArrowUpFromLine, Barcode, Check, Loader2, Package, Clock, Search, X, TrendingUp, TrendingDown, ArrowLeft, RefreshCw, AlertCircle, MapPin, Calendar, Hash, Box } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, Barcode, Check, Loader2, Package, Clock, Search, X, TrendingUp, TrendingDown, ArrowLeft, RefreshCw, MapPin, Calendar, Hash, Box } from 'lucide-react';
 import { getStokHareketleri, stokIslemleriPaletSorgula, stokIslemleriPaletGiris, stokIslemleriPaletCikis } from '../services/api';
 import toast from 'react-hot-toast';
 import { useAsync } from '../hooks/useAsync';
@@ -13,31 +13,24 @@ export default function StokHareketleriPage() {
     const [step, setStep] = useState(1); // 1: Tip seç, 2: Palet No gir, 3: Önizle/Onayla
     const [hareketTipi, setHareketTipi] = useState('');
 
-    // Palet bazlı state
     const [paletNo, setPaletNo] = useState('');
     const [paletBilgi, setPaletBilgi] = useState(null);
-    const [paletSorguLoading, setPaletSorguLoading] = useState(false);
-
-    // Çıkış ek alanları
     const [cikisMiktar, setCikisMiktar] = useState('');
     const [cikisSiparisNo, setCikisSiparisNo] = useState('');
     const [cikisAciklama, setCikisAciklama] = useState('');
-
-    const [submitting, setSubmitting] = useState(false);
-
-    // Kamera tarayıcı
     const [cameraScannerOpen, setCameraScannerOpen] = useState(false);
-
-    // Son işlemler
     const [sonIslemler, setSonIslemler] = useState([]);
-    const { loading: loadingHistory, run } = useAsync(true);
+
+    const { loading: loadingHistory, run: runHistory } = useAsync(true);
+    const { loading: paletSorguLoading, run: runSorgu } = useAsync(false);
+    const { loading: submitting, run: runSubmit } = useAsync(false);
 
     const paletInputRef = useRef(null);
 
     // ===== VERİ YÜKLEME =====
     const fetchSonIslemler = async () => {
         try {
-            const hRes = await run(() => getStokHareketleri({ limit: 20 }));
+            const hRes = await runHistory(() => getStokHareketleri({ limit: 20 }));
             setSonIslemler(hRes.data);
         } catch {
             toast.error('Son işlemler yüklenemedi');
@@ -60,43 +53,39 @@ export default function StokHareketleriPage() {
         const hedefNo = (no || paletNo).trim();
         if (!hedefNo) return;
 
-        setPaletSorguLoading(true);
         try {
-            const res = await stokIslemleriPaletSorgula(hedefNo);
+            const res = await runSorgu(() => stokIslemleriPaletSorgula(hedefNo));
             setPaletBilgi(res.data);
             setPaletNo(hedefNo);
             setStep(3);
         } catch (err) {
             toast.error(hataMetni(err, 'Palet bulunamadı'));
-        } finally {
-            setPaletSorguLoading(false);
         }
     };
 
     // ===== SUBMIT =====
     const handleSubmit = async () => {
         if (!paletBilgi || !hareketTipi) return;
-        setSubmitting(true);
         try {
-            if (hareketTipi === 'giris') {
-                await stokIslemleriPaletGiris({ palet_no: paletNo });
-                toast.success(`Palet ${paletNo} giriş yapıldı`, { duration: 3000 });
-            } else {
-                await stokIslemleriPaletCikis({
-                    palet_no: paletNo,
-                    miktar: cikisMiktar ? Number(cikisMiktar) : undefined,
-                    siparis_no: cikisSiparisNo || undefined,
-                    aciklama: cikisAciklama || undefined,
-                });
-                const miktarText = cikisMiktar ? `${cikisMiktar} koli` : 'tam';
-                toast.success(`Palet ${paletNo} çıkış yapıldı (${miktarText})`, { duration: 3000 });
-            }
+            await runSubmit(async () => {
+                if (hareketTipi === 'giris') {
+                    await stokIslemleriPaletGiris({ palet_no: paletNo });
+                    toast.success(`Palet ${paletNo} giriş yapıldı`, { duration: 3000 });
+                } else {
+                    await stokIslemleriPaletCikis({
+                        palet_no: paletNo,
+                        miktar: cikisMiktar ? Number(cikisMiktar) : undefined,
+                        siparis_no: cikisSiparisNo || undefined,
+                        aciklama: cikisAciklama || undefined,
+                    });
+                    const miktarText = cikisMiktar ? `${cikisMiktar} koli` : 'tam';
+                    toast.success(`Palet ${paletNo} çıkış yapıldı (${miktarText})`, { duration: 3000 });
+                }
+            });
             resetForm();
             fetchSonIslemler();
         } catch (err) {
             toast.error(hataMetni(err, 'İşlem başarısız'));
-        } finally {
-            setSubmitting(false);
         }
     };
 
@@ -110,7 +99,26 @@ export default function StokHareketleriPage() {
         setCikisAciklama('');
     };
 
-    // ===== RENDER =====
+    const StepHeader = ({ onBack, backLabel, backIcon: BackIcon, backClassName }) => (
+        <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${hareketTipi === 'giris' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                    {hareketTipi === 'giris' ? <ArrowDownToLine className="w-5 h-5 sm:w-6 sm:h-6" /> : <ArrowUpFromLine className="w-5 h-5 sm:w-6 sm:h-6" />}
+                </div>
+                <span className={`text-base sm:text-lg font-black uppercase tracking-widest ${hareketTipi === 'giris' ? 'text-emerald-700' : 'text-red-700'}`}>
+                    {hareketTipi === 'giris' ? 'Giriş' : 'Çıkış'}
+                </span>
+            </div>
+            <button
+                onClick={onBack}
+                className={`flex items-center gap-2 h-10 px-3 sm:px-4 rounded-xl font-bold text-sm sm:text-base active:scale-95 transition-all ${backClassName}`}
+            >
+                <BackIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">{backLabel}</span>
+            </button>
+        </div>
+    );
+
     return (
         <div className="max-w-2xl mx-auto px-2 sm:px-0 pb-8">
 
@@ -172,24 +180,7 @@ export default function StokHareketleriPage() {
                     {/* ===== ADIM 2: PALET NO GİR / TARA ===== */}
                     {step === 2 && (
                         <div className="space-y-4">
-                            {/* Üst bilgi çubuğu */}
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${hareketTipi === 'giris' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                                        {hareketTipi === 'giris' ? <ArrowDownToLine className="w-5 h-5 sm:w-6 sm:h-6" /> : <ArrowUpFromLine className="w-5 h-5 sm:w-6 sm:h-6" />}
-                                    </div>
-                                    <span className={`text-base sm:text-lg font-black uppercase tracking-widest ${hareketTipi === 'giris' ? 'text-emerald-700' : 'text-red-700'}`}>
-                                        {hareketTipi === 'giris' ? 'Giriş' : 'Çıkış'}
-                                    </span>
-                                </div>
-                                <button
-                                    onClick={resetForm}
-                                    className="flex items-center gap-2 h-10 px-3 sm:px-4 rounded-xl bg-slate-100 text-slate-600 font-bold text-sm sm:text-base hover:bg-slate-200 active:scale-95 transition-all"
-                                >
-                                    <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                                    <span className="hidden sm:inline">Geri Dön</span>
-                                </button>
-                            </div>
+                            <StepHeader onBack={resetForm} backLabel="Geri Dön" backIcon={ArrowLeft} backClassName="bg-slate-100 text-slate-600 hover:bg-slate-200" />
 
                             {/* Palet No Girişi */}
                             <div>
@@ -251,24 +242,7 @@ export default function StokHareketleriPage() {
                     {/* ===== ADIM 3: BİLGİ ÖNİZLEME + ONAYLA ===== */}
                     {step === 3 && paletBilgi && (
                         <div className="space-y-5">
-                            {/* Üst bilgi çubuğu */}
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${hareketTipi === 'giris' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                                        {hareketTipi === 'giris' ? <ArrowDownToLine className="w-5 h-5 sm:w-6 sm:h-6" /> : <ArrowUpFromLine className="w-5 h-5 sm:w-6 sm:h-6" />}
-                                    </div>
-                                    <span className={`text-base sm:text-lg font-black uppercase tracking-widest ${hareketTipi === 'giris' ? 'text-emerald-700' : 'text-red-700'}`}>
-                                        {hareketTipi === 'giris' ? 'Giriş' : 'Çıkış'}
-                                    </span>
-                                </div>
-                                <button
-                                    onClick={() => { setPaletBilgi(null); setStep(2); }}
-                                    className="flex items-center gap-2 h-10 px-3 sm:px-4 rounded-xl bg-orange-50 text-orange-600 font-bold text-sm sm:text-base hover:bg-orange-100 hover:text-orange-700 active:scale-95 transition-all"
-                                >
-                                    <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
-                                    <span className="hidden sm:inline">Paleti Değiştir</span>
-                                </button>
-                            </div>
+                            <StepHeader onBack={() => { setPaletBilgi(null); setStep(2); }} backLabel="Paleti Değiştir" backIcon={RefreshCw} backClassName="bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700" />
 
                             {/* Palet Bilgi Kartı */}
                             <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">

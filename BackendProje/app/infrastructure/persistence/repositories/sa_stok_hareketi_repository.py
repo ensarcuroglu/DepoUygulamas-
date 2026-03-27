@@ -1,10 +1,10 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, load_only
 
 from app.core.entities.stok_hareketi import StokHareketi
 from app.core.repositories.stok_hareketi_repository import IStokHareketiRepository
 from app.infrastructure.persistence.mappers import stok_hareketi_to_entity, stok_hareketi_to_orm
-from models import StokHareketi as StokHareketiORM
+from models import StokHareketi as StokHareketiORM, Palet as PaletORM
 
 
 class SqlAlchemyStokHareketiRepository(IStokHareketiRepository):
@@ -19,9 +19,7 @@ class SqlAlchemyStokHareketiRepository(IStokHareketiRepository):
         hareket_tipi: Optional[str] = None,
     ) -> List[StokHareketi]:
         query = self._db.query(StokHareketiORM).options(
-            joinedload(StokHareketiORM.kullanici),
-            joinedload(StokHareketiORM.raf),
-            joinedload(StokHareketiORM.palet),
+            joinedload(StokHareketiORM.palet).load_only(PaletORM.palet_no),
         ).order_by(StokHareketiORM.tarih.desc())
 
         if urun_id:
