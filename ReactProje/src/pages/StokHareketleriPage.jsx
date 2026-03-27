@@ -10,7 +10,7 @@ import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
 
 export default function StokHareketleriPage() {
     // ===== STATE =====
-    const [step, setStep] = useState(1); // 1: Tip seç, 2: Palet No gir, 3: Önizle/Onayla
+    const [step, setStep] = useState(1);
     const [hareketTipi, setHareketTipi] = useState('');
 
     const [paletNo, setPaletNo] = useState('');
@@ -99,79 +99,136 @@ export default function StokHareketleriPage() {
         setCikisAciklama('');
     };
 
-    const StepHeader = ({ onBack, backLabel, backIcon: BackIcon, backClassName }) => (
-        <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${hareketTipi === 'giris' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                    {hareketTipi === 'giris' ? <ArrowDownToLine className="w-5 h-5 sm:w-6 sm:h-6" /> : <ArrowUpFromLine className="w-5 h-5 sm:w-6 sm:h-6" />}
+    // ===== STEP INDICATOR =====
+    const StepIndicator = () => (
+        <div className="flex items-center justify-center gap-2 py-4">
+            {[1, 2, 3].map((s) => (
+                <div key={s} className="flex items-center gap-2">
+                    <div className={`
+                        w-10 h-10 rounded-full flex items-center justify-center text-sm font-black transition-all duration-300
+                        ${step >= s
+                            ? step === s
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/40 scale-110'
+                                : 'bg-emerald-500 text-white'
+                            : 'bg-slate-200 text-slate-400'
+                        }
+                    `}>
+                        {step > s ? <Check className="w-5 h-5" strokeWidth={3} /> : s}
+                    </div>
+                    {s < 3 && (
+                        <div className={`w-8 sm:w-12 h-1 rounded-full transition-all duration-500 ${step > s ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                    )}
                 </div>
-                <span className={`text-base sm:text-lg font-black uppercase tracking-widest ${hareketTipi === 'giris' ? 'text-emerald-700' : 'text-red-700'}`}>
-                    {hareketTipi === 'giris' ? 'Giriş' : 'Çıkış'}
-                </span>
+            ))}
+        </div>
+    );
+
+    // ===== STEP HEADER =====
+    const StepHeader = ({ onBack, backLabel }) => (
+        <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+                <div className={`
+                    w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-md
+                    ${hareketTipi === 'giris'
+                        ? 'bg-emerald-500 text-white shadow-emerald-500/30'
+                        : 'bg-red-500 text-white shadow-red-500/30'
+                    }
+                `}>
+                    {hareketTipi === 'giris'
+                        ? <ArrowDownToLine className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={2.5} />
+                        : <ArrowUpFromLine className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={2.5} />
+                    }
+                </div>
+                <div>
+                    <span className={`
+                        text-xl sm:text-2xl font-black uppercase tracking-tight
+                        ${hareketTipi === 'giris' ? 'text-emerald-700' : 'text-red-700'}
+                    `}>
+                        {hareketTipi === 'giris' ? 'Giriş' : 'Çıkış'}
+                    </span>
+                    <p className="text-xs font-semibold text-slate-400 -mt-0.5">
+                        {hareketTipi === 'giris' ? 'Palet Kabul İşlemi' : 'Palet Sevk İşlemi'}
+                    </p>
+                </div>
             </div>
             <button
                 onClick={onBack}
-                className={`flex items-center gap-2 h-10 px-3 sm:px-4 rounded-xl font-bold text-sm sm:text-base active:scale-95 transition-all ${backClassName}`}
+                className="flex items-center gap-2 h-12 px-4 sm:px-5 rounded-2xl font-bold text-sm
+                    bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95 transition-all
+                    min-w-[48px] justify-center"
             >
-                <BackIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <ArrowLeft className="w-5 h-5" />
                 <span className="hidden sm:inline">{backLabel}</span>
             </button>
         </div>
     );
 
     return (
-        <div className="max-w-2xl mx-auto px-2 sm:px-0 pb-8">
+        <div className="max-w-2xl mx-auto px-3 sm:px-0 pb-8">
 
             {/* ==================== */}
             {/* ANA İŞLEM FORMU     */}
             {/* ==================== */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg mb-6 relative">
+            <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-xl mb-6 overflow-hidden">
 
-                {/* Progress Bar */}
-                <div className="h-1.5 bg-slate-100 w-full rounded-t-[15px] overflow-hidden">
-                    <div
-                        className={`h-full transition-all duration-500 ease-out rounded-r-full ${step >= 3 ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                        style={{ width: `${(Math.min(step, 3) / 3) * 100}%` }}
-                    />
+                {/* Step Indicator */}
+                <div className="bg-slate-50 border-b border-slate-200">
+                    <StepIndicator />
                 </div>
 
                 <div className="p-4 sm:p-6">
 
                     {/* ===== ADIM 1: GİRİŞ / ÇIKIŞ SEÇ ===== */}
                     {step === 1 && (
-                        <div className="space-y-4">
-                            <p className="text-center text-sm font-bold text-slate-500 uppercase tracking-wider">
+                        <div className="space-y-5">
+                            <p className="text-center text-sm font-black text-slate-400 uppercase tracking-[0.2em]">
                                 İşlem Tipini Seçin
                             </p>
                             <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                {/* GİRİŞ Butonu */}
                                 <button
                                     onClick={() => { setHareketTipi('giris'); setStep(2); }}
-                                    className="flex flex-col items-center justify-center gap-3 py-8 sm:py-10 rounded-2xl border-2 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-400 active:scale-[0.97] transition-all duration-200 group"
+                                    className="flex flex-col items-center justify-center gap-4 py-10 sm:py-12 rounded-3xl
+                                        border-3 border-emerald-300 bg-gradient-to-b from-emerald-50 to-white
+                                        hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/20
+                                        active:scale-[0.96] transition-all duration-200 group"
                                 >
-                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:shadow-emerald-500/50 transition-shadow">
-                                        <ArrowDownToLine className="w-8 h-8 sm:w-10 sm:h-10 text-white" strokeWidth={2.5} />
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-emerald-500
+                                        flex items-center justify-center shadow-xl shadow-emerald-500/30
+                                        group-hover:shadow-emerald-500/50 group-hover:scale-105 transition-all duration-300">
+                                        <ArrowDownToLine className="w-10 h-10 sm:w-12 sm:h-12 text-white" strokeWidth={2.5} />
                                     </div>
-                                    <span className="text-lg sm:text-xl font-extrabold text-emerald-800 tracking-tight">
-                                        GİRİŞ
-                                    </span>
-                                    <span className="text-xs font-semibold text-emerald-600/70">
-                                        Palet Kabul
-                                    </span>
+                                    <div className="text-center">
+                                        <span className="block text-2xl sm:text-3xl font-black text-emerald-800 tracking-tight">
+                                            GİRİŞ
+                                        </span>
+                                        <span className="block text-xs sm:text-sm font-bold text-emerald-600/60 mt-1">
+                                            Palet Kabul
+                                        </span>
+                                    </div>
                                 </button>
 
+                                {/* ÇIKIŞ Butonu */}
                                 <button
                                     onClick={() => { setHareketTipi('cikis'); setStep(2); }}
-                                    className="flex flex-col items-center justify-center gap-3 py-8 sm:py-10 rounded-2xl border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 active:scale-[0.97] transition-all duration-200 group"
+                                    className="flex flex-col items-center justify-center gap-4 py-10 sm:py-12 rounded-3xl
+                                        border-3 border-red-300 bg-gradient-to-b from-red-50 to-white
+                                        hover:border-red-500 hover:shadow-lg hover:shadow-red-500/20
+                                        active:scale-[0.96] transition-all duration-200 group"
                                 >
-                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/30 group-hover:shadow-red-500/50 transition-shadow">
-                                        <ArrowUpFromLine className="w-8 h-8 sm:w-10 sm:h-10 text-white" strokeWidth={2.5} />
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-red-500
+                                        flex items-center justify-center shadow-xl shadow-red-500/30
+                                        group-hover:shadow-red-500/50 group-hover:scale-105 transition-all duration-300">
+                                        <ArrowUpFromLine className="w-10 h-10 sm:w-12 sm:h-12 text-white" strokeWidth={2.5} />
                                     </div>
-                                    <span className="text-lg sm:text-xl font-extrabold text-red-800 tracking-tight">
-                                        ÇIKIŞ
-                                    </span>
-                                    <span className="text-xs font-semibold text-red-600/70">
-                                        Palet Sevk
-                                    </span>
+                                    <div className="text-center">
+                                        <span className="block text-2xl sm:text-3xl font-black text-red-800 tracking-tight">
+                                            ÇIKIŞ
+                                        </span>
+                                        <span className="block text-xs sm:text-sm font-bold text-red-600/60 mt-1">
+                                            Palet Sevk
+                                        </span>
+                                    </div>
                                 </button>
                             </div>
                         </div>
@@ -180,11 +237,11 @@ export default function StokHareketleriPage() {
                     {/* ===== ADIM 2: PALET NO GİR / TARA ===== */}
                     {step === 2 && (
                         <div className="space-y-4">
-                            <StepHeader onBack={resetForm} backLabel="Geri Dön" backIcon={ArrowLeft} backClassName="bg-slate-100 text-slate-600 hover:bg-slate-200" />
+                            <StepHeader onBack={resetForm} backLabel="Geri Dön" />
 
                             {/* Palet No Girişi */}
                             <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 block">
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-[0.15em] mb-3 block">
                                     Palet Numarası
                                 </label>
                                 <div className="flex gap-2">
@@ -203,16 +260,23 @@ export default function StokHareketleriPage() {
                                                     handlePaletSorgula();
                                                 }
                                             }}
-                                            className="w-full h-14 pl-12 pr-4 text-base font-semibold rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                            className="w-full h-16 pl-12 pr-4 text-lg font-bold rounded-2xl
+                                                border-2 border-slate-200 bg-slate-50 text-slate-800
+                                                placeholder-slate-400
+                                                focus:outline-none focus:border-blue-500 focus:bg-white
+                                                focus:ring-4 focus:ring-blue-500/10 transition-all"
                                         />
                                     </div>
                                     <button
                                         type="button"
                                         onClick={() => setCameraScannerOpen(true)}
-                                        className="h-14 w-14 flex items-center justify-center rounded-xl bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition-all shadow-md flex-shrink-0"
+                                        className="h-16 w-16 flex items-center justify-center rounded-2xl
+                                            bg-blue-600 text-white hover:bg-blue-700
+                                            active:scale-95 transition-all shadow-lg shadow-blue-600/30
+                                            flex-shrink-0"
                                         title="Kamera ile Barkod Oku"
                                     >
-                                        <Barcode className="w-6 h-6" />
+                                        <Barcode className="w-7 h-7" />
                                     </button>
                                 </div>
                             </div>
@@ -221,20 +285,30 @@ export default function StokHareketleriPage() {
                             <button
                                 onClick={() => handlePaletSorgula()}
                                 disabled={!paletNo.trim() || paletSorguLoading}
-                                className={`w-full h-14 rounded-xl text-base font-extrabold text-white flex items-center justify-center gap-2 transition-all shadow-lg
-                                    ${paletSorguLoading ? 'bg-blue-400 cursor-wait' : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.97] shadow-blue-600/30'}
-                                    ${!paletNo.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                className={`w-full h-16 rounded-2xl text-lg font-black text-white
+                                    flex items-center justify-center gap-3 transition-all shadow-lg
+                                    ${paletSorguLoading
+                                        ? 'bg-blue-400 cursor-wait'
+                                        : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.97] shadow-blue-600/30'
+                                    }
+                                    ${!paletNo.trim() ? 'opacity-40 cursor-not-allowed' : ''}`}
                             >
                                 {paletSorguLoading ? (
-                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <Loader2 className="w-6 h-6 animate-spin" />
                                 ) : (
-                                    <Search className="w-5 h-5" />
+                                    <Search className="w-6 h-6" />
                                 )}
                                 {paletSorguLoading ? 'Sorgulanıyor...' : 'Palet Sorgula'}
                             </button>
 
-                            <p className="text-center text-xs text-slate-400">
-                                Fiziksel barkod okuyucu ile de tarama yapabilirsiniz
+                            <div className="flex items-center justify-center gap-2 py-2">
+                                <div className="h-px flex-1 bg-slate-200" />
+                                <span className="text-xs font-bold text-slate-400 uppercase">veya</span>
+                                <div className="h-px flex-1 bg-slate-200" />
+                            </div>
+
+                            <p className="text-center text-sm font-semibold text-slate-400">
+                                Fiziksel barkod okuyucu ile tarayın
                             </p>
                         </div>
                     )}
@@ -242,93 +316,107 @@ export default function StokHareketleriPage() {
                     {/* ===== ADIM 3: BİLGİ ÖNİZLEME + ONAYLA ===== */}
                     {step === 3 && paletBilgi && (
                         <div className="space-y-5">
-                            <StepHeader onBack={() => { setPaletBilgi(null); setStep(2); }} backLabel="Paleti Değiştir" backIcon={RefreshCw} backClassName="bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700" />
+                            <StepHeader
+                                onBack={() => { setPaletBilgi(null); setStep(2); }}
+                                backLabel="Paleti Değiştir"
+                            />
 
                             {/* Palet Bilgi Kartı */}
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
-                                <div className="px-4 py-3 bg-slate-100 border-b border-slate-200 flex items-center gap-2">
-                                    <Box className="w-5 h-5 text-blue-600" />
-                                    <span className="text-sm font-extrabold text-slate-700">Palet Bilgisi</span>
-                                    <span className="ml-auto text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                            <div className="rounded-2xl border-2 border-slate-200 bg-slate-50 overflow-hidden">
+                                {/* Kart Header */}
+                                <div className="px-4 py-3.5 bg-slate-800 flex items-center gap-3">
+                                    <Box className="w-5 h-5 text-slate-300" />
+                                    <span className="text-sm font-black text-white tracking-wide">Palet Bilgisi</span>
+                                    <span className="ml-auto text-sm font-black text-blue-300 bg-blue-900/40 px-3 py-1 rounded-lg">
                                         {paletBilgi.palet_no}
                                     </span>
                                 </div>
+
                                 <div className="p-4 space-y-3">
                                     {/* Ürün */}
-                                    <div className="flex items-center gap-3">
-                                        <Package className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                    <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-200">
+                                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                            <Package className="w-5 h-5 text-blue-600" />
+                                        </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-medium text-slate-400">Ürün</p>
-                                            <p className="text-sm font-bold text-slate-800 truncate">{paletBilgi.urun_adi}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ürün</p>
+                                            <p className="text-sm font-black text-slate-800 truncate">{paletBilgi.urun_adi}</p>
                                         </div>
                                         {paletBilgi.urun_barkod && (
-                                            <span className="text-xs font-semibold text-slate-400">{paletBilgi.urun_barkod}</span>
+                                            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">
+                                                {paletBilgi.urun_barkod}
+                                            </span>
                                         )}
                                     </div>
 
                                     {/* Miktar + Lot */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="flex items-center gap-2">
-                                            <Hash className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                                            <div>
-                                                <p className="text-xs font-medium text-slate-400">Miktar</p>
-                                                <p className="text-sm font-bold text-slate-800">{paletBilgi.miktar} koli</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="p-3 bg-white rounded-xl border border-slate-200">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Hash className="w-3.5 h-3.5 text-slate-400" />
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Miktar</p>
                                             </div>
+                                            <p className="text-lg font-black text-slate-800">{paletBilgi.miktar} <span className="text-xs font-bold text-slate-400">koli</span></p>
                                         </div>
                                         {paletBilgi.lot_no && (
-                                            <div className="flex items-center gap-2">
-                                                <Hash className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                                                <div>
-                                                    <p className="text-xs font-medium text-slate-400">Lot No</p>
-                                                    <p className="text-sm font-bold text-slate-800">{paletBilgi.lot_no}</p>
+                                            <div className="p-3 bg-white rounded-xl border border-slate-200">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <Hash className="w-3.5 h-3.5 text-slate-400" />
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lot No</p>
                                                 </div>
+                                                <p className="text-sm font-black text-slate-800">{paletBilgi.lot_no}</p>
                                             </div>
                                         )}
                                     </div>
 
                                     {/* Raf + Depo */}
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 gap-2">
                                         {paletBilgi.raf_bilgi && (
-                                            <div className="flex items-center gap-2">
-                                                <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                                                <div>
-                                                    <p className="text-xs font-medium text-slate-400">Raf</p>
-                                                    <p className="text-sm font-bold text-slate-800">{paletBilgi.raf_bilgi}</p>
+                                            <div className="p-3 bg-white rounded-xl border border-slate-200">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Raf</p>
                                                 </div>
+                                                <p className="text-sm font-black text-slate-800">{paletBilgi.raf_bilgi}</p>
                                             </div>
                                         )}
-                                        <div className="flex items-center gap-2">
-                                            <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                                            <div>
-                                                <p className="text-xs font-medium text-slate-400">Depo</p>
-                                                <p className="text-sm font-bold text-slate-800">{paletBilgi.depo_adi}</p>
+                                        <div className="p-3 bg-white rounded-xl border border-slate-200">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Depo</p>
                                             </div>
+                                            <p className="text-sm font-black text-slate-800">{paletBilgi.depo_adi}</p>
                                         </div>
                                     </div>
 
                                     {/* SKT */}
                                     {paletBilgi.son_kullanma_tarihi && (
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                                            <div>
-                                                <p className="text-xs font-medium text-slate-400">Son Kullanma Tarihi</p>
-                                                <p className="text-sm font-bold text-slate-800">
-                                                    {new Date(paletBilgi.son_kullanma_tarihi).toLocaleDateString('tr-TR')}
-                                                </p>
+                                        <div className="p-3 bg-white rounded-xl border border-slate-200">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Son Kullanma Tarihi</p>
                                             </div>
+                                            <p className="text-sm font-black text-slate-800">
+                                                {new Date(paletBilgi.son_kullanma_tarihi).toLocaleDateString('tr-TR')}
+                                            </p>
                                         </div>
                                     )}
 
                                     {/* Durum + Kaynak */}
-                                    <div className="flex items-center gap-2 pt-1 border-t border-slate-200">
-                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${paletBilgi.durum === 'aktif' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
+                                    <div className="flex items-center gap-2 pt-2 border-t border-slate-200">
+                                        <span className={`text-xs font-black px-3 py-1.5 rounded-lg
+                                            ${paletBilgi.durum === 'aktif'
+                                                ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                                : 'bg-slate-200 text-slate-600 border border-slate-300'
+                                            }`}>
                                             {paletBilgi.durum === 'aktif' ? 'Aktif' : 'Pasif'}
                                         </span>
-                                        <span className="text-xs font-semibold text-slate-400">
+                                        <span className="text-xs font-bold text-slate-400">
                                             Kaynak: {paletBilgi.kaynak}
                                         </span>
                                         {paletBilgi.giris_yapildi_mi && (
-                                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 ml-auto">
+                                            <span className="text-xs font-black px-3 py-1.5 rounded-lg
+                                                bg-amber-100 text-amber-700 border border-amber-200 ml-auto">
                                                 Giriş Yapılmış
                                             </span>
                                         )}
@@ -338,17 +426,23 @@ export default function StokHareketleriPage() {
 
                             {/* Çıkış Ek Alanları */}
                             {hareketTipi === 'cikis' && (
-                                <div className="space-y-3">
+                                <div className="space-y-4">
+                                    {/* Miktar */}
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">
-                                            Miktar <span className="text-slate-300 normal-case">(boş bırakılırsa tam çıkış)</span>
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-[0.15em] mb-3 block">
+                                            Miktar <span className="text-slate-300 normal-case tracking-normal">(boş = tam çıkış)</span>
                                         </label>
-                                        <div className="flex items-center gap-2 sm:gap-3">
+                                        <div className="flex items-center gap-3">
                                             <button
                                                 type="button"
                                                 onClick={() => setCikisMiktar(String(Math.max(1, (Number(cikisMiktar) || 0) - 1)))}
                                                 disabled={!cikisMiktar}
-                                                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-slate-200 text-3xl font-light text-slate-600 hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100 active:scale-95 transition-all flex items-center justify-center shadow-sm select-none flex-shrink-0 disabled:opacity-30"
+                                                className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white border-2 border-slate-200
+                                                    text-3xl font-light text-slate-600
+                                                    hover:bg-slate-50 hover:border-slate-300
+                                                    active:bg-slate-100 active:scale-95 transition-all
+                                                    flex items-center justify-center shadow-sm select-none flex-shrink-0
+                                                    disabled:opacity-30"
                                             >
                                                 −
                                             </button>
@@ -365,25 +459,36 @@ export default function StokHareketleriPage() {
                                                         setCikisMiktar(val);
                                                     }
                                                 }}
-                                                className="flex-1 w-full min-w-0 h-14 sm:h-16 text-center text-3xl sm:text-4xl font-black rounded-2xl border-2 border-slate-200 bg-white text-slate-800 placeholder-slate-300 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                className="flex-1 w-full min-w-0 h-16 sm:h-18 text-center text-4xl sm:text-5xl
+                                                    font-black rounded-2xl border-2 border-slate-200 bg-white text-slate-800
+                                                    placeholder-slate-300
+                                                    focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10
+                                                    transition-all shadow-sm
+                                                    [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setCikisMiktar(String(Math.min(paletBilgi.miktar, (Number(cikisMiktar) || 0) + 1)))}
-                                                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-slate-200 text-3xl font-light text-slate-600 hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100 active:scale-95 transition-all flex items-center justify-center shadow-sm select-none flex-shrink-0"
+                                                className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white border-2 border-slate-200
+                                                    text-3xl font-light text-slate-600
+                                                    hover:bg-slate-50 hover:border-slate-300
+                                                    active:bg-slate-100 active:scale-95 transition-all
+                                                    flex items-center justify-center shadow-sm select-none flex-shrink-0"
                                             >
                                                 +
                                             </button>
                                         </div>
 
                                         {/* Hızlı Miktar Butonları */}
-                                        <div className="flex flex-wrap gap-2 mt-2">
+                                        <div className="flex flex-wrap gap-2 mt-3">
                                             {[5, 10, 50].filter(v => v <= paletBilgi.miktar).map(val => (
                                                 <button
                                                     key={val}
                                                     type="button"
                                                     onClick={() => setCikisMiktar(String(Math.min(paletBilgi.miktar, (Number(cikisMiktar) || 0) + val)))}
-                                                    className="flex-1 h-10 sm:h-11 rounded-xl bg-blue-50 text-blue-700 font-bold text-sm sm:text-base hover:bg-blue-100 active:scale-95 transition-all select-none"
+                                                    className="flex-1 h-12 sm:h-14 rounded-2xl bg-blue-50 text-blue-700
+                                                        font-black text-base sm:text-lg border-2 border-blue-200
+                                                        hover:bg-blue-100 active:scale-95 transition-all select-none"
                                                 >
                                                     +{val}
                                                 </button>
@@ -391,23 +496,47 @@ export default function StokHareketleriPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => setCikisMiktar(String(paletBilgi.miktar))}
-                                                className="flex-1 h-10 sm:h-11 rounded-xl bg-slate-800 text-white font-bold text-sm sm:text-base hover:bg-slate-900 active:scale-95 transition-all select-none"
+                                                className="flex-1 h-12 sm:h-14 rounded-2xl bg-slate-800 text-white
+                                                    font-black text-base sm:text-lg border-2 border-slate-700
+                                                    hover:bg-slate-900 active:scale-95 transition-all select-none"
                                             >
                                                 MAX ({paletBilgi.miktar})
                                             </button>
                                         </div>
                                     </div>
 
+                                    {/* Sipariş No + Açıklama */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Sipariş No</label>
-                                            <input type="text" value={cikisSiparisNo} onChange={e => setCikisSiparisNo(e.target.value)} className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Örn: ORD-123" />
+                                            <label className="text-xs font-black text-slate-500 uppercase tracking-[0.15em] mb-2 block">
+                                                Sipariş No
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={cikisSiparisNo}
+                                                onChange={e => setCikisSiparisNo(e.target.value)}
+                                                className="w-full h-14 px-4 text-base font-bold rounded-2xl
+                                                    border-2 border-slate-200 bg-slate-50 text-slate-800
+                                                    focus:outline-none focus:border-blue-500 focus:bg-white
+                                                    focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                                placeholder="Örn: ORD-123"
+                                            />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">
-                                                Açıklama <span className="text-slate-300 normal-case">(isteğe bağlı)</span>
+                                            <label className="text-xs font-black text-slate-500 uppercase tracking-[0.15em] mb-2 block">
+                                                Açıklama <span className="text-slate-300 normal-case tracking-normal">(opsiyonel)</span>
                                             </label>
-                                            <input type="text" value={cikisAciklama} onChange={e => setCikisAciklama(e.target.value)} className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="İrsaliye no, alıcı bilgisi..." />
+                                            <input
+                                                type="text"
+                                                value={cikisAciklama}
+                                                onChange={e => setCikisAciklama(e.target.value)}
+                                                className="w-full h-14 px-4 text-base font-bold rounded-2xl
+                                                    border-2 border-slate-200 bg-slate-50 text-slate-800
+                                                    placeholder-slate-400
+                                                    focus:outline-none focus:border-blue-500 focus:bg-white
+                                                    focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                                placeholder="İrsaliye no, alıcı..."
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -417,23 +546,27 @@ export default function StokHareketleriPage() {
                             <div className="grid grid-cols-2 gap-3 pt-2">
                                 <button
                                     onClick={resetForm}
-                                    className="h-14 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 active:scale-[0.97] transition-all"
+                                    className="h-16 rounded-2xl border-2 border-slate-300 text-base font-black text-slate-600
+                                        hover:bg-slate-50 active:scale-[0.97] transition-all"
                                 >
                                     İptal
                                 </button>
                                 <button
                                     onClick={handleSubmit}
                                     disabled={submitting}
-                                    className={`h-14 rounded-xl text-base font-extrabold text-white active:scale-[0.97] transition-all shadow-lg flex items-center justify-center gap-2
+                                    className={`h-16 rounded-2xl text-lg font-black text-white
+                                        active:scale-[0.97] transition-all shadow-xl
+                                        flex items-center justify-center gap-3
                                         ${hareketTipi === 'giris'
                                             ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
-                                            : 'bg-red-600 hover:bg-red-700 shadow-red-600/30'}
+                                            : 'bg-red-600 hover:bg-red-700 shadow-red-600/30'
+                                        }
                                         ${submitting ? 'opacity-70 cursor-wait' : ''}`}
                                 >
                                     {submitting ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <Loader2 className="w-6 h-6 animate-spin" />
                                     ) : (
-                                        <Check className="w-5 h-5" strokeWidth={3} />
+                                        <Check className="w-6 h-6" strokeWidth={3} />
                                     )}
                                     {submitting ? 'Kaydediliyor...' : 'Onayla'}
                                 </button>
@@ -447,21 +580,21 @@ export default function StokHareketleriPage() {
             {/* SON İŞLEMLER LİSTESİ */}
             {/* ==================== */}
             <div>
-                <div className="flex items-center gap-2 mb-3 px-1">
+                <div className="flex items-center gap-2.5 mb-3 px-1">
                     <Clock className="w-4 h-4 text-slate-400" />
-                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Son İşlemler</h3>
+                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-[0.15em]">Son İşlemler</h3>
                 </div>
 
                 {loadingHistory ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                         {[...Array(4)].map((_, i) => (
-                            <div key={i} className="h-16 bg-white rounded-xl border border-slate-100 animate-pulse" />
+                            <div key={i} className="h-20 bg-white rounded-2xl border border-slate-100 animate-pulse" />
                         ))}
                     </div>
                 ) : sonIslemler.length === 0 ? (
-                    <div className="bg-white rounded-xl border border-slate-100 p-8 text-center">
-                        <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                        <p className="text-sm font-bold text-slate-500">Henüz işlem yok</p>
+                    <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-10 text-center">
+                        <Clock className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                        <p className="text-base font-bold text-slate-400">Henüz işlem yok</p>
                     </div>
                 ) : (
                     <div className="space-y-2">
@@ -469,27 +602,34 @@ export default function StokHareketleriPage() {
                             const isGiris = h.hareket_tipi === 'giris';
                             const tarih = new Date(h.tarih);
                             return (
-                                <div key={h.id} className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
+                                <div key={h.id} className="flex items-center gap-3 px-4 py-3.5
+                                    bg-white rounded-2xl border border-slate-100
+                                    hover:border-slate-200 transition-colors">
                                     {/* İkon */}
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isGiris ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
+                                        ${isGiris
+                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                                            : 'bg-red-50 text-red-600 border border-red-200'
+                                        }`}>
                                         {isGiris
-                                            ? <ArrowDownToLine className="w-5 h-5" />
-                                            : <ArrowUpFromLine className="w-5 h-5" />
+                                            ? <ArrowDownToLine className="w-5 h-5" strokeWidth={2.5} />
+                                            : <ArrowUpFromLine className="w-5 h-5" strokeWidth={2.5} />
                                         }
                                     </div>
                                     {/* İçerik */}
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold text-slate-800 truncate">
+                                        <p className="text-sm font-black text-slate-800 truncate">
                                             {h.palet_no ? `Palet: ${h.palet_no}` : `Ürün #${h.urun_id}`}
                                         </p>
-                                        <p className="text-xs font-medium text-slate-400 mt-0.5">
+                                        <p className="text-xs font-semibold text-slate-400 mt-1">
                                             {tarih.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })} {tarih.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                            {h.siparis_no ? ` • Sipariş: ${h.siparis_no}` : ''}
-                                            {h.aciklama ? ` • ${h.aciklama}` : ''}
+                                            {h.siparis_no ? ` · ${h.siparis_no}` : ''}
+                                            {h.aciklama ? ` · ${h.aciklama}` : ''}
                                         </p>
                                     </div>
                                     {/* Miktar */}
-                                    <span className={`text-lg font-extrabold tabular-nums flex-shrink-0 ${isGiris ? 'text-emerald-600' : 'text-red-500'}`}>
+                                    <span className={`text-xl font-black tabular-nums flex-shrink-0
+                                        ${isGiris ? 'text-emerald-600' : 'text-red-500'}`}>
                                         {isGiris ? '+' : '−'}{h.miktar}
                                     </span>
                                 </div>
@@ -526,32 +666,54 @@ export function HareketModal({ isOpen, onClose, onSave, urunler }) {
 
     return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-            <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" />
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md border-2 border-slate-200" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between p-5 border-b border-slate-100">
-                    <h3 className="text-lg font-extrabold text-slate-900">Hızlı Stok İşlemi</h3>
-                    <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center">
+                    <h3 className="text-xl font-black text-slate-900">Hızlı Stok İşlemi</h3>
+                    <button onClick={onClose} className="w-10 h-10 rounded-xl hover:bg-slate-100
+                        flex items-center justify-center active:scale-95 transition-all">
                         <X className="w-5 h-5 text-slate-400" />
                     </button>
                 </div>
                 <form onSubmit={e => { e.preventDefault(); onSave({ ...form, urun_id: Number(form.urun_id), miktar: Number(form.miktar) }); }} className="p-5 space-y-4">
-                    <select className="w-full h-12 px-4 text-sm font-semibold rounded-xl border border-slate-200 bg-slate-50" value={form.urun_id} onChange={e => setForm({ ...form, urun_id: e.target.value })} required>
+                    <select
+                        className="w-full h-14 px-4 text-base font-bold rounded-2xl border-2 border-slate-200 bg-slate-50"
+                        value={form.urun_id}
+                        onChange={e => setForm({ ...form, urun_id: e.target.value })}
+                        required
+                    >
                         <option value="">Ürün seçin...</option>
                         {urunler.map(u => <option key={u.id} value={u.id}>{u.isim} {u.barkod ? `[${u.barkod}]` : ''}</option>)}
                     </select>
                     <div className="grid grid-cols-2 gap-3">
                         {[{ v: 'giris', l: 'Giriş', c: 'emerald' }, { v: 'cikis', l: 'Çıkış', c: 'red' }].map(({ v, l, c }) => (
                             <button key={v} type="button" onClick={() => setForm({ ...form, hareket_tipi: v })}
-                                className={`h-12 rounded-xl border-2 text-sm font-bold flex items-center justify-center gap-2 transition-all
-                                    ${form.hareket_tipi === v ? `border-${c}-500 bg-${c}-50 text-${c}-700` : 'border-slate-200 text-slate-500'}`}>
-                                {v === 'giris' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />} {l}
+                                className={`h-14 rounded-2xl border-2 text-base font-black flex items-center justify-center gap-2 transition-all
+                                    ${form.hareket_tipi === v
+                                        ? `border-${c}-500 bg-${c}-50 text-${c}-700`
+                                        : 'border-slate-200 text-slate-500'
+                                    }`}>
+                                {v === 'giris' ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />} {l}
                             </button>
                         ))}
                     </div>
-                    <input type="number" min="1" className="w-full h-12 px-4 text-lg font-bold text-center rounded-xl border border-slate-200 bg-slate-50" value={form.miktar} onChange={e => setForm({ ...form, miktar: e.target.value })} required />
+                    <input type="number" min="1"
+                        className="w-full h-14 px-4 text-2xl font-black text-center rounded-2xl border-2 border-slate-200 bg-slate-50"
+                        value={form.miktar}
+                        onChange={e => setForm({ ...form, miktar: e.target.value })}
+                        required
+                    />
                     <div className="grid grid-cols-2 gap-3 pt-2">
-                        <button type="button" onClick={onClose} className="h-12 rounded-xl border border-slate-200 text-sm font-bold text-slate-600">İptal</button>
-                        <button type="submit" className="h-12 rounded-xl bg-blue-600 text-sm font-bold text-white">Onayla</button>
+                        <button type="button" onClick={onClose}
+                            className="h-14 rounded-2xl border-2 border-slate-200 text-base font-black text-slate-600
+                                active:scale-95 transition-all">
+                            İptal
+                        </button>
+                        <button type="submit"
+                            className="h-14 rounded-2xl bg-blue-600 text-base font-black text-white
+                                active:scale-95 transition-all shadow-lg shadow-blue-600/30">
+                            Onayla
+                        </button>
                     </div>
                 </form>
             </div>
