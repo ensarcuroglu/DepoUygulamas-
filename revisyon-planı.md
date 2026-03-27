@@ -503,6 +503,11 @@ Yeni:    Tip Seç → Palet No Gir → Bilgi Önizleme → Onayla
 - API test: 3 endpoint başarılı/hata senaryoları
 - Frontend E2E: palet no girişi → sorgulama → onay akışı (manuel test)
 
+### Bilinen Sorun — Çözüm Notu (2026-03-27)
+
+- **Hata:** `Unknown column 'kullanicilar.depo_id' in 'field list'` — Faz 1d'de ORM modeli, entity, mapper ve DTO'lara eklenen `depo_id` alanının MySQL veritabanına fiziksel olarak migrate edilmemesinden kaynaklanıyor.
+- **Çözüm:** `python migrate_mysql.py` çalıştırılarak `ALTER TABLE kullanicilar ADD COLUMN depo_id INT DEFAULT NULL` + FK constraint uygulanmalı. Kod katmanlarında değişiklik gerekmez — tüm Clean Architecture katmanları (entity, ORM, mapper, DTO, repository, use case) zaten Faz 1d'de güncellenmiştir.
+
 ---
 
 ## 11. Non-Functional Gereksinimler
