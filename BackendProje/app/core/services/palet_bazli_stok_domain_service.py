@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 from app.application.dto.palet_bilgi_dto import PaletBilgiDTO
+from app.core.entities.kullanici import Kullanici
 from app.core.entities.lot import Lot
 from app.core.entities.palet import Palet
 from app.core.entities.stok_hareketi import StokHareketi, HareketTipi
@@ -50,13 +51,7 @@ class PaletBazliStokDomainService:
 
     # ── Palet Giris ──
 
-    def palet_giris(
-        self,
-        palet_no: str,
-        kullanici_id: int,
-        kullanici_depo_id: Optional[int] = None,
-        kullanici_admin: bool = False,
-    ) -> StokHareketi:
+    def palet_giris(self, palet_no: str, kullanici: Kullanici) -> StokHareketi:
         """Palet numarasi ile stok girisi yapar.
 
         1. Veri kaynagindan palet bilgisini getirir
@@ -78,13 +73,11 @@ class PaletBazliStokDomainService:
         # 3. DB'de palet mevcut mu? (cift giris engeli)
         mevcut_palet = self._palet_repo.getir_palet_no_ile(palet_no)
         if mevcut_palet:
-            raise CakismaHatasi(f"'{palet_no}' numarali palet zaten sistemde mevcut.")
+            raise CakismaHatasi("Palet numarası", palet_no)
 
         # 4. Depo yetki kontrolu
         if dto.depo_id:
-            self._depo_yetki_kontrol(
-                kullanici_depo_id, kullanici_admin, dto.depo_id, dto.depo_adi,
-            )
+            self._depo_erisim_dogrula(kullanici, dto.depo_id, dto.depo_adi)
 
         # 5. Lot bul veya olustur
         lot = self._lot_bul_veya_olustur(dto)
@@ -106,7 +99,7 @@ class PaletBazliStokDomainService:
             raf_id=dto.raf_id,
             hareket_tipi=HareketTipi.GIRIS,
             miktar=dto.miktar,
-            kullanici_id=kullanici_id,
+            kullanici_id=kullanici.id,
             aciklama=f"Palet bazli stok girisi: {palet_no}",
         )
         hareket = self._hareket_repo.olustur(hareket, auto_commit=False)
@@ -117,7 +110,7 @@ class PaletBazliStokDomainService:
         # 9. SistemLog
         self._log_repo.olustur(
             SistemLog.olustur(
-                kullanici_id=kullanici_id,
+                kullanici_id=kullanici.id,
                 islem_tipi=IslemTipi.CREATE,
                 modul="Stok Islemleri",
                 detay=f"Palet girisi: {palet_no} (Urun: {dto.urun_adi}, Miktar: {dto.miktar} koli)",
@@ -132,9 +125,7 @@ class PaletBazliStokDomainService:
     def palet_cikis(
         self,
         palet_no: str,
-        kullanici_id: int,
-        kullanici_depo_id: Optional[int] = None,
-        kullanici_admin: bool = False,
+        kullanici: Kullanici,
         miktar: Optional[int] = None,
         siparis_no: Optional[str] = None,
         aciklama: Optional[str] = None,
@@ -152,12 +143,10 @@ class PaletBazliStokDomainService:
         if not palet.aktif or palet.bos_mu():
             raise GecersizIslemError("Bu palette stok bulunmuyor.")
 
-        # 3. Depo yetki kontrolu
+        # 3. Depo yetki kontrolu (raf_id=None olan paletlerde depo kontrolu atlanir)
         hedef_depo_id = self._raf_depo_id_coz(palet.raf_id)
         if hedef_depo_id:
-            self._depo_yetki_kontrol(
-                kullanici_depo_id, kullanici_admin, hedef_depo_id,
-            )
+            self._depo_erisim_dogrula(kullanici, hedef_depo_id)
 
         # 4. Cikis tipi
         if miktar is None:
@@ -183,7 +172,7 @@ class PaletBazliStokDomainService:
             hareket_tipi=HareketTipi.CIKIS,
             miktar=gercek_miktar,
             siparis_no=siparis_no,
-            kullanici_id=kullanici_id,
+            kullanici_id=kullanici.id,
             aciklama=aciklama_metin,
         )
 
@@ -198,7 +187,7 @@ class PaletBazliStokDomainService:
         cikis_tipi = "tam" if miktar is None else "kismi"
         self._log_repo.olustur(
             SistemLog.olustur(
-                kullanici_id=kullanici_id,
+                kullanici_id=kullanici.id,
                 islem_tipi=IslemTipi.UPDATE,
                 modul="Stok Islemleri",
                 detay=f"Palet cikisi ({cikis_tipi}): {palet_no} (Miktar: {gercek_miktar} koli)",
@@ -210,24 +199,13 @@ class PaletBazliStokDomainService:
 
     # ── Yardimci Metodlar ──
 
-    def _depo_yetki_kontrol(
-        self,
-        kullanici_depo_id: Optional[int],
-        kullanici_admin: bool,
-        hedef_depo_id: int,
-        depo_adi: str = "",
+    @staticmethod
+    def _depo_erisim_dogrula(
+        kullanici: Kullanici, hedef_depo_id: int, depo_adi: str = "",
     ) -> None:
-        """Kullanicinin hedef depoya erisim yetkisini kontrol eder.
-
-        Admin veya depo_id=None (atanmamis) kullanicilar tum depolara erisebilir.
-        """
-        if kullanici_admin:
-            return
-        if kullanici_depo_id is None:
-            return
-        if kullanici_depo_id == hedef_depo_id:
-            return
-        raise DepoErisimHatasi(kullanici_depo_id, hedef_depo_id, depo_adi)
+        """Kullanici entity'sinin depo_erisim_var() metodunu kullanarak yetki kontrol eder."""
+        if not kullanici.depo_erisim_var(hedef_depo_id):
+            raise DepoErisimHatasi(kullanici.depo_id, hedef_depo_id, depo_adi)
 
     def _raf_depo_id_coz(self, raf_id: Optional[int]) -> Optional[int]:
         """Raf ID'sinden depo ID'sini cozumler."""

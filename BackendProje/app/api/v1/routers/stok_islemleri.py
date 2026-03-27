@@ -17,6 +17,7 @@ from app.infrastructure.di.container import (
     get_palet_bazli_stok_service,
     get_palet_sorgulama_service,
 )
+from app.infrastructure.persistence.mappers import kullanici_to_entity
 from app.application.dto.palet_bilgi_dto import PaletBilgiDTO
 from app.application.dto.stok_islemleri_dto import (
     PaletGirisRequestDTO,
@@ -54,12 +55,8 @@ def palet_giris(
 
     Irsaliye'deki palet bilgisini referans alarak lot + palet + stok hareketi olusturur.
     """
-    hareket = service.palet_giris(
-        dto.palet_no,
-        kullanici_id=current_user.id,
-        kullanici_depo_id=current_user.depo_id,
-        kullanici_admin=(current_user.rol == "admin"),
-    )
+    kullanici = kullanici_to_entity(current_user)
+    hareket = service.palet_giris(dto.palet_no, kullanici)
     db.commit()
     return StokHareketiResponseDTO.from_entity(hareket)
 
@@ -77,11 +74,10 @@ def palet_cikis(
 
     miktar bos ise tam cikis, dolu ise kismi cikis yapilir.
     """
+    kullanici = kullanici_to_entity(current_user)
     hareket = service.palet_cikis(
         palet_no=dto.palet_no,
-        kullanici_id=current_user.id,
-        kullanici_depo_id=current_user.depo_id,
-        kullanici_admin=(current_user.rol == "admin"),
+        kullanici=kullanici,
         miktar=dto.miktar,
         siparis_no=dto.siparis_no,
         aciklama=dto.aciklama,
