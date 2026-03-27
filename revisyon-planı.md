@@ -1,6 +1,6 @@
 # Stok İşlemleri Revizyon Planı — Palet Numarası Bazlı Giriş/Çıkış
 
-> **Durum:** Faz 1a Tamamlandı | **Tarih:** 2026-03-26 | **Yöntem:** Brainstorming → Tasarım → Fazlı Uygulama
+> **Durum:** Faz 1a–1e Tamamlandı | **Tarih:** 2026-03-27 | **Yöntem:** Brainstorming → Tasarım → Fazlı Uygulama
 
 ---
 
@@ -343,7 +343,7 @@ Yeni:    Tip Seç → Palet No Gir → Bilgi Önizleme → Onayla
 | **Faz 1b** | IPaletVeriKaynagiService + IrsaliyePaletVeriKaynagi adapter | **TAMAMLANDI** | Interface, adapter, PaletBilgiDTO, PaletSorgulamaService |
 | **Faz 1c** | PaletBazliStokDomainService + stok-islemleri endpoint'leri | **TAMAMLANDI** | Domain service (giriş/çıkış), 3 API endpoint, request DTO'lar, DI setup |
 | **Faz 1d** | Kullanıcı depo ataması + yetki kontrolü | **TAMAMLANDI** | Entity, ORM, mapper, DTO, schema, domain service yetki kontrolü, DepoErisimHatasi, migration |
-| **Faz 1e** | Frontend StokHareketleriPage yeni akış | Bekliyor | Palet no bazlı UI, barkod/kamera entegrasyonu |
+| **Faz 1e** | Frontend StokHareketleriPage yeni akış | **TAMAMLANDI** | Palet no bazlı UI, barkod/kamera entegrasyonu, Son İşlemler palet_no gösterimi |
 | **Faz 1f** | Testler + entegrasyon doğrulama | Bekliyor | Unit, integration, API test suite |
 | **Faz 2** | Toplu palet işlemi (çoklu tarama) | Bekliyor | Çoklu palet tarama, toplu onay |
 | **Faz 3** | ERP adapter (`ErpPaletVeriKaynagiService`) | Bekliyor | ERP API entegrasyonu, adapter swap |
@@ -451,6 +451,57 @@ Yeni:    Tip Seç → Palet No Gir → Bilgi Önizleme → Onayla
 - Hata mesajları Türkçe ve kullanıcı dostu — frontend'te doğrudan gösterilebilir
 - `KullaniciResponse` artık `depo_id` döndürüyor — frontend'te depo bilgisi gösterilebilir
 - Admin panelinde kullanıcı düzenleme formuna "Atanmış Depo" select alanı eklenecek
+
+---
+
+## 17. Faz 1e — Tamamlanan Çalışma ve Notlar
+
+**Tamamlanma:** 2026-03-27
+
+### Frontend Değişiklikleri
+
+| Dosya | Değişiklik |
+|---|---|
+| `ReactProje/src/services/api.js` | 3 yeni API fonksiyonu: `stokIslemleriPaletSorgula`, `stokIslemleriPaletGiris`, `stokIslemleriPaletCikis` |
+| `ReactProje/src/pages/StokHareketleriPage.jsx` | Ürün bazlı akış → palet no bazlı akış dönüşümü (tam yeniden yazım) |
+
+### Backend Değişiklikleri (palet_no Son İşlemler desteği)
+
+| Dosya | Değişiklik |
+|---|---|
+| `app/core/entities/stok_hareketi.py` | `palet_no: Optional[str]` alanı eklendi |
+| `app/application/dto/stok_hareketi_dto.py` | Response DTO'ya `palet_no` eklendi |
+| `app/infrastructure/persistence/mappers.py` | `stok_hareketi_to_entity` → `orm.palet.palet_no` mapping |
+| `app/infrastructure/persistence/repositories/sa_stok_hareketi_repository.py` | `joinedload(palet)` eklendi |
+
+### Yeni Akış Detayları
+
+1. **Adım 1:** GİRİŞ/ÇIKIŞ seçimi (Palet Kabul / Palet Sevk)
+2. **Adım 2:** Palet No girişi — metin + fiziksel okuyucu (`useBarcodeScanner`) + kamera (`ZXingBarcodeScanner`)
+3. **Adım 3:** PaletBilgiDTO önizleme kartı (ürün, lot, miktar, raf, depo, SKT, durum, kaynak)
+   - Giriş: önizle + onayla
+   - Çıkış: kısmi miktar (±/+5/+10/+50/MAX) + sipariş no + açıklama
+4. **Son İşlemler:** `palet_no` bilgisi gösteriliyor (backend'den joinedload ile gelir)
+
+### Korunan Bileşenler
+
+- `HareketModal` export'u geriye uyumlu (Header'dan çağrılır)
+- `getStokHareketleri` Son İşlemler listesi için kullanılmaya devam ediyor
+- Mevcut `POST /api/stok-hareketleri/` endpoint'i dokunulmadı
+
+### Kaldırılan Bileşenler
+
+- Ürün arama/filtreleme state ve UI (urunler, aramaText, aramaFocused, filteredUrunler)
+- Raf seçimi (giriş modunda)
+- Tır plaka, depo kapı, barkodlar alanları (çıkış modunda)
+- `getUrunler`, `getRaflar` çağrıları (artık gerekli değil)
+
+### Faz 1f'ye Geçiş Notları
+
+- Unit test hedefleri: `PaletBazliStokDomainService` giriş/çıkış, depo yetki kontrolü
+- Integration test: palet giriş → lot+palet+stok_hareketi atomik akış
+- API test: 3 endpoint başarılı/hata senaryoları
+- Frontend E2E: palet no girişi → sorgulama → onay akışı (manuel test)
 
 ---
 

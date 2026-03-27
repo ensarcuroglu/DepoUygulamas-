@@ -251,6 +251,13 @@ export const getStokHareketleri = (params = {}) => api.get('/stok-hareketleri/',
 export const createStokHareketi = (data) => api.post('/stok-hareketleri/', data);
 
 // ========================
+// STOK İŞLEMLERİ (Palet Bazlı)
+// ========================
+export const stokIslemleriPaletSorgula = (paletNo) => api.get(`/stok-islemleri/palet/${encodeURIComponent(paletNo)}`);
+export const stokIslemleriPaletGiris = (data) => api.post('/stok-islemleri/palet-giris', data);
+export const stokIslemleriPaletCikis = (data) => api.post('/stok-islemleri/palet-cikis', data);
+
+// ========================
 // TEDARİKÇİLER
 // ========================
 export const getTedarikciler = () => api.get('/tedarikciler/');

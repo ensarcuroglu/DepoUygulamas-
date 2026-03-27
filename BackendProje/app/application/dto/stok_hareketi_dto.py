@@ -89,6 +89,7 @@ class StokHareketiResponseDTO(BaseModel):
     aciklama: str
     kullanici_id: Optional[int]
     tarih: datetime
+    palet_no: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -109,4 +110,5 @@ class StokHareketiResponseDTO(BaseModel):
             aciklama=entity.aciklama,
             kullanici_id=entity.kullanici_id,
             tarih=entity.tarih,
+            palet_no=getattr(entity, "palet_no", None),
         )

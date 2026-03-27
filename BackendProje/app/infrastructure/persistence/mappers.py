@@ -324,6 +324,7 @@ def stok_hareketi_to_entity(orm: StokHareketiORM) -> StokHareketi:
         aciklama=orm.aciklama or "",
         kullanici_id=orm.kullanici_id,
         tarih=orm.tarih,
+        palet_no=orm.palet.palet_no if orm.palet else None,
     )
 
 

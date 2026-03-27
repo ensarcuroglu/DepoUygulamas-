@@ -27,6 +27,7 @@ class StokHareketi:
     aciklama: str = ""
     kullanici_id: Optional[int] = None
     tarih: datetime = field(default_factory=datetime.utcnow)
+    palet_no: Optional[str] = None
 
     # ── İş Kuralları ──
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowDownToLine, ArrowUpFromLine, Barcode, Check, Loader2, Package, Clock, Search, X, TrendingUp, TrendingDown, ArrowLeft, RefreshCw } from 'lucide-react';
-import { getStokHareketleri, createStokHareketi, getUrunler, getUrunByBarkod, getRaflar } from '../services/api';
+import { ArrowDownToLine, ArrowUpFromLine, Barcode, Check, Loader2, Package, Clock, Search, X, TrendingUp, TrendingDown, ArrowLeft, RefreshCw, AlertCircle, MapPin, Calendar, Hash, Box } from 'lucide-react';
+import { getStokHareketleri, stokIslemleriPaletSorgula, stokIslemleriPaletGiris, stokIslemleriPaletCikis } from '../services/api';
 import toast from 'react-hot-toast';
 import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
@@ -10,26 +10,20 @@ import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
 
 export default function StokHareketleriPage() {
     // ===== STATE =====
-    const [step, setStep] = useState(1); // 1: Tip seç, 2: Ürün seç, 3: Miktar, 4: Sonuç
+    const [step, setStep] = useState(1); // 1: Tip seç, 2: Palet No gir, 3: Önizle/Onayla
     const [hareketTipi, setHareketTipi] = useState('');
-    const [secilenUrun, setSecilenUrun] = useState(null);
-    const [miktar, setMiktar] = useState(1);
-    const [aciklama, setAciklama] = useState('');
+
+    // Palet bazlı state
+    const [paletNo, setPaletNo] = useState('');
+    const [paletBilgi, setPaletBilgi] = useState(null);
+    const [paletSorguLoading, setPaletSorguLoading] = useState(false);
+
+    // Çıkış ek alanları
+    const [cikisMiktar, setCikisMiktar] = useState('');
+    const [cikisSiparisNo, setCikisSiparisNo] = useState('');
+    const [cikisAciklama, setCikisAciklama] = useState('');
+
     const [submitting, setSubmitting] = useState(false);
-
-    // Yeni Alanlar
-    const [rafId, setRafId] = useState('');
-    const [siparisNo, setSiparisNo] = useState('');
-    const [tirPlaka, setTirPlaka] = useState('');
-    const [depoKapi, setDepoKapi] = useState('');
-    const [barkodlarText, setBarkodlarText] = useState('');
-
-    const [raflar, setRaflar] = useState([]);
-
-    // Ürün arama
-    const [urunler, setUrunler] = useState([]);
-    const [aramaText, setAramaText] = useState('');
-    const [aramaFocused, setAramaFocused] = useState(false);
 
     // Kamera tarayıcı
     const [cameraScannerOpen, setCameraScannerOpen] = useState(false);
@@ -38,94 +32,67 @@ export default function StokHareketleriPage() {
     const [sonIslemler, setSonIslemler] = useState([]);
     const { loading: loadingHistory, run } = useAsync(true);
 
-    const barkodInputRef = useRef(null);
-    const miktarInputRef = useRef(null);
+    const paletInputRef = useRef(null);
 
     // ===== VERİ YÜKLEME =====
-    const fetchData = async () => {
+    const fetchSonIslemler = async () => {
         try {
-            const [uRes, hRes, rRes] = await run(() => Promise.all([
-                getUrunler({ limit: 500 }),
-                getStokHareketleri({ limit: 20 }),
-                getRaflar()
-            ]));
-            setUrunler(uRes.data);
+            const hRes = await run(() => getStokHareketleri({ limit: 20 }));
             setSonIslemler(hRes.data);
-            setRaflar(rRes.data);
         } catch {
-            toast.error('Veriler yüklenemedi');
+            toast.error('Son işlemler yüklenemedi');
         }
     };
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => { fetchSonIslemler(); }, []);
 
     // ===== BARKOD TARAMA (Fiziksel okuyucu) =====
     useBarcodeScanner({
         isEnabled: step === 2,
-        onScan: async (code) => {
-            try {
-                const res = await getUrunByBarkod(code);
-                handleUrunSec(res.data);
-                toast.success(`${res.data.isim} okutuldu`, { icon: '📦' });
-            } catch {
-                toast.error(`Ürün bulunamadı: ${code}`);
-            }
+        onScan: (code) => {
+            setPaletNo(code);
+            handlePaletSorgula(code);
         }
     });
 
-    // ===== İŞLEMLER =====
-    const handleUrunSec = (urun) => {
-        setSecilenUrun(urun);
-        setAramaText('');
-        setAramaFocused(false);
-        setStep(3);
-        setTimeout(() => miktarInputRef.current?.focus(), 100);
-    };
+    // ===== PALET SORGULAMA =====
+    const handlePaletSorgula = async (no) => {
+        const hedefNo = (no || paletNo).trim();
+        if (!hedefNo) return;
 
-    const handleBarkodArama = async () => {
-        if (!aramaText.trim()) return;
+        setPaletSorguLoading(true);
         try {
-            const res = await getUrunByBarkod(aramaText.trim());
-            handleUrunSec(res.data);
-            toast.success(`${res.data.isim} bulundu`, { icon: '📦' });
-        } catch {
-            // Ürün bulunamadıysa normal arama yap
+            const res = await stokIslemleriPaletSorgula(hedefNo);
+            setPaletBilgi(res.data);
+            setPaletNo(hedefNo);
+            setStep(3);
+        } catch (err) {
+            toast.error(hataMetni(err, 'Palet bulunamadı'));
+        } finally {
+            setPaletSorguLoading(false);
         }
     };
 
+    // ===== SUBMIT =====
     const handleSubmit = async () => {
-        if (!secilenUrun || !hareketTipi || miktar < 1) return;
+        if (!paletBilgi || !hareketTipi) return;
         setSubmitting(true);
         try {
-            const barkodArray = barkodlarText
-                ? barkodlarText.split(',').map(b => b.trim()).filter(Boolean)
-                : undefined;
-
-            await createStokHareketi({
-                urun_id: secilenUrun.id,
-                hareket_tipi: hareketTipi,
-                miktar: Number(miktar),
-                aciklama: aciklama || '',
-                raf_id: (hareketTipi === 'giris' && rafId) ? Number(rafId) : undefined,
-                siparis_no: hareketTipi === 'cikis' ? siparisNo : undefined,
-                tir_plaka: hareketTipi === 'cikis' ? tirPlaka : undefined,
-                depo_kapi: hareketTipi === 'cikis' ? depoKapi : undefined,
-                barkodlar: (hareketTipi === 'cikis' && barkodArray && barkodArray.length > 0) ? barkodArray : undefined,
-            });
-            const isGiris = hareketTipi === 'giris';
-            toast.success(
-                isGiris
-                    ? `+${miktar} ${secilenUrun.isim} giriş yapıldı`
-                    : `-${miktar} ${secilenUrun.isim} çıkış yapıldı`,
-                { icon: isGiris ? '📥' : '📤', duration: 3000 }
-            );
-            // Başarılı — sıfırla
-            setStep(1);
-            setHareketTipi('');
-            setSecilenUrun(null);
-            setMiktar(1);
-            setAciklama('');
-            fetchData(); // Geçmişi güncelle
+            if (hareketTipi === 'giris') {
+                await stokIslemleriPaletGiris({ palet_no: paletNo });
+                toast.success(`Palet ${paletNo} giriş yapıldı`, { duration: 3000 });
+            } else {
+                await stokIslemleriPaletCikis({
+                    palet_no: paletNo,
+                    miktar: cikisMiktar ? Number(cikisMiktar) : undefined,
+                    siparis_no: cikisSiparisNo || undefined,
+                    aciklama: cikisAciklama || undefined,
+                });
+                const miktarText = cikisMiktar ? `${cikisMiktar} koli` : 'tam';
+                toast.success(`Palet ${paletNo} çıkış yapıldı (${miktarText})`, { duration: 3000 });
+            }
+            resetForm();
+            fetchSonIslemler();
         } catch (err) {
             toast.error(hataMetni(err, 'İşlem başarısız'));
         } finally {
@@ -136,25 +103,12 @@ export default function StokHareketleriPage() {
     const resetForm = () => {
         setStep(1);
         setHareketTipi('');
-        setSecilenUrun(null);
-        setMiktar(1);
-        setAciklama('');
-        setAramaText('');
-        setRafId('');
-        setSiparisNo('');
-        setTirPlaka('');
-        setDepoKapi('');
-        setBarkodlarText('');
+        setPaletNo('');
+        setPaletBilgi(null);
+        setCikisMiktar('');
+        setCikisSiparisNo('');
+        setCikisAciklama('');
     };
-
-    // Filtrelenmiş ürünler
-    const filteredUrunler = aramaText.length >= 1
-        ? urunler.filter(u =>
-            u.isim.toLowerCase().includes(aramaText.toLowerCase()) ||
-            (u.barkod && u.barkod.toLowerCase().includes(aramaText.toLowerCase())) ||
-            (u.ean && u.ean.includes(aramaText))
-        ).slice(0, 8)
-        : [];
 
     // ===== RENDER =====
     return (
@@ -193,7 +147,7 @@ export default function StokHareketleriPage() {
                                         GİRİŞ
                                     </span>
                                     <span className="text-xs font-semibold text-emerald-600/70">
-                                        Ürün Kabul
+                                        Palet Kabul
                                     </span>
                                 </button>
 
@@ -208,14 +162,14 @@ export default function StokHareketleriPage() {
                                         ÇIKIŞ
                                     </span>
                                     <span className="text-xs font-semibold text-red-600/70">
-                                        Ürün Sevk
+                                        Palet Sevk
                                     </span>
                                 </button>
                             </div>
                         </div>
                     )}
 
-                    {/* ===== ADIM 2: ÜRÜN SEÇ ===== */}
+                    {/* ===== ADIM 2: PALET NO GİR / TARA ===== */}
                     {step === 2 && (
                         <div className="space-y-4">
                             {/* Üst bilgi çubuğu */}
@@ -237,23 +191,25 @@ export default function StokHareketleriPage() {
                                 </button>
                             </div>
 
-                            {/* Barkod / Arama */}
-                            <div className="relative">
+                            {/* Palet No Girişi */}
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 block">
+                                    Palet Numarası
+                                </label>
                                 <div className="flex gap-2">
                                     <div className="relative flex-1">
                                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                                         <input
-                                            ref={barkodInputRef}
+                                            ref={paletInputRef}
                                             autoFocus
                                             type="text"
-                                            placeholder="Barkod okut veya ürün ara..."
-                                            value={aramaText}
-                                            onChange={e => setAramaText(e.target.value)}
-                                            onFocus={() => setAramaFocused(true)}
+                                            placeholder="Palet no girin veya okutun..."
+                                            value={paletNo}
+                                            onChange={e => setPaletNo(e.target.value)}
                                             onKeyDown={e => {
                                                 if (e.key === 'Enter') {
                                                     e.preventDefault();
-                                                    handleBarkodArama();
+                                                    handlePaletSorgula();
                                                 }
                                             }}
                                             className="w-full h-14 pl-12 pr-4 text-base font-semibold rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all"
@@ -268,49 +224,32 @@ export default function StokHareketleriPage() {
                                         <Barcode className="w-6 h-6" />
                                     </button>
                                 </div>
-
-                                {/* Arama sonuçları dropdown */}
-                                {aramaFocused && filteredUrunler.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden max-h-[45vh] min-h-[300px] overflow-y-auto">
-                                        {filteredUrunler.map(u => (
-                                            <button
-                                                key={u.id}
-                                                onClick={() => handleUrunSec(u)}
-                                                className="w-full flex items-center justify-between gap-3 px-4 py-4 sm:py-5 hover:bg-blue-50 active:bg-blue-100 transition-colors text-left border-b border-slate-100 last:border-0 group"
-                                            >
-                                                <div className="flex items-center gap-4 min-w-0">
-                                                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 group-hover:bg-white group-hover:shadow-sm transition-all">
-                                                        <Package className="w-6 h-6 sm:w-7 sm:h-7 text-slate-500 group-hover:text-blue-600 transition-colors" />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-base sm:text-lg font-extrabold text-slate-800 truncate">{u.isim}</p>
-                                                        <p className="text-sm font-semibold text-slate-500 mt-1">
-                                                            <span className="text-slate-400">{u.barkod || 'Barkod yok'}</span> <span className="mx-1">•</span> Stok: <span className="text-slate-700">{u.stok_miktari}</span> {u.birim}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                                    <ArrowDownToLine className="w-4 h-4 sm:w-5 sm:h-5 -rotate-90" />
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Arama sonucu yoksa */}
-                                {aramaFocused && aramaText.length >= 2 && filteredUrunler.length === 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-slate-200 shadow-xl z-50 p-6 text-center">
-                                        <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                                        <p className="text-sm font-bold text-slate-500">Ürün bulunamadı</p>
-                                        <p className="text-xs text-slate-400 mt-1">Farklı bir barkod veya isim deneyin</p>
-                                    </div>
-                                )}
                             </div>
+
+                            {/* Sorgula Butonu */}
+                            <button
+                                onClick={() => handlePaletSorgula()}
+                                disabled={!paletNo.trim() || paletSorguLoading}
+                                className={`w-full h-14 rounded-xl text-base font-extrabold text-white flex items-center justify-center gap-2 transition-all shadow-lg
+                                    ${paletSorguLoading ? 'bg-blue-400 cursor-wait' : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.97] shadow-blue-600/30'}
+                                    ${!paletNo.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                                {paletSorguLoading ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <Search className="w-5 h-5" />
+                                )}
+                                {paletSorguLoading ? 'Sorgulanıyor...' : 'Palet Sorgula'}
+                            </button>
+
+                            <p className="text-center text-xs text-slate-400">
+                                Fiziksel barkod okuyucu ile de tarama yapabilirsiniz
+                            </p>
                         </div>
                     )}
 
-                    {/* ===== ADIM 3: MİKTAR VE ONAYLA ===== */}
-                    {step === 3 && secilenUrun && (
+                    {/* ===== ADIM 3: BİLGİ ÖNİZLEME + ONAYLA ===== */}
+                    {step === 3 && paletBilgi && (
                         <div className="space-y-5">
                             {/* Üst bilgi çubuğu */}
                             <div className="flex items-center justify-between mb-2">
@@ -323,137 +262,182 @@ export default function StokHareketleriPage() {
                                     </span>
                                 </div>
                                 <button
-                                    onClick={() => setStep(2)}
+                                    onClick={() => { setPaletBilgi(null); setStep(2); }}
                                     className="flex items-center gap-2 h-10 px-3 sm:px-4 rounded-xl bg-orange-50 text-orange-600 font-bold text-sm sm:text-base hover:bg-orange-100 hover:text-orange-700 active:scale-95 transition-all"
                                 >
                                     <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
-                                    <span className="hidden sm:inline">Ürünü Değiştir</span>
+                                    <span className="hidden sm:inline">Paleti Değiştir</span>
                                 </button>
                             </div>
 
-                            {/* Seçilen ürün kartı */}
-                            <div className="flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-slate-50 border border-slate-200">
-                                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                    <Package className="w-6 h-6 text-blue-600" />
+                            {/* Palet Bilgi Kartı */}
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+                                <div className="px-4 py-3 bg-slate-100 border-b border-slate-200 flex items-center gap-2">
+                                    <Box className="w-5 h-5 text-blue-600" />
+                                    <span className="text-sm font-extrabold text-slate-700">Palet Bilgisi</span>
+                                    <span className="ml-auto text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                        {paletBilgi.palet_no}
+                                    </span>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-base font-extrabold text-slate-800 truncate">{secilenUrun.isim}</p>
-                                    <p className="text-xs font-semibold text-slate-400 mt-0.5">
-                                        {secilenUrun.barkod || '-'} • Mevcut: {secilenUrun.stok_miktari} {secilenUrun.birim}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Miktar girişi — Modern UI */}
-                            <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 block">
-                                    Miktar Girin
-                                </label>
-
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2 sm:gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setMiktar(Math.max(1, miktar - 1))}
-                                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-slate-200 text-3xl font-light text-slate-600 hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100 active:scale-95 transition-all flex items-center justify-center shadow-sm select-none flex-shrink-0"
-                                        >
-                                            −
-                                        </button>
-
-                                        <input
-                                            ref={miktarInputRef}
-                                            type="number"
-                                            inputMode="numeric"
-                                            min="1"
-                                            value={miktar}
-                                            onChange={e => setMiktar(Math.max(1, parseInt(e.target.value) || 1))}
-                                            className="flex-1 w-full min-w-0 h-14 sm:h-16 text-center text-3xl sm:text-4xl font-black rounded-2xl border-2 border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                        />
-
-                                        <button
-                                            type="button"
-                                            onClick={() => setMiktar(miktar + 1)}
-                                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-slate-200 text-3xl font-light text-slate-600 hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100 active:scale-95 transition-all flex items-center justify-center shadow-sm select-none flex-shrink-0"
-                                        >
-                                            +
-                                        </button>
+                                <div className="p-4 space-y-3">
+                                    {/* Ürün */}
+                                    <div className="flex items-center gap-3">
+                                        <Package className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-medium text-slate-400">Ürün</p>
+                                            <p className="text-sm font-bold text-slate-800 truncate">{paletBilgi.urun_adi}</p>
+                                        </div>
+                                        {paletBilgi.urun_barkod && (
+                                            <span className="text-xs font-semibold text-slate-400">{paletBilgi.urun_barkod}</span>
+                                        )}
                                     </div>
 
-                                    {/* Hızlı Miktar Butonları */}
-                                    <div className="flex flex-wrap gap-2">
-                                        {[5, 10, 50].map(val => (
-                                            <button
-                                                key={val}
-                                                type="button"
-                                                onClick={() => setMiktar(miktar + val)}
-                                                className="flex-1 h-10 sm:h-11 rounded-xl bg-blue-50 text-blue-700 font-bold text-sm sm:text-base hover:bg-blue-100 active:scale-95 transition-all select-none"
-                                            >
-                                                +{val}
-                                            </button>
-                                        ))}
+                                    {/* Miktar + Lot */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex items-center gap-2">
+                                            <Hash className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-xs font-medium text-slate-400">Miktar</p>
+                                                <p className="text-sm font-bold text-slate-800">{paletBilgi.miktar} koli</p>
+                                            </div>
+                                        </div>
+                                        {paletBilgi.lot_no && (
+                                            <div className="flex items-center gap-2">
+                                                <Hash className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                <div>
+                                                    <p className="text-xs font-medium text-slate-400">Lot No</p>
+                                                    <p className="text-sm font-bold text-slate-800">{paletBilgi.lot_no}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
 
-                                        {/* Sadece çıkış işlemiyse MAX butonu göster */}
-                                        {hareketTipi === 'cikis' && secilenUrun?.stok_miktari > 0 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setMiktar(secilenUrun.stok_miktari)}
-                                                className="flex-1 h-10 sm:h-11 rounded-xl bg-slate-800 text-white font-bold text-sm sm:text-base hover:bg-slate-900 active:scale-95 transition-all select-none"
-                                            >
-                                                MAX
-                                            </button>
+                                    {/* Raf + Depo */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {paletBilgi.raf_bilgi && (
+                                            <div className="flex items-center gap-2">
+                                                <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                <div>
+                                                    <p className="text-xs font-medium text-slate-400">Raf</p>
+                                                    <p className="text-sm font-bold text-slate-800">{paletBilgi.raf_bilgi}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-2">
+                                            <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-xs font-medium text-slate-400">Depo</p>
+                                                <p className="text-sm font-bold text-slate-800">{paletBilgi.depo_adi}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* SKT */}
+                                    {paletBilgi.son_kullanma_tarihi && (
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-xs font-medium text-slate-400">Son Kullanma Tarihi</p>
+                                                <p className="text-sm font-bold text-slate-800">
+                                                    {new Date(paletBilgi.son_kullanma_tarihi).toLocaleDateString('tr-TR')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Durum + Kaynak */}
+                                    <div className="flex items-center gap-2 pt-1 border-t border-slate-200">
+                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${paletBilgi.durum === 'aktif' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
+                                            {paletBilgi.durum === 'aktif' ? 'Aktif' : 'Pasif'}
+                                        </span>
+                                        <span className="text-xs font-semibold text-slate-400">
+                                            Kaynak: {paletBilgi.kaynak}
+                                        </span>
+                                        {paletBilgi.giris_yapildi_mi && (
+                                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 ml-auto">
+                                                Giriş Yapılmış
+                                            </span>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Ekstra Detaylar (Giriş/Çıkış özel) */}
-                            {hareketTipi === 'giris' && (
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Raf Seçimi <span className="text-slate-300 normal-case">(isteğe bağlı)</span></label>
-                                    <select
-                                        value={rafId} onChange={e => setRafId(e.target.value)}
-                                        className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all"
-                                    >
-                                        <option value="">Raf Seçiniz</option>
-                                        {raflar.map(r => <option key={r.id} value={r.id}>{r.kod} ({r.bolge})</option>)}
-                                    </select>
-                                </div>
-                            )}
-
+                            {/* Çıkış Ek Alanları */}
                             {hareketTipi === 'cikis' && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-3">
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Sipariş No</label>
-                                        <input type="text" value={siparisNo} onChange={e => setSiparisNo(e.target.value)} className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Örn: ORD-123" />
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">
+                                            Miktar <span className="text-slate-300 normal-case">(boş bırakılırsa tam çıkış)</span>
+                                        </label>
+                                        <div className="flex items-center gap-2 sm:gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setCikisMiktar(String(Math.max(1, (Number(cikisMiktar) || 0) - 1)))}
+                                                disabled={!cikisMiktar}
+                                                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-slate-200 text-3xl font-light text-slate-600 hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100 active:scale-95 transition-all flex items-center justify-center shadow-sm select-none flex-shrink-0 disabled:opacity-30"
+                                            >
+                                                −
+                                            </button>
+                                            <input
+                                                type="number"
+                                                inputMode="numeric"
+                                                min="1"
+                                                max={paletBilgi.miktar}
+                                                placeholder="Tam"
+                                                value={cikisMiktar}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    if (val === '' || (Number(val) >= 1 && Number(val) <= paletBilgi.miktar)) {
+                                                        setCikisMiktar(val);
+                                                    }
+                                                }}
+                                                className="flex-1 w-full min-w-0 h-14 sm:h-16 text-center text-3xl sm:text-4xl font-black rounded-2xl border-2 border-slate-200 bg-white text-slate-800 placeholder-slate-300 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setCikisMiktar(String(Math.min(paletBilgi.miktar, (Number(cikisMiktar) || 0) + 1)))}
+                                                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-slate-200 text-3xl font-light text-slate-600 hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100 active:scale-95 transition-all flex items-center justify-center shadow-sm select-none flex-shrink-0"
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+
+                                        {/* Hızlı Miktar Butonları */}
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {[5, 10, 50].filter(v => v <= paletBilgi.miktar).map(val => (
+                                                <button
+                                                    key={val}
+                                                    type="button"
+                                                    onClick={() => setCikisMiktar(String(Math.min(paletBilgi.miktar, (Number(cikisMiktar) || 0) + val)))}
+                                                    className="flex-1 h-10 sm:h-11 rounded-xl bg-blue-50 text-blue-700 font-bold text-sm sm:text-base hover:bg-blue-100 active:scale-95 transition-all select-none"
+                                                >
+                                                    +{val}
+                                                </button>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                onClick={() => setCikisMiktar(String(paletBilgi.miktar))}
+                                                className="flex-1 h-10 sm:h-11 rounded-xl bg-slate-800 text-white font-bold text-sm sm:text-base hover:bg-slate-900 active:scale-95 transition-all select-none"
+                                            >
+                                                MAX ({paletBilgi.miktar})
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Tır Plaka</label>
-                                        <input type="text" value={tirPlaka} onChange={e => setTirPlaka(e.target.value)} className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Örn: 34 AB 1234" />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Depo Kapı</label>
-                                        <input type="text" value={depoKapi} onChange={e => setDepoKapi(e.target.value)} className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Örn: Kapı 4" />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Barkodlar</label>
-                                        <input type="text" value={barkodlarText} onChange={e => setBarkodlarText(e.target.value)} className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Virgülle ayırın..." />
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Sipariş No</label>
+                                            <input type="text" value={cikisSiparisNo} onChange={e => setCikisSiparisNo(e.target.value)} className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Örn: ORD-123" />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">
+                                                Açıklama <span className="text-slate-300 normal-case">(isteğe bağlı)</span>
+                                            </label>
+                                            <input type="text" value={cikisAciklama} onChange={e => setCikisAciklama(e.target.value)} className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="İrsaliye no, alıcı bilgisi..." />
+                                        </div>
                                     </div>
                                 </div>
                             )}
-
-                            {/* Açıklama (isteğe bağlı) */}
-                            <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">
-                                    Not <span className="text-slate-300 normal-case">(isteğe bağlı)</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="İrsaliye no, alıcı/teslim bilgisi..."
-                                    value={aciklama}
-                                    onChange={e => setAciklama(e.target.value)}
-                                    className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all"
-                                />
-                            </div>
 
                             {/* Aksiyon butonları */}
                             <div className="grid grid-cols-2 gap-3 pt-2">
@@ -509,7 +493,6 @@ export default function StokHareketleriPage() {
                     <div className="space-y-2">
                         {sonIslemler.map(h => {
                             const isGiris = h.hareket_tipi === 'giris';
-                            const urun = urunler.find(u => u.id === h.urun_id);
                             const tarih = new Date(h.tarih);
                             return (
                                 <div key={h.id} className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
@@ -523,13 +506,10 @@ export default function StokHareketleriPage() {
                                     {/* İçerik */}
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-bold text-slate-800 truncate">
-                                            {urun?.isim || `Ürün #${h.urun_id}`}
+                                            {h.palet_no ? `Palet: ${h.palet_no}` : `Ürün #${h.urun_id}`}
                                         </p>
                                         <p className="text-xs font-medium text-slate-400 mt-0.5">
                                             {tarih.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })} {tarih.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                            {h.kullanici ? ` • Yapan: ${h.kullanici.ad_soyad}` : ''}
-                                            {h.raf ? ` • Raf: ${h.raf.kod}` : ''}
-                                            {h.tir_plaka ? ` • Tır: ${h.tir_plaka}` : ''}
                                             {h.siparis_no ? ` • Sipariş: ${h.siparis_no}` : ''}
                                             {h.aciklama ? ` • ${h.aciklama}` : ''}
                                         </p>
@@ -549,14 +529,10 @@ export default function StokHareketleriPage() {
             <ZXingBarcodeScanner
                 isOpen={cameraScannerOpen}
                 onClose={() => setCameraScannerOpen(false)}
-                onScanSuccess={async (code) => {
-                    try {
-                        const res = await getUrunByBarkod(code);
-                        handleUrunSec(res.data);
-                        toast.success(`${res.data.isim} okutuldu`, { icon: '📷' });
-                    } catch {
-                        toast.error(`Ürün bulunamadı: ${code}`);
-                    }
+                onScanSuccess={(code) => {
+                    setCameraScannerOpen(false);
+                    setPaletNo(code);
+                    handlePaletSorgula(code);
                 }}
             />
         </div>

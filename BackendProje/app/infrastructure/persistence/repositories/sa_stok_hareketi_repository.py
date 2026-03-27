@@ -21,6 +21,7 @@ class SqlAlchemyStokHareketiRepository(IStokHareketiRepository):
         query = self._db.query(StokHareketiORM).options(
             joinedload(StokHareketiORM.kullanici),
             joinedload(StokHareketiORM.raf),
+            joinedload(StokHareketiORM.palet),
         ).order_by(StokHareketiORM.tarih.desc())
 
         if urun_id:
