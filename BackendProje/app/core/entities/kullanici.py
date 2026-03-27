@@ -31,6 +31,7 @@ class Kullanici:
     departman: Optional[str] = None
     sicil_no: Optional[str] = None
     kart_numarasi: Optional[str] = None
+    depo_id: Optional[int] = None
     refresh_token_hash: Optional[str] = None
     refresh_token_son_kullanim: Optional[datetime] = None
     olusturma_tarihi: datetime = field(default_factory=datetime.utcnow)
@@ -39,6 +40,18 @@ class Kullanici:
 
     def admin_mi(self) -> bool:
         return self.rol == KullaniciRol.ADMIN
+
+    def depo_erisim_var(self, hedef_depo_id: int) -> bool:
+        """Kullanıcının hedef depoya erişim yetkisi olup olmadığını kontrol eder.
+
+        Admin rolü veya depo_id=None olan kullanıcılar tüm depolara erişebilir.
+        Diğer kullanıcılar yalnızca atanmış oldukları depoya erişebilir.
+        """
+        if self.admin_mi():
+            return True
+        if self.depo_id is None:
+            return True
+        return self.depo_id == hedef_depo_id
 
     def rol_kontrol(self, *izinli_roller: str) -> bool:
         """Kullanıcının verilen rollerden birine sahip olup olmadığını kontrol eder."""

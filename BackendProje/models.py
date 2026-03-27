@@ -255,6 +255,7 @@ class Kullanici(Base):
     departman = Column(String(100), nullable=True)
     sicil_no = Column(String(50), nullable=True)
     kart_numarasi = Column(String(50), unique=True, nullable=True)
+    depo_id = Column(Integer, ForeignKey("depolar.id"), nullable=True)  # Atanmış depo (NULL = tüm depolar)
     refresh_token_hash = Column(String(255), nullable=True)        # Hashli refresh token
     refresh_token_son_kullanim = Column(DateTime, nullable=True)   # Refresh token geçerlilik süresi
     olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
@@ -262,6 +263,7 @@ class Kullanici(Base):
     # İlişki
     stok_hareketleri = relationship("StokHareketi", back_populates="kullanici")
     destek_talepleri = relationship("DestekTalebi", back_populates="kullanici")
+    depo = relationship("Depo", foreign_keys=[depo_id])
 
 
 # ========================

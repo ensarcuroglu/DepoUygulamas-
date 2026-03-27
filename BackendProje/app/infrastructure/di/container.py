@@ -1055,11 +1055,12 @@ def get_palet_bazli_stok_service(
     veri_kaynagi=Depends(get_irsaliye_palet_veri_kaynagi),
     palet_repo=Depends(get_palet_repo),
     lot_repo=Depends(get_lot_repo),
+    raf_repo=Depends(get_raf_repo),
     hareket_repo=Depends(get_hareket_repo),
     log_repo=Depends(get_log_repo),
 ):
     return PaletBazliStokDomainService(
-        veri_kaynagi, palet_repo, lot_repo, hareket_repo, log_repo,
+        veri_kaynagi, palet_repo, lot_repo, raf_repo, hareket_repo, log_repo,
     )
 
 

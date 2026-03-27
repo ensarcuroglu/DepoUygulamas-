@@ -28,6 +28,7 @@ class KullaniciGuncelleRequestDTO(BaseModel):
     departman: Optional[str] = Field(None, max_length=100)
     sicil_no: Optional[str] = Field(None, max_length=50)
     kart_numarasi: Optional[str] = Field(None, max_length=50)
+    depo_id: Optional[int] = None
 
     @field_validator("sifre")
     @classmethod
@@ -56,6 +57,7 @@ class KullaniciResponseDTO(BaseModel):
     departman: Optional[str] = None
     sicil_no: Optional[str] = None
     kart_numarasi: Optional[str] = None
+    depo_id: Optional[int] = None
     olusturma_tarihi: datetime
 
     model_config = {"from_attributes": True}
@@ -72,5 +74,6 @@ class KullaniciResponseDTO(BaseModel):
             departman=entity.departman,
             sicil_no=entity.sicil_no,
             kart_numarasi=entity.kart_numarasi,
+            depo_id=entity.depo_id,
             olusturma_tarihi=entity.olusturma_tarihi,
         )

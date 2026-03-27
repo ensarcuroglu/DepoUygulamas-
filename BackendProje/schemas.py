@@ -341,6 +341,7 @@ class KullaniciBase(BaseModel):
     departman: Optional[str] = None
     sicil_no: Optional[str] = None
     kart_numarasi: Optional[str] = None
+    depo_id: Optional[int] = None
 
 class KullaniciCreate(KullaniciBase):
     sifre: str = Field(..., min_length=8, max_length=128)
@@ -367,6 +368,7 @@ class KullaniciUpdate(BaseModel):
     departman: Optional[str] = None
     sicil_no: Optional[str] = None
     kart_numarasi: Optional[str] = None
+    depo_id: Optional[int] = None
 
     @field_validator("sifre")
     @classmethod

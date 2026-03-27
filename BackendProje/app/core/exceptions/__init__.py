@@ -15,6 +15,7 @@ from core.api_exceptions import (
     GecersizDurumGecisiError,
     CakismaHatasi,
     GecersizIslemError,
+    DepoErisimHatasi,
 )
 
 # Geriye donuk uyumluluk: eski DomainException referanslarini APIException'a yonlendir
@@ -29,4 +30,5 @@ __all__ = [
     "GecersizDurumGecisiError",
     "CakismaHatasi",
     "GecersizIslemError",
+    "DepoErisimHatasi",
 ]

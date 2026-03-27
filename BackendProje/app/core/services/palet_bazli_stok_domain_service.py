@@ -17,12 +17,14 @@ from app.core.exceptions import (
     KayitBulunamadiError,
     GecersizIslemError,
     CakismaHatasi,
+    DepoErisimHatasi,
 )
 
 if TYPE_CHECKING:
     from app.core.services.palet_veri_kaynagi_service import IPaletVeriKaynagiService
     from app.core.repositories.palet_repository import IPaletRepository
     from app.core.repositories.lot_repository import ILotRepository
+    from app.core.repositories.raf_repository import IRafRepository
     from app.core.repositories.stok_hareketi_repository import IStokHareketiRepository
     from app.core.repositories.sistem_log_repository import ISistemLogRepository
 
@@ -35,27 +37,36 @@ class PaletBazliStokDomainService:
         veri_kaynagi: IPaletVeriKaynagiService,
         palet_repo: IPaletRepository,
         lot_repo: ILotRepository,
+        raf_repo: IRafRepository,
         hareket_repo: IStokHareketiRepository,
         log_repo: ISistemLogRepository,
     ):
         self._veri_kaynagi = veri_kaynagi
         self._palet_repo = palet_repo
         self._lot_repo = lot_repo
+        self._raf_repo = raf_repo
         self._hareket_repo = hareket_repo
         self._log_repo = log_repo
 
     # ── Palet Giris ──
 
-    def palet_giris(self, palet_no: str, kullanici_id: int) -> StokHareketi:
+    def palet_giris(
+        self,
+        palet_no: str,
+        kullanici_id: int,
+        kullanici_depo_id: Optional[int] = None,
+        kullanici_admin: bool = False,
+    ) -> StokHareketi:
         """Palet numarasi ile stok girisi yapar.
 
         1. Veri kaynagindan palet bilgisini getirir
         2. Cift giris kontrolu
-        3. Lot bul/olustur
-        4. Palet olustur
-        5. StokHareketi kaydi
-        6. Kaynaktaki kalemi GirisYapildi olarak isaretle
-        7. SistemLog yaz
+        3. Depo yetki kontrolu
+        4. Lot bul/olustur
+        5. Palet olustur
+        6. StokHareketi kaydi
+        7. Kaynaktaki kalemi GirisYapildi olarak isaretle
+        8. SistemLog yaz
         """
         # 1. Palet bilgisini getir
         dto = self._veri_kaynagi.palet_bilgisi_getir(palet_no)
@@ -69,12 +80,16 @@ class PaletBazliStokDomainService:
         if mevcut_palet:
             raise CakismaHatasi(f"'{palet_no}' numarali palet zaten sistemde mevcut.")
 
-        # TODO: Faz 1d — Depo yetki kontrolu (kullanici.depo_id vs dto.depo_id)
+        # 4. Depo yetki kontrolu
+        if dto.depo_id:
+            self._depo_yetki_kontrol(
+                kullanici_depo_id, kullanici_admin, dto.depo_id, dto.depo_adi,
+            )
 
-        # 4. Lot bul veya olustur
+        # 5. Lot bul veya olustur
         lot = self._lot_bul_veya_olustur(dto)
 
-        # 5. Palet olustur
+        # 6. Palet olustur
         palet = Palet(
             lot_id=lot.id,
             raf_id=dto.raf_id,
@@ -83,7 +98,7 @@ class PaletBazliStokDomainService:
         )
         palet = self._palet_repo.olustur(palet, auto_commit=False)
 
-        # 6. StokHareketi kaydi
+        # 7. StokHareketi kaydi
         hareket = StokHareketi(
             urun_id=dto.urun_id,
             lot_id=lot.id,
@@ -96,10 +111,10 @@ class PaletBazliStokDomainService:
         )
         hareket = self._hareket_repo.olustur(hareket, auto_commit=False)
 
-        # 7. Kaynagi guncelle (MalKabulKalemi.durum -> GirisYapildi)
+        # 8. Kaynagi guncelle (MalKabulKalemi.durum -> GirisYapildi)
         self._veri_kaynagi.palet_giris_onayla(palet_no)
 
-        # 8. SistemLog
+        # 9. SistemLog
         self._log_repo.olustur(
             SistemLog.olustur(
                 kullanici_id=kullanici_id,
@@ -118,6 +133,8 @@ class PaletBazliStokDomainService:
         self,
         palet_no: str,
         kullanici_id: int,
+        kullanici_depo_id: Optional[int] = None,
+        kullanici_admin: bool = False,
         miktar: Optional[int] = None,
         siparis_no: Optional[str] = None,
         aciklama: Optional[str] = None,
@@ -135,9 +152,14 @@ class PaletBazliStokDomainService:
         if not palet.aktif or palet.bos_mu():
             raise GecersizIslemError("Bu palette stok bulunmuyor.")
 
-        # TODO: Faz 1d — Depo yetki kontrolu
+        # 3. Depo yetki kontrolu
+        hedef_depo_id = self._raf_depo_id_coz(palet.raf_id)
+        if hedef_depo_id:
+            self._depo_yetki_kontrol(
+                kullanici_depo_id, kullanici_admin, hedef_depo_id,
+            )
 
-        # 3. Cikis tipi
+        # 4. Cikis tipi
         if miktar is None:
             gercek_miktar = palet.koli_adedi
             palet.sevk_et()
@@ -148,10 +170,10 @@ class PaletBazliStokDomainService:
                 )
             gercek_miktar = palet.stok_dus(miktar)
 
-        # 4. Palet guncelle
+        # 5. Palet guncelle
         self._palet_repo.guncelle(palet, auto_commit=False)
 
-        # 5. StokHareketi
+        # 6. StokHareketi
         aciklama_metin = aciklama or f"Palet bazli stok cikisi: {palet_no}"
         hareket = StokHareketi(
             urun_id=0,
@@ -172,7 +194,7 @@ class PaletBazliStokDomainService:
 
         hareket = self._hareket_repo.olustur(hareket, auto_commit=False)
 
-        # 6. SistemLog
+        # 7. SistemLog
         cikis_tipi = "tam" if miktar is None else "kismi"
         self._log_repo.olustur(
             SistemLog.olustur(
@@ -187,6 +209,32 @@ class PaletBazliStokDomainService:
         return hareket
 
     # ── Yardimci Metodlar ──
+
+    def _depo_yetki_kontrol(
+        self,
+        kullanici_depo_id: Optional[int],
+        kullanici_admin: bool,
+        hedef_depo_id: int,
+        depo_adi: str = "",
+    ) -> None:
+        """Kullanicinin hedef depoya erisim yetkisini kontrol eder.
+
+        Admin veya depo_id=None (atanmamis) kullanicilar tum depolara erisebilir.
+        """
+        if kullanici_admin:
+            return
+        if kullanici_depo_id is None:
+            return
+        if kullanici_depo_id == hedef_depo_id:
+            return
+        raise DepoErisimHatasi(kullanici_depo_id, hedef_depo_id, depo_adi)
+
+    def _raf_depo_id_coz(self, raf_id: Optional[int]) -> Optional[int]:
+        """Raf ID'sinden depo ID'sini cozumler."""
+        if not raf_id:
+            return None
+        raf = self._raf_repo.getir_id_ile(raf_id)
+        return raf.depo_id if raf else None
 
     def _lot_bul_veya_olustur(self, dto: PaletBilgiDTO) -> Lot:
         """Lot numarasina gore mevcut lotu bulur veya yenisini olusturur."""

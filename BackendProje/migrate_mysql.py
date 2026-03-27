@@ -19,7 +19,10 @@ alter_statements = [
     "ALTER TABLE stok_hareketleri ADD COLUMN siparis_no VARCHAR(100) DEFAULT NULL;",
     "ALTER TABLE stok_hareketleri ADD COLUMN tir_plaka VARCHAR(50) DEFAULT NULL;",
     "ALTER TABLE stok_hareketleri ADD COLUMN depo_kapi VARCHAR(50) DEFAULT NULL;",
-    "ALTER TABLE stok_hareketleri ADD COLUMN barkodlar TEXT DEFAULT NULL;"
+    "ALTER TABLE stok_hareketleri ADD COLUMN barkodlar TEXT DEFAULT NULL;",
+    # Faz 1d: Kullanıcı depo ataması
+    "ALTER TABLE kullanicilar ADD COLUMN depo_id INT DEFAULT NULL;",
+    "ALTER TABLE kullanicilar ADD CONSTRAINT fk_kullanici_depo FOREIGN KEY (depo_id) REFERENCES depolar(id);",
 ]
 
 print("Veritabanı migration başlatılıyor...")

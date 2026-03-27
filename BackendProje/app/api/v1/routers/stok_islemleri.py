@@ -54,7 +54,12 @@ def palet_giris(
 
     Irsaliye'deki palet bilgisini referans alarak lot + palet + stok hareketi olusturur.
     """
-    hareket = service.palet_giris(dto.palet_no, kullanici_id=current_user.id)
+    hareket = service.palet_giris(
+        dto.palet_no,
+        kullanici_id=current_user.id,
+        kullanici_depo_id=current_user.depo_id,
+        kullanici_admin=(current_user.rol == "admin"),
+    )
     db.commit()
     return StokHareketiResponseDTO.from_entity(hareket)
 
@@ -75,6 +80,8 @@ def palet_cikis(
     hareket = service.palet_cikis(
         palet_no=dto.palet_no,
         kullanici_id=current_user.id,
+        kullanici_depo_id=current_user.depo_id,
+        kullanici_admin=(current_user.rol == "admin"),
         miktar=dto.miktar,
         siparis_no=dto.siparis_no,
         aciklama=dto.aciklama,

@@ -340,9 +340,9 @@ Yeni:    Tip Seç → Palet No Gir → Bilgi Önizleme → Onayla
 | Faz | Kapsam | Durum | Detay |
 |---|---|---|---|
 | **Faz 1a** | MalKabulIrsaliyesi entity + repository + CRUD API + frontend sayfası | **TAMAMLANDI** | Entity, ORM, mapper, repository, use case, DTO, router, React sayfası, /simplify review |
-| **Faz 1b** | IPaletVeriKaynagiService + IrsaliyePaletVeriKaynagi adapter | Bekliyor | Soyutlama katmanı, adapter implementasyonu |
-| **Faz 1c** | PaletBazliStokDomainService + stok-islemleri endpoint'leri | Bekliyor | Domain service, yeni API endpoint'leri |
-| **Faz 1d** | Kullanıcı depo ataması + yetki kontrolü | Bekliyor | `kullanicilar.depo_id`, rol bazlı kontrol |
+| **Faz 1b** | IPaletVeriKaynagiService + IrsaliyePaletVeriKaynagi adapter | **TAMAMLANDI** | Interface, adapter, PaletBilgiDTO, PaletSorgulamaService |
+| **Faz 1c** | PaletBazliStokDomainService + stok-islemleri endpoint'leri | **TAMAMLANDI** | Domain service (giriş/çıkış), 3 API endpoint, request DTO'lar, DI setup |
+| **Faz 1d** | Kullanıcı depo ataması + yetki kontrolü | **TAMAMLANDI** | Entity, ORM, mapper, DTO, schema, domain service yetki kontrolü, DepoErisimHatasi, migration |
 | **Faz 1e** | Frontend StokHareketleriPage yeni akış | Bekliyor | Palet no bazlı UI, barkod/kamera entegrasyonu |
 | **Faz 1f** | Testler + entegrasyon doğrulama | Bekliyor | Unit, integration, API test suite |
 | **Faz 2** | Toplu palet işlemi (çoklu tarama) | Bekliyor | Çoklu palet tarama, toplu onay |
@@ -390,6 +390,67 @@ Yeni:    Tip Seç → Palet No Gir → Bilgi Önizleme → Onayla
 - `IPaletVeriKaynagiService` interface → `app/core/services/` altında oluşturulacak
 - `IrsaliyePaletVeriKaynagiService` adapter → `app/infrastructure/services/` altında, `getir_kalem_palet_no_ile()` çağırarak implement edilecek
 - `PaletBilgiDTO` → use case veya DTO katmanında tanımlanacak (kaynak: Bölüm 6.2)
+
+---
+
+## 15. Faz 1b+1c — Tamamlanan Çalışma ve Notlar
+
+**Tamamlanma:** 2026-03-27
+
+### Oluşturulan Dosyalar
+
+| Katman | Dosya | Not |
+|---|---|---|
+| Interface | `app/core/services/palet_veri_kaynagi_service.py` | `IPaletVeriKaynagiService` ABC — `palet_bilgisi_getir()`, `palet_giris_onayla()` |
+| Adapter | `app/infrastructure/services/irsaliye_palet_veri_kaynagi_service.py` | `IrsaliyePaletVeriKaynagiService` — MalKabulKalemi'nden okur |
+| Query Service | `app/infrastructure/services/palet_sorgulama_service.py` | Read-model assembler: DB paleti > veri kaynağı fallback |
+| Domain Service | `app/core/services/palet_bazli_stok_domain_service.py` | `PaletBazliStokDomainService` — giriş/çıkış iş kuralları |
+| DTO | `app/application/dto/palet_bilgi_dto.py` | Kaynak bağımsız palet bilgi DTO |
+| Request DTO | `app/application/dto/stok_islemleri_dto.py` | `PaletGirisRequestDTO`, `PaletCikisRequestDTO` |
+| Router | `app/api/v1/routers/stok_islemleri.py` | 3 endpoint: sorgula, giriş, çıkış |
+| DI | `container.py` (ekleme) | 3 factory: veri_kaynagi, domain_service, sorgulama_service |
+
+---
+
+## 16. Faz 1d — Tamamlanan Çalışma ve Notlar
+
+**Tamamlanma:** 2026-03-27
+
+### Değişiklikler
+
+| Katman | Dosya | Değişiklik |
+|---|---|---|
+| Exception | `core/api_exceptions.py` | `DepoErisimHatasi` eklendi (403, kullanici_depo_id + hedef_depo_id + depo_adi) |
+| Exception Re-export | `app/core/exceptions/__init__.py` | `DepoErisimHatasi` re-export eklendi |
+| Entity | `app/core/entities/kullanici.py` | `depo_id: Optional[int]` alanı + `depo_erisim_var(hedef_depo_id)` metodu |
+| ORM | `models.py` → `Kullanici` | `depo_id = Column(Integer, FK→depolar.id, nullable=True)` + `depo` relationship |
+| Mapper | `mappers.py` | `kullanici_to_entity` ve `kullanici_to_orm` → `depo_id` eklendi |
+| Repository | `sa_kullanici_repository.py` | `guncelle()` → `orm.depo_id` güncelleme eklendi |
+| DTO | `kullanici_dto.py` | Response ve Guncelle DTO'lara `depo_id` eklendi |
+| Schema | `schemas.py` | `KullaniciBase`, `KullaniciUpdate` → `depo_id` eklendi |
+| Domain Service | `palet_bazli_stok_domain_service.py` | TODO'lar implement edildi — `_depo_yetki_kontrol()`, `_raf_depo_id_coz()`, `raf_repo` enjekte |
+| Router | `stok_islemleri.py` | `current_user.depo_id` ve `current_user.rol == "admin"` bilgileri service'e geçiriliyor |
+| Use Case | `kullanici_use_cases.py` | `depo_id` güncelleme desteği (sadece admin) |
+| DI | `container.py` | `get_palet_bazli_stok_service` → `raf_repo` enjekte eklendi |
+| Migration | `migrate_mysql.py` | `ALTER TABLE kullanicilar ADD COLUMN depo_id` + FK constraint |
+
+### Yetki Kontrol Kuralları
+
+- **Admin** → tüm depolara erişim (rol kontrolü)
+- **depo_id=NULL** → tüm depolara erişim (henüz atanmamış, geriye uyumlu)
+- **depo_id=X** → sadece X deposundaki paletlere erişim
+- Yetkisiz erişim → `DepoErisimHatasi` (HTTP 403)
+
+### Faz 1e'ye Geçiş Notları
+
+- Backend tamamen hazır: 3 endpoint (`GET /palet/{no}`, `POST /palet-giris`, `POST /palet-cikis`) çalışır durumda
+- `PaletBilgiDTO` response formatı frontend'in ihtiyaç duyduğu tüm bilgileri içeriyor
+- Frontend `StokHareketleriPage.jsx` → palet no bazlı akışa dönüştürülecek
+- `useBarcodeScanner` hook adapte edilecek (palet no girişi için)
+- `ZXingBarcodeScanner` bileşeni yeniden kullanılacak (kamera tarama)
+- Hata mesajları Türkçe ve kullanıcı dostu — frontend'te doğrudan gösterilebilir
+- `KullaniciResponse` artık `depo_id` döndürüyor — frontend'te depo bilgisi gösterilebilir
+- Admin panelinde kullanıcı düzenleme formuna "Atanmış Depo" select alanı eklenecek
 
 ---
 

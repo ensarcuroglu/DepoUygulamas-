@@ -96,6 +96,12 @@ class KullaniciGuncelleUseCase:
         if yeni_sifre and self._password_hasher:
             mevcut.sifre_hash = self._password_hasher(yeni_sifre)
 
+        # Depo ataması sadece admin yapabilir
+        if "depo_id" in guncel:
+            if not admin_mi(current_user):
+                raise YetkisizIslemError("Sadece yöneticiler depo ataması yapabilir")
+            mevcut.depo_id = guncel["depo_id"]
+
         # Kalan alanlar
         for alan in ("ad_soyad", "telefon", "email", "departman", "sicil_no", "kart_numarasi"):
             if alan in guncel:

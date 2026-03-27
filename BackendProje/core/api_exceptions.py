@@ -175,3 +175,20 @@ class GecersizIslemError(APIException):
 
     def __init__(self, message: str = "Geçersiz işlem."):
         super().__init__(status.HTTP_400_BAD_REQUEST, message)
+
+
+class DepoErisimHatasi(APIException):
+    """Kullanicinin hedef depoya erisim yetkisi yok."""
+
+    def __init__(self, kullanici_depo_id: int | None, hedef_depo_id: int, depo_adi: str = ""):
+        self.kullanici_depo_id = kullanici_depo_id
+        self.hedef_depo_id = hedef_depo_id
+        if depo_adi:
+            mesaj = f"Bu palet {depo_adi} deposuna ait, yetkiniz bulunmuyor."
+        else:
+            mesaj = f"Bu palet farklı bir depoya ait (Depo ID: {hedef_depo_id}), yetkiniz bulunmuyor."
+        super().__init__(
+            status.HTTP_403_FORBIDDEN,
+            mesaj,
+            {"kullanici_depo_id": kullanici_depo_id, "hedef_depo_id": hedef_depo_id},
+        )
