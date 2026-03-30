@@ -1,143 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import {
-    Container, Plus, X, Barcode, Search, MapPin, PackageOpen,
+    Container, X, Barcode, Search, MapPin, PackageOpen,
     LayoutGrid, Scale, Clock, Trash2, List, SlidersHorizontal,
     ArrowUpDown, ChevronDown, Package, Weight, Layers, TrendingUp,
     Filter, RotateCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
-    getPaletler, createPalet, deletePalet, getSonrakiPaletNo,
-    getLotlar, getPaletByBarkod
+    getPaletler, deletePalet, getLotlar, getPaletByBarkod
 } from '../services/api';
 import useBarcodeScanner from '../hooks/useBarcodeScanner';
 import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
 import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
-
-/* ═══════════════════════════════════════════
-   PALET MODAL — Bottom Sheet (Mobile-first)
-   ═══════════════════════════════════════════ */
-function PaletModal({ isOpen, onClose, onSave, lotlar, sonrakiNo }) {
-    const [form, setForm] = useState({
-        lot_id: '', palet_no: '', raf_id: '', koli_adedi: 0, palet_kg: 0, vardiya: ''
-    });
-
-    useEffect(() => {
-        if (isOpen) {
-            setForm({ lot_id: '', palet_no: sonrakiNo || '', raf_id: '', koli_adedi: 0, palet_kg: 0, vardiya: '' });
-            document.body.style.overflow = 'hidden';
-        }
-        return () => { document.body.style.overflow = ''; };
-    }, [isOpen, sonrakiNo]);
-
-    if (!isOpen) return null;
-
-    const inputClass = `w-full h-[52px] px-4 text-[15px] font-semibold rounded-xl border border-slate-200
-        bg-slate-50/80 text-slate-800 placeholder-slate-400
-        focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white
-        transition-all duration-200`;
-    const labelClass = "text-[11px] font-bold text-slate-500 mb-1.5 block tracking-wider uppercase";
-
-    return createPortal(
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <div
-                className="relative bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col animate-slide-up sm:animate-fade-in sm:mx-4"
-                onClick={e => e.stopPropagation()}
-            >
-                {/* Drag handle */}
-                <div className="flex justify-center pt-3 pb-1 sm:hidden">
-                    <div className="w-10 h-1 bg-slate-200 rounded-full" />
-                </div>
-
-                {/* Header */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-900">Yeni Palet</h3>
-                        <p className="text-xs text-slate-500 mt-0.5">Depoya yeni bir palet girişi yapın</p>
-                    </div>
-                    <button onClick={onClose} className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
-
-                {/* Form */}
-                <form
-                    onSubmit={e => {
-                        e.preventDefault();
-                        onSave({
-                            ...form,
-                            lot_id: Number(form.lot_id),
-                            raf_id: form.raf_id ? Number(form.raf_id) : null,
-                            koli_adedi: Number(form.koli_adedi),
-                            palet_kg: Number(form.palet_kg)
-                        });
-                    }}
-                    className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-4"
-                >
-                    <div>
-                        <label className={labelClass}>Lot / Parti Seçimi <span className="text-red-400">*</span></label>
-                        <select
-                            className={`${inputClass} appearance-none`}
-                            value={form.lot_id}
-                            onChange={e => setForm({ ...form, lot_id: e.target.value })}
-                            required
-                        >
-                            <option value="">Ürün veya LOT seçin...</option>
-                            {lotlar.map(l => (
-                                <option key={l.id} value={l.id}>
-                                    LOT: {l.lot_no} — {l.urun?.isim || `Ürün #${l.urun_id}`}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className={labelClass}>Palet No <span className="text-red-400">*</span></label>
-                            <input className={inputClass} value={form.palet_no} onChange={e => setForm({ ...form, palet_no: e.target.value })} required placeholder="PLT-X" />
-                        </div>
-                        <div>
-                            <label className={labelClass}>Vardiya</label>
-                            <input className={inputClass} value={form.vardiya} onChange={e => setForm({ ...form, vardiya: e.target.value })} placeholder="Gündüz" />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className={labelClass}>Koli Adedi <span className="text-red-400">*</span></label>
-                            <input type="number" min="0" className={inputClass} value={form.koli_adedi} onChange={e => setForm({ ...form, koli_adedi: e.target.value })} required />
-                        </div>
-                        <div>
-                            <label className={labelClass}>Ağırlık (kg)</label>
-                            <input type="number" min="0" step="0.01" className={inputClass} value={form.palet_kg} onChange={e => setForm({ ...form, palet_kg: e.target.value })} />
-                        </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-3 pt-4 border-t border-slate-100 sticky bottom-0 bg-white pb-safe">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex-1 h-12 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 active:scale-[0.98] transition-all"
-                        >
-                            İptal
-                        </button>
-                        <button
-                            type="submit"
-                            className="flex-1 h-12 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 active:scale-[0.98] transition-all"
-                        >
-                            Kaydet
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>,
-        document.body
-    );
-}
 
 /* ═══════════════════════════════════════════
    STAT CARD — Compact KPI display
@@ -497,11 +372,9 @@ export default function PaletlerPage() {
     // Data state
     const [paletler, setPaletler] = useState([]);
     const [lotlar, setLotlar] = useState([]);
-    const [sonrakiNo, setSonrakiNo] = useState('');
     const { loading, run } = useAsync(true);
 
     // UI state
-    const [modalOpen, setModalOpen] = useState(false);
     const [cameraScannerOpen, setCameraScannerOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
@@ -521,7 +394,7 @@ export default function PaletlerPage() {
         try {
             const fetcher = () => Promise.all([
                 getPaletler({ skip: pageNum * limit, limit }),
-                ...(pageNum === 0 ? [getLotlar({ limit: 200 }), getSonrakiPaletNo()] : [])
+                ...(pageNum === 0 ? [getLotlar({ limit: 200 })] : [])
             ]);
 
             let results;
@@ -550,7 +423,6 @@ export default function PaletlerPage() {
 
             if (rest.length) {
                 setLotlar(rest[0].data);
-                setSonrakiNo(rest[1].data.palet_no);
             }
         } catch {
             toast.error('Veriler yüklenemedi');
@@ -579,7 +451,7 @@ export default function PaletlerPage() {
 
     // Barcode scanner hook
     useBarcodeScanner({
-        isEnabled: !modalOpen && !cameraScannerOpen,
+        isEnabled: !cameraScannerOpen,
         onScan: async (code) => {
             setSearch(code);
             try {
@@ -592,18 +464,6 @@ export default function PaletlerPage() {
     });
 
     // Handlers
-    const handleSave = async (data) => {
-        try {
-            await createPalet(data);
-            toast.success('Palet sisteme eklendi!');
-            setModalOpen(false);
-            setPage(0);
-            fetchData(0);
-        } catch (err) {
-            toast.error(hataMetni(err, 'Palet eklenemedi'));
-        }
-    };
-
     const handleDelete = async (id) => {
         if (!confirm('Bu paleti depodan çıkarmak (pasif yapmak) istiyor musunuz?')) return;
         try {
@@ -675,12 +535,6 @@ export default function PaletlerPage() {
                         <p className="text-xs text-slate-500 mt-0.5">Depo lokasyon ve palet takibi</p>
                     </div>
                 </div>
-                <button
-                    onClick={() => setModalOpen(true)}
-                    className="hidden sm:flex h-10 px-5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all items-center gap-2"
-                >
-                    <Plus className="w-4 h-4" strokeWidth={2.5} /> Yeni Palet
-                </button>
             </div>
 
             {/* ── STATS BAR ── */}
@@ -819,17 +673,6 @@ export default function PaletlerPage() {
                     )}
                 </div>
             )}
-
-            {/* ── MOBILE FAB ── */}
-            <button
-                onClick={() => setModalOpen(true)}
-                className="sm:hidden fixed bottom-20 right-5 w-14 h-14 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-600/30 flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
-            >
-                <Plus className="w-7 h-7" strokeWidth={2.5} />
-            </button>
-
-            {/* ── MODAL ── */}
-            <PaletModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onSave={handleSave} lotlar={lotlar} sonrakiNo={sonrakiNo} />
 
             {/* ── BARCODE SCANNER ── */}
             <ZXingBarcodeScanner
