@@ -256,6 +256,8 @@ export const createStokHareketi = (data) => api.post('/stok-hareketleri/', data)
 export const stokIslemleriPaletSorgula = (paletNo) => api.get(`/stok-islemleri/palet/${encodeURIComponent(paletNo)}`);
 export const stokIslemleriPaletGiris = (data) => api.post('/stok-islemleri/palet-giris', data);
 export const stokIslemleriPaletCikis = (data) => api.post('/stok-islemleri/palet-cikis', data);
+export const stokIslemleriTopluGiris = (data) => api.post('/stok-islemleri/toplu-giris', data);
+export const stokIslemleriTopluCikis = (data) => api.post('/stok-islemleri/toplu-cikis', data);
 
 // ========================
 // TEDARİKÇİLER

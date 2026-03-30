@@ -52,7 +52,7 @@ Akis su sekilde calisiyor:
 
 ## 3. Kritik Bulgular
 
-### Kritik-1: Siparis bazli stok cikisi hata verdiginde akis basarisiz olmuyor, sadece log yaziliyor
+### Kritik-1: Siparis bazli stok cikisi hata verdiginde akis basarisiz olmuyor, sadece log yaziliyor [TAMAMLANDI]
 
 Kanıt:
 
@@ -77,7 +77,7 @@ Oneri:
 - Siparis bazli cikis butun kalemler icin atomik basarisizlik modeliyle calismali
 - Hata logu korunabilir ama exception mutlaka yeniden firlatilmali
 
-### Kritik-2: Repository katmanindaki erken `commit()` cagirilari transaction atomikligini bozuyor
+### Kritik-2: Repository katmanindaki erken `commit()` cagirilari transaction atomikligini bozuyor [TAMAMLANDI]
 
 Kanıt:
 
@@ -104,7 +104,7 @@ Oneri:
 - Transaction siniri use case veya Unit of Work katmaninda toplanmali
 - `auto_commit=False` deseni tum yazma repository'lerinde tutarli hale getirilmeli
 
-### Kritik-3: Onaysiz mal kabul kalemlerinden stok girisine izin veriliyor
+### Kritik-3: Onaysiz mal kabul kalemlerinden stok girisine izin veriliyor [TAMAMLANDI]
 
 Kanıt:
 
@@ -131,7 +131,7 @@ Oneri:
 
 ## 4. Yuksek Oncelikli Bulgular
 
-### Yuksek-1: Tum kalemler girildiginde mal kabul irsaliyesi otomatik `Tamamlandi` olmuyor
+### Yuksek-1: Tum kalemler girildiginde mal kabul irsaliyesi otomatik `Tamamlandi` olmuyor [TAMAMLANDI]
 
 Kanıt:
 
@@ -268,16 +268,16 @@ Sonuc:
 
 ## 8. Onceliklendirilmis Revizyon Onerileri
 
-### P0 - Hemen ele alinmali
+### P0 - Hemen ele alinmali (TAMAMLANDI)
 
-1. `StokCikisDomainService` icinde hata yutma davranisini kaldir
-2. Yazma repository'lerinden ic `commit()` cagri modelini temizle
-3. Irsaliye ve sevkiyat use case'lerini gercek atomik transaction sinirina tası
+1. ✅ `StokCikisDomainService` icinde hata yutma davranisini kaldir - Exception log sonrasi `raise` ile propagate ediliyor
+2. ✅ Yazma repository'lerinden ic `commit()` cagri modelini temizle - `auto_commit=False` deseni use case'lerde uygulaniyor
+3. ✅ Irsaliye ve sevkiyat use case'lerini gercek atomik transaction sinirina tasi - `test_irsaliye_sevkiyat_transaction_use_cases.py` ile dogrulandi
 
-### P1 - Is akisi tutarliligi
+### P1 - Is akisi tutarliligi (TAMAMLANDI)
 
-1. Mal kabul palet girisinde belge durum kontrolu ekle
-2. Tum kalemler tamamlandiginda mal kabul irsaliyesini otomatik tamamla
+1. ✅ Mal kabul palet girisinde belge durum kontrolu ekle - `palet_bilgisi_getir()` ve `palet_giris_onayla()` TASLAK kontrolu yapıyor
+2. ✅ Tum kalemler tamamlandiginda mal kabul irsaliyesini otomatik tamamla - `tum_kalemler_girildi_mi()` + `tamamla()` entegre edildi
 3. Palet girisi ve cikisi icin idempotency/duplicate request stratejisi ekle
 
 ### P1 - Guvenlik ve performans
@@ -288,9 +288,9 @@ Sonuc:
 
 ### P2 - Test ve izlenebilirlik
 
-1. Irsaliye/sevkiyat hata yollarina unit ve integration test ekle
-2. Refresh/logout akisini API testleriyle kapsa
-3. Mal kabul durum gecisleri icin negatif testler yaz
+1. ✅ Irsaliye/sevkiyat hata yollarina unit ve integration test ekle - `test_irsaliye_sevkiyat_transaction_use_cases.py` eklendi
+2. ✅ Mal kabul durum gecisleri icin negatif testler yaz - `test_irsaliye_flow.py` eklendi
+3. Refresh/logout akisini API testleriyle kapsa
 4. Kritik transaction akislari icin structured log ve correlation id modeli ekle
 
 ## 9. Sonuc

@@ -2,11 +2,13 @@
 
 Palet numarasi uzerinden stok girisi ve cikisi is kurallarini icerir.
 IPaletVeriKaynagiService soyutlamasi sayesinde kaynak bagimsiz calisir.
+Tekli ve toplu (Faz 2) islemleri destekler.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Optional, List
 
 from app.application.dto.palet_bilgi_dto import PaletBilgiDTO
 from app.core.entities.kullanici import Kullanici
@@ -20,6 +22,16 @@ from app.core.exceptions import (
     CakismaHatasi,
     DepoErisimHatasi,
 )
+
+
+@dataclass
+class TopluPaletSonuc:
+    """Toplu islemdeki tek bir paletin sonucu."""
+
+    palet_no: str
+    basarili: bool
+    hata_mesaji: Optional[str] = None
+    hareket: Optional[StokHareketi] = None
 
 if TYPE_CHECKING:
     from app.core.services.palet_veri_kaynagi_service import IPaletVeriKaynagiService
@@ -227,3 +239,116 @@ class PaletBazliStokDomainService:
             son_kullanma_tarihi=dto.son_kullanma_tarihi,
         )
         return self._lot_repo.olustur(lot, auto_commit=False)
+
+    # ── Toplu Palet Giris (Faz 2) ──
+
+    def toplu_palet_giris(
+        self, palet_no_listesi: List[str], kullanici: Kullanici,
+    ) -> List[TopluPaletSonuc]:
+        """Birden fazla paleti tek seferde giris yapar.
+
+        Pre-validation: Her palet icin dogrulama yapilir, hatali olanlar raporlanir.
+        Sadece tumu gecerli ise islem gerceklestirilir (all-or-nothing).
+        """
+        sonuclar: List[TopluPaletSonuc] = []
+
+        # --- Faz 1: Pre-validation ---
+        for palet_no in palet_no_listesi:
+            hata = self._giris_on_dogrula(palet_no, kullanici)
+            if hata:
+                sonuclar.append(TopluPaletSonuc(palet_no=palet_no, basarili=False, hata_mesaji=hata))
+            else:
+                sonuclar.append(TopluPaletSonuc(palet_no=palet_no, basarili=True))
+
+        # Herhangi bir hata varsa islem yapma
+        if any(not s.basarili for s in sonuclar):
+            return sonuclar
+
+        # --- Faz 2: Atomik islem ---
+        for sonuc in sonuclar:
+            hareket = self.palet_giris(sonuc.palet_no, kullanici)
+            sonuc.hareket = hareket
+
+        return sonuclar
+
+    def _giris_on_dogrula(self, palet_no: str, kullanici: Kullanici) -> Optional[str]:
+        """Tek bir palet icin giris on-dogrulama. Hata varsa mesaj doner, yoksa None."""
+        try:
+            dto = self._veri_kaynagi.palet_bilgisi_getir(palet_no)
+        except (KayitBulunamadiError, GecersizIslemError) as e:
+            return str(e)
+
+        if dto.giris_yapildi_mi:
+            return "Bu palet zaten sisteme kaydedilmis."
+
+        mevcut = self._palet_repo.getir_palet_no_ile(palet_no)
+        if mevcut:
+            return f"Palet numarasi '{palet_no}' zaten mevcut."
+
+        if dto.depo_id and not kullanici.depo_erisim_var(dto.depo_id):
+            return f"Bu palet {dto.depo_adi} deposuna ait, yetkiniz bulunmuyor."
+
+        return None
+
+    # ── Toplu Palet Cikis (Faz 2) ──
+
+    def toplu_palet_cikis(
+        self,
+        kalemler: List[dict],
+        kullanici: Kullanici,
+        siparis_no: Optional[str] = None,
+        aciklama: Optional[str] = None,
+    ) -> List[TopluPaletSonuc]:
+        """Birden fazla paletten tek seferde cikis yapar.
+
+        kalemler: [{"palet_no": str, "miktar": Optional[int]}, ...]
+        Pre-validation sonrasi all-or-nothing atomik islem.
+        """
+        sonuclar: List[TopluPaletSonuc] = []
+
+        # --- Faz 1: Pre-validation ---
+        for kalem in kalemler:
+            palet_no = kalem["palet_no"]
+            miktar = kalem.get("miktar")
+            hata = self._cikis_on_dogrula(palet_no, miktar, kullanici)
+            if hata:
+                sonuclar.append(TopluPaletSonuc(palet_no=palet_no, basarili=False, hata_mesaji=hata))
+            else:
+                sonuclar.append(TopluPaletSonuc(palet_no=palet_no, basarili=True))
+
+        # Herhangi bir hata varsa islem yapma
+        if any(not s.basarili for s in sonuclar):
+            return sonuclar
+
+        # --- Faz 2: Atomik islem ---
+        for i, kalem in enumerate(kalemler):
+            hareket = self.palet_cikis(
+                palet_no=kalem["palet_no"],
+                kullanici=kullanici,
+                miktar=kalem.get("miktar"),
+                siparis_no=siparis_no,
+                aciklama=aciklama,
+            )
+            sonuclar[i].hareket = hareket
+
+        return sonuclar
+
+    def _cikis_on_dogrula(
+        self, palet_no: str, miktar: Optional[int], kullanici: Kullanici,
+    ) -> Optional[str]:
+        """Tek bir palet icin cikis on-dogrulama. Hata varsa mesaj doner, yoksa None."""
+        palet = self._palet_repo.getir_palet_no_ile(palet_no)
+        if not palet:
+            return f"Palet '{palet_no}' bulunamadi."
+
+        if not palet.aktif or palet.bos_mu():
+            return "Bu palette stok bulunmuyor."
+
+        hedef_depo_id = self._raf_depo_id_coz(palet.raf_id)
+        if hedef_depo_id and not kullanici.depo_erisim_var(hedef_depo_id):
+            return "Bu palet farkli bir depoya ait, yetkiniz bulunmuyor."
+
+        if miktar is not None and miktar > palet.koli_adedi:
+            return f"Istenen miktar ({miktar}) paletteki stoktan ({palet.koli_adedi}) fazla."
+
+        return None

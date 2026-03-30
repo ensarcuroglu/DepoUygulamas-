@@ -345,7 +345,7 @@ Yeni:    Tip Seç → Palet No Gir → Bilgi Önizleme → Onayla
 | **Faz 1d** | Kullanıcı depo ataması + yetki kontrolü | **TAMAMLANDI** | Entity, ORM, mapper, DTO, schema, domain service yetki kontrolü, DepoErisimHatasi, migration |
 | **Faz 1e** | Frontend StokHareketleriPage yeni akış | **TAMAMLANDI** | Palet no bazlı UI, barkod/kamera entegrasyonu, Son İşlemler palet_no gösterimi |
 | **Faz 1f** | Testler + entegrasyon doğrulama | Bekliyor | Unit, integration, API test suite |
-| **Faz 2** | Toplu palet işlemi (çoklu tarama) | Bekliyor | Çoklu palet tarama, toplu onay |
+| **Faz 2** | Toplu palet işlemi (çoklu tarama) | **TAMAMLANDI** | Toplu DTO, domain service, 2 endpoint, frontend çoklu tarama UI |
 | **Faz 3** | ERP adapter (`ErpPaletVeriKaynagiService`) | Bekliyor | ERP API entegrasyonu, adapter swap |
 
 ---
@@ -541,3 +541,79 @@ Yeni:    Tip Seç → Palet No Gir → Bilgi Önizleme → Onayla
 | Mal Kabul İrsaliyesi'ndeki palet_no ile Palet tablosundaki palet_no çakışması | Veri tutarsızlığı | UNIQUE constraint + giriş öncesi kontrol |
 | ERP format standardı farklı olabilir | Adapter değişikliği | Format doğrulama soyutlanmış, regex adapter'da |
 | Mevcut kullanıcıların depo ataması eksik | Yetki hatası | Migration sırasında varsayılan depo atanır veya admin uyarılır |
+
+---
+
+## 18. Faz 2 — Tamamlanan Çalışma ve Notlar
+
+**Tamamlanma:** 2026-03-30
+
+### Tasarım Kararları
+
+| # | Karar | Neden |
+|---|---|---|
+| F2-K1 | Varsayılan tam palet sevkiyatı, opsiyonel "Parçala" ile kısmi çıkış | Operasyonel hız korunur, UI karmaşası önlenir |
+| F2-K2 | Pre-validation + all-or-nothing | Kullanıcı hatalı paletleri görür ve düzeltir, kısmi başarı riski yok |
+| F2-K3 | Max 50 palet/işlem limiti | Non-functional requirement (Bölüm 11) |
+| F2-K4 | Mevcut tekli endpoint'ler korunur | Geriye uyumluluk — sevkiyat ve diğer modüller etkilenmez |
+
+### Backend Değişiklikleri
+
+| Dosya | Değişiklik |
+|---|---|
+| `app/application/dto/stok_islemleri_dto.py` | `TopluPaletGirisRequestDTO`, `TopluPaletCikisRequestDTO`, `TopluPaletCikisKalemiDTO`, `TopluIslemResponseDTO`, `TopluIslemPaletSonucDTO` eklendi. Max 50 limit, duplicate engeli, per-kalem miktar validasyonu |
+| `app/core/services/palet_bazli_stok_domain_service.py` | `TopluPaletSonuc` dataclass, `toplu_palet_giris()`, `toplu_palet_cikis()`, `_giris_on_dogrula()`, `_cikis_on_dogrula()` metotları eklendi |
+| `app/api/v1/routers/stok_islemleri.py` | `POST /toplu-giris` ve `POST /toplu-cikis` endpoint'leri, `_sonuclari_dto_ya_cevir()` helper, rate limit: 10/minute |
+
+### Frontend Değişiklikleri
+
+| Dosya | Değişiklik |
+|---|---|
+| `ReactProje/src/services/api.js` | `stokIslemleriTopluGiris`, `stokIslemleriTopluCikis` fonksiyonları eklendi |
+| `ReactProje/src/pages/StokHareketleriPage.jsx` | Tekli palet akışı → çoklu tarama listesi akışına dönüştürüldü |
+
+### Yeni Akış Detayları
+
+1. **Adım 1:** GİRİŞ/ÇIKIŞ seçimi ("Toplu Palet Kabul" / "Toplu Palet Sevk")
+2. **Adım 2:** Çoklu palet tarama — metin + fiziksel okuyucu + kamera
+   - Her tarama listeye ekler, arka planda anında sorgulama + pre-validation
+   - Geçerli paletler yeşil tik, hatalılar kırmızı uyarı ile gösterilir
+   - Duplicate engeli, max 50 limiti
+   - Çıkışta per-palet "Parçala" (Scissors) ikonu ile kısmi miktar girişi
+   - "Devam Et (N palet)" butonu ile Adım 3'e geçiş
+3. **Adım 3:** Toplu önizleme
+   - Geçerli paletlerin özet listesi (ürün, raf, miktar, kısmi/tam gösterimi)
+   - Toplam koli sayacı
+   - Çıkışta sipariş no + açıklama (ortak alanlar)
+   - Hatalı palet uyarı kartı
+   - "Onayla (N)" butonu → toplu API çağrısı
+4. **Son İşlemler:** Aynen korunuyor
+
+### Korunan Bileşenler
+
+- Mevcut tekli endpoint'ler (`GET /palet/{no}`, `POST /palet-giris`, `POST /palet-cikis`) dokunulmadı
+- `HareketModal` export'u geriye uyumlu (Header'dan çağrılır)
+- `useBarcodeScanner` ve `ZXingBarcodeScanner` yeniden kullanıldı
+- `IPaletVeriKaynagiService` adapter pattern korundu
+
+### API Kontratı
+
+```
+POST /api/stok-islemleri/toplu-giris
+Body: { palet_no_listesi: ["PLT-001", "PLT-002", ...] }
+→ TopluIslemResponseDTO { toplam, basarili, basarisiz, sonuclar[] }
+
+POST /api/stok-islemleri/toplu-cikis
+Body: {
+  kalemler: [{ palet_no: "PLT-001", miktar?: 10 }, ...],
+  siparis_no?: "ORD-123",
+  aciklama?: "..."
+}
+→ TopluIslemResponseDTO { toplam, basarili, basarisiz, sonuclar[] }
+```
+
+### Faz 3'e Geçiş Notları
+
+- `IPaletVeriKaynagiService` adapter pattern dokunulmadı — ERP adapter swap'ı etkilenmez
+- Toplu giriş domain service dahili olarak `palet_giris()` çağırır → ERP adapter değişikliği otomatik yansır
+- Toplu işlem rate limit'i (10/dakika) ERP entegrasyonunda gözden geçirilmeli
