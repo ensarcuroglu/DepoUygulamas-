@@ -40,20 +40,22 @@ def _make_depo_mock(isim="Depo-A"):
     return depo
 
 
+def _setup_db_palet(m, koli_adedi=80, aktif=True):
+    """DB palet sorgulama icin ortak mock setup."""
+    palet = Palet(id=10, lot_id=1, raf_id=5, palet_no="PLT-2026-00001", koli_adedi=koli_adedi, aktif=aktif)
+    m["palet_repo"].getir_palet_no_ile.return_value = palet
+    m["lot_repo"].getir_id_ile.return_value = Lot(id=1, urun_id=1, lot_no="LOT-2026-0001")
+    m["urun_repo"].getir_id_ile.return_value = _make_urun_mock()
+    m["raf_repo"].getir_id_ile.return_value = Raf(id=5, depo_id=1, kod="R-01-A")
+    m["depo_repo"].getir_id_ile.return_value = _make_depo_mock()
+    return palet
+
+
 class TestPaletSorgula:
 
     def test_db_palet_var_sistem_kaynagi_doner(self):
-        """DB'de palet varsa veri kaynagina gitmeden sistem DTO doner."""
         service, m = _make_service()
-        palet = Palet(id=10, lot_id=1, raf_id=5, palet_no="PLT-2026-00001", koli_adedi=80, aktif=True)
-        lot = Lot(id=1, urun_id=1, lot_no="LOT-2026-0001")
-        raf = Raf(id=5, depo_id=1, kod="R-01-A")
-
-        m["palet_repo"].getir_palet_no_ile.return_value = palet
-        m["lot_repo"].getir_id_ile.return_value = lot
-        m["urun_repo"].getir_id_ile.return_value = _make_urun_mock()
-        m["raf_repo"].getir_id_ile.return_value = raf
-        m["depo_repo"].getir_id_ile.return_value = _make_depo_mock()
+        _setup_db_palet(m, koli_adedi=80)
 
         result = service.sorgula("PLT-2026-00001")
 
@@ -65,7 +67,6 @@ class TestPaletSorgula:
         m["veri_kaynagi"].palet_bilgisi_getir.assert_not_called()
 
     def test_db_palet_yok_veri_kaynasindan_doner(self):
-        """DB'de palet yoksa veri kaynagindan (irsaliye/ERP) DTO doner."""
         service, m = _make_service()
         expected_dto = PaletBilgiDTO(
             palet_no="PLT-2026-00099",
@@ -84,15 +85,8 @@ class TestPaletSorgula:
         m["veri_kaynagi"].palet_bilgisi_getir.assert_called_once_with("PLT-2026-00099")
 
     def test_db_palet_pasif_durum_doner(self):
-        """Pasif palet sorgulandiginda durum='pasif' donmeli."""
         service, m = _make_service()
-        palet = Palet(id=10, lot_id=1, raf_id=5, palet_no="PLT-2026-00001", koli_adedi=0, aktif=False)
-
-        m["palet_repo"].getir_palet_no_ile.return_value = palet
-        m["lot_repo"].getir_id_ile.return_value = Lot(id=1, urun_id=1, lot_no="LOT-2026-0001")
-        m["urun_repo"].getir_id_ile.return_value = _make_urun_mock()
-        m["raf_repo"].getir_id_ile.return_value = Raf(id=5, depo_id=1, kod="R-01-A")
-        m["depo_repo"].getir_id_ile.return_value = _make_depo_mock()
+        _setup_db_palet(m, koli_adedi=0, aktif=False)
 
         result = service.sorgula("PLT-2026-00001")
 
