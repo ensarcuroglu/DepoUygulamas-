@@ -134,8 +134,8 @@ class PaletBazliStokDomainService:
 
         miktar=None ise tam cikis (palet.sevk_et), degilse kismi cikis (palet.stok_dus).
         """
-        # 1. Paleti bul
-        palet = self._palet_repo.getir_palet_no_ile(palet_no)
+        # 1. Paleti bul (KİLİTLİ OKUMA) - Eş zamanlı çıkışları engeller
+        palet = self._palet_repo.getir_palet_no_ile(palet_no, kilitli_mi=True)
         if not palet:
             raise KayitBulunamadiError("Palet", palet_no)
 

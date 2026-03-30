@@ -20,7 +20,8 @@ class IPaletRepository(ABC):
         ...
 
     @abstractmethod
-    def getir_palet_no_ile(self, palet_no: str) -> Optional[Palet]:
+    def getir_palet_no_ile(self, palet_no: str, kilitli_mi: bool = False) -> Optional[Palet]:
+        """Palet numarasına göre paleti getirir. Eşzamanlı işlemlerde kilit (FOR UPDATE) kullanılabilir."""
         ...
 
     @abstractmethod

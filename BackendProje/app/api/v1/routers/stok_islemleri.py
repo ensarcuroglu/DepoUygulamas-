@@ -8,6 +8,9 @@ Mevcut /api/stok-hareketleri/ endpoint'leri dokunulmaz — bu router ayri calisi
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
+from sqlalchemy.exc import IntegrityError
+from app.core.exceptions import CakismaHatasi
+
 from auth import require_role
 from database import get_db
 from models import Kullanici
@@ -51,14 +54,17 @@ def palet_giris(
     current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
     service: PaletBazliStokDomainService = Depends(get_palet_bazli_stok_service),
 ):
-    """Palet numarasi ile stok girisi yapar.
-
-    Irsaliye'deki palet bilgisini referans alarak lot + palet + stok hareketi olusturur.
-    """
+    """Palet numarasi ile stok girisi yapar."""
     kullanici = kullanici_to_entity(current_user)
-    hareket = service.palet_giris(dto.palet_no, kullanici)
-    db.commit()
-    return StokHareketiResponseDTO.from_entity(hareket)
+    
+    try:
+        hareket = service.palet_giris(dto.palet_no, kullanici)
+        db.commit()
+        return StokHareketiResponseDTO.from_entity(hareket)
+    except IntegrityError:
+        # Eş zamanlı (milisaniyelik) çift tıklamalarda DB unique constraint patlarsa:
+        db.rollback()
+        raise CakismaHatasi("Palet numarası", dto.palet_no)
 
 
 @router.post("/palet-cikis", response_model=StokHareketiResponseDTO, status_code=201)
@@ -70,17 +76,20 @@ def palet_cikis(
     current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
     service: PaletBazliStokDomainService = Depends(get_palet_bazli_stok_service),
 ):
-    """Palet numarasi ile stok cikisi yapar.
-
-    miktar bos ise tam cikis, dolu ise kismi cikis yapilir.
-    """
+    """Palet numarasi ile stok cikisi yapar."""
     kullanici = kullanici_to_entity(current_user)
-    hareket = service.palet_cikis(
-        palet_no=dto.palet_no,
-        kullanici=kullanici,
-        miktar=dto.miktar,
-        siparis_no=dto.siparis_no,
-        aciklama=dto.aciklama,
-    )
-    db.commit()
-    return StokHareketiResponseDTO.from_entity(hareket)
+    
+    try:
+        hareket = service.palet_cikis(
+            palet_no=dto.palet_no,
+            kullanici=kullanici,
+            miktar=dto.miktar,
+            siparis_no=dto.siparis_no,
+            aciklama=dto.aciklama,
+        )
+        db.commit()
+        return StokHareketiResponseDTO.from_entity(hareket)
+    except IntegrityError:
+        # Çıkış sırasında da yaşanabilecek bir veri tabanı kilidi çakışmasını engelle
+        db.rollback()
+        raise CakismaHatasi("Palet çıkış işlemi", dto.palet_no)

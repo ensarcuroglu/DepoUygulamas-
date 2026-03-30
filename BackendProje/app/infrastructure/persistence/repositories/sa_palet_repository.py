@@ -39,11 +39,17 @@ class SqlAlchemyPaletRepository(IPaletRepository):
         ).filter(PaletORM.id == palet_id).first()
         return palet_to_entity(orm) if orm else None
 
-    def getir_palet_no_ile(self, palet_no: str) -> Optional[Palet]:
-        orm = self._db.query(PaletORM).options(
+    def getir_palet_no_ile(self, palet_no: str, kilitli_mi: bool = False) -> Optional[Palet]:
+        query = self._db.query(PaletORM).options(
             joinedload(PaletORM.lot).joinedload(LotORM.urun),
             joinedload(PaletORM.raf),
-        ).filter(PaletORM.palet_no == palet_no).first()
+        ).filter(PaletORM.palet_no == palet_no)
+        
+        # Eğer kilit istenmişse FOR UPDATE ekle
+        if kilitli_mi:
+            query = query.with_for_update()
+            
+        orm = query.first()
         return palet_to_entity(orm) if orm else None
 
     def olustur(self, palet: Palet, auto_commit: bool = True) -> Palet:
