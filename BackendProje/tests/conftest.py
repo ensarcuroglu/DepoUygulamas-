@@ -41,12 +41,19 @@ def get_test_password_hash() -> str:
 @pytest.fixture(scope="session")
 def engine():
     """Test DB'ye bağlanan engine — tüm test session boyunca tek instance."""
+    db_name = os.getenv("DB_NAME", "")
     db_url = (
         f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
-        f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+        f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{db_name}"
         "?charset=utf8mb4"
     )
+    if not db_name or "test" not in db_name.lower():
+        raise RuntimeError(
+            f"Güvenlik nedeniyle test olmayan veritabanı üzerinde çalışılamaz: {db_name!r}"
+        )
     eng = create_engine(db_url, pool_pre_ping=True)
+    # create_all mevcut tabloları migrate etmez; test DB'yi güncel metadata ile yeniden kur.
+    Base.metadata.drop_all(bind=eng)
     Base.metadata.create_all(bind=eng)
     yield eng
     eng.dispose()
