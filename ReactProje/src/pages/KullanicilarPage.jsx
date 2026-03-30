@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Users, Plus, Edit3, Trash2, X, Shield, ShieldCheck, Eye,
     User, Lock, Mail, ChevronRight, AlertTriangle, CheckCircle2, Loader2,
@@ -34,6 +34,41 @@ function KullaniciModal({ isOpen, onClose, onSave, kullanici }) {
         telefon: '', email: '', departman: '', sicil_no: '', kart_numarasi: ''
     });
     const [saving, setSaving] = useState(false);
+
+    // Sürükleme (Drag) Durumları
+    const [dragY, setDragY] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const startY = useRef(0);
+
+    // Modal kapandığında sürükleme pozisyonunu sıfırla
+    useEffect(() => {
+        if (!isOpen) {
+            setDragY(0);
+            setIsDragging(false);
+        }
+    }, [isOpen]);
+
+    const handleDragStart = (clientY) => {
+        startY.current = clientY;
+        setIsDragging(true);
+    };
+
+    const handleDragMove = (clientY) => {
+        if (!isDragging) return;
+        const diff = clientY - startY.current;
+        if (diff > 0) { // Sadece aşağı doğru sürüklemeye izin ver
+            setDragY(diff);
+        }
+    };
+
+    const handleDragEnd = () => {
+        setIsDragging(false);
+        if (dragY > 120) { // 120px aşağı kaydırıldıysa modalı kapat
+            onClose();
+        } else {
+            setDragY(0); // Yeterince kaydırılmadıysa eski yerine animasyonla dön
+        }
+    };
 
     useEffect(() => {
         if (kullanici) {
@@ -87,25 +122,50 @@ function KullaniciModal({ isOpen, onClose, onSave, kullanici }) {
     return (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-6">
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative bg-white w-full max-w-[520px] h-auto max-h-[90vh] flex flex-col shadow-2xl overflow-hidden
+            
+            <div 
+                className={`relative bg-white w-full max-w-[520px] h-auto max-h-[90vh] flex flex-col shadow-2xl overflow-hidden
                            rounded-t-[2rem] sm:rounded-[2rem] ring-1 ring-slate-900/5 
-                           animate-[scaleIn_0.3s_ease-out]"
-                onClick={e => e.stopPropagation()}>
+                           animate-[scaleIn_0.3s_ease-out]
+                           ${!isDragging ? 'transition-transform duration-300 ease-out' : ''}`}
+                style={{ transform: dragY > 0 ? `translateY(${dragY}px)` : 'translateY(0)' }}
+                onClick={e => e.stopPropagation()}
+            >
 
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 sm:px-8 py-5 bg-white border-b border-slate-200/80 shrink-0">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100/60 flex items-center justify-center">
-                            {kullanici ? <Edit3 className="w-6 h-6 text-violet-600" /> : <Users className="w-6 h-6 text-violet-600" />}
-                        </div>
-                        <div>
-                            <h3 className="text-[18px] font-extrabold text-slate-900">{kullanici ? 'Kullanıcıyı Düzenle' : 'Yeni Kullanıcı Oluştur'}</h3>
-                            <p className="text-[13px] text-slate-500 font-medium mt-0.5">{kullanici ? 'Mevcut bilgileri güncelleyin.' : 'Sisteme yeni bir kullanıcı ekleyin.'}</p>
-                        </div>
+                {/* --- Sürüklenebilir Alan (Handle Çubuğu + Header) --- */}
+                <div 
+                    className="shrink-0 bg-white border-b border-slate-200/80 touch-none select-none"
+                    onTouchStart={e => handleDragStart(e.touches[0].clientY)}
+                    onTouchMove={e => handleDragMove(e.touches[0].clientY)}
+                    onTouchEnd={handleDragEnd}
+                    onMouseDown={e => handleDragStart(e.clientY)}
+                    onMouseMove={e => handleDragMove(e.clientY)}
+                    onMouseUp={handleDragEnd}
+                    onMouseLeave={handleDragEnd}
+                >
+                    {/* Sadece mobilde görünen sürükleme çubuğu */}
+                    <div className="w-full pt-4 pb-1 flex items-center justify-center sm:hidden cursor-grab active:cursor-grabbing">
+                        <div className="w-12 h-1.5 bg-slate-200 hover:bg-slate-300 rounded-full transition-colors" />
                     </div>
-                    <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors">
-                        <X className="w-5 h-5" />
-                    </button>
+
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-6 sm:px-8 pb-4 pt-2 sm:py-5 cursor-grab active:cursor-grabbing">
+                        <div className="flex items-center gap-4 pointer-events-none">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100/60 flex items-center justify-center">
+                                {kullanici ? <Edit3 className="w-6 h-6 text-violet-600" /> : <Users className="w-6 h-6 text-violet-600" />}
+                            </div>
+                            <div>
+                                <h3 className="text-[18px] font-extrabold text-slate-900">{kullanici ? 'Kullanıcıyı Düzenle' : 'Yeni Kullanıcı Oluştur'}</h3>
+                                <p className="text-[13px] text-slate-500 font-medium mt-0.5">{kullanici ? 'Mevcut bilgileri güncelleyin.' : 'Sisteme yeni bir kullanıcı ekleyin.'}</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); onClose(); }} 
+                            className="w-10 h-10 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors relative z-10"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Form */}
