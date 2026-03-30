@@ -163,6 +163,11 @@ export default function StokHareketleriPage() {
         </div>
     );
 
+    // ===== İŞ AKIŞI KONTROLLERİ (WMS KURALLARI) =====
+    const isGirisEngelli = hareketTipi === 'giris' && paletBilgi?.giris_yapildi_mi;
+    const isCikisEngelli = hareketTipi === 'cikis' && !paletBilgi?.giris_yapildi_mi;
+    const isOnayDisabled = submitting || isGirisEngelli || isCikisEngelli;
+
     return (
         <div className="max-w-2xl mx-auto px-3 sm:px-0 pb-8">
 
@@ -542,6 +547,44 @@ export default function StokHareketleriPage() {
                                 </div>
                             )}
 
+                            {/* ===== WMS İŞ AKIŞI UYARILARI ===== */}
+                            {(isGirisEngelli || isCikisEngelli) && (
+                                <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-200/60 shadow-sm flex items-start gap-3 sm:gap-4 mb-2">
+                                    {/* Dekoratif Arka Plan Parlaması */}
+                                    <div className="absolute -right-6 -top-6 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
+
+                                    {/* İkon Kutusu */}
+                                    <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white shadow-sm border border-amber-100 flex items-center justify-center text-amber-500 relative z-10">
+                                        <X className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={3} />
+                                    </div>
+
+                                    {/* Metin İçeriği */}
+                                    <div className="flex-1 relative z-10 pt-0.5 sm:pt-1">
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                            <h4 className="text-sm sm:text-base font-black text-amber-900 tracking-tight">
+                                                İşlem Kuralı İhlali
+                                            </h4>
+                                            <span className="hidden sm:flex px-2 py-0.5 rounded-lg bg-amber-200/50 text-[10px] font-black text-amber-800 uppercase tracking-widest">
+                                                WMS KONTROL
+                                            </span>
+                                        </div>
+                                        <p className="text-xs sm:text-sm font-semibold text-amber-700/90 leading-relaxed">
+                                            {isGirisEngelli ? (
+                                                <>
+                                                    Bu paletin mal kabulü <strong className="text-amber-950 bg-amber-200/50 px-1.5 py-0.5 rounded-md">zaten yapılmış</strong>. 
+                                                    Devam etmek için işlemi <span className="font-black text-amber-900 underline decoration-amber-400/80 underline-offset-4">ÇIKIŞ (Sevk)</span> olarak değiştirmelisiniz.
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Bu palet <strong className="text-amber-950 bg-amber-200/50 px-1.5 py-0.5 rounded-md">henüz depoya alınmamış</strong>. 
+                                                    Çıkış yapabilmek için önce <span className="font-black text-amber-900 underline decoration-amber-400/80 underline-offset-4">GİRİŞ (Mal Kabul)</span> işlemini tamamlamalısınız.
+                                                </>
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Aksiyon butonları */}
                             <div className="grid grid-cols-2 gap-3 pt-2">
                                 <button
@@ -553,15 +596,16 @@ export default function StokHareketleriPage() {
                                 </button>
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={submitting}
+                                    disabled={isOnayDisabled}
                                     className={`h-16 rounded-2xl text-lg font-black text-white
                                         active:scale-[0.97] transition-all shadow-xl
                                         flex items-center justify-center gap-3
-                                        ${hareketTipi === 'giris'
-                                            ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
-                                            : 'bg-red-600 hover:bg-red-700 shadow-red-600/30'
-                                        }
-                                        ${submitting ? 'opacity-70 cursor-wait' : ''}`}
+                                        ${isOnayDisabled 
+                                            ? 'bg-slate-300 shadow-none cursor-not-allowed text-slate-500' 
+                                            : hareketTipi === 'giris'
+                                                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
+                                                : 'bg-red-600 hover:bg-red-700 shadow-red-600/30'
+                                        }`}
                                 >
                                     {submitting ? (
                                         <Loader2 className="w-6 h-6 animate-spin" />
