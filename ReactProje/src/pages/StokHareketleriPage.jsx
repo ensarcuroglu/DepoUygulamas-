@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowDownToLine, ArrowUpFromLine, Barcode, Check, Loader2, Package, Clock, Search, X, TrendingUp, TrendingDown, ArrowLeft, RefreshCw, MapPin, Calendar, Hash, Box } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, Barcode, Check, Loader2, Package, Clock, Search, X, TrendingUp, TrendingDown, ArrowLeft, RefreshCw, MapPin, Calendar, Hash, Box, ChevronDown, ChevronUp } from 'lucide-react';
 import { getStokHareketleri, stokIslemleriPaletSorgula, stokIslemleriPaletGiris, stokIslemleriPaletCikis } from '../services/api';
 import toast from 'react-hot-toast';
 import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
 import useBarcodeScanner from '../hooks/useBarcodeScanner';
 import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
+
 
 export default function StokHareketleriPage() {
     // ===== STATE =====
@@ -26,6 +27,8 @@ export default function StokHareketleriPage() {
     const { loading: submitting, run: runSubmit } = useAsync(false);
 
     const paletInputRef = useRef(null);
+
+    const [visibleCount, setVisibleCount] = useState(5); // Son işlemler için görünür satır sayısı
 
     // ===== VERİ YÜKLEME =====
     const fetchSonIslemler = async () => {
@@ -624,9 +627,17 @@ export default function StokHareketleriPage() {
             {/* SON İŞLEMLER LİSTESİ */}
             {/* ==================== */}
             <div>
-                <div className="flex items-center gap-2.5 mb-3 px-1">
-                    <Clock className="w-4 h-4 text-slate-400" />
-                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-[0.15em]">Son İşlemler</h3>
+                <div className="flex items-center justify-between mb-3 px-1">
+                    <div className="flex items-center gap-2.5">
+                        <Clock className="w-4 h-4 text-slate-400" />
+                        <h3 className="text-sm font-black text-slate-500 uppercase tracking-[0.15em]">Son İşlemler</h3>
+                    </div>
+                    {/* Toplam işlem sayısını ufak bir badge olarak göstermek modern bir dokunuştur */}
+                    {!loadingHistory && sonIslemler.length > 0 && (
+                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">
+                            Son {sonIslemler.length} İşlem
+                        </span>
+                    )}
                 </div>
 
                 {loadingHistory ? (
@@ -641,45 +652,77 @@ export default function StokHareketleriPage() {
                         <p className="text-base font-bold text-slate-400">Henüz işlem yok</p>
                     </div>
                 ) : (
-                    <div className="space-y-2">
-                        {sonIslemler.map(h => {
-                            const isGiris = h.hareket_tipi === 'giris';
-                            const tarih = new Date(h.tarih);
-                            return (
-                                <div key={h.id} className="flex items-center gap-3 px-4 py-3.5
-                                    bg-white rounded-2xl border border-slate-100
-                                    hover:border-slate-200 transition-colors">
-                                    {/* İkon */}
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
-                                        ${isGiris
-                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                                            : 'bg-red-50 text-red-600 border border-red-200'
-                                        }`}>
-                                        {isGiris
-                                            ? <ArrowDownToLine className="w-5 h-5" strokeWidth={2.5} />
-                                            : <ArrowUpFromLine className="w-5 h-5" strokeWidth={2.5} />
-                                        }
+                    <>
+                        <div className="space-y-2">
+                            {/* Burada listeyi visibleCount kadar sınırlandırıyoruz */}
+                            {sonIslemler.slice(0, visibleCount).map(h => {
+                                const isGiris = h.hareket_tipi === 'giris';
+                                const tarih = new Date(h.tarih);
+                                return (
+                                    <div key={h.id} className="flex items-center gap-3 px-4 py-3.5
+                                        bg-white rounded-2xl border border-slate-100
+                                        hover:border-slate-200 transition-colors shadow-sm">
+                                        {/* İkon */}
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
+                                            ${isGiris
+                                                ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                                                : 'bg-red-50 text-red-600 border border-red-200'
+                                            }`}>
+                                            {isGiris
+                                                ? <ArrowDownToLine className="w-5 h-5" strokeWidth={2.5} />
+                                                : <ArrowUpFromLine className="w-5 h-5" strokeWidth={2.5} />
+                                            }
+                                        </div>
+                                        {/* İçerik */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-black text-slate-800 truncate">
+                                                {h.palet_no ? `Palet: ${h.palet_no}` : `Ürün #${h.urun_id}`}
+                                            </p>
+                                            <p className="text-xs font-semibold text-slate-400 mt-1">
+                                                {tarih.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })} {tarih.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                                {h.siparis_no ? ` · ${h.siparis_no}` : ''}
+                                                {h.aciklama ? ` · ${h.aciklama}` : ''}
+                                            </p>
+                                        </div>
+                                        {/* Miktar */}
+                                        <span className={`text-xl font-black tabular-nums flex-shrink-0
+                                            ${isGiris ? 'text-emerald-600' : 'text-red-500'}`}>
+                                            {isGiris ? '+' : '−'}{h.miktar}
+                                        </span>
                                     </div>
-                                    {/* İçerik */}
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-black text-slate-800 truncate">
-                                            {h.palet_no ? `Palet: ${h.palet_no}` : `Ürün #${h.urun_id}`}
-                                        </p>
-                                        <p className="text-xs font-semibold text-slate-400 mt-1">
-                                            {tarih.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })} {tarih.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                            {h.siparis_no ? ` · ${h.siparis_no}` : ''}
-                                            {h.aciklama ? ` · ${h.aciklama}` : ''}
-                                        </p>
-                                    </div>
-                                    {/* Miktar */}
-                                    <span className={`text-xl font-black tabular-nums flex-shrink-0
-                                        ${isGiris ? 'text-emerald-600' : 'text-red-500'}`}>
-                                        {isGiris ? '+' : '−'}{h.miktar}
-                                    </span>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Daha Fazla / Daha Az Göster Butonları - Mobile First Tasarım */}
+                        {sonIslemler.length > 3 && (
+                            <div className="mt-4 flex justify-center">
+                                {visibleCount < sonIslemler.length ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setVisibleCount(prev => prev + 5)}
+                                        className="h-12 w-full sm:w-auto px-6 rounded-2xl flex items-center justify-center gap-2
+                                            bg-blue-50 text-blue-600 text-sm font-black border-2 border-blue-100/50
+                                            hover:bg-blue-100 hover:border-blue-200 active:scale-95 transition-all"
+                                    >
+                                        Daha Fazla Göster
+                                        <ChevronDown className="w-4 h-4" strokeWidth={3} />
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => setVisibleCount(3)}
+                                        className="h-12 w-full sm:w-auto px-6 rounded-2xl flex items-center justify-center gap-2
+                                            bg-slate-100 text-slate-600 text-sm font-black border-2 border-slate-200/50
+                                            hover:bg-slate-200 active:scale-95 transition-all"
+                                    >
+                                        Daha Az Göster
+                                        <ChevronUp className="w-4 h-4" strokeWidth={3} />
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
