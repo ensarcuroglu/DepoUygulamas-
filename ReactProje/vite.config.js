@@ -9,6 +9,7 @@ export default defineConfig({
   ],
   server: {
     host: true, // Vite'in 0.0.0.0 üzerinden yerel ağa açılmasını sağlar
+    allowedHosts: true, // <-- BÜTÜN TÜNEL LİNKLERİNE İZİN VEREN SATIR
     proxy: {
       // React'tan gelen istekleri Python (Uvicorn) backend'ine yönlendirir
       '/api': {

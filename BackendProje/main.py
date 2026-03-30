@@ -244,3 +244,6 @@ def ana_sayfa():
 
 # uvicorn main:app --host 0.0.0.0 --port 8000
 # npm run dev -- --host
+
+# KAMERA İZNİ İÇİN FARKLI TERMİNALLERDE ÇALIŞTIRMA KODU:
+# ssh -R 80:localhost:5173 nokey@localhost.run
