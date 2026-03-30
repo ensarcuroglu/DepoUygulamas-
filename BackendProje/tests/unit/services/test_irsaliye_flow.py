@@ -45,7 +45,7 @@ def test_taslak_irsaliyeden_palet_bilgisi_alinamaz(service, mock_repos):
     with pytest.raises(GecersizIslemError) as exc:
         service.palet_bilgisi_getir("P001")
     
-    assert "Sadece onaylanmis irsaliyelerden" in str(exc.value)
+    assert "Taslak halindeki irsaliyelerden" in str(exc.value)
 
 def test_onayli_irsaliyeden_palet_bilgisi_alinabilir(service, mock_repos):
     # Hazırlık: İrsaliye ONAYLANDI durumunda
