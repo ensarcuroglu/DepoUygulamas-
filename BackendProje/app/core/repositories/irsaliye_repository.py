@@ -19,11 +19,11 @@ class IIrsaliyeRepository(ABC):
         ...
 
     @abstractmethod
-    def olustur(self, irsaliye: Irsaliye) -> Irsaliye:
+    def olustur(self, irsaliye: Irsaliye, auto_commit: bool = True) -> Irsaliye:
         ...
 
     @abstractmethod
-    def guncelle(self, irsaliye: Irsaliye) -> Irsaliye:
+    def guncelle(self, irsaliye: Irsaliye, auto_commit: bool = True) -> Irsaliye:
         ...
 
     @abstractmethod

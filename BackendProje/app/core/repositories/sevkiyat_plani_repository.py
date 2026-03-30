@@ -21,11 +21,11 @@ class ISevkiyatPlaniRepository(ABC):
         ...
 
     @abstractmethod
-    def olustur(self, plan: SevkiyatPlani) -> SevkiyatPlani:
+    def olustur(self, plan: SevkiyatPlani, auto_commit: bool = True) -> SevkiyatPlani:
         ...
 
     @abstractmethod
-    def guncelle(self, plan: SevkiyatPlani) -> SevkiyatPlani:
+    def guncelle(self, plan: SevkiyatPlani, auto_commit: bool = True) -> SevkiyatPlani:
         ...
 
     @abstractmethod
@@ -34,5 +34,5 @@ class ISevkiyatPlaniRepository(ABC):
         ...
 
     @abstractmethod
-    def sil(self, plan_id: int) -> bool:
+    def sil(self, plan_id: int, auto_commit: bool = True) -> bool:
         ...

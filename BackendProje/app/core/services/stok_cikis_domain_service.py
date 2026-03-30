@@ -49,7 +49,8 @@ class StokCikisDomainService:
         2. İstenen miktarı düşer.
         3. StokHareketi kaydı oluşturur.
 
-        Stok yetersizliğinde hata loglanır ve diğer kalemlere devam edilir.
+        Stok yetersizliğinde hata loglanır ve üst akış transaction'ı geri alabilsin
+        diye exception yeniden fırlatılır.
         Programlama hataları (AttributeError, TypeError vb.) yutulmaz, yeniden fırlatılır.
         """
         for kalem in kalemler:
@@ -76,6 +77,7 @@ class StokCikisDomainService:
                     ),
                     auto_commit=False,
                 )
+                raise
 
     def fifo_palet_azalt(self, urun_id: int, miktar: int) -> None:
         """FIFO sırasıyla paletlerden stok düşer. Dışarıdan da çağrılabilir."""

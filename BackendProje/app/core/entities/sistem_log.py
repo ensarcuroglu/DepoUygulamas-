@@ -8,6 +8,7 @@ class IslemTipi:
     CREATE = "CREATE"
     UPDATE = "UPDATE"
     DELETE = "DELETE"
+    ERROR = "ERROR"
 
 
 @dataclass

@@ -191,7 +191,7 @@ class SevkiyatPlaniGuncelleUseCase:
         plan.guncelleme_tarihi = datetime.utcnow()
 
         try:
-            kaydedilen = self._repo.guncelle(plan)
+            kaydedilen = self._repo.guncelle(plan, auto_commit=False)
 
             if durum_degisti:
                 self._log_repo.olustur(

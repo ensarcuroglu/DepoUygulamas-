@@ -47,15 +47,17 @@ class SqlAlchemySevkiyatPlaniRepository(ISevkiyatPlaniRepository):
         ).first()
         return sevkiyat_plani_to_entity(orm) if orm else None
 
-    def olustur(self, plan: SevkiyatPlani) -> SevkiyatPlani:
+    def olustur(self, plan: SevkiyatPlani, auto_commit: bool = True) -> SevkiyatPlani:
         orm = sevkiyat_plani_to_orm(plan)
         orm.id = None
         self._db.add(orm)
-        self._db.commit()
+        self._db.flush()
+        if auto_commit:
+            self._db.commit()
         self._db.refresh(orm)
         return sevkiyat_plani_to_entity(orm)
 
-    def guncelle(self, plan: SevkiyatPlani) -> SevkiyatPlani:
+    def guncelle(self, plan: SevkiyatPlani, auto_commit: bool = True) -> SevkiyatPlani:
         orm = self._db.query(SevkiyatPlaniORM).filter(SevkiyatPlaniORM.id == plan.id).first()
         if not orm:
             return None
@@ -70,14 +72,18 @@ class SqlAlchemySevkiyatPlaniRepository(ISevkiyatPlaniRepository):
         orm.durum = plan.durum
         orm.notlar = plan.notlar
         orm.guncelleme_tarihi = plan.guncelleme_tarihi
-        self._db.commit()
+        self._db.flush()
+        if auto_commit:
+            self._db.commit()
         self._db.refresh(orm)
         return sevkiyat_plani_to_entity(orm)
 
-    def sil(self, plan_id: int) -> bool:
+    def sil(self, plan_id: int, auto_commit: bool = True) -> bool:
         orm = self._db.query(SevkiyatPlaniORM).filter(SevkiyatPlaniORM.id == plan_id).first()
         if not orm:
             return False
         self._db.delete(orm)
-        self._db.commit()
+        self._db.flush()
+        if auto_commit:
+            self._db.commit()
         return True

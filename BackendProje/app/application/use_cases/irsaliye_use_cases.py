@@ -124,7 +124,7 @@ class IrsaliyeOlusturUseCase:
         )
 
         try:
-            kaydedilen = self._irsaliye_repo.olustur(irsaliye)
+            kaydedilen = self._irsaliye_repo.olustur(irsaliye, auto_commit=False)
 
             self._log_repo.olustur(
                 SistemLog.olustur(

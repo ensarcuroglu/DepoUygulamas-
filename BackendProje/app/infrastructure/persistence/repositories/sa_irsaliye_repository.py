@@ -45,15 +45,17 @@ class SqlAlchemyIrsaliyeRepository(IIrsaliyeRepository):
         ).filter(IrsaliyeORM.id == irsaliye_id).first()
         return irsaliye_to_entity(orm) if orm else None
 
-    def olustur(self, irsaliye: Irsaliye) -> Irsaliye:
+    def olustur(self, irsaliye: Irsaliye, auto_commit: bool = True) -> Irsaliye:
         orm = irsaliye_to_orm(irsaliye)
         orm.id = None
         self._db.add(orm)
-        self._db.commit()
+        self._db.flush()
+        if auto_commit:
+            self._db.commit()
         self._db.refresh(orm)
         return irsaliye_to_entity(orm)
 
-    def guncelle(self, irsaliye: Irsaliye) -> Irsaliye:
+    def guncelle(self, irsaliye: Irsaliye, auto_commit: bool = True) -> Irsaliye:
         orm = self._db.query(IrsaliyeORM).filter(IrsaliyeORM.id == irsaliye.id).first()
         if not orm:
             return None
@@ -65,7 +67,9 @@ class SqlAlchemyIrsaliyeRepository(IIrsaliyeRepository):
         orm.sofor_adi = irsaliye.sofor_adi
         orm.durum = irsaliye.durum
         orm.guncelleme_tarihi = irsaliye.guncelleme_tarihi
-        self._db.commit()
+        self._db.flush()
+        if auto_commit:
+            self._db.commit()
         self._db.refresh(orm)
         return irsaliye_to_entity(orm)
 
