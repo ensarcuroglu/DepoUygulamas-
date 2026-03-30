@@ -149,6 +149,14 @@ def toplu_palet_giris(
         db.rollback()
         raise CakismaHatasi("Toplu palet girişi", ", ".join(dto.palet_no_listesi[:3]))
 
+    # Kaynak onayini transaction commit sonrasina tasiyoruz
+    try:
+        service.toplu_palet_giris_kaynagini_onayla(dto.palet_no_listesi)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
     return _sonuclari_dto_ya_cevir(sonuclar)
 
 

@@ -63,7 +63,12 @@ class PaletBazliStokDomainService:
 
     # ── Palet Giris ──
 
-    def palet_giris(self, palet_no: str, kullanici: Kullanici) -> StokHareketi:
+    def palet_giris(
+        self,
+        palet_no: str,
+        kullanici: Kullanici,
+        kaynagi_onayla: bool = True,
+    ) -> StokHareketi:
         """Palet numarasi ile stok girisi yapar.
 
         1. Veri kaynagindan palet bilgisini getirir
@@ -117,7 +122,8 @@ class PaletBazliStokDomainService:
         hareket = self._hareket_repo.olustur(hareket, auto_commit=False)
 
         # 8. Kaynagi guncelle (MalKabulKalemi.durum -> GirisYapildi)
-        self._veri_kaynagi.palet_giris_onayla(palet_no)
+        if kaynagi_onayla:
+            self._veri_kaynagi.palet_giris_onayla(palet_no)
 
         # 9. SistemLog
         self._log_repo.olustur(
@@ -266,10 +272,22 @@ class PaletBazliStokDomainService:
 
         # --- Faz 2: Atomik islem ---
         for sonuc in sonuclar:
-            hareket = self.palet_giris(sonuc.palet_no, kullanici)
+            hareket = self.palet_giris(
+                sonuc.palet_no,
+                kullanici,
+                kaynagi_onayla=False,
+            )
             sonuc.hareket = hareket
 
         return sonuclar
+
+    def toplu_palet_giris_kaynagini_onayla(self, palet_no_listesi: List[str]) -> None:
+        """Toplu giris sonrasi kaynak sistem kayitlarini onaylar.
+
+        Bu metodun transaction commit edildikten sonra cagrilmasi gerekir.
+        """
+        for palet_no in palet_no_listesi:
+            self._veri_kaynagi.palet_giris_onayla(palet_no)
 
     def _giris_on_dogrula(self, palet_no: str, kullanici: Kullanici) -> Optional[str]:
         """Tek bir palet icin giris on-dogrulama. Hata varsa mesaj doner, yoksa None."""

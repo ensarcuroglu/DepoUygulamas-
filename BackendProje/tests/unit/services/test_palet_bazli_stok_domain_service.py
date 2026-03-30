@@ -3,7 +3,7 @@ Unit testler: PaletBazliStokDomainService is kurallari (mock repo ile).
 """
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 from datetime import date
 
 from app.core.services.palet_bazli_stok_domain_service import PaletBazliStokDomainService
@@ -98,6 +98,19 @@ class TestPaletGiris:
         m["veri_kaynagi"].palet_giris_onayla.assert_called_once_with("PLT-2026-00001")
         m["log_repo"].olustur.assert_called_once()
 
+    def test_kaynak_onayi_opsiyonel_kapatilabilir(self):
+        service, m = _make_service()
+        self._setup_giris(m)
+
+        result = service.palet_giris(
+            "PLT-2026-00001",
+            _make_kullanici(),
+            kaynagi_onayla=False,
+        )
+
+        assert result.hareket_tipi == HareketTipi.GIRIS
+        m["veri_kaynagi"].palet_giris_onayla.assert_not_called()
+
     def test_zaten_giris_yapilmis(self):
         service, m = _make_service()
         dto = _make_palet_bilgi_dto(giris_yapildi_mi=True)
@@ -147,6 +160,50 @@ class TestPaletGiris:
         self._setup_giris(m, dto=_make_palet_bilgi_dto(depo_id=0))
 
         service.palet_giris("PLT-2026-00001", _make_kullanici(depo_id=99))
+
+
+class TestTopluPaletGiris:
+
+    def test_toplu_giriste_kaynak_onayi_commit_sonrasina_birakilir(self):
+        service, m = _make_service()
+        paletler = ["PLT-2026-00001", "PLT-2026-00002"]
+
+        def _dto_getir(palet_no):
+            return _make_palet_bilgi_dto(
+                palet_no=palet_no,
+                lot_no=f"LOT-{palet_no}",
+                depo_id=1,
+                depo_adi="Depo-A",
+            )
+
+        m["veri_kaynagi"].palet_bilgisi_getir.side_effect = _dto_getir
+        m["palet_repo"].getir_palet_no_ile.return_value = None
+        m["lot_repo"].getir_lot_no_ile.return_value = None
+        m["lot_repo"].olustur.return_value = Lot(id=1, urun_id=1, lot_no="LOT")
+        m["palet_repo"].olustur.side_effect = lambda p, auto_commit=False: Palet(
+            id=10 if p.palet_no.endswith("1") else 11,
+            lot_id=p.lot_id,
+            raf_id=p.raf_id,
+            palet_no=p.palet_no,
+            koli_adedi=p.koli_adedi,
+            aktif=True,
+        )
+        m["hareket_repo"].olustur.side_effect = lambda h, auto_commit=False: StokHareketi(
+            id=1 if h.palet_id == 10 else 2,
+            hareket_tipi=h.hareket_tipi,
+            miktar=h.miktar,
+        )
+
+        sonuclar = service.toplu_palet_giris(paletler, _make_kullanici())
+
+        assert len(sonuclar) == 2
+        assert all(s.basarili for s in sonuclar)
+        m["veri_kaynagi"].palet_giris_onayla.assert_not_called()
+
+        service.toplu_palet_giris_kaynagini_onayla(paletler)
+        m["veri_kaynagi"].palet_giris_onayla.assert_has_calls(
+            [call("PLT-2026-00001"), call("PLT-2026-00002")]
+        )
 
 
 # ══════════════════════════════════════════

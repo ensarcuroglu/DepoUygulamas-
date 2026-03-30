@@ -146,7 +146,7 @@ export default function StokHareketleriPage() {
         if (gecerliPaletler.length === 0 || yukleniyor) return;
 
         try {
-            await runSubmit(async () => {
+            const basarili = await runSubmit(async () => {
                 if (hareketTipi === 'giris') {
                     const res = await stokIslemleriTopluGiris({
                         palet_no_listesi: gecerliPaletler.map(t => t.palet_no),
@@ -162,9 +162,10 @@ export default function StokHareketleriPage() {
                             return t;
                         }));
                         toast.error(`${sonuc.basarisiz} palet hatalı — düzeltip tekrar deneyin`);
-                        return;
+                        return false;
                     }
                     toast.success(`${sonuc.basarili} palet giriş yapıldı`, { duration: 4000 });
+                    return true;
                 } else {
                     const res = await stokIslemleriTopluCikis({
                         kalemler: gecerliPaletler.map(t => ({
@@ -184,11 +185,16 @@ export default function StokHareketleriPage() {
                             return t;
                         }));
                         toast.error(`${sonuc.basarisiz} palet hatalı — düzeltip tekrar deneyin`);
-                        return;
+                        return false;
                     }
                     toast.success(`${sonuc.basarili} palet çıkış yapıldı`, { duration: 4000 });
+                    return true;
                 }
+                return false;
             });
+
+            if (!basarili) return;
+
             resetForm();
             fetchSonIslemler();
         } catch (err) {
