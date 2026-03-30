@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.application.dto.palet_bilgi_dto import PaletBilgiDTO
-from app.core.entities.mal_kabul_irsaliye import KalemDurum
+from app.core.entities.mal_kabul_irsaliye import KalemDurum, MalKabulDurum # MalKabulDurum eklendi
 from app.core.exceptions import KayitBulunamadiError, GecersizIslemError
 from app.core.services.palet_veri_kaynagi_service import IPaletVeriKaynagiService
 
@@ -47,6 +47,12 @@ class IrsaliyePaletVeriKaynagiService(IPaletVeriKaynagiService):
         irsaliye = self._mal_kabul_repo.getir_id_ile(kalem.mal_kabul_irsaliyesi_id)
         if not irsaliye:
             raise KayitBulunamadiError("Mal Kabul Irsaliyesi", kalem.mal_kabul_irsaliyesi_id)
+
+        # KONTROL 1: Irsaliye Onayli mi? (Adım 1)
+        if irsaliye.durum != MalKabulDurum.ONAYLANDI:
+            raise GecersizIslemError(
+                f"Sadece onaylanmis irsaliyelerden palet bilgisi okunabilir. Mevcut durum: {irsaliye.durum}"
+            )
 
         # Urun bilgisi
         urun = self._urun_repo.getir_id_ile(kalem.urun_id)
@@ -102,10 +108,20 @@ class IrsaliyePaletVeriKaynagiService(IPaletVeriKaynagiService):
         if not irsaliye:
             raise KayitBulunamadiError("Mal Kabul Irsaliyesi", kalem.mal_kabul_irsaliyesi_id)
 
+        # KONTROL 2: Stok olusurken irsaliyenin hala Onayli oldugundan emin ol (Adım 1)
+        if irsaliye.durum != MalKabulDurum.ONAYLANDI:
+            raise GecersizIslemError(
+                f"Sadece onaylanmis irsaliyeler uzerinden palet girisi yapilabilir. Mevcut durum: {irsaliye.durum}"
+            )
+
         # Irsaliye'deki ilgili kalemi bul ve durumunu guncelle
         for irs_kalem in irsaliye.kalemler:
             if irs_kalem.palet_no == palet_no:
                 irs_kalem.giris_yapildi()
                 break
+        
+        # KONTROL 3: Tum kalemler girildi mi? (Adım 2)
+        if irsaliye.tum_kalemler_girildi_mi():
+            irsaliye.tamamla()
 
         self._mal_kabul_repo.guncelle(irsaliye, auto_commit=False)
