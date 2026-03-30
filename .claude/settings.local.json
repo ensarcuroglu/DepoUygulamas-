@@ -32,7 +32,8 @@
       "Bash(grep -r \"palet.*giris\\\\|palet.*cikis\\\\|palet-giris\\\\|palet-cikis\" /mnt/d/Ensar Dosya/DepoUygulaması/ReactProje/src --include=*.jsx --include=*.js)",
       "Bash(npx --yes acorn-jsx --ecma2020 src/pages/StokHareketleriPage.jsx)",
       "Bash(node -e \":*)",
-      "Bash(pip3 install:*)"
+      "Bash(pip3 install:*)",
+      "Bash(python -m pytest tests/unit/services/ -v --no-header)"
     ]
   }
 }
