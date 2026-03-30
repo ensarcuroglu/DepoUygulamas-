@@ -1,6 +1,5 @@
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-// 1. DEĞİŞİKLİK: autoTable'ı doğrudan bir fonksiyon olarak import ediyoruz
 import autoTable from 'jspdf-autotable';
 import toast from 'react-hot-toast';
 
@@ -33,7 +32,7 @@ export const exportToExcel = (data, fileName = 'Rapor') => {
 };
 
 /**
- * Tabloları PDF olarak dışa aktarır.
+ * Tabloları Modern ve Kurumsal PDF olarak dışa aktarır.
  * @param {Array<Object>} data - İndirilecek ana tablo verisi.
  * @param {Array<String>} columns - Tablonun üst (header) kısımları.
  * @param {String} fileName - Oluşturulacak dosyanın indirme adı.
@@ -46,64 +45,110 @@ export const exportToPDF = (data, columns, fileName = 'Rapor', documentTitle = '
             return;
         }
 
-        // 2. DEĞİŞİKLİK: Obje formatında konfigürasyon (Yeni jspdf sürümleri için daha sağlıklı)
-        const doc = new jsPDF({ orientation: 'landscape' });
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const pageWidth = doc.internal.pageSize.width;
+        const pageHeight = doc.internal.pageSize.height;
 
-        doc.setFillColor(30, 58, 138); 
-        doc.rect(0, 0, doc.internal.pageSize.width, 35, 'F');
+        // --- 1. KURUMSAL HEADER TASARIMI ---
+        
+        // Koyu Arduvaz (Slate-900) Arka Plan
+        doc.setFillColor(15, 23, 42); 
+        doc.rect(0, 0, pageWidth, 40, 'F');
+        
+        // Mavi (Blue-500) İnce Vurgu Çizgisi
+        doc.setFillColor(59, 130, 246); 
+        doc.rect(0, 40, pageWidth, 1.5, 'F');
 
-        doc.setFontSize(20);
+        // Ana Başlık
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
-        doc.text("Lojistik & Depo Yonetimi", 14, 20); // Not: jsPDF base fontlarında "Yönetimi" karakteri bazen patlayabilir, garanti olması için ö'yü o yaptım veya özel font eklenebilir.
+        doc.text("DEPO YONETIM SISTEMI", 14, 22);
 
+        // Alt Başlık (Rapor Konusu)
         doc.setFontSize(11);
-        doc.setTextColor(200, 200, 255);
-        // Türkçe karakter hatası almamak için şimdilik base ASCII dostu karakterler kullanılabilir
-        doc.text(`Belge Konusu: ${documentTitle}`, 14, 28);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 163, 184); // Slate-400
+        doc.text(`Rapor: ${documentTitle}`, 14, 31);
 
-        const generatedDate = new Date().toLocaleString('tr-TR');
+        // Sağ Üst Bilgiler (Tarih ve Saat)
+        const dateObj = new Date();
+        const dateStr = dateObj.toLocaleDateString('tr-TR');
+        const timeStr = dateObj.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        
         doc.setFontSize(10);
-        doc.text(`Olusturma: ${generatedDate}`, doc.internal.pageSize.width - 15, 22, { align: 'right' });
+        doc.setTextColor(248, 250, 252); // Slate-50
+        doc.text(`Tarih: ${dateStr}`, pageWidth - 14, 22, { align: 'right' });
+        
+        doc.setTextColor(148, 163, 184); // Slate-400
+        doc.text(`Saat: ${timeStr}`, pageWidth - 14, 28, { align: 'right' });
 
-        // 3. DEĞİŞİKLİK: Sadece "columns" dizisinde istenen sütunları veriden çekeceğiz.
-        // Böylece App.js'ten gelen 10 özellikli nesneden, sadece PDF'te gösterilecek 8 tanesi sırasıyla alınır.
+        // --- 2. VERİ HAZIRLIĞI ---
         const tableRows = data.map(obj => {
             return columns.map(colKey => {
-                // Eğer veri o anahtarda (Örn: 'Barkod/Kod') tanımlıysa değeri al, yoksa boş bırak
                 return obj[colKey] !== undefined && obj[colKey] !== null ? obj[colKey] : '-';
             });
         });
 
-        // 4. DEĞİŞİKLİK: doc.autoTable yerine import ettiğimiz autoTable fonksiyonunu kullanıyoruz.
+        // Toplam sayfa sayısı için bir placeholder tanımlıyoruz (Footer'da kullanacağız)
+        const totalPagesExp = '{total_pages_count_string}';
+
+        // --- 3. MODERN TABLO TASARIMI (autoTable) ---
         autoTable(doc, {
             head: [columns],
             body: tableRows,
-            startY: 45,
+            startY: 50, // Header'dan biraz daha uzak
             theme: 'grid',
             styles: {
                 font: 'helvetica',
                 fontSize: 9,
-                cellPadding: 4,
-                lineColor: [226, 232, 240], 
+                cellPadding: 6, // Daha havadar hücreler
+                textColor: [51, 65, 85], // Slate-700
+                lineColor: [226, 232, 240], // Slate-200 border
                 lineWidth: 0.1,
+                valign: 'middle' // Dikey ortalama
             },
             headStyles: {
-                fillColor: [79, 70, 229], 
+                fillColor: [30, 41, 59], // Slate-800 (Çok daha şık ve koyu bir başlık)
                 textColor: [255, 255, 255],
                 fontStyle: 'bold',
-                halign: 'center'
+                halign: 'left' // Modern tasarımlarda sola dayalı başlık daha okunaklıdır
             },
             alternateRowStyles: {
-                fillColor: [248, 250, 252] 
+                fillColor: [248, 250, 252] // Slate-50 zebra desen
             },
+            columnStyles: {
+                // Sayısal değerleri içeren sütunları sağa hizalamak okunabilirliği artırır
+                // Not: Sütun indeksleri senin gönderdiğin 'columns' dizisine göredir (0'dan başlar).
+                5: { halign: 'right' }, // Stok sütunu
+                6: { halign: 'right' }, // Fiyat sütunu
+            },
+            
+            // --- 4. ALT BİLGİ (FOOTER) TASARIMI ---
             didDrawPage: function (hookData) {
-                let str = 'Sayfa ' + doc.internal.getNumberOfPages();
+                // Alt çizgi
+                doc.setDrawColor(226, 232, 240); // Slate-200
+                doc.setLineWidth(0.5);
+                doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15);
+
+                // Sol Alt Metin
                 doc.setFontSize(8);
-                doc.setTextColor(150, 150, 150);
-                doc.text(str, hookData.settings.margin.left, doc.internal.pageSize.height - 10);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(148, 163, 184); // Slate-400
+                doc.text('Bu belge sistem tarafindan otomatik olarak uretilmistir.', 14, pageHeight - 8);
+
+                // Sağ Alt Metin (Sayfa X / Y)
+                const pageStr = `Sayfa ${doc.internal.getNumberOfPages()} / ${totalPagesExp}`;
+                doc.text(pageStr, pageWidth - 14, pageHeight - 8, { align: 'right' });
             }
         });
 
+        // JS PDF'in toplam sayfa sayısını hesaplayıp placeholder'a yazmasını sağlıyoruz
+        if (typeof doc.putTotalPages === 'function') {
+            doc.putTotalPages(totalPagesExp);
+        }
+
+        // Dosyayı kaydet
         doc.save(`${fileName}_${new Date().getTime()}.pdf`);
         toast.success(`${fileName} başarıyla indirildi.`, { icon: '📄' });
 
