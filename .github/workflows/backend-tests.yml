@@ -35,6 +35,7 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
+        working-directory: BackendProje # İçeri girerek yükleme yap
         run: |
           pip install -r BackendProje/requirements.txt
           pip install -r BackendProje/requirements-test.txt
@@ -42,10 +43,11 @@ jobs:
       - name: Run tests
         working-directory: BackendProje
         env:
+          PYTHONPATH: .
           DB_USER: root
           DB_PASSWORD: testpass
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
           DB_NAME: depo_db_test
           JWT_SECRET_KEY: ci-test-secret-key-minimum-32-karakter-uzunlugunda
-        run: pytest --cov=. --cov-report=term-missing -v
+        run: python -m pytest --cov=. --cov-report=term-missing -v
