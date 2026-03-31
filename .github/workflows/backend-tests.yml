@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: 
       - 'BackendProje/**'
-      - '.github/workflows/**' # Workflow değiştiğinde de çalışsın
+      - '.github/workflows/**'
   pull_request:
     branches: [main]
     paths: ['BackendProje/**']
@@ -37,19 +37,31 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        working-directory: BackendProje # İçeri girerek yükleme yap
+        working-directory: BackendProje
         run: |
           pip install -r requirements.txt
           pip install -r requirements-test.txt
 
+      - name: Debug File Structure
+        working-directory: BackendProje
+        run: |
+          echo "--- Mevcut Dizin ---"
+          pwd
+          echo "--- Dosya Listesi (Recursive) ---"
+          ls -R
+          echo "--- Python Yol Listesi ---"
+          python -c "import sys; print('\n'.join(sys.path))"
+
       - name: Run tests
         working-directory: BackendProje
         env:
-          PYTHONPATH: .
+          # GitHub Workspace üzerinden tam yol vererek import hatasını kökten çözüyoruz
+          PYTHONPATH: ${{ github.workspace }}/BackendProje
           DB_USER: root
           DB_PASSWORD: testpass
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
           DB_NAME: depo_db_test
           JWT_SECRET_KEY: ci-test-secret-key-minimum-32-karakter-uzunlugunda
-        run: python -m pytest --cov=. --cov-report=term-missing -v
+        # --cov=app diyerek sadece uygulama kodunun coverage'ını alıyoruz
+        run: python -m pytest tests/ --cov=app --cov-report=term-missing -v
