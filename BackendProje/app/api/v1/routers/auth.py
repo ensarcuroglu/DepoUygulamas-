@@ -31,7 +31,6 @@ from schemas import (
     KullaniciCreate,
     KullaniciResponse,
     RefreshRequest,
-    LogoutRequest,
 )
 from limiter import limiter
 
@@ -113,7 +112,6 @@ def refresh_token(request: RefreshRequest, db: Session = Depends(get_db)):
 @limiter.limit("10/minute")
 def logout(
     request: Request,
-    logout_request: LogoutRequest,
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(get_current_user),
 ):

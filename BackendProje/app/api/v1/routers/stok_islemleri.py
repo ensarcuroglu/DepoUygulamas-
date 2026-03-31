@@ -57,7 +57,7 @@ def palet_sorgula(
 def palet_giris(
     request: Request,
     dto: PaletGirisRequestDTO,
-    idempotency_key: str = Header(..., alias="Idempotency-Key"),
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
     service: PaletBazliStokDomainService = Depends(get_palet_bazli_stok_service),
