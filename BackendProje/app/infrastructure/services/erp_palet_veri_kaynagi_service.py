@@ -95,8 +95,21 @@ class ErpPaletVeriKaynagiService(IPaletVeriKaynagiService):
         Her alan icin tip kontrolu yapar. Hatali alan varsa loglar ve exception firlatir.
         """
         try:
+            gelen_palet_no = self._str_zorunlu(raw, "palet_no")
+            if gelen_palet_no != palet_no:
+                logger.error(
+                    "ERP strict mapping: palet_no uyusmazligi. istenen=%r, gelen=%r",
+                    palet_no,
+                    gelen_palet_no,
+                )
+                raise ErpVeriDogrulamaHatasi(
+                    alan="palet_no",
+                    beklenen=f"istenen palet_no ile ayni ({palet_no})",
+                    gelen=repr(gelen_palet_no),
+                )
+
             return PaletBilgiDTO(
-                palet_no=self._str_zorunlu(raw, "palet_no"),
+                palet_no=gelen_palet_no,
                 urun_id=self._int_zorunlu(raw, "urun_id"),
                 urun_adi=self._str_zorunlu(raw, "urun_adi"),
                 urun_barkod=self._str_opsiyonel(raw, "urun_barkod"),

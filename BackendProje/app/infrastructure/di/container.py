@@ -1043,6 +1043,7 @@ def get_mal_kabul_irsaliye_sil_uc(
 from app.infrastructure.config.erp_config import ErpConfig, PaletVeriKaynagi
 
 _erp_config = ErpConfig.from_env()
+_mock_erp_adapter = None
 
 
 def get_palet_veri_kaynagi(
@@ -1058,11 +1059,15 @@ def get_palet_veri_kaynagi(
     MOCK  → MockErpPaletVeriKaynagiService (demo/dev)
     ERP   → ErpPaletVeriKaynagiService (gercek ERP)
     """
+    global _mock_erp_adapter
+
     if _erp_config.palet_veri_kaynagi == PaletVeriKaynagi.MOCK:
-        from app.infrastructure.services.mock_erp_palet_veri_kaynagi_service import (
-            MockErpPaletVeriKaynagiService,
-        )
-        return MockErpPaletVeriKaynagiService()
+        if _mock_erp_adapter is None:
+            from app.infrastructure.services.mock_erp_palet_veri_kaynagi_service import (
+                MockErpPaletVeriKaynagiService,
+            )
+            _mock_erp_adapter = MockErpPaletVeriKaynagiService()
+        return _mock_erp_adapter
 
     if _erp_config.palet_veri_kaynagi == PaletVeriKaynagi.ERP:
         from app.infrastructure.services.erp_palet_veri_kaynagi_service import (
