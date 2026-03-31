@@ -19,7 +19,6 @@ class RaporScheduler:
 
     def __init__(self) -> None:
         self._scheduler = None
-        self._aktif = False
         self._init_scheduler()
 
     def _init_scheduler(self) -> None:
@@ -29,20 +28,19 @@ class RaporScheduler:
 
             self._scheduler = BackgroundScheduler(timezone="Europe/Istanbul")
             self._scheduler.add_job(zamanlama_kontrol, CronTrigger(minute="*"))
-            self._aktif = True
         except ImportError:
             logger.warning("apscheduler kurulu değil — zamanlı raporlar devre dışı")
 
     @property
     def aktif(self) -> bool:
-        return self._aktif
+        return self._scheduler is not None
 
     def start(self) -> None:
-        if self._aktif and self._scheduler:
+        if self._scheduler:
             self._scheduler.start()
             logger.info("APScheduler başlatıldı")
 
     def shutdown(self) -> None:
-        if self._aktif and self._scheduler:
+        if self._scheduler:
             self._scheduler.shutdown()
             logger.info("APScheduler durduruldu")

@@ -7,9 +7,8 @@ request/response şemalarını içerir.
 
 from __future__ import annotations
 import re
-from datetime import datetime
 from typing import Optional, Literal
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 # ─────────────────────────────────────────
@@ -73,19 +72,3 @@ class TokenResponseDTO(BaseModel):
     user: TokenUserInfoDTO
 
 
-class KullaniciAuthResponseDTO(BaseModel):
-    """Auth endpoint'lerinden dönen kullanıcı bilgisi."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    kullanici_adi: str
-    ad_soyad: str
-    rol: str
-    telefon: Optional[str] = None
-    email: Optional[str] = None
-    departman: Optional[str] = None
-    sicil_no: Optional[str] = None
-    kart_numarasi: Optional[str] = None
-    depo_id: Optional[int] = None
-    olusturma_tarihi: datetime

@@ -27,7 +27,8 @@ def zamanlama_kontrol() -> None:
         for schedule in schedules:
             saat_str = schedule.saat or "09:00"
             try:
-                saat, dakika = int(saat_str.split(":")[0]), int(saat_str.split(":")[1])
+                saat_parcalari = saat_str.split(":")
+                saat, dakika = int(saat_parcalari[0]), int(saat_parcalari[1])
             except Exception:
                 continue
 

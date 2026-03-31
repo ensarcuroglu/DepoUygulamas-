@@ -29,9 +29,9 @@ from app.application.dto.auth_dto import (
     LoginRequestDTO as LoginRequest,
     TokenResponseDTO as TokenResponse,
     KullaniciCreateDTO as KullaniciCreate,
-    KullaniciAuthResponseDTO as KullaniciResponse,
     RefreshRequestDTO as RefreshRequest,
 )
+from app.application.dto.kullanici_dto import KullaniciResponseDTO as KullaniciResponse
 from limiter import limiter
 
 router = APIRouter(prefix="/api/auth", tags=["Kimlik Doğrulama"])
