@@ -3,7 +3,9 @@ name: Backend Tests
 on:
   push:
     branches: [main]
-    paths: ['BackendProje/**']
+    paths: 
+      - 'BackendProje/**'
+      - '.github/workflows/**' # Workflow değiştiğinde de çalışsın
   pull_request:
     branches: [main]
     paths: ['BackendProje/**']
