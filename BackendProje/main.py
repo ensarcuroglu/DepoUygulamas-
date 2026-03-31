@@ -10,7 +10,6 @@ from fastapi import Request
 
 from database import engine, SessionLocal
 from models import Base, RaporSchedule
-from auth import SECRET_KEY
 from limiter import limiter
 
 # ── Birleşik exception yapısı ──
@@ -23,7 +22,6 @@ from core import (
 # Başlangıçta key yapılandırmasını logla
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.info(f"🔐 JWT Secret Key: {SECRET_KEY[:8]}... (yapılandırıldı)")
 
 # ── YENİ Clean Architecture Router'ları ──
 from app.api.v1.routers import (
@@ -156,8 +154,6 @@ async def lifespan(app: FastAPI):
         logger.info("APScheduler durduruldu")
 
 
-# Veritabanı tablolarını oluştur (yoksa)
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Depo Yönetim Sistemi API",
