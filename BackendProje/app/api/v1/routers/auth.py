@@ -58,9 +58,14 @@ def login(request: Request, login_request: LoginRequest, db: Session = Depends(g
         )
 
     access_token = create_access_token(data={"sub": user.kullanici_adi})
-    refresh_token = create_refresh_token()
+    
+    # YENİ KOD: Refresh token'ı user.id parametresi ile oluşturuyoruz
+    refresh_token = create_refresh_token(user.id)
 
-    user.refresh_token_hash = hash_token(refresh_token)
+    # Token formatı "{id}:{raw_token}" olduğu için sadece raw_token kısmını ayırıp hash'liyoruz
+    _, raw_token = refresh_token.split(":", 1)
+    user.refresh_token_hash = hash_token(raw_token)
+    
     user.refresh_token_son_kullanim = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
     db.add(SistemLog(
