@@ -1,7 +1,6 @@
 """Sipariş & lojistik domain mapper'ları — Siparis, SiparisKalemi, SevkiyatPlani, Irsaliye."""
 
 from __future__ import annotations
-from typing import List
 
 from models import (
     Siparis as SiparisORM,
@@ -39,7 +38,7 @@ def siparis_kalemi_to_orm(entity: SiparisKalemi) -> SiparisKalemiORM:
 
 
 def siparis_to_entity(orm: SiparisORM, kalemler_dahil: bool = True) -> Siparis:
-    kalemler: List[SiparisKalemi] = []
+    kalemler: list[SiparisKalemi] = []
     if kalemler_dahil:
         try:
             kalemler = [siparis_kalemi_to_entity(k) for k in orm.kalemler]

@@ -1,7 +1,6 @@
 """Stok sayım & mal kabul domain mapper'ları — StokSayim, StokSayimKalemi, MalKabulIrsaliye, MalKabulKalemi."""
 
 from __future__ import annotations
-from typing import List
 
 from models import (
     StokSayim as StokSayimORM,
@@ -38,7 +37,7 @@ def stok_sayim_kalemi_to_orm(entity: StokSayimKalemi) -> StokSayimKalemiORM:
 
 
 def stok_sayim_to_entity(orm: StokSayimORM, kalemler_dahil: bool = True) -> StokSayim:
-    kalemler: List[StokSayimKalemi] = []
+    kalemler: list[StokSayimKalemi] = []
     if kalemler_dahil:
         try:
             kalemler = [stok_sayim_kalemi_to_entity(k) for k in orm.sayim_kalemleri]
