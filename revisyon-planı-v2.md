@@ -356,7 +356,7 @@ tests/
 | A1 | ~~`schemas.py` basina DEPRECATED uyarisi ekle; seed.py bagimliligini DTO'lara tasi~~ ✅ TAMAMLANDI (2026-03-31) | Yeni gelistirici karisikligi | Dusuk risk |
 | A2 | ~~`main.py`'deki scheduler mantıgını ayri bir `app/infrastructure/scheduler/` module'une tasi~~ ✅ TAMAMLANDI (2026-03-31) | main.py karmasikligi, SRP ihlali | Orta risk |
 | A3 | ~~`container.py`'yi modul gruplarına böl (urun_di.py, siparis_di.py, ...)~~ ✅ TAMAMLANDI (2026-03-31) — `app/infrastructure/di/modules/` altında 7 dosya: kullanici_destek_di, urun_di, katalog_di, depo_envanter_di, stok_di, siparis_lojistik_di, rapor_dashboard_di. container.py artık ~170 satirlik re-export hub. Router import'lari degismedi. | 1107 satirlik tek dosya navigasyonu zor | Dusuk risk |
-| A4 | `mappers.py`'yi entity basina ayir veya en azindan bolum basliklarini netlestirilmis tut | 850 satirlik tek dosya | Dusuk risk |
+| A4 | ~~`mappers.py`'yi entity basina ayir veya en azindan bolum basliklarini netlestirilmis tut~~ ✅ TAMAMLANDI (2026-03-31) — 850 satirlik `mappers.py` → `app/infrastructure/persistence/mappers/` paketi. 7 grup dosyası: katalog_mapper, depo_envanter_mapper, urun_mapper, kullanici_destek_mapper, siparis_lojistik_mapper, rapor_mapper, stok_sayim_mal_kabul_mapper. `__init__.py` re-export hub, tüm 21 repository/router import'u degismedi. | 850 satirlik tek dosya | Dusuk risk |
 | A5 | `PaletBazliStokDomainService`'i palet_giris, palet_cikis, toplu_islem siniflarina bol | 386 satir, cok sorumluluk | Orta risk |
 
 ### Faz B — Test Kapsamini Genisletme (Oncelik: Yuksek)
