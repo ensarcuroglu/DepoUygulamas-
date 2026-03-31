@@ -1,37 +1,19 @@
-"""Palet bazli stok giris/cikis domain service.
+"""Palet bazlı stok domain service — facade.
 
-Palet numarasi uzerinden stok girisi ve cikisi is kurallarini icerir.
-IPaletVeriKaynagiService soyutlamasi sayesinde kaynak bagimsiz calisir.
-Tekli ve toplu (Faz 2) islemleri destekler.
+PaletGirisService ve PaletCikisService'i tek bir public API altında birleştirir.
+Router, DI ve testler bu sınıfı import etmeye devam eder; iç yapı değişmez.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, List
+from typing import TYPE_CHECKING, Optional
 
-from app.application.dto.palet_bilgi_dto import PaletBilgiDTO
 from app.core.entities.kullanici import Kullanici
-from app.core.entities.lot import Lot
-from app.core.entities.palet import Palet
-from app.core.entities.stok_hareketi import StokHareketi, HareketTipi
-from app.core.entities.sistem_log import SistemLog, IslemTipi
-from app.core.exceptions import (
-    KayitBulunamadiError,
-    GecersizIslemError,
-    CakismaHatasi,
-    DepoErisimHatasi,
-)
-
-
-@dataclass
-class TopluPaletSonuc:
-    """Toplu islemdeki tek bir paletin sonucu."""
-
-    palet_no: str
-    basarili: bool
-    hata_mesaji: Optional[str] = None
-    hareket: Optional[StokHareketi] = None
+from app.core.entities.stok_hareketi import StokHareketi
+from app.core.exceptions import DepoErisimHatasi
+from app.core.services.palet_giris_service import PaletGirisService
+from app.core.services.palet_cikis_service import PaletCikisService
 
 if TYPE_CHECKING:
     from app.core.services.palet_veri_kaynagi_service import IPaletVeriKaynagiService
@@ -42,8 +24,18 @@ if TYPE_CHECKING:
     from app.core.repositories.sistem_log_repository import ISistemLogRepository
 
 
+@dataclass
+class TopluPaletSonuc:
+    """Toplu işlemdeki tek bir paletin sonucu."""
+
+    palet_no: str
+    basarili: bool
+    hata_mesaji: Optional[str] = None
+    hareket: Optional[StokHareketi] = None
+
+
 class PaletBazliStokDomainService:
-    """Palet numarasi bazli stok giris ve cikis islemlerini yonetir."""
+    """Palet numarası bazlı stok giriş/çıkış işlemlerini yöneten facade."""
 
     def __init__(
         self,
@@ -54,14 +46,22 @@ class PaletBazliStokDomainService:
         hareket_repo: IStokHareketiRepository,
         log_repo: ISistemLogRepository,
     ):
-        self._veri_kaynagi = veri_kaynagi
-        self._palet_repo = palet_repo
-        self._lot_repo = lot_repo
-        self._raf_repo = raf_repo
-        self._hareket_repo = hareket_repo
-        self._log_repo = log_repo
+        self._giris = PaletGirisService(
+            veri_kaynagi=veri_kaynagi,
+            palet_repo=palet_repo,
+            lot_repo=lot_repo,
+            hareket_repo=hareket_repo,
+            log_repo=log_repo,
+        )
+        self._cikis = PaletCikisService(
+            palet_repo=palet_repo,
+            lot_repo=lot_repo,
+            raf_repo=raf_repo,
+            hareket_repo=hareket_repo,
+            log_repo=log_repo,
+        )
 
-    # ── Palet Giris ──
+    # ── Tekli Giriş ──
 
     def palet_giris(
         self,
@@ -69,76 +69,12 @@ class PaletBazliStokDomainService:
         kullanici: Kullanici,
         kaynagi_onayla: bool = True,
     ) -> StokHareketi:
-        """Palet numarasi ile stok girisi yapar.
+        return self._giris.palet_giris(palet_no, kullanici, kaynagi_onayla)
 
-        1. Veri kaynagindan palet bilgisini getirir
-        2. Cift giris kontrolu
-        3. Depo yetki kontrolu
-        4. Lot bul/olustur
-        5. Palet olustur
-        6. StokHareketi kaydi
-        7. Kaynaktaki kalemi GirisYapildi olarak isaretle
-        8. SistemLog yaz
-        """
-        # 1. Palet bilgisini getir
-        dto = self._veri_kaynagi.palet_bilgisi_getir(palet_no)
+    def son_hareketi_getir_palet_ile(self, palet_no: str) -> Optional[StokHareketi]:
+        return self._giris.son_hareketi_getir_palet_ile(palet_no)
 
-        # 2. Zaten giris yapilmis mi?
-        if dto.giris_yapildi_mi:
-            raise GecersizIslemError("Bu palet zaten sisteme kaydedilmis.")
-
-        # 3. DB'de palet mevcut mu? (cift giris engeli)
-        mevcut_palet = self._palet_repo.getir_palet_no_ile(palet_no)
-        if mevcut_palet:
-            raise CakismaHatasi("Palet numarası", palet_no)
-
-        # 4. Depo yetki kontrolu
-        if dto.depo_id:
-            self._depo_erisim_dogrula(kullanici, dto.depo_id, dto.depo_adi)
-
-        # 5. Lot bul veya olustur
-        lot = self._lot_bul_veya_olustur(dto)
-
-        # 6. Palet olustur
-        palet = Palet(
-            lot_id=lot.id,
-            raf_id=dto.raf_id,
-            palet_no=dto.palet_no,
-            koli_adedi=dto.miktar,
-        )
-        palet = self._palet_repo.olustur(palet, auto_commit=False)
-
-        # 7. StokHareketi kaydi
-        hareket = StokHareketi(
-            urun_id=dto.urun_id,
-            lot_id=lot.id,
-            palet_id=palet.id,
-            raf_id=dto.raf_id,
-            hareket_tipi=HareketTipi.GIRIS,
-            miktar=dto.miktar,
-            kullanici_id=kullanici.id,
-            aciklama=f"Palet bazli stok girisi: {palet_no}",
-        )
-        hareket = self._hareket_repo.olustur(hareket, auto_commit=False)
-
-        # 8. Kaynagi guncelle (MalKabulKalemi.durum -> GirisYapildi)
-        if kaynagi_onayla:
-            self._veri_kaynagi.palet_giris_onayla(palet_no)
-
-        # 9. SistemLog
-        self._log_repo.olustur(
-            SistemLog.olustur(
-                kullanici_id=kullanici.id,
-                islem_tipi=IslemTipi.CREATE,
-                modul="Stok Islemleri",
-                detay=f"Palet girisi: {palet_no} (Urun: {dto.urun_adi}, Miktar: {dto.miktar} koli)",
-            ),
-            auto_commit=False,
-        )
-
-        return hareket
-
-    # ── Palet Cikis ──
+    # ── Tekli Çıkış ──
 
     def palet_cikis(
         self,
@@ -148,239 +84,37 @@ class PaletBazliStokDomainService:
         siparis_no: Optional[str] = None,
         aciklama: Optional[str] = None,
     ) -> StokHareketi:
-        """Palet numarasi ile stok cikisi yapar.
+        return self._cikis.palet_cikis(palet_no, kullanici, miktar, siparis_no, aciklama)
 
-        miktar=None ise tam cikis (palet.sevk_et), degilse kismi cikis (palet.stok_dus).
-        """
-        # 1. Paleti bul (KİLİTLİ OKUMA) - Eş zamanlı çıkışları engeller
-        palet = self._palet_repo.getir_palet_no_ile(palet_no, kilitli_mi=True)
-        if not palet:
-            raise KayitBulunamadiError("Palet", palet_no)
+    # ── Toplu Giriş ──
 
-        # 2. Aktif ve dolu mu?
-        if not palet.aktif or palet.bos_mu():
-            raise GecersizIslemError("Bu palette stok bulunmuyor.")
+    def toplu_palet_giris(
+        self,
+        palet_no_listesi: list[str],
+        kullanici: Kullanici,
+    ) -> list[TopluPaletSonuc]:
+        return self._giris.toplu_palet_giris(palet_no_listesi, kullanici)
 
-        # 3. Depo yetki kontrolu (raf_id=None olan paletlerde depo kontrolu atlanir)
-        hedef_depo_id = self._raf_depo_id_coz(palet.raf_id)
-        if hedef_depo_id:
-            self._depo_erisim_dogrula(kullanici, hedef_depo_id)
+    def toplu_palet_giris_kaynagini_onayla(self, palet_no_listesi: list[str]) -> None:
+        self._giris.toplu_palet_giris_kaynagini_onayla(palet_no_listesi)
 
-        # 4. Cikis tipi
-        if miktar is None:
-            gercek_miktar = palet.koli_adedi
-            palet.sevk_et()
-        else:
-            if miktar > palet.koli_adedi:
-                raise GecersizIslemError(
-                    f"Istenen miktar ({miktar}) paletteki stoktan ({palet.koli_adedi}) fazla."
-                )
-            gercek_miktar = palet.stok_dus(miktar)
+    # ── Toplu Çıkış ──
 
-        # 5. Palet guncelle
-        self._palet_repo.guncelle(palet, auto_commit=False)
+    def toplu_palet_cikis(
+        self,
+        kalemler: list[dict],
+        kullanici: Kullanici,
+        siparis_no: Optional[str] = None,
+        aciklama: Optional[str] = None,
+    ) -> list[TopluPaletSonuc]:
+        return self._cikis.toplu_palet_cikis(kalemler, kullanici, siparis_no, aciklama)
 
-        # 6. StokHareketi
-        aciklama_metin = aciklama or f"Palet bazli stok cikisi: {palet_no}"
-        hareket = StokHareketi(
-            urun_id=0,
-            lot_id=palet.lot_id,
-            palet_id=palet.id,
-            raf_id=palet.raf_id,
-            hareket_tipi=HareketTipi.CIKIS,
-            miktar=gercek_miktar,
-            siparis_no=siparis_no,
-            kullanici_id=kullanici.id,
-            aciklama=aciklama_metin,
-        )
-
-        # urun_id'yi lot uzerinden al
-        lot = self._lot_repo.getir_id_ile(palet.lot_id)
-        if lot:
-            hareket.urun_id = lot.urun_id
-
-        hareket = self._hareket_repo.olustur(hareket, auto_commit=False)
-
-        # 7. SistemLog
-        cikis_tipi = "tam" if miktar is None else "kismi"
-        self._log_repo.olustur(
-            SistemLog.olustur(
-                kullanici_id=kullanici.id,
-                islem_tipi=IslemTipi.UPDATE,
-                modul="Stok Islemleri",
-                detay=f"Palet cikisi ({cikis_tipi}): {palet_no} (Miktar: {gercek_miktar} koli)",
-            ),
-            auto_commit=False,
-        )
-
-        return hareket
-
-    # ── Yardimci Metodlar ──
+    # ── Test uyumluluğu için static yardımcı ──
 
     @staticmethod
     def _depo_erisim_dogrula(
         kullanici: Kullanici, hedef_depo_id: int, depo_adi: str = "",
     ) -> None:
-        """Kullanici entity'sinin depo_erisim_var() metodunu kullanarak yetki kontrol eder."""
+        """Kullanıcının hedef depoya erişim yetkisini doğrular."""
         if not kullanici.depo_erisim_var(hedef_depo_id):
             raise DepoErisimHatasi(kullanici.depo_id, hedef_depo_id, depo_adi)
-
-    def _raf_depo_id_coz(self, raf_id: Optional[int]) -> Optional[int]:
-        """Raf ID'sinden depo ID'sini cozumler."""
-        if not raf_id:
-            return None
-        raf = self._raf_repo.getir_id_ile(raf_id)
-        return raf.depo_id if raf else None
-
-    def _lot_bul_veya_olustur(self, dto: PaletBilgiDTO) -> Lot:
-        """Lot numarasina gore mevcut lotu bulur veya yenisini olusturur."""
-        if dto.lot_no:
-            mevcut_lot = self._lot_repo.getir_lot_no_ile(dto.lot_no)
-            if mevcut_lot:
-                return mevcut_lot
-
-        lot = Lot(
-            urun_id=dto.urun_id,
-            lot_no=dto.lot_no,
-            son_kullanma_tarihi=dto.son_kullanma_tarihi,
-        )
-        return self._lot_repo.olustur(lot, auto_commit=False)
-
-    def son_hareketi_getir_palet_ile(self, palet_no: str) -> Optional[StokHareketi]:
-        """
-        Idempotency akışında mükerrer istek geldiğinde, istemciye hata fırlatmak yerine
-        o palet için yapılmış en son başarılı stok hareketini bulup dönmek için kullanılır.
-        """
-        palet = self._palet_repo.getir_palet_no_ile(palet_no)
-        if not palet:
-            return None
-            
-        # Eğer hareket repository'sinde palet_id'ye göre son hareketi getiren 
-        # bir metodunuz yoksa, repo'ya eklemeniz gerekebilir.
-        # Varsayılan olarak şöyle bir kullanım öngörülmüştür:
-        return self._hareket_repo.getir_son_hareket_palet_id_ile(palet.id)
-    
-    # ── Toplu Palet Giris (Faz 2) ──
-
-    def toplu_palet_giris(
-        self, palet_no_listesi: List[str], kullanici: Kullanici,
-    ) -> List[TopluPaletSonuc]:
-        """Birden fazla paleti tek seferde giris yapar.
-
-        Pre-validation: Her palet icin dogrulama yapilir, hatali olanlar raporlanir.
-        Sadece tumu gecerli ise islem gerceklestirilir (all-or-nothing).
-        """
-        sonuclar: List[TopluPaletSonuc] = []
-
-        # --- Faz 1: Pre-validation ---
-        for palet_no in palet_no_listesi:
-            hata = self._giris_on_dogrula(palet_no, kullanici)
-            if hata:
-                sonuclar.append(TopluPaletSonuc(palet_no=palet_no, basarili=False, hata_mesaji=hata))
-            else:
-                sonuclar.append(TopluPaletSonuc(palet_no=palet_no, basarili=True))
-
-        # Herhangi bir hata varsa islem yapma
-        if any(not s.basarili for s in sonuclar):
-            return sonuclar
-
-        # --- Faz 2: Atomik islem ---
-        for sonuc in sonuclar:
-            hareket = self.palet_giris(
-                sonuc.palet_no,
-                kullanici,
-                kaynagi_onayla=False,
-            )
-            sonuc.hareket = hareket
-
-        return sonuclar
-
-    def toplu_palet_giris_kaynagini_onayla(self, palet_no_listesi: List[str]) -> None:
-        """Toplu giris sonrasi kaynak sistem kayitlarini onaylar.
-
-        Bu metodun transaction commit edildikten sonra cagrilmasi gerekir.
-        """
-        for palet_no in palet_no_listesi:
-            self._veri_kaynagi.palet_giris_onayla(palet_no)
-
-    def _giris_on_dogrula(self, palet_no: str, kullanici: Kullanici) -> Optional[str]:
-        """Tek bir palet icin giris on-dogrulama. Hata varsa mesaj doner, yoksa None."""
-        try:
-            dto = self._veri_kaynagi.palet_bilgisi_getir(palet_no)
-        except (KayitBulunamadiError, GecersizIslemError) as e:
-            return str(e)
-
-        if dto.giris_yapildi_mi:
-            return "Bu palet zaten sisteme kaydedilmis."
-
-        mevcut = self._palet_repo.getir_palet_no_ile(palet_no)
-        if mevcut:
-            return f"Palet numarasi '{palet_no}' zaten mevcut."
-
-        if dto.depo_id and not kullanici.depo_erisim_var(dto.depo_id):
-            return f"Bu palet {dto.depo_adi} deposuna ait, yetkiniz bulunmuyor."
-
-        return None
-
-    # ── Toplu Palet Cikis (Faz 2) ──
-
-    def toplu_palet_cikis(
-        self,
-        kalemler: List[dict],
-        kullanici: Kullanici,
-        siparis_no: Optional[str] = None,
-        aciklama: Optional[str] = None,
-    ) -> List[TopluPaletSonuc]:
-        """Birden fazla paletten tek seferde cikis yapar.
-
-        kalemler: [{"palet_no": str, "miktar": Optional[int]}, ...]
-        Pre-validation sonrasi all-or-nothing atomik islem.
-        """
-        sonuclar: List[TopluPaletSonuc] = []
-
-        # --- Faz 1: Pre-validation ---
-        for kalem in kalemler:
-            palet_no = kalem["palet_no"]
-            miktar = kalem.get("miktar")
-            hata = self._cikis_on_dogrula(palet_no, miktar, kullanici)
-            if hata:
-                sonuclar.append(TopluPaletSonuc(palet_no=palet_no, basarili=False, hata_mesaji=hata))
-            else:
-                sonuclar.append(TopluPaletSonuc(palet_no=palet_no, basarili=True))
-
-        # Herhangi bir hata varsa islem yapma
-        if any(not s.basarili for s in sonuclar):
-            return sonuclar
-
-        # --- Faz 2: Atomik islem ---
-        for i, kalem in enumerate(kalemler):
-            hareket = self.palet_cikis(
-                palet_no=kalem["palet_no"],
-                kullanici=kullanici,
-                miktar=kalem.get("miktar"),
-                siparis_no=siparis_no,
-                aciklama=aciklama,
-            )
-            sonuclar[i].hareket = hareket
-
-        return sonuclar
-
-    def _cikis_on_dogrula(
-        self, palet_no: str, miktar: Optional[int], kullanici: Kullanici,
-    ) -> Optional[str]:
-        """Tek bir palet icin cikis on-dogrulama. Hata varsa mesaj doner, yoksa None."""
-        palet = self._palet_repo.getir_palet_no_ile(palet_no)
-        if not palet:
-            return f"Palet '{palet_no}' bulunamadi."
-
-        if not palet.aktif or palet.bos_mu():
-            return "Bu palette stok bulunmuyor."
-
-        hedef_depo_id = self._raf_depo_id_coz(palet.raf_id)
-        if hedef_depo_id and not kullanici.depo_erisim_var(hedef_depo_id):
-            return "Bu palet farkli bir depoya ait, yetkiniz bulunmuyor."
-
-        if miktar is not None and miktar > palet.koli_adedi:
-            return f"Istenen miktar ({miktar}) paletteki stoktan ({palet.koli_adedi}) fazla."
-
-        return None
