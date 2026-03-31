@@ -39,8 +39,8 @@ jobs:
       - name: Install dependencies
         working-directory: BackendProje # İçeri girerek yükleme yap
         run: |
-          pip install -r BackendProje/requirements.txt
-          pip install -r BackendProje/requirements-test.txt
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
 
       - name: Run tests
         working-directory: BackendProje
