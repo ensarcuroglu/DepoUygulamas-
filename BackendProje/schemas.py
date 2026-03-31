@@ -1,3 +1,16 @@
+"""
+DEPRECATED — Bu modül artık aktif olarak kullanılmamaktadır.
+
+Clean Architecture geçişi tamamlandı. Yeni geliştirme için:
+  - Request/Response DTO'ları → app/application/dto/<modül>_dto.py
+  - Auth şemaları            → app/application/dto/auth_dto.py
+  - Kullanıcı şemaları       → app/application/dto/kullanici_dto.py
+
+Bu dosya yalnızca geriye dönük uyumluluk için korunmaktadır.
+Faz 2'de tüm bağımlılıklar taşındıktan sonra silinecektir.
+"""
+# DEPRECATED: Aşağıdaki import'lar sadece geriye dönük uyumluluk içindir.
+# Yeni kod yazarken app/application/dto/ altındaki DTO'ları kullanın.
 from pydantic import BaseModel, ConfigDict, Field, field_validator, EmailStr
 from typing import Optional, List, Literal
 from datetime import datetime, date

@@ -25,12 +25,12 @@ from app.core.auth import (
     REFRESH_TOKEN_EXPIRE_DAYS,
     ALGORITHM,
 )
-from schemas import (
-    LoginRequest,
-    TokenResponse,
-    KullaniciCreate,
-    KullaniciResponse,
-    RefreshRequest,
+from app.application.dto.auth_dto import (
+    LoginRequestDTO as LoginRequest,
+    TokenResponseDTO as TokenResponse,
+    KullaniciCreateDTO as KullaniciCreate,
+    KullaniciAuthResponseDTO as KullaniciResponse,
+    RefreshRequestDTO as RefreshRequest,
 )
 from limiter import limiter
 

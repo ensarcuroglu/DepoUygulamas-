@@ -37,7 +37,8 @@
       "Bash(python -m pytest tests/unit/services/test_erp_adapters.py -v --no-header)",
       "Bash(find \"/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje/app\" -name \"*.py\" -type f -exec cat {} +)",
       "Bash(find \"/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje/tests\" -name \"*.py\" -type f -exec cat {} +)",
-      "Bash(find \"/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje/app/core/entities\" -name \"*.py\" ! -name \"__init__.py\" -exec wc -l {} +)"
+      "Bash(find \"/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje/app/core/entities\" -name \"*.py\" ! -name \"__init__.py\" -exec wc -l {} +)",
+      "Bash(find '/mnt/d/Ensar Dosya/DepoUygulaması' -name '*.md' -maxdepth 3)"
     ]
   }
 }
