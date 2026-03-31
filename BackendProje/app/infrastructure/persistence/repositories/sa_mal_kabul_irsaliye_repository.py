@@ -1,6 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
-from sqlalchemy.orm import Session, joinedload, noload
+from sqlalchemy.orm import Session, joinedload, noload, selectinload
 from sqlalchemy import or_
 
 from app.core.entities.mal_kabul_irsaliye import MalKabulIrsaliye, MalKabulKalemi
@@ -33,8 +33,9 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
         # Sadece detay istendiğinde kalemleri ve alt ilişkilerini yükle
         if detay_getir:
             query = query.options(
-                joinedload(MalKabulIrsaliyeORM.kalemler).joinedload(MalKabulKalemiORM.urun),
-                joinedload(MalKabulIrsaliyeORM.kalemler).joinedload(MalKabulKalemiORM.raf),
+                # Bire-çok ilişki olduğu için joinedload yerine selectinload kullanıyoruz!
+                selectinload(MalKabulIrsaliyeORM.kalemler).joinedload(MalKabulKalemiORM.urun),
+                selectinload(MalKabulIrsaliyeORM.kalemler).joinedload(MalKabulKalemiORM.raf),
             )
         else:
             # Liste sorgularında N+1 problemini ve gereksiz RAM kullanımını önlemek için

@@ -280,7 +280,7 @@ Sonuc:
 
 1. ✅ Mal kabul palet girisinde belge durum kontrolu ekle - `palet_bilgisi_getir()` ve `palet_giris_onayla()` TASLAK kontrolu yapıyor
 2. ✅ Tum kalemler tamamlandiginda mal kabul irsaliyesini otomatik tamamla - `tum_kalemler_girildi_mi()` + `tamamla()` entegre edildi
-3. Palet girisi ve cikisi icin idempotency/duplicate request stratejisi ekle
+3. ✅ Palet girisi ve cikisi icin idempotency/duplicate request stratejisi ekle - `Idempotency-Key` header + `getir_son_hareket_palet_id_ile` O(1) lookup + IntegrityError handling ile implemente edildi
 
 ### P1 - Guvenlik ve performans (TAMAMLANDI)
 
