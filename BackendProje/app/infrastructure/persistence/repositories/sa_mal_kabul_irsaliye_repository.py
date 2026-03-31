@@ -1,6 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, noload
 from sqlalchemy import or_
 
 from app.core.entities.mal_kabul_irsaliye import MalKabulIrsaliye, MalKabulKalemi
@@ -23,13 +23,25 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
     def __init__(self, db: Session):
         self._db = db
 
-    def _base_query(self):
-        return self._db.query(MalKabulIrsaliyeORM).options(
+    def _base_query(self, detay_getir: bool = True):
+        # Temel ilişkiler her zaman yüklensin (Header bilgileri)
+        query = self._db.query(MalKabulIrsaliyeORM).options(
             joinedload(MalKabulIrsaliyeORM.tedarikci),
             joinedload(MalKabulIrsaliyeORM.depo),
-            joinedload(MalKabulIrsaliyeORM.kalemler).joinedload(MalKabulKalemiORM.urun),
-            joinedload(MalKabulIrsaliyeORM.kalemler).joinedload(MalKabulKalemiORM.raf),
         )
+        
+        # Sadece detay istendiğinde kalemleri ve alt ilişkilerini yükle
+        if detay_getir:
+            query = query.options(
+                joinedload(MalKabulIrsaliyeORM.kalemler).joinedload(MalKabulKalemiORM.urun),
+                joinedload(MalKabulIrsaliyeORM.kalemler).joinedload(MalKabulKalemiORM.raf),
+            )
+        else:
+            # Liste sorgularında N+1 problemini ve gereksiz RAM kullanımını önlemek için
+            # kalemler ilişkisinin yüklenmesini engelliyoruz.
+            query = query.options(noload(MalKabulIrsaliyeORM.kalemler))
+            
+        return query
 
     def getir_hepsi(
         self, skip: int = 0, limit: int = 100,
@@ -38,7 +50,8 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
         depo_id: Optional[int] = None,
         tedarikci_id: Optional[int] = None,
     ) -> List[MalKabulIrsaliye]:
-        query = self._base_query()
+        # Liste ekranı olduğu için kalemleri YÜKLEME (Performans optimizasyonu)
+        query = self._base_query(detay_getir=False)
 
         if durum:
             query = query.filter(MalKabulIrsaliyeORM.durum == durum)
@@ -61,22 +74,30 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
         return [mal_kabul_irsaliye_to_entity(o) for o in orm_list]
 
     def getir_id_ile(self, irsaliye_id: int) -> Optional[MalKabulIrsaliye]:
-        orm = self._base_query().filter(
+        # Tekil detay sorgusu olduğu için kalemleri YÜKLE
+        orm = self._base_query(detay_getir=True).filter(
             MalKabulIrsaliyeORM.id == irsaliye_id
         ).first()
         return mal_kabul_irsaliye_to_entity(orm) if orm else None
 
-    def olustur(self, irsaliye: MalKabulIrsaliye) -> MalKabulIrsaliye:
+    def olustur(self, irsaliye: MalKabulIrsaliye, auto_commit: bool = False) -> MalKabulIrsaliye:
         orm = mal_kabul_irsaliye_to_orm(irsaliye)
         orm.id = None
         for kalem_orm in orm.kalemler:
             kalem_orm.id = None
         self._db.add(orm)
-        self._db.commit()
-        self._db.refresh(orm)
+        
+        # P0 Transaction kuralına uygun hale getirildi
+        if auto_commit:
+            self._db.commit()
+            self._db.refresh(orm)
+        else:
+            self._db.flush()
+            
         return mal_kabul_irsaliye_to_entity(orm)
 
-    def guncelle(self, irsaliye: MalKabulIrsaliye, auto_commit: bool = True) -> MalKabulIrsaliye:
+    def guncelle(self, irsaliye: MalKabulIrsaliye, auto_commit: bool = False) -> MalKabulIrsaliye:
+        # P0 kuralı gereği auto_commit varsayılan olarak False yapıldı
         orm = self._db.query(MalKabulIrsaliyeORM).filter(
             MalKabulIrsaliyeORM.id == irsaliye.id
         ).first()
@@ -125,14 +146,20 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
             self._db.flush()
         return mal_kabul_irsaliye_to_entity(orm)
 
-    def sil(self, irsaliye_id: int) -> bool:
+    def sil(self, irsaliye_id: int, auto_commit: bool = False) -> bool:
         orm = self._db.query(MalKabulIrsaliyeORM).filter(
             MalKabulIrsaliyeORM.id == irsaliye_id
         ).first()
         if not orm:
             return False
         self._db.delete(orm)
-        self._db.commit()
+        
+        # P0 Transaction kuralına uygun hale getirildi
+        if auto_commit:
+            self._db.commit()
+        else:
+            self._db.flush()
+            
         return True
 
     def sonraki_irsaliye_no(self) -> str:
