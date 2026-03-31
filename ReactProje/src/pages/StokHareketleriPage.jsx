@@ -108,9 +108,13 @@ export default function StokHareketleriPage() {
                     : t
             ));
         } catch (err) {
+            const isErpHatasi = err?.response?.status === 502;
+            const mesaj = isErpHatasi
+                ? 'ERP sistemine ulaşılamıyor — lütfen daha sonra tekrar deneyin'
+                : hataMetni(err, 'Palet bulunamadı');
             setTaramaListesi(prev => prev.map(t =>
                 t.palet_no === hedefNo
-                    ? { ...t, durum: 'hata', hataMesaji: hataMetni(err, 'Palet bulunamadı') }
+                    ? { ...t, durum: 'hata', hataMesaji: mesaj }
                     : t
             ));
         }
@@ -198,7 +202,13 @@ export default function StokHareketleriPage() {
             resetForm();
             fetchSonIslemler();
         } catch (err) {
-            toast.error(hataMetni(err, 'İşlem başarısız'));
+            const isErpHatasi = err?.response?.status === 502;
+            toast.error(
+                isErpHatasi
+                    ? 'ERP sistemine ulaşılamıyor — lütfen daha sonra tekrar deneyin'
+                    : hataMetni(err, 'İşlem başarısız'),
+                isErpHatasi ? { duration: 6000 } : undefined,
+            );
         }
     };
 
@@ -305,7 +315,20 @@ export default function StokHareketleriPage() {
 
                     {/* Palet bilgi */}
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black text-slate-800 truncate">{palet_no}</p>
+                        <div className="flex items-center gap-2">
+                            <p className="text-sm font-black text-slate-800 truncate">{palet_no}</p>
+                            {bilgi?.kaynak && !isHata && (
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
+                                    bilgi.kaynak === 'erp'
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : bilgi.kaynak === 'irsaliye'
+                                        ? 'bg-emerald-100 text-emerald-700'
+                                        : 'bg-slate-100 text-slate-500'
+                                }`}>
+                                    {bilgi.kaynak === 'erp' ? 'ERP' : bilgi.kaynak === 'irsaliye' ? 'Yerel' : 'Sistem'}
+                                </span>
+                            )}
+                        </div>
                         {isHata && <p className="text-xs font-semibold text-red-500 truncate">{hataMesaji}</p>}
                         {bilgi && !isHata && (
                             <p className="text-xs font-semibold text-slate-400 truncate">

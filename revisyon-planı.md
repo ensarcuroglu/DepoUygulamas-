@@ -346,7 +346,7 @@ Yeni:    Tip Seç → Palet No Gir → Bilgi Önizleme → Onayla
 | **Faz 1e** | Frontend StokHareketleriPage yeni akış | **TAMAMLANDI** | Palet no bazlı UI, barkod/kamera entegrasyonu, Son İşlemler palet_no gösterimi |
 | **Faz 1f** | Testler + entegrasyon doğrulama | Bekliyor | Unit, integration, API test suite |
 | **Faz 2** | Toplu palet işlemi (çoklu tarama) | **TAMAMLANDI** | Toplu DTO, domain service, 2 endpoint, frontend çoklu tarama UI |
-| **Faz 3** | ERP adapter (`ErpPaletVeriKaynagiService`) | Bekliyor | ERP API entegrasyonu, adapter swap |
+| **Faz 3** | ERP adapter (`ErpPaletVeriKaynagiService`) | **TAMAMLANDI** | MockErp + ErpAdapter (strict mapping) + config-driven DI swap + frontend kaynak badge + 27 unit test |
 
 ---
 

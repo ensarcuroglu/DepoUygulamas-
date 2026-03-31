@@ -1039,20 +1039,45 @@ def get_mal_kabul_irsaliye_sil_uc(
 # PALET BAZLI STOK İŞLEMLERİ — ADAPTER + DOMAIN SERVICE
 # ════════════════════════════════════════════════════════��══════
 
-def get_irsaliye_palet_veri_kaynagi(
+# -- Config-driven adapter secimi --
+from app.infrastructure.config.erp_config import ErpConfig, PaletVeriKaynagi
+
+_erp_config = ErpConfig.from_env()
+
+
+def get_palet_veri_kaynagi(
     mal_kabul_repo=Depends(get_mal_kabul_irsaliye_repo),
     urun_repo=Depends(get_urun_repo),
     depo_repo=Depends(get_depo_repo),
     raf_repo=Depends(get_raf_repo),
     lot_repo=Depends(get_lot_repo),
 ):
+    """PALET_VERI_KAYNAGI env degiskenine gore adapter doner.
+
+    LOCAL → IrsaliyePaletVeriKaynagiService (varsayilan)
+    MOCK  → MockErpPaletVeriKaynagiService (demo/dev)
+    ERP   → ErpPaletVeriKaynagiService (gercek ERP)
+    """
+    if _erp_config.palet_veri_kaynagi == PaletVeriKaynagi.MOCK:
+        from app.infrastructure.services.mock_erp_palet_veri_kaynagi_service import (
+            MockErpPaletVeriKaynagiService,
+        )
+        return MockErpPaletVeriKaynagiService()
+
+    if _erp_config.palet_veri_kaynagi == PaletVeriKaynagi.ERP:
+        from app.infrastructure.services.erp_palet_veri_kaynagi_service import (
+            ErpPaletVeriKaynagiService,
+        )
+        return ErpPaletVeriKaynagiService(_erp_config)
+
+    # LOCAL (varsayilan)
     return IrsaliyePaletVeriKaynagiService(
         mal_kabul_repo, urun_repo, depo_repo, raf_repo, lot_repo,
     )
 
 
 def get_palet_bazli_stok_service(
-    veri_kaynagi=Depends(get_irsaliye_palet_veri_kaynagi),
+    veri_kaynagi=Depends(get_palet_veri_kaynagi),
     palet_repo=Depends(get_palet_repo),
     lot_repo=Depends(get_lot_repo),
     raf_repo=Depends(get_raf_repo),
@@ -1065,7 +1090,7 @@ def get_palet_bazli_stok_service(
 
 
 def get_palet_sorgulama_service(
-    veri_kaynagi=Depends(get_irsaliye_palet_veri_kaynagi),
+    veri_kaynagi=Depends(get_palet_veri_kaynagi),
     palet_repo=Depends(get_palet_repo),
     lot_repo=Depends(get_lot_repo),
     urun_repo=Depends(get_urun_repo),

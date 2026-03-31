@@ -192,3 +192,33 @@ class DepoErisimHatasi(APIException):
             mesaj,
             {"kullanici_depo_id": kullanici_depo_id, "hedef_depo_id": hedef_depo_id},
         )
+
+
+# =====================================================================
+# ERP ENTEGRASYON EXCEPTION'LARI
+# =====================================================================
+
+class ErpBaglantiHatasi(APIException):
+    """ERP sistemine baglanti kurulamadi veya zaman asimi."""
+
+    def __init__(self, mesaj: str = "ERP sistemine ulaşılamıyor.", detaylar: dict = None):
+        super().__init__(
+            status.HTTP_502_BAD_GATEWAY,
+            mesaj,
+            detaylar or {},
+        )
+
+
+class ErpVeriDogrulamaHatasi(APIException):
+    """ERP'den gelen veri beklenen formata uymuyor (strict mapping ihlali)."""
+
+    def __init__(self, alan: str, beklenen: str, gelen: str):
+        self.alan = alan
+        self.beklenen = beklenen
+        self.gelen = gelen
+        mesaj = f"ERP veri doğrulama hatası: '{alan}' alanı — beklenen: {beklenen}, gelen: {gelen}"
+        super().__init__(
+            status.HTTP_502_BAD_GATEWAY,
+            mesaj,
+            {"alan": alan, "beklenen": beklenen, "gelen": gelen},
+        )
