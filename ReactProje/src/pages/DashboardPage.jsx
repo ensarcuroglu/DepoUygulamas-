@@ -3,7 +3,7 @@ import { useAsync } from '../hooks/useAsync';
 import {
     Package, AlertTriangle, ArrowLeftRight, DollarSign,
     TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight,
-    MoreVertical, Zap, Box, CheckCircle2
+    MoreVertical, Zap, Box, CheckCircle2, RefreshCcw
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getDashboardStats, getKritikUrunler, getStokHareketleri } from '../services/api';
@@ -498,15 +498,9 @@ function DashboardSkeleton() {
 /* ─────────────────────────────────────────────
    Chart Data (Mock — gerçek API'den gelecek)
    ───────────────────────────────────────────── */
-const chartData = [
-    { day: '01 Şub', giris: 120, cikis: 80 },
-    { day: '02 Şub', giris: 135, cikis: 90 },
-    { day: '03 Şub', giris: 190, cikis: 160 },
-    { day: '04 Şub', giris: 220, cikis: 140 },
-    { day: '05 Şub', giris: 280, cikis: 190 },
-    { day: '06 Şub', giris: 210, cikis: 220 },
-    { day: '07 Şub', giris: 310, cikis: 250 },
-];
+/* ─────────────────────────────────────────────
+   Chart Data Artık Backend'den Geliyor
+   ───────────────────────────────────────────── */
 
 /* ═════════════════════════════════════════════
    MAIN DASHBOARD PAGE
@@ -520,7 +514,7 @@ export default function DashboardPage() {
     // Inject styles once
     useEffect(() => { injectStyles(); }, []);
 
-    useEffect(() => {
+    const fetchData = useCallback(() => {
         run(() => Promise.all([
             getDashboardStats(),
             getKritikUrunler(),
@@ -530,7 +524,11 @@ export default function DashboardPage() {
             setKritikler(kritikRes.data);
             setHareketler(hareketRes.data);
         }).catch(() => {});
-    }, []);
+    }, [run]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     // Greeting based on time of day
     const getGreeting = useCallback(() => {
@@ -541,21 +539,32 @@ export default function DashboardPage() {
         return 'İyi Akşamlar';
     }, []);
 
-    if (loading) return <DashboardSkeleton />;
+    if (loading && !stats) return <DashboardSkeleton />;
 
     return (
         <div className="max-w-[1400px] mx-auto p-4 sm:p-6 pb-28 sm:pb-8 space-y-6 md:space-y-8 min-h-screen">
 
             {/* ── Header ── */}
-            <div className="dsh-fade-up">
-                <div className="flex items-center gap-2 mb-1">
-                    <h1 className="text-[24px] sm:text-[28px] font-black text-slate-900 tracking-tight leading-none">
-                        {getGreeting()} 👋
-                    </h1>
+            <div className="dsh-fade-up flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <h1 className="text-[24px] sm:text-[28px] font-black text-slate-900 tracking-tight leading-none">
+                            {getGreeting()} 👋
+                        </h1>
+                    </div>
+                    <p className="text-[13px] sm:text-[14px] font-medium text-slate-400 leading-relaxed">
+                        Deponuzun bugünkü genel durumuna göz atın.
+                    </p>
                 </div>
-                <p className="text-[13px] sm:text-[14px] font-medium text-slate-400 leading-relaxed">
-                    Deponuzun bugünkü genel durumuna göz atın.
-                </p>
+                
+                <button
+                    onClick={fetchData}
+                    disabled={loading}
+                    className="flex-shrink-0 flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl font-semibold text-[14px] hover:bg-slate-50 hover:text-blue-600 transition-colors shadow-sm disabled:opacity-50"
+                >
+                    <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-500' : ''}`} />
+                    <span className="hidden sm:inline">Verileri Yenile</span>
+                </button>
             </div>
 
             {/* ── 4 KPI Cards ── */}
@@ -626,7 +635,7 @@ export default function DashboardPage() {
 
                         <div className="h-[220px] sm:h-[280px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={chartData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
+                                <AreaChart data={stats?.stok_akisi || []} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="gradGiris" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.25} />

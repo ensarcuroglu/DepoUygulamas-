@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -9,6 +9,7 @@ class DashboardIstatistik:
     kritik_stok_sayisi: int
     bugunku_hareket: int
     toplam_deger: float
+    stok_akisi: list[dict] = field(default_factory=list)
 
 
 class IDashboardRepository(ABC):
