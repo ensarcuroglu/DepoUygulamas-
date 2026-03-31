@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from datetime import date
 
-from auth import require_role
+from app.core.auth import require_role
 from models import Kullanici
 from limiter import limiter
 

@@ -5,7 +5,7 @@ Sistem Logları API Router — Clean Architecture (Thin Controller).
 from fastapi import APIRouter, Depends, Query, Request
 from typing import List
 
-from auth import get_current_user, require_role
+from app.core.auth import get_current_user, require_role
 from models import Kullanici
 from limiter import limiter
 

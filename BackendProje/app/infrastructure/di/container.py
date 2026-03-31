@@ -171,7 +171,7 @@ from app.infrastructure.services.irsaliye_palet_veri_kaynagi_service import Irsa
 from app.infrastructure.services.palet_sorgulama_service import PaletSorgulamaService
 
 # ── Şifre hash fonksiyonu (Kullanıcı use case'i için) ──
-from auth import get_password_hash
+from app.core.auth import get_password_hash
 
 
 # ═══════════════════════════════════════════════════════════════

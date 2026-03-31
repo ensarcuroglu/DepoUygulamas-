@@ -18,7 +18,7 @@ if os.path.exists(_env_test_path):
     load_dotenv(_env_test_path, override=True)
 
 from database import Base, get_db
-from auth import create_access_token
+from app.core.auth import create_access_token
 from main import app
 
 # Bcrypt hash'i bir kez hesapla — test başına ~400ms tasarruf
@@ -29,7 +29,7 @@ _CACHED_PASSWORD_HASH: str | None = None
 def get_test_password_hash() -> str:
     global _CACHED_PASSWORD_HASH
     if _CACHED_PASSWORD_HASH is None:
-        from auth import get_password_hash
+        from app.core.auth import get_password_hash
         _CACHED_PASSWORD_HASH = get_password_hash(TEST_PASSWORD)
     return _CACHED_PASSWORD_HASH
 

@@ -12,7 +12,7 @@ from models import (
 from datetime import datetime, timedelta, date
 import random
 
-from auth import get_password_hash
+from app.core.auth import get_password_hash
 
 
 def seed():

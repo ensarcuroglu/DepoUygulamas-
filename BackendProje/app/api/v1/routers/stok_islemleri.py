@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 from app.core.exceptions import CakismaHatasi
 
-from auth import require_role
+from app.core.auth import require_role
 from database import get_db
 from models import Kullanici
 from limiter import limiter

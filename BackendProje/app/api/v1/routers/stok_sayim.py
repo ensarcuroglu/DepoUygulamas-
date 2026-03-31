@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from typing import List
 
 from models import Kullanici
-from auth import get_current_user, require_role
+from app.core.auth import get_current_user, require_role
 from app.infrastructure.di.container import (
     get_stok_sayim_listele_uc,
     get_stok_sayim_getir_uc,

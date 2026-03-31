@@ -7,7 +7,7 @@ NOT: Login/register auth.py router'ında kalır.
 from fastapi import APIRouter, Depends, Query, Request
 from typing import List, Optional
 
-from auth import get_current_user, require_role
+from app.core.auth import get_current_user, require_role
 from models import Kullanici
 from limiter import limiter
 

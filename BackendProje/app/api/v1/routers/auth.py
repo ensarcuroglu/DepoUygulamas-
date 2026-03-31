@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Kullanici, SistemLog
-from auth import (
+from app.core.auth import (
     verify_password,
     get_password_hash,
     hash_token,

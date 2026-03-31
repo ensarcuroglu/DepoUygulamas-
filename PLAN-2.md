@@ -61,7 +61,7 @@ Faz 1-3 ile 17/17 modül + Auth + Dashboard Clean Architecture'a taşındı, esk
 - [ ] 4.3 — `app/infrastructure/auth/jwt_service.py` oluştur — `create_access_token`, `create_refresh_token`, `verify_and_get_user_from_refresh_token`, JWT sabitleri
 - [ ] 4.4 — `app/infrastructure/auth/dependencies.py` oluştur — `get_current_user`, `require_role`, `oauth2_scheme`
 - [ ] 4.5 — Kök `BackendProje/auth.py`'yi backward-compat wrapper'a dönüştür
-- [ ] 4.6 — 19 router dosyasını güncelle — `from auth import ...` → `from app.infrastructure.auth import ...` + `from models import Kullanici` → `from app.infrastructure.persistence.models import Kullanici`
+- [ ] 4.6 — 19 router dosyasını güncelle — `from app.core.auth import ...` → `from app.infrastructure.auth import ...` + `from models import Kullanici` → `from app.infrastructure.persistence.models import Kullanici`
 - [ ] 4.7 — Doğrula: tüm auth endpoint'leri çalışır (login, refresh, me, register, logout)
 
 ### Adım 5: APScheduler Çıkarma (Düşük-Orta Risk) `[4e]`
@@ -113,7 +113,7 @@ Faz 1-3 ile 17/17 modül + Auth + Dashboard Clean Architecture'a taşındı, esk
 - [ ] 7.3 — `BackendProje/models.py` wrapper'ı sil
 - [ ] 7.4 — `BackendProje/auth.py` wrapper'ı sil
 - [ ] 7.5 — `BackendProje/database.py` wrapper'ı sil
-- [ ] 7.6 — Doğrula: `grep -r "from models import\|from auth import\|from database import\|from schemas import" BackendProje/ --include="*.py"` → yalnızca `app/infrastructure/` altındaki doğru import'lar
+- [ ] 7.6 — Doğrula: `grep -r "from models import\|from app.core.auth import\|from database import\|from schemas import" BackendProje/ --include="*.py"` → yalnızca `app/infrastructure/` altındaki doğru import'lar
 
 ---
 

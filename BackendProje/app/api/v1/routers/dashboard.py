@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends
 
-from auth import require_role
+from app.core.auth import require_role
 from models import Kullanici
 
 from app.infrastructure.di.container import get_dashboard_istatistik_uc

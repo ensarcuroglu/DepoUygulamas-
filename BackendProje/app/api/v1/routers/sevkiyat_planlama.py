@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from typing import Optional, List
 from datetime import date
 
-from auth import require_role
+from app.core.auth import require_role
 from models import Kullanici
 
 from app.infrastructure.di.container import (

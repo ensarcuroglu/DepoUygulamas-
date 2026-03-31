@@ -9,7 +9,7 @@ KURAL 3: İstekler RequestDTO, yanıtlar ResponseDTO ile alınır/döner.
 from fastapi import APIRouter, Depends, Query
 from typing import Optional, List
 
-from auth import require_role
+from app.core.auth import require_role
 from models import Kullanici
 
 # ── DI Use Case factory'leri ──
