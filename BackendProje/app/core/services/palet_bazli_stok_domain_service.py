@@ -246,6 +246,20 @@ class PaletBazliStokDomainService:
         )
         return self._lot_repo.olustur(lot, auto_commit=False)
 
+    def son_hareketi_getir_palet_ile(self, palet_no: str) -> Optional[StokHareketi]:
+        """
+        Idempotency akışında mükerrer istek geldiğinde, istemciye hata fırlatmak yerine
+        o palet için yapılmış en son başarılı stok hareketini bulup dönmek için kullanılır.
+        """
+        palet = self._palet_repo.getir_palet_no_ile(palet_no)
+        if not palet:
+            return None
+            
+        # Eğer hareket repository'sinde palet_id'ye göre son hareketi getiren 
+        # bir metodunuz yoksa, repo'ya eklemeniz gerekebilir.
+        # Varsayılan olarak şöyle bir kullanım öngörülmüştür:
+        return self._hareket_repo.getir_son_hareket_palet_id_ile(palet.id)
+    
     # ── Toplu Palet Giris (Faz 2) ──
 
     def toplu_palet_giris(

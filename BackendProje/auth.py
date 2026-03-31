@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -86,7 +86,8 @@ def verify_token(token: str, hashed: str) -> bool:
 # ACCESS TOKEN
 # ========================
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+# Eski OAuth2PasswordBearer kaldırıldı, yerine HTTPBearer eklendi
+security = HTTPBearer()
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -155,13 +156,16 @@ def verify_and_get_user_from_refresh_token(token: str, db: Session) -> Kullanici
 # ========================
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    auth: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> Kullanici:
     """
     Her korumalı endpoint'te kullanılacak dependency.
     Token'dan kullanıcı adını çözer ve DB'den kullanıcıyı döner.
     """
+    # Swagger'dan gelen temiz token
+    token = auth.credentials 
+    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Oturum doğrulanamadı. Lütfen tekrar giriş yapın.",

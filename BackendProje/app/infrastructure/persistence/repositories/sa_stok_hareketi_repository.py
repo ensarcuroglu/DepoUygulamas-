@@ -41,3 +41,14 @@ class SqlAlchemyStokHareketiRepository(IStokHareketiRepository):
             self._db.flush()
         self._db.refresh(orm)
         return stok_hareketi_to_entity(orm)
+    
+    def getir_son_hareket_palet_id_ile(self, palet_id: int) -> Optional[StokHareketi]:
+        """
+        Belirtilen palet_id'ye ait en son stok hareketini getirir.
+        Idempotency (mükerrer işlem) durumlarında sonucu dönmek için kullanılır.
+        """
+        orm = self._db.query(StokHareketiORM).filter(
+            StokHareketiORM.palet_id == palet_id
+        ).order_by(StokHareketiORM.id.desc()).first()
+        
+        return stok_hareketi_to_entity(orm) if orm else None

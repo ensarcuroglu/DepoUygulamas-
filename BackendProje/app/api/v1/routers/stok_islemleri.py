@@ -5,10 +5,13 @@ Yeni palet bazli akis icin endpoint'ler.
 Mevcut /api/stok-hareketleri/ endpoint'leri dokunulmaz — bu router ayri calisir.
 """
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Header
 from sqlalchemy.orm import Session
-
 from sqlalchemy.exc import IntegrityError
+
+import logging
+logger = logging.getLogger(__name__)
+
 from app.core.exceptions import CakismaHatasi
 
 from auth import require_role
@@ -54,6 +57,7 @@ def palet_sorgula(
 def palet_giris(
     request: Request,
     dto: PaletGirisRequestDTO,
+    idempotency_key: str = Header(..., alias="Idempotency-Key"),
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
     service: PaletBazliStokDomainService = Depends(get_palet_bazli_stok_service),
@@ -66,8 +70,15 @@ def palet_giris(
         db.commit()
         return StokHareketiResponseDTO.from_entity(hareket)
     except IntegrityError:
-        # Eş zamanlı (milisaniyelik) çift tıklamalarda DB unique constraint patlarsa:
+        # P1 Idempotency: Çakışma durumunda hata dönmek yerine, işlemi zaten 
+        # başarılı kabul edip mevcut kaydı dönüyoruz (Idempotent davranış)
         db.rollback()
+        logger.warning(f"Idempotency devrede: {dto.palet_no} için mükerrer giriş isteği yakalandı. Key: {idempotency_key}")
+        
+        mevcut_hareket = service.son_hareketi_getir_palet_ile(dto.palet_no)
+        if mevcut_hareket:
+            return StokHareketiResponseDTO.from_entity(mevcut_hareket)
+            
         raise CakismaHatasi("Palet numarası", dto.palet_no)
 
 

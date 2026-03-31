@@ -18,3 +18,13 @@ class IStokHareketiRepository(ABC):
     @abstractmethod
     def olustur(self, hareket: StokHareketi, auto_commit: bool = True) -> StokHareketi:
         ...
+
+    @abstractmethod
+    def getir_son_hareket_palet_id_ile(self, palet_id: int) -> Optional[StokHareketi]:
+        """
+        Idempotency ve mükerrer işlem kontrolleri için,
+        belirtilen palet ID'sine ait en son stok hareketini getirir.
+        """
+        ...
+
+
