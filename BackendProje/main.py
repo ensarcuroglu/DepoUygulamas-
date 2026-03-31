@@ -1,16 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from datetime import datetime
 import logging
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from fastapi.responses import JSONResponse
 from fastapi import Request
 
-from database import engine, SessionLocal
-from models import Base, RaporSchedule
+from database import engine
+from models import Base
 from limiter import limiter
+from app.infrastructure.scheduler import RaporScheduler
 
 # ── Birleşik exception yapısı ──
 from core import (
@@ -48,110 +48,14 @@ from app.api.v1.routers import (
     stok_islemleri_router as v1_stok_islemleri_router,
 )
 
-# ========================
-# APScheduler Kurulumu
-# ========================
-try:
-    from apscheduler.schedulers.background import BackgroundScheduler
-    from apscheduler.triggers.cron import CronTrigger
-
-    def zamanlama_kontrol():
-        """Her dakika çalışır; sırası gelen zamanlı raporları tetikler."""
-        db = SessionLocal()
-        try:
-            simdi = datetime.utcnow()
-            schedules = db.query(RaporSchedule).filter(RaporSchedule.is_aktif == True).all()
-            for schedule in schedules:
-                saat_str = schedule.saat or "09:00"
-                try:
-                    saat, dakika = int(saat_str.split(":")[0]), int(saat_str.split(":")[1])
-                except Exception:
-                    continue
-
-                # Son çalıştırma kontrolü — aynı gün çalıştırılmışsa atla
-                if schedule.son_calistirilma:
-                    son = schedule.son_calistirilma
-                    if schedule.periyod == "gunluk" and son.date() == simdi.date():
-                        continue
-                    elif schedule.periyod == "haftalik" and (simdi - son).days < 7:
-                        continue
-                    elif schedule.periyod == "aylik" and (simdi - son).days < 30:
-                        continue
-
-                # Saat uygun mu?
-                if simdi.hour == saat and simdi.minute == dakika:
-                    schedule.son_calistirilma = simdi
-                    db.commit()
-                    logger.info(f"Zamanlı rapor tetiklendi: {schedule.sablon_adi}")
-                    # E-posta gönderimi (isteğe bağlı — SMTP yapılandırması gerektirir)
-                    _zamanlama_email_gonder(schedule)
-        except Exception as e:
-            logger.error(f"Zamanlama kontrolü hatası: {e}")
-        finally:
-            db.close()
-
-    def _zamanlama_email_gonder(schedule):
-        """Zamanlı rapor e-postası gönderir (SMTP yapılandırılmışsa)."""
-        import os
-        smtp_host = os.getenv("SMTP_HOST")
-        if not smtp_host:
-            return  # SMTP ayarlanmamış, atla
-
-        alicilar = schedule.alici_emailler or []
-        if not alicilar:
-            return
-
-        try:
-            import smtplib
-            from email.mime.text import MIMEText
-            from email.mime.multipart import MIMEMultipart
-
-            smtp_port = int(os.getenv("SMTP_PORT", "587"))
-            smtp_user = os.getenv("SMTP_USER", "")
-            smtp_pass = os.getenv("SMTP_PASSWORD", "")
-            smtp_from = os.getenv("SMTP_FROM", smtp_user)
-
-            msg = MIMEMultipart()
-            msg["From"] = smtp_from
-            msg["To"] = ", ".join(alicilar)
-            msg["Subject"] = f"Otomatik Rapor: {schedule.sablon_adi}"
-            body = (
-                f"Merhaba,\n\n"
-                f"'{schedule.sablon_adi}' raporu ({schedule.periyod}) otomatik olarak oluşturuldu.\n"
-                f"Rapor: {schedule.format.upper()} formatında hazırlanmıştır.\n\n"
-                f"Depo Yönetim Sistemi"
-            )
-            msg.attach(MIMEText(body, "plain", "utf-8"))
-
-            with smtplib.SMTP(smtp_host, smtp_port) as server:
-                server.starttls()
-                if smtp_user and smtp_pass:
-                    server.login(smtp_user, smtp_pass)
-                server.sendmail(smtp_from, alicilar, msg.as_string())
-
-            logger.info(f"E-posta gönderildi: {alicilar}")
-        except Exception as e:
-            logger.error(f"E-posta gönderilemedi: {e}")
-
-    scheduler = BackgroundScheduler(timezone="Europe/Istanbul")
-    scheduler.add_job(zamanlama_kontrol, CronTrigger(minute="*"))  # Her dakika kontrol
-    SCHEDULER_AKTIF = True
-except ImportError:
-    SCHEDULER_AKTIF = False
-    logger.warning("apscheduler kurulu değil — zamanlı raporlar devre dışı")
+_scheduler = RaporScheduler()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Başlangıç
-    if SCHEDULER_AKTIF:
-        scheduler.start()
-        logger.info("APScheduler başlatıldı")
+    _scheduler.start()
     yield
-    # Kapanış
-    if SCHEDULER_AKTIF:
-        scheduler.shutdown()
-        logger.info("APScheduler durduruldu")
+    _scheduler.shutdown()
 
 
 
