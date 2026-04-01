@@ -134,6 +134,8 @@ export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler, markalar
         if (hasFieldError) return;
         const data = {
             ...form,
+            barkod: form.barkod.trim() || null,
+            ean: form.ean.trim() || null,
             kategori_id: form.kategori_id ? Number(form.kategori_id) : null,
             marka_id: form.marka_id ? Number(form.marka_id) : null,
             ic_adet: Number(form.ic_adet),
