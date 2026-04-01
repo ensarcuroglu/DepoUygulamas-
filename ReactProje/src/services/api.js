@@ -203,6 +203,11 @@ export const getKritikUrunler = () => api.get('/urunler/kritik');
 export const createUrun = (data) => api.post('/urunler/', data);
 export const updateUrun = (id, data) => api.put(`/urunler/${id}`, data);
 export const deleteUrun = (id) => api.delete(`/urunler/${id}`);
+export const checkBarkodUniqueness = (deger, alan, excludeId = null) => {
+    const params = { deger, alan };
+    if (excludeId) params.exclude_id = excludeId;
+    return api.get('/urunler/barkod-kontrol', { params });
+};
 
 // ========================
 // KATEGORİLER

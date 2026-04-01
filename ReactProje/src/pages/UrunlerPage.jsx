@@ -10,12 +10,18 @@ import toast from 'react-hot-toast';
 import { hataMetni } from '../utils/hata';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
-import { getUrunler, deleteUrun, getKategoriler, createUrun, updateUrun, getUrunByBarkod, getMarkalar } from '../services/api';
+import { getUrunler, deleteUrun, getKategoriler, createUrun, updateUrun, getUrunByBarkod, getMarkalar, checkBarkodUniqueness } from '../services/api';
 import useBarcodeScanner from '../hooks/useBarcodeScanner';
 import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
 
 // Özel Input Bileşeni (UI/UX Geliştirmesi İçin)
-const CustomInput = ({ label, icon: Icon, required, ...props }) => {
+const CustomInput = ({ label, icon: Icon, required, error, ...props }) => {
+    const borderClass = error
+        ? 'border-red-400 focus:border-red-500 focus:ring-red-500/10'
+        : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500/10';
+    const iconClass = error
+        ? 'text-red-400 group-focus-within:text-red-500'
+        : 'text-slate-400 group-focus-within:text-blue-500';
     return (
         <div className="flex flex-col gap-1.5 w-full">
             <label className="text-[13px] font-semibold text-slate-700 flex items-center gap-1.5 ml-1">
@@ -23,34 +29,35 @@ const CustomInput = ({ label, icon: Icon, required, ...props }) => {
             </label>
             <div className="relative group">
                 {Icon && (
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors duration-300">
+                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors duration-300 ${iconClass}`}>
                         <Icon className="w-4.5 h-4.5" />
                     </div>
                 )}
                 {props.type === 'textarea' ? (
                     <textarea
                         {...props}
-                        className={`w-full bg-slate-50 border border-slate-200 text-slate-800 text-[14px] rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300 placeholder:text-slate-400 resize-none ${Icon ? 'pl-11' : 'pl-4'} pr-4 py-3`}
+                        className={`w-full bg-slate-50 border text-slate-800 text-[14px] rounded-xl focus:bg-white focus:ring-4 transition-all duration-300 placeholder:text-slate-400 resize-none ${Icon ? 'pl-11' : 'pl-4'} pr-4 py-3 ${borderClass}`}
                     />
                 ) : props.type === 'select' ? (
                     <>
                         <select
                             {...props}
-                            className={`w-full h-12 bg-slate-50 border border-slate-200 text-slate-800 text-[14px] rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300 appearance-none cursor-pointer ${Icon ? 'pl-11' : 'pl-4'} pr-10`}
+                            className={`w-full h-12 bg-slate-50 border text-slate-800 text-[14px] rounded-xl focus:bg-white focus:ring-4 transition-all duration-300 appearance-none cursor-pointer ${Icon ? 'pl-11' : 'pl-4'} pr-10 ${borderClass}`}
                         >
                             {props.children}
                         </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors ${iconClass}`}>
                             <ChevronRight className="w-4 h-4 rotate-90" />
                         </div>
                     </>
                 ) : (
                     <input
                         {...props}
-                        className={`w-full h-12 bg-slate-50 border border-slate-200 text-slate-800 text-[14px] rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300 placeholder:text-slate-400 ${Icon ? 'pl-11' : 'pl-4'} pr-4`}
+                        className={`w-full h-12 bg-slate-50 border text-slate-800 text-[14px] rounded-xl focus:bg-white focus:ring-4 transition-all duration-300 placeholder:text-slate-400 ${Icon ? 'pl-11' : 'pl-4'} pr-4 ${borderClass}`}
                     />
                 )}
             </div>
+            {error && <p className="text-[12px] text-red-600 font-medium ml-1 mt-0.5">{error}</p>}
         </div>
     );
 };
@@ -61,6 +68,8 @@ export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler, markalar
         isim: '', barkod: '', ean: '', aciklama: '', kategori_id: '', marka_id: '',
         min_stok: 10, birim: 'Adet', fiyat: 0, ic_adet: 1, gramaj: 0,
     });
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [checking, setChecking] = useState({});
 
     useEffect(() => {
         if (urun) {
@@ -75,7 +84,39 @@ export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler, markalar
         } else {
             setForm({ isim: '', barkod: '', ean: '', aciklama: '', kategori_id: '', marka_id: '', min_stok: 10, birim: 'Adet', fiyat: 0, ic_adet: 1, gramaj: 0 });
         }
+        setFieldErrors({});
+        setChecking({});
     }, [urun, isOpen]);
+
+    const handleUniquenessCheck = async (alan, deger) => {
+        const temiz = deger.trim();
+        if (!temiz) {
+            setFieldErrors(prev => ({ ...prev, [alan]: undefined }));
+            return;
+        }
+        // Düzenleme modunda kendi değerine geri dönüldüyse hata temizlenir
+        if (urun && urun[alan] === temiz) {
+            setFieldErrors(prev => ({ ...prev, [alan]: undefined }));
+            return;
+        }
+
+        setChecking(prev => ({ ...prev, [alan]: true }));
+        try {
+            const res = await checkBarkodUniqueness(temiz, alan, urun?.id ?? null);
+            if (!res.data.musait) {
+                setFieldErrors(prev => ({
+                    ...prev,
+                    [alan]: `Bu ${alan === 'barkod' ? 'Barkod' : 'EAN'} numarası zaten kullanımda: "${res.data.mevcut_urun?.isim}"`,
+                }));
+            } else {
+                setFieldErrors(prev => ({ ...prev, [alan]: undefined }));
+            }
+        } catch {
+            // Kontrol başarısız olursa sessizce geç; backend submit'te zaten yakalar
+        } finally {
+            setChecking(prev => ({ ...prev, [alan]: false }));
+        }
+    };
 
     // Scroll kilitleme
     useEffect(() => {
@@ -86,8 +127,11 @@ export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler, markalar
 
     if (!isOpen) return null;
 
+    const hasFieldError = Object.values(fieldErrors).some(Boolean);
+
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (hasFieldError) return;
         const data = {
             ...form,
             kategori_id: form.kategori_id ? Number(form.kategori_id) : null,
@@ -168,17 +212,21 @@ export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler, markalar
                                 <div className="grid grid-cols-2 gap-4">
                                     <CustomInput
                                         label="Barkod / Ürün Kodu"
-                                        icon={Barcode}
+                                        icon={checking.barkod ? SlidersHorizontal : Barcode}
                                         value={form.barkod}
                                         onChange={e => setForm({ ...form, barkod: e.target.value })}
+                                        onBlur={e => handleUniquenessCheck('barkod', e.target.value)}
                                         placeholder="ARB-001"
+                                        error={fieldErrors.barkod}
                                     />
                                     <CustomInput
                                         label="EAN Numarası"
-                                        icon={Hash}
+                                        icon={checking.ean ? SlidersHorizontal : Hash}
                                         value={form.ean}
                                         onChange={e => setForm({ ...form, ean: e.target.value })}
+                                        onBlur={e => handleUniquenessCheck('ean', e.target.value)}
                                         placeholder="8697430089416"
+                                        error={fieldErrors.ean}
                                     />
                                 </div>
 
@@ -309,8 +357,10 @@ export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler, markalar
                     <button
                         type="submit"
                         form="urun-form"
+                        disabled={hasFieldError}
                         className="group relative w-full sm:w-[220px] h-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-[14px] font-bold text-white
-                                 hover:from-blue-500 hover:to-indigo-500 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 overflow-hidden active:scale-95"
+                                 hover:from-blue-500 hover:to-indigo-500 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 overflow-hidden active:scale-95
+                                 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md"
                     >
                         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
                         <span className="relative z-10 flex items-center justify-center gap-2">

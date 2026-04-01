@@ -25,6 +25,10 @@ class IUrunRepository(ABC):
         ...
 
     @abstractmethod
+    def getir_ean_ile(self, ean: str) -> Optional[Urun]:
+        ...
+
+    @abstractmethod
     def olustur(self, urun: Urun) -> Urun:
         ...
 

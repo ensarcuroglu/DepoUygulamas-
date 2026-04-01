@@ -119,6 +119,12 @@ class UrunOlusturUseCase:
             if mevcut:
                 raise CakismaHatasi("Barkod", dto.barkod)
 
+        # 1b. EAN çakışma kontrolü
+        if dto.ean:
+            mevcut_ean = self._urun_repo.getir_ean_ile(dto.ean)
+            if mevcut_ean:
+                raise CakismaHatasi("EAN", dto.ean)
+
         # 2. Domain entity oluştur
         urun = Urun(
             isim=dto.isim,
@@ -190,6 +196,12 @@ class UrunGuncelleUseCase:
             sahip = self._urun_repo.getir_barkod_ile(dto.barkod)
             if sahip and sahip.id != urun_id:
                 raise CakismaHatasi("Barkod", dto.barkod)
+
+        # 2b. EAN çakışma kontrolü (farklı ürüne aitse)
+        if dto.ean and dto.ean != mevcut.ean:
+            sahip_ean = self._urun_repo.getir_ean_ile(dto.ean)
+            if sahip_ean and sahip_ean.id != urun_id:
+                raise CakismaHatasi("EAN", dto.ean)
 
         # 3. Değişiklik snapshot'ı (log için)
         eski_veri = {"isim": mevcut.isim, "fiyat": mevcut.fiyat}

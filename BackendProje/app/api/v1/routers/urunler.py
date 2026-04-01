@@ -7,7 +7,7 @@ KURAL 3: İstekler RequestDTO, yanıtlar ResponseDTO ile alınır/döner.
 """
 
 from fastapi import APIRouter, Depends, Query, Request
-from typing import Optional, List
+from typing import Optional, List, Literal
 
 from app.core.auth import get_current_user, require_role
 from models import Kullanici
@@ -21,6 +21,7 @@ from app.infrastructure.di.container import (
     get_urun_olustur_uc,
     get_urun_guncelle_uc,
     get_urun_sil_uc,
+    get_urun_repo,
 )
 
 # ── DTO'lar ──
@@ -40,6 +41,7 @@ from app.application.use_cases import (
     UrunGuncelleUseCase,
     UrunSilUseCase,
 )
+from app.core.repositories.urun_repository import IUrunRepository
 
 router = APIRouter(prefix="/api/urunler", tags=["Ürünler"])
 
@@ -84,6 +86,28 @@ def urun_getir_by_barkod(
 ):
     """Barkod veya EAN numarasına göre tek bir ürün getirir."""
     return uc.by_barkod(barkod_kodu)
+
+
+@router.get("/barkod-kontrol")
+@limiter.limit("200/minute")
+def barkod_kontrol(
+    request: Request,
+    deger: str = Query(..., description="Kontrol edilecek barkod veya EAN değeri"),
+    alan: Literal["barkod", "ean"] = Query(..., description="Hangi alan kontrol edilecek"),
+    exclude_id: Optional[int] = Query(None, description="Güncelleme sırasında hariç tutulacak ürün ID'si"),
+    current_user: Kullanici = Depends(require_role("admin")),
+    urun_repo: IUrunRepository = Depends(get_urun_repo),
+):
+    """Barkod veya EAN değerinin sistemde kullanılıp kullanılmadığını kontrol eder."""
+    if alan == "barkod":
+        mevcut = urun_repo.getir_barkod_ile(deger)
+    else:
+        mevcut = urun_repo.getir_ean_ile(deger)
+
+    if mevcut and mevcut.id != exclude_id:
+        return {"musait": False, "mevcut_urun": {"id": mevcut.id, "isim": mevcut.isim}}
+
+    return {"musait": True, "mevcut_urun": None}
 
 
 @router.get("/{urun_id}", response_model=UrunResponseDTO)

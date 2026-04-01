@@ -63,6 +63,13 @@ class SqlAlchemyUrunRepository(IUrunRepository):
         ).first()
         return urun_to_entity(orm) if orm else None
 
+    def getir_ean_ile(self, ean: str) -> Optional[Urun]:
+        orm = self._db.query(UrunORM).options(
+            joinedload(UrunORM.marka),
+            joinedload(UrunORM.kategori),
+        ).filter(UrunORM.ean == ean, UrunORM.aktif == True).first()
+        return urun_to_entity(orm) if orm else None
+
     def olustur(self, urun: Urun) -> Urun:
         orm = urun_to_orm(urun)
         orm.id = None
