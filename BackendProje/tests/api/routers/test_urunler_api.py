@@ -70,6 +70,17 @@ class TestUrunOlustur:
         assert data["isim"] == "API Test Ürün"
         assert data["fiyat"] == 49.90
 
+    def test_alfanumerik_barkod_olusturma(self, admin_client):
+        """SKU formatındaki barkod (örn. ARB-001) kabul edilmeli."""
+        response = admin_client.post("/api/urunler/", json={
+            "isim": "SKU Test",
+            "barkod": "ARB-001",
+        })
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["barkod"] == "ARB-001"
+
     def test_gecersiz_barkod(self, admin_client):
         """Geçersiz barkod formatı ile 422 dönmeli."""
         response = admin_client.post("/api/urunler/", json={
@@ -78,6 +89,18 @@ class TestUrunOlustur:
         })
 
         assert response.status_code == 422
+
+    def test_ean_bosluk_ve_tire_normalizasyonu(self, admin_client):
+        """EAN alanında boşluk/tire varsa normalize edilip kaydedilmeli."""
+        response = admin_client.post("/api/urunler/", json={
+            "isim": "EAN Normalize",
+            "ean": "869-7430 089416",
+            "barkod": "EAN-001",
+        })
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["ean"] == "8697430089416"
 
 
 class TestUrunGetir:
@@ -97,3 +120,21 @@ class TestUrunGetir:
         response = admin_client.get("/api/urunler/99999")
 
         assert response.status_code == 404
+
+
+class TestUrunGuncelle:
+    """PUT /api/urunler/{id} testleri."""
+
+    def test_alfanumerik_barkod_korunurken_ean_guncelleme(self, admin_client, db_session):
+        """Alfanümerik barkodlu üründe EAN güncellemesi başarılı olmalı."""
+        urun = UrunFactory.create(isim="Guncelle Test", barkod="ARB-001", ean="8697430089416")
+
+        response = admin_client.put(f"/api/urunler/{urun.id}", json={
+            "ean": "8697430089767",
+            "barkod": "ARB-001",
+        })
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["ean"] == "8697430089767"
+        assert data["barkod"] == "ARB-001"

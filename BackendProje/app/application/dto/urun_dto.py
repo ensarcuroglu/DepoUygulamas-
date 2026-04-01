@@ -7,8 +7,13 @@ Response DTO'ları: Domain entity'sinden oluşturulur; frontend'e döner.
 
 from __future__ import annotations
 from datetime import datetime
+import re
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+EAN_REGEX = re.compile(r"^\d{8,14}$")
+# SKU/Barkod: en az 1 rakam içermeli, harf-rakam + . _ - karakterleri destekler.
+BARKOD_REGEX = re.compile(r"^(?=.*\d)[A-Za-z0-9][A-Za-z0-9._-]{1,99}$")
 
 
 # ─────────────────────────────────────────
@@ -22,8 +27,8 @@ class UrunOlusturRequestDTO(BaseModel):
     marka_id: Optional[int] = Field(None, gt=0)
     kategori_id: Optional[int] = Field(None, gt=0)
     tedarikci_id: Optional[int] = Field(None, gt=0)
-    ean: Optional[str] = Field(None, pattern=r"^\d{8,14}$", description="EAN-8, EAN-13 veya EAN-14 (numerik)")
-    barkod: Optional[str] = Field(None, max_length=100, description="Barkod / ürün kodu (alfanümerik)")
+    ean: Optional[str] = Field(None, max_length=14, description="EAN-8, EAN-13 veya EAN-14 (numerik)")
+    barkod: Optional[str] = Field(None, max_length=100, description="Barkod / ürün kodu (SKU)")
     ic_adet: int = Field(default=1, ge=1, description="Koli başına iç adet")
     gramaj: Optional[float] = Field(None, ge=0, description="Birim gramaj (kg)")
     birim: str = Field(default="Adet", max_length=20)
@@ -37,6 +42,45 @@ class UrunOlusturRequestDTO(BaseModel):
         if not v.strip():
             raise ValueError("Ürün ismi boşluk bırakılamaz.")
         return v.strip()
+
+    @field_validator("ean", mode="before")
+    @classmethod
+    def ean_temizle(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            # UI'dan gelebilecek boşluk ve tireleri normalize eder.
+            temiz = re.sub(r"[\s-]", "", v.strip())
+            return temiz or None
+        return v
+
+    @field_validator("ean")
+    @classmethod
+    def ean_formati(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if not EAN_REGEX.fullmatch(v):
+            raise ValueError("EAN 8-14 haneli sayı olmalıdır.")
+        return v
+
+    @field_validator("barkod", mode="before")
+    @classmethod
+    def barkod_temizle(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            temiz = v.strip()
+            return temiz or None
+        return v
+
+    @field_validator("barkod")
+    @classmethod
+    def barkod_formati(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if not BARKOD_REGEX.fullmatch(v):
+            raise ValueError("Barkod en az bir rakam içermeli; yalnızca harf, rakam, -, _, . karakterlerini içerebilir.")
+        return v
 
     @field_validator("birim")
     @classmethod
@@ -54,7 +98,7 @@ class UrunGuncelleRequestDTO(BaseModel):
     marka_id: Optional[int] = Field(None, gt=0)
     kategori_id: Optional[int] = Field(None, gt=0)
     tedarikci_id: Optional[int] = Field(None, gt=0)
-    ean: Optional[str] = Field(None, pattern=r"^\d{8,14}$")
+    ean: Optional[str] = Field(None, max_length=14)
     barkod: Optional[str] = Field(None, max_length=100)
     ic_adet: Optional[int] = Field(None, ge=1)
     gramaj: Optional[float] = Field(None, ge=0)
@@ -70,6 +114,44 @@ class UrunGuncelleRequestDTO(BaseModel):
         if v is not None and not v.strip():
             raise ValueError("Ürün ismi boşluk bırakılamaz.")
         return v.strip() if v else v
+
+    @field_validator("ean", mode="before")
+    @classmethod
+    def ean_temizle(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            temiz = re.sub(r"[\s-]", "", v.strip())
+            return temiz or None
+        return v
+
+    @field_validator("ean")
+    @classmethod
+    def ean_formati(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if not EAN_REGEX.fullmatch(v):
+            raise ValueError("EAN 8-14 haneli sayı olmalıdır.")
+        return v
+
+    @field_validator("barkod", mode="before")
+    @classmethod
+    def barkod_temizle(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            temiz = v.strip()
+            return temiz or None
+        return v
+
+    @field_validator("barkod")
+    @classmethod
+    def barkod_formati(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if not BARKOD_REGEX.fullmatch(v):
+            raise ValueError("Barkod en az bir rakam içermeli; yalnızca harf, rakam, -, _, . karakterlerini içerebilir.")
+        return v
 
     @field_validator("birim")
     @classmethod

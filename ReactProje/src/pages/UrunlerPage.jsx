@@ -70,6 +70,11 @@ export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler, markalar
     });
     const [fieldErrors, setFieldErrors] = useState({});
     const [checking, setChecking] = useState({});
+    const eanRegex = /^\d{8,14}$/;
+    const barkodRegex = /^(?=.*\d)[A-Za-z0-9][A-Za-z0-9._-]{1,99}$/;
+
+    const normalizeEan = (value) => (value ?? '').toString().replace(/[\s-]/g, '').trim();
+    const normalizeBarkod = (value) => (value ?? '').toString().trim();
 
     useEffect(() => {
         if (urun) {
@@ -89,13 +94,26 @@ export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler, markalar
     }, [urun, isOpen]);
 
     const handleUniquenessCheck = async (alan, deger) => {
-        const temiz = deger.trim();
+        const temiz = alan === 'ean' ? normalizeEan(deger) : normalizeBarkod(deger);
         if (!temiz) {
             setFieldErrors(prev => ({ ...prev, [alan]: undefined }));
             return;
         }
+
+        if (alan === 'ean' && !eanRegex.test(temiz)) {
+            setFieldErrors(prev => ({ ...prev, ean: 'EAN 8-14 haneli sayı olmalı.' }));
+            return;
+        }
+        if (alan === 'barkod' && !barkodRegex.test(temiz)) {
+            setFieldErrors(prev => ({ ...prev, barkod: 'Barkod en az bir rakam içermeli; sadece harf, rakam, -, _, . kullanılabilir.' }));
+            return;
+        }
+
         // Düzenleme modunda kendi değerine geri dönüldüyse hata temizlenir
-        if (urun && urun[alan] === temiz) {
+        const mevcutDeger = alan === 'ean'
+            ? normalizeEan(urun?.[alan])
+            : normalizeBarkod(urun?.[alan]);
+        if (urun && mevcutDeger === temiz) {
             setFieldErrors(prev => ({ ...prev, [alan]: undefined }));
             return;
         }
@@ -132,10 +150,25 @@ export function UrunModal({ isOpen, onClose, onSave, urun, kategoriler, markalar
     const handleSubmit = (e) => {
         e.preventDefault();
         if (hasFieldError) return;
+        const barkod = normalizeBarkod(form.barkod);
+        const ean = normalizeEan(form.ean);
+
+        const nextFieldErrors = { ...fieldErrors, barkod: undefined, ean: undefined };
+        if (barkod && !barkodRegex.test(barkod)) {
+            nextFieldErrors.barkod = 'Barkod en az bir rakam içermeli; sadece harf, rakam, -, _, . kullanılabilir.';
+        }
+        if (ean && !eanRegex.test(ean)) {
+            nextFieldErrors.ean = 'EAN 8-14 haneli sayı olmalı.';
+        }
+        if (nextFieldErrors.barkod || nextFieldErrors.ean) {
+            setFieldErrors(nextFieldErrors);
+            return;
+        }
+
         const data = {
             ...form,
-            barkod: form.barkod.trim() || null,
-            ean: form.ean.trim() || null,
+            barkod: barkod || null,
+            ean: ean || null,
             kategori_id: form.kategori_id ? Number(form.kategori_id) : null,
             marka_id: form.marka_id ? Number(form.marka_id) : null,
             ic_adet: Number(form.ic_adet),

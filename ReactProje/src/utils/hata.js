@@ -24,7 +24,11 @@ export function hataMetni(err, varsayilan = 'Beklenmeyen bir hata oluştu') {
     if (detail) {
         // FastAPI bazen detail'i dizi olarak döner (validation hataları)
         if (Array.isArray(detail)) {
-            return detail.map((d) => d.msg || JSON.stringify(d)).join(', ');
+            return detail.map((d) => {
+                const msg = d?.msg || JSON.stringify(d);
+                const loc = Array.isArray(d?.loc) ? d.loc[d.loc.length - 1] : null;
+                return loc ? `${String(loc)}: ${msg}` : msg;
+            }).join(', ');
         }
         return String(detail);
     }
