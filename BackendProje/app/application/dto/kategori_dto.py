@@ -17,6 +17,7 @@ from app.core.entities.kategori import Kategori
 class KategoriOlusturRequestDTO(BaseModel):
     isim: str = Field(..., min_length=1, max_length=200, description="Kategori adı")
     aciklama: str = Field(default="", max_length=2000)
+    ikon: Optional[str] = Field(default="FolderOpen", max_length=50)
 
     @field_validator("isim")
     @classmethod
@@ -29,6 +30,7 @@ class KategoriOlusturRequestDTO(BaseModel):
 class KategoriGuncelleRequestDTO(BaseModel):
     isim: Optional[str] = Field(None, min_length=1, max_length=200)
     aciklama: Optional[str] = Field(None, max_length=2000)
+    ikon: Optional[str] = Field(None, max_length=50)
     aktif: Optional[bool] = None
 
     @field_validator("isim")
@@ -47,6 +49,7 @@ class KategoriResponseDTO(BaseModel):
     id: int
     isim: str
     aciklama: str
+    ikon: str
     aktif: bool
     olusturma_tarihi: datetime
 
@@ -58,6 +61,7 @@ class KategoriResponseDTO(BaseModel):
             id=entity.id,
             isim=entity.isim,
             aciklama=entity.aciklama,
+            ikon=entity.ikon,
             aktif=entity.aktif,
             olusturma_tarihi=entity.olusturma_tarihi,
         )

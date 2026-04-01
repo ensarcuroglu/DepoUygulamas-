@@ -32,6 +32,7 @@ class Kategori(Base):
     id = Column(Integer, primary_key=True, index=True)
     isim = Column(String(100), unique=True, nullable=False)
     aciklama = Column(Text, default="")
+    ikon = Column(String(50), default="FolderOpen")
     aktif = Column(Boolean, default=True)
     olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
 

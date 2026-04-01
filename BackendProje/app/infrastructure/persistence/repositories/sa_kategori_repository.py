@@ -36,6 +36,7 @@ class SqlAlchemyKategoriRepository(IKategoriRepository):
             return None
         orm.isim = kategori.isim
         orm.aciklama = kategori.aciklama
+        orm.ikon = kategori.ikon
         orm.aktif = kategori.aktif
         self._db.commit()
         self._db.refresh(orm)

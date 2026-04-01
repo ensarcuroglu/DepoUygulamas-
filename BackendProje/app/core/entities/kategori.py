@@ -11,6 +11,7 @@ class Kategori:
     id: Optional[int] = None
     isim: str = ""
     aciklama: str = ""
+    ikon: str = "FolderOpen"
     aktif: bool = True
     olusturma_tarihi: datetime = field(default_factory=datetime.utcnow)
 

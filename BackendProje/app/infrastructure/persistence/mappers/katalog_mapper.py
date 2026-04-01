@@ -37,6 +37,7 @@ def kategori_to_entity(orm: KategoriORM) -> Kategori:
         id=orm.id,
         isim=orm.isim,
         aciklama=orm.aciklama or "",
+        ikon=orm.ikon or "FolderOpen",
         aktif=orm.aktif,
         olusturma_tarihi=orm.olusturma_tarihi,
     )
@@ -47,6 +48,7 @@ def kategori_to_orm(entity: Kategori) -> KategoriORM:
         id=entity.id,
         isim=entity.isim,
         aciklama=entity.aciklama,
+        ikon=entity.ikon,
         aktif=entity.aktif,
         olusturma_tarihi=entity.olusturma_tarihi,
     )
