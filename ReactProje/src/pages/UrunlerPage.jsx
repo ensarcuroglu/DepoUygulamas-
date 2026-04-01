@@ -420,8 +420,8 @@ export default function App() {
             'Barkod/Kod': u.barkod || '-',
             'EAN': u.ean || '-',
             'Ürün Adı': u.isim,
-            'Marka': u.marka?.isim || '-',
-            'Kategori': u.kategori?.isim || 'Kategorisiz',
+            'Marka': markalar.find(m => m.id === u.marka_id)?.isim || '-',
+            'Kategori': kategoriler.find(k => k.id === u.kategori_id)?.isim || 'Kategorisiz',
             'Stok (Koli)': u.stok_miktari ?? 0,
             'İç Adet': u.ic_adet || '-',
             'Gramaj': u.gramaj ? `${u.gramaj} kg` : '-',
@@ -651,13 +651,13 @@ export default function App() {
                                                 <code className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold border border-slate-200/60 break-all">
                                                     {urun.barkod || 'Kodsuz'}
                                                 </code>
-                                                {urun.marka?.isim && (
+                                                {markalar.find(m => m.id === urun.marka_id)?.isim && (
                                                     <span className="text-[11px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 font-bold border border-indigo-100">
-                                                        {urun.marka.isim}
+                                                        {markalar.find(m => m.id === urun.marka_id).isim}
                                                     </span>
                                                 )}
                                                 <span className="text-[12px] font-medium text-slate-500 whitespace-nowrap">
-                                                    {urun.kategori?.isim || 'Kategorisiz'}
+                                                    {kategoriler.find(k => k.id === urun.kategori_id)?.isim || 'Kategorisiz'}
                                                 </span>
                                             </div>
                                         </div>
@@ -746,9 +746,9 @@ export default function App() {
                                                 </code>
                                             </td>
                                             <td className="px-4 sm:px-6 py-4 hidden lg:table-cell">
-                                                {urun.marka?.isim ? (
+                                                {markalar.find(m => m.id === urun.marka_id)?.isim ? (
                                                     <span className="text-[12px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
-                                                        {urun.marka.isim}
+                                                        {markalar.find(m => m.id === urun.marka_id).isim}
                                                     </span>
                                                 ) : (
                                                     <span className="text-[12px] text-slate-400">—</span>
@@ -757,7 +757,7 @@ export default function App() {
                                             <td className="px-4 sm:px-6 py-4 hidden lg:table-cell">
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-2 h-2 rounded-full bg-indigo-400" />
-                                                    <span className="text-[13px] font-medium text-slate-700">{urun.kategori?.isim || 'Kategorisiz'}</span>
+                                                    <span className="text-[13px] font-medium text-slate-700">{kategoriler.find(k => k.id === urun.kategori_id)?.isim || 'Kategorisiz'}</span>
                                                 </div>
                                             </td>
                                             <td className="px-4 sm:px-6 py-4">

@@ -106,6 +106,7 @@ class UrunListResponseDTO(BaseModel):
     isim: str
     barkod: Optional[str]
     ean: Optional[str]
+    aciklama: str
     ic_adet: int
     gramaj: Optional[float]
     birim: str
@@ -126,6 +127,7 @@ class UrunListResponseDTO(BaseModel):
             isim=entity.isim,
             barkod=entity.barkod,
             ean=entity.ean,
+            aciklama=entity.aciklama,
             ic_adet=entity.ic_adet,
             gramaj=entity.gramaj,
             birim=entity.birim,
