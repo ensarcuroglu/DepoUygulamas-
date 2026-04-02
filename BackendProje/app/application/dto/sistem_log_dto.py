@@ -6,7 +6,7 @@ Frontend'den log oluşturma için basit bir request DTO da dahildir.
 """
 
 from __future__ import annotations
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Any
 from pydantic import BaseModel, Field
 
@@ -41,6 +41,16 @@ class SistemLogResponseDTO(BaseModel):
 
     model_config = {"from_attributes": True}
 
+    @staticmethod
+    def _to_utc_aware(value: datetime) -> datetime:
+        """
+        VeritabanÄ±ndan timezone'suz (naive) gelen datetime deÄŸerlerini UTC kabul ederek
+        timezone-aware hale getirir.
+        """
+        if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+
     @classmethod
     def from_entity(cls, entity: SistemLog) -> "SistemLogResponseDTO":
         return cls(
@@ -51,5 +61,5 @@ class SistemLogResponseDTO(BaseModel):
             detay=entity.detay,
             eski_veri=entity.eski_veri,
             yeni_veri=entity.yeni_veri,
-            tarih=entity.tarih,
+            tarih=cls._to_utc_aware(entity.tarih),
         )

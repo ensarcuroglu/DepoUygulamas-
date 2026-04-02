@@ -9,6 +9,16 @@ import toast from 'react-hot-toast';
 import { useAsync } from '../hooks/useAsync';
 import * as XLSX from 'xlsx';
 
+const HAS_TZ_INFO_REGEX = /([zZ]|[+-]\d{2}:\d{2})$/;
+
+const parseLogDate = (value) => {
+    if (!value) return null;
+    if (typeof value === 'string' && !HAS_TZ_INFO_REGEX.test(value)) {
+        return new Date(`${value}Z`);
+    }
+    return new Date(value);
+};
+
 // İkon ve Renk Haritası
 const ActionStyles = {
     CREATE: { icon: PlusCircle, color: 'emerald', label: 'Ekleme' },
@@ -70,7 +80,9 @@ export default function SistemLoglariPage() {
 
             let matchesTarih = true;
             if (baslangicTarihi || bitisTarihi) {
-                const logAman = new Date(log.tarih).getTime();
+                const parsedLogDate = parseLogDate(log.tarih);
+                if (!parsedLogDate || Number.isNaN(parsedLogDate.getTime())) return false;
+                const logAman = parsedLogDate.getTime();
                 const starTime = baslangicTarihi ? new Date(baslangicTarihi).getTime() : 0;
                 // Bitiş gününün son saniyesini almak için +1 gün
                 const endTime = bitisTarihi ? new Date(bitisTarihi).getTime() + 86400000 : Infinity;
@@ -89,7 +101,7 @@ export default function SistemLoglariPage() {
         }
 
         const excelData = filteredLoglar.map(log => ({
-            "Tarih": new Date(log.tarih).toLocaleString('tr-TR'),
+            "Tarih": parseLogDate(log.tarih)?.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }) || '-',
             "İşlem Tipi": ActionStyles[log.islem_tipi]?.label || log.islem_tipi,
             "Modül": log.modul,
             "Kullanıcı": log.kullanici_ad_soyad || 'Sistem',
@@ -284,7 +296,7 @@ export default function SistemLoglariPage() {
                                         <div className="flex items-center gap-1 md:gap-1.5 text-slate-400 md:hidden">
                                             <Clock className="w-3.5 h-3.5" />
                                             <span className="text-[11px] font-semibold">
-                                                {new Date(log.tarih).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}
+                                                {parseLogDate(log.tarih)?.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', timeZone: 'Europe/Istanbul' }) || '-'}
                                             </span>
                                         </div>
                                     </div>
@@ -292,7 +304,7 @@ export default function SistemLoglariPage() {
                                     <div className="hidden md:flex items-center gap-1.5 text-slate-400">
                                         <Clock className="w-3.5 h-3.5" />
                                         <span className="text-[12px] font-semibold">
-                                            {new Date(log.tarih).toLocaleString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                            {parseLogDate(log.tarih)?.toLocaleString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul' }) || '-'}
                                         </span>
                                     </div>
 
@@ -352,7 +364,7 @@ export default function SistemLoglariPage() {
                                 <p className="text-[13px] md:text-[14px] font-bold text-slate-800 mb-2.5 md:mb-2">{seciliLog.detay}</p>
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-[11px] md:text-[12px] font-semibold text-slate-500">
                                     <span className="flex items-center gap-1.5 bg-slate-50 w-fit px-2 py-1 rounded"><UserCircle className="w-4 h-4 text-slate-400" /> {seciliLog.kullanici_ad_soyad}</span>
-                                    <span className="flex items-center gap-1.5 bg-slate-50 w-fit px-2 py-1 rounded"><Clock className="w-4 h-4 text-slate-400" /> {new Date(seciliLog.tarih).toLocaleString('tr-TR')}</span>
+                                    <span className="flex items-center gap-1.5 bg-slate-50 w-fit px-2 py-1 rounded"><Clock className="w-4 h-4 text-slate-400" /> {parseLogDate(seciliLog.tarih)?.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }) || '-'}</span>
                                 </div>
                             </div>
 
