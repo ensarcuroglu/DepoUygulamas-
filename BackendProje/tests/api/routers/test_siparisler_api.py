@@ -120,6 +120,80 @@ class TestSiparisEndpoints:
         assert response.status_code == 403
 
 
+class TestSiparisSinirDegerleri:
+    """
+    API katmanı sipariş sınır değeri testleri — Pydantic 422 doğrulama.
+    """
+
+    @pytest.mark.parametrize("musteri_adi", ["", "   "])
+    def test_bos_musteri_adi_422(self, admin_client, db_session, musteri_adi):
+        """Boş/boşluklu müşteri adı 422 döndürmeli."""
+        urun = UrunFactory.create()
+        response = admin_client.post("/api/siparisler/", json={
+            "musteri_adi": musteri_adi,
+            "teslimat_adresi": "Test Adres",
+            "teslimat_tarihi": _gelecek_tarih(),
+            "kalemler": [{"urun_id": urun.id, "miktar": 1, "birim_fiyat": 10.0}],
+        })
+        assert response.status_code == 422
+
+    def test_bos_kalemler_listesi_422(self, admin_client):
+        """Kalem listesi boş olamaz — 422."""
+        response = admin_client.post("/api/siparisler/", json={
+            "musteri_adi": "Test",
+            "teslimat_adresi": "Adres",
+            "teslimat_tarihi": _gelecek_tarih(),
+            "kalemler": [],
+        })
+        assert response.status_code == 422
+
+    def test_duplicate_urun_id_422(self, admin_client, db_session):
+        """Aynı ürün iki kalemde yer alamaz — 422."""
+        urun = UrunFactory.create()
+        response = admin_client.post("/api/siparisler/", json={
+            "musteri_adi": "Test",
+            "teslimat_adresi": "Adres",
+            "teslimat_tarihi": _gelecek_tarih(),
+            "kalemler": [
+                {"urun_id": urun.id, "miktar": 2, "birim_fiyat": 10.0},
+                {"urun_id": urun.id, "miktar": 3, "birim_fiyat": 10.0},
+            ],
+        })
+        assert response.status_code == 422
+
+    def test_kalem_miktar_sifir_422(self, admin_client, db_session):
+        """Kalem miktarı 0 olamaz — 422."""
+        urun = UrunFactory.create()
+        response = admin_client.post("/api/siparisler/", json={
+            "musteri_adi": "Test",
+            "teslimat_adresi": "Adres",
+            "teslimat_tarihi": _gelecek_tarih(),
+            "kalemler": [{"urun_id": urun.id, "miktar": 0, "birim_fiyat": 10.0}],
+        })
+        assert response.status_code == 422
+
+    def test_kalem_birim_fiyat_negatif_422(self, admin_client, db_session):
+        """Negatif birim fiyat 422 döndürmeli."""
+        urun = UrunFactory.create()
+        response = admin_client.post("/api/siparisler/", json={
+            "musteri_adi": "Test",
+            "teslimat_adresi": "Adres",
+            "teslimat_tarihi": _gelecek_tarih(),
+            "kalemler": [{"urun_id": urun.id, "miktar": 1, "birim_fiyat": -5.0}],
+        })
+        assert response.status_code == 422
+
+    def test_musteri_adi_max_uzunluk_asimi_422(self, admin_client):
+        """201 karakterlik müşteri adı 422 döndürmeli."""
+        response = admin_client.post("/api/siparisler/", json={
+            "musteri_adi": "x" * 201,
+            "teslimat_adresi": "Adres",
+            "teslimat_tarihi": _gelecek_tarih(),
+            "kalemler": [{"urun_id": 1, "miktar": 1, "birim_fiyat": 10.0}],
+        })
+        assert response.status_code == 422
+
+
 class TestSiparisDurumGecisi:
     """
     Sipariş durum makinesi geçiş kombinasyonları.

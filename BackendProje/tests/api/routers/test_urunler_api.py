@@ -138,3 +138,57 @@ class TestUrunGuncelle:
         data = response.json()
         assert data["ean"] == "8697430089767"
         assert data["barkod"] == "ARB-001"
+
+
+class TestUrunSinirDegerleri:
+    """
+    API katmanı sınır değeri testleri — Pydantic 422 yanıtı doğrulama.
+    DB'ye ulaşmadan validation aşamasında reddedilmeli.
+    """
+
+    @pytest.mark.parametrize("isim", ["", "   "])
+    def test_bos_isim_422(self, admin_client, isim):
+        """Boş/boşluklu isim HTTP 422 döndürmeli."""
+        response = admin_client.post("/api/urunler/", json={"isim": isim})
+        assert response.status_code == 422
+
+    def test_isim_max_uzunluk_asimi_422(self, admin_client):
+        """201 karakterlik isim 422 döndürmeli."""
+        response = admin_client.post("/api/urunler/", json={"isim": "x" * 201})
+        assert response.status_code == 422
+
+    def test_fiyat_negatif_422(self, admin_client):
+        """Negatif fiyat 422 döndürmeli."""
+        response = admin_client.post("/api/urunler/", json={"isim": "Test", "fiyat": -1.0})
+        assert response.status_code == 422
+
+    def test_ic_adet_sifir_422(self, admin_client):
+        """ic_adet=0 ile 422 döndürmeli."""
+        response = admin_client.post("/api/urunler/", json={"isim": "Test", "ic_adet": 0})
+        assert response.status_code == 422
+
+    def test_gecersiz_birim_422(self, admin_client):
+        """Geçersiz birim değeri 422 döndürmeli."""
+        response = admin_client.post("/api/urunler/", json={"isim": "Test", "birim": "Ton"})
+        assert response.status_code == 422
+
+    def test_ean_cok_kisa_422(self, admin_client):
+        """7 haneli EAN 422 döndürmeli."""
+        response = admin_client.post("/api/urunler/", json={"isim": "Test", "ean": "1234567"})
+        assert response.status_code == 422
+
+    def test_marka_id_sifir_422(self, admin_client):
+        """marka_id=0 (gt=0 ihlali) 422 döndürmeli."""
+        response = admin_client.post("/api/urunler/", json={"isim": "Test", "marka_id": 0})
+        assert response.status_code == 422
+
+    def test_barkod_cakismasi_409(self, admin_client, db_session):
+        """Mevcut barkodla ürün oluşturma 409 döndürmeli."""
+        UrunFactory.create(barkod="9876543210123")
+
+        response = admin_client.post("/api/urunler/", json={
+            "isim": "Cakisan Urun",
+            "barkod": "9876543210123",
+        })
+
+        assert response.status_code == 409
