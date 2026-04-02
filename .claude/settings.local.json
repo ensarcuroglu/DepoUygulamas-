@@ -40,7 +40,8 @@
       "Bash(find \"/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje/app/core/entities\" -name \"*.py\" ! -name \"__init__.py\" -exec wc -l {} +)",
       "Bash(find '/mnt/d/Ensar Dosya/DepoUygulaması' -name *.md -maxdepth 3)",
       "Bash(find app:*)",
-      "Bash(2)"
+      "Bash(2)",
+      "Bash(python -m pytest tests/api/routers/ -m api -x --tb=short -q)"
     ]
   }
 }

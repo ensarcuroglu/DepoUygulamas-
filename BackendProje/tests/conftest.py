@@ -142,3 +142,24 @@ def depocu_client(client, depocu_user):
     _, token = depocu_user
     client.headers["Authorization"] = f"Bearer {token}"
     return client
+
+
+@pytest.fixture
+def lojistik_user(db_session):
+    """Lojistik kullanıcı ve token."""
+    from tests.factories import KullaniciFactory
+    user = KullaniciFactory.create(
+        kullanici_adi="test_lojistik",
+        ad_soyad="Test Lojistik",
+        rol="lojistik",
+    )
+    token = create_access_token(data={"sub": user.kullanici_adi})
+    return user, token
+
+
+@pytest.fixture
+def lojistik_client(client, lojistik_user):
+    """Authorization header'ı set edilmiş lojistik client."""
+    _, token = lojistik_user
+    client.headers["Authorization"] = f"Bearer {token}"
+    return client
