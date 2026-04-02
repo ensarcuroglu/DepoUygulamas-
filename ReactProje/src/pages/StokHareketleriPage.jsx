@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
     ArrowDownToLine, ArrowUpFromLine, Barcode, Check, Loader2, Package, Clock,
@@ -16,6 +16,69 @@ import useBarcodeScanner from '../hooks/useBarcodeScanner';
 import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
 
 const MAKS_PALET = 50;
+let feedbackAudioContext = null;
+
+// ─── Zebra Cihaz Algılama ───
+const isZebraDevice = () => {
+    const ua = navigator.userAgent.toLowerCase();
+    return ua.includes('zebra') || ua.includes('symbol') || ua.includes('tc52')
+        || ua.includes('tc21') || ua.includes('tc72') || ua.includes('mc33')
+        || ua.includes('tc26') || ua.includes('tc57');
+};
+
+// ─── Barkod Sanitization ───
+// Zebra DataWedge prefix/suffix karakterleri, kontrol karakterleri,
+// zero-width space ve tutarsız büyük/küçük harf sorunlarını temizler.
+const sanitizePaletNo = (raw) => {
+    if (!raw) return '';
+    return raw
+        .replace(/[\x00-\x1F\x7F]/g, '')       // Kontrol karakterleri (TAB, CR, LF...)
+        .replace(/[\u200B-\u200F\uFEFF]/g, '')  // Zero-width / BOM
+        .replace(/\s+/g, '')                     // Tüm boşluklar
+        .toUpperCase()                           // Tutarlı büyük harf
+        .trim();
+};
+
+// ─── Tarama Geri Bildirim (Ses + Titreşim) ───
+// Depo ortamında operatör ekrana bakamayabilir,
+// sesli ve dokunsal geri bildirim kritik önem taşır.
+const getFeedbackAudioContext = () => {
+    if (feedbackAudioContext && feedbackAudioContext.state !== 'closed') {
+        return feedbackAudioContext;
+    }
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    feedbackAudioContext = new AudioContextClass();
+    return feedbackAudioContext;
+};
+
+const scanFeedback = (type) => {
+    // Titreşim
+    if (navigator.vibrate) {
+        navigator.vibrate(type === 'success' ? [100] : [100, 50, 100, 50, 100]);
+    }
+    // Ses (Web Audio API ile kısa bip)
+    try {
+        const ctx = getFeedbackAudioContext();
+        if (!ctx) return;
+        if (ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
+
+        const duration = type === 'success' ? 0.12 : 0.35;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = type === 'success' ? 880 : 300;
+        osc.type = type === 'success' ? 'sine' : 'square';
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+    } catch { /* Audio API desteklenmiyorsa sessizce devam et */ }
+};
 
 export default function StokHareketleriPage() {
     // ===== STATE =====
@@ -43,6 +106,8 @@ export default function StokHareketleriPage() {
     const { loading: submitting, run: runSubmit } = useAsync(false);
 
     const paletInputRef = useRef(null);
+    const pendingRef = useRef(new Set()); // Race condition koruması: in-flight palet numaraları
+    const zebraDetected = useMemo(() => isZebraDevice(), []);
 
     // ===== VERİ YÜKLEME =====
     const fetchSonIslemler = async () => {
@@ -56,30 +121,75 @@ export default function StokHareketleriPage() {
 
     useEffect(() => { fetchSonIslemler(); }, []);
 
-    // ===== BARKOD TARAMA (Fiziksel okuyucu) =====
+    useEffect(() => {
+        return () => {
+            if (feedbackAudioContext && feedbackAudioContext.state !== 'closed') {
+                feedbackAudioContext.close().catch(() => {});
+            }
+            feedbackAudioContext = null;
+        };
+    }, []);
+
+    // ===== BARKOD TARAMA (Fiziksel okuyucu — Zebra DataWedge Keyboard Wedge) =====
+    // ignoredInputTypes: Input fokuslu iken hook pasif olur → çift tetikleme engellenir.
+    // Input boşken (fokus yok) arka plan taraması çalışmaya devam eder.
     useBarcodeScanner({
         isEnabled: step === 2,
+        maxGap: 150,
+        minLength: 4,
+        ignoredInputTypes: ['input', 'textarea'],
         onScan: (code) => {
             handlePaletEkle(code);
         }
     });
 
+    // ===== AGRESİF FOCUS YÖNETİMİ =====
+    // Zebra cihazda ekran karardığında, modal kapandığında veya
+    // tarama sonrası focus'un input alanına geri dönmesini garanti eder.
+    useEffect(() => {
+        if (step === 2 && !cameraScannerOpen) {
+            const timer = setTimeout(() => paletInputRef.current?.focus(), 120);
+            return () => clearTimeout(timer);
+        }
+    }, [step, taramaListesi.length, cameraScannerOpen]);
+
+    // Visibility change: Ekran kararıp tekrar açıldığında focus'u geri al
+    useEffect(() => {
+        const handleVisibility = () => {
+            if (!document.hidden && step === 2 && !cameraScannerOpen) {
+                setTimeout(() => paletInputRef.current?.focus(), 200);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => document.removeEventListener('visibilitychange', handleVisibility);
+    }, [step, cameraScannerOpen]);
+
     // ===== PALET EKLEME (tarama listesine) =====
     const handlePaletEkle = useCallback(async (no) => {
-        const hedefNo = (no || paletNo).trim();
+        const hedefNo = sanitizePaletNo(no || paletNo);
         if (!hedefNo) return;
+
+        // Race condition koruması: in-flight kontrolü
+        if (pendingRef.current.has(hedefNo)) {
+            return; // Zaten işleniyor, sessizce yoksay
+        }
 
         // Duplicate kontrolü
         if (taramaListesi.some(t => t.palet_no === hedefNo)) {
             toast.error(`${hedefNo} zaten listede`);
+            scanFeedback('error');
             return;
         }
 
         // Limit kontrolü
         if (taramaListesi.length >= MAKS_PALET) {
             toast.error(`Tek seferde en fazla ${MAKS_PALET} palet eklenebilir`);
+            scanFeedback('error');
             return;
         }
+
+        // In-flight olarak işaretle
+        pendingRef.current.add(hedefNo);
 
         // Listeye yükleniyor durumunda ekle
         const yeniKalem = { palet_no: hedefNo, bilgi: null, durum: 'yukleniyor', hataMesaji: null, miktar: null };
@@ -107,6 +217,8 @@ export default function StokHareketleriPage() {
                     ? { ...t, bilgi, durum: hata ? 'hata' : 'gecerli', hataMesaji: hata }
                     : t
             ));
+            // Geri bildirim: başarılı okuma veya pre-validation hatası
+            scanFeedback(hata ? 'error' : 'success');
         } catch (err) {
             const isErpHatasi = err?.response?.status === 502;
             const mesaj = isErpHatasi
@@ -117,6 +229,10 @@ export default function StokHareketleriPage() {
                     ? { ...t, durum: 'hata', hataMesaji: mesaj }
                     : t
             ));
+            scanFeedback('error');
+        } finally {
+            // Race condition koruması: in-flight'tan kaldır
+            pendingRef.current.delete(hedefNo);
         }
     }, [paletNo, taramaListesi, hareketTipi]);
 
@@ -538,17 +654,21 @@ export default function StokHareketleriPage() {
                                                 focus:ring-4 focus:ring-blue-500/10 transition-all"
                                         />
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setCameraScannerOpen(true)}
-                                        className="h-16 w-16 flex items-center justify-center rounded-2xl
-                                            bg-blue-600 text-white hover:bg-blue-700
-                                            active:scale-95 transition-all shadow-lg shadow-blue-600/30
-                                            flex-shrink-0"
-                                        title="Kamera ile Barkod Oku"
-                                    >
-                                        <Barcode className="w-7 h-7" />
-                                    </button>
+                                    {/* Zebra cihazda yerleşik lazer okuyucu olduğundan kamera butonu gereksizdir.
+                                        Standart cihazlarda (PC/tablet) kamera fallback olarak gösterilir. */}
+                                    {!zebraDetected && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setCameraScannerOpen(true)}
+                                            className="h-16 w-16 flex items-center justify-center rounded-2xl
+                                                bg-blue-600 text-white hover:bg-blue-700
+                                                active:scale-95 transition-all shadow-lg shadow-blue-600/30
+                                                flex-shrink-0"
+                                            title="Kamera ile Barkod Oku"
+                                        >
+                                            <Barcode className="w-7 h-7" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -567,7 +687,12 @@ export default function StokHareketleriPage() {
 
                             <div className="flex items-center justify-center gap-2 py-1">
                                 <div className="h-px flex-1 bg-slate-200" />
-                                <span className="text-xs font-bold text-slate-400 uppercase">veya fiziksel barkod okuyucu ile tarayın</span>
+                                <span className="text-xs font-bold text-slate-400 uppercase">
+                                    {zebraDetected
+                                        ? 'Zebra cihaz algılandı — fiziksel tarayıcıyı kullanın'
+                                        : 'veya fiziksel barkod okuyucu ile tarayın'
+                                    }
+                                </span>
                                 <div className="h-px flex-1 bg-slate-200" />
                             </div>
 
