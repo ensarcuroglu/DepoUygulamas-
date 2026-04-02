@@ -9,8 +9,6 @@ import pytest
 
 from app.application.dto.irsaliye_dto import IrsaliyeOlusturRequestDTO
 from app.application.dto.sevkiyat_plani_dto import SevkiyatPlaniGuncelleRequestDTO
-from app.application.use_cases.irsaliye_use_cases import IrsaliyeOlusturUseCase
-from app.application.use_cases.sevkiyat_plani_use_cases import SevkiyatPlaniGuncelleUseCase
 from app.core.entities.sevkiyat_plani import SevkiyatPlani, SevkiyatDurum
 from app.core.exceptions import StokVeriUyumsuzluguError
 
@@ -61,20 +59,8 @@ def _make_sevkiyat_entity(durum=SevkiyatDurum.PLANLANDI):
 
 class TestIrsaliyeOlusturUseCase:
 
-    def _make_use_case(self):
-        mocks = {
-            "irsaliye_repo": MagicMock(),
-            "siparis_repo": MagicMock(),
-            "sevkiyat_repo": MagicMock(),
-            "log_repo": MagicMock(),
-            "stok_cikis_service": MagicMock(),
-            "db": MagicMock(),
-        }
-        use_case = IrsaliyeOlusturUseCase(**mocks)
-        return use_case, mocks
-
-    def test_basarili_akista_write_repo_auto_commit_false_ve_tek_commit(self):
-        use_case, mocks = self._make_use_case()
+    def test_basarili_akista_write_repo_auto_commit_false_ve_tek_commit(self, irsaliye_olustur_uc_mock):
+        use_case, mocks = irsaliye_olustur_uc_mock
         dto = IrsaliyeOlusturRequestDTO(
             siparis_id=1,
             irsaliye_tarihi=date(2026, 3, 30),
@@ -96,8 +82,8 @@ class TestIrsaliyeOlusturUseCase:
         mocks["db"].commit.assert_called_once()
         mocks["db"].rollback.assert_not_called()
 
-    def test_stok_cikisi_hatasinda_rollback_yapar_ve_exception_yukseltir(self):
-        use_case, mocks = self._make_use_case()
+    def test_stok_cikisi_hatasinda_rollback_yapar_ve_exception_yukseltir(self, irsaliye_olustur_uc_mock):
+        use_case, mocks = irsaliye_olustur_uc_mock
         dto = IrsaliyeOlusturRequestDTO(
             siparis_id=1,
             irsaliye_tarihi=date(2026, 3, 30),
@@ -118,19 +104,8 @@ class TestIrsaliyeOlusturUseCase:
 
 class TestSevkiyatPlaniGuncelleUseCase:
 
-    def _make_use_case(self):
-        mocks = {
-            "sevkiyat_repo": MagicMock(),
-            "siparis_repo": MagicMock(),
-            "log_repo": MagicMock(),
-            "stok_cikis_service": MagicMock(),
-            "db": MagicMock(),
-        }
-        use_case = SevkiyatPlaniGuncelleUseCase(**mocks)
-        return use_case, mocks
-
-    def test_write_repo_auto_commit_false_ile_gunceller(self):
-        use_case, mocks = self._make_use_case()
+    def test_write_repo_auto_commit_false_ile_gunceller(self, sevkiyat_guncelle_uc_mock):
+        use_case, mocks = sevkiyat_guncelle_uc_mock
         plan = _make_sevkiyat_entity()
         dto = SevkiyatPlaniGuncelleRequestDTO(tir_plaka="34 DEF 456")
 
@@ -144,8 +119,8 @@ class TestSevkiyatPlaniGuncelleUseCase:
         assert mocks["sevkiyat_repo"].guncelle.call_args.kwargs["auto_commit"] is False
         mocks["db"].commit.assert_called_once()
 
-    def test_yukleniyor_gecisinde_stok_cikisi_hatasi_rollback_yapar(self):
-        use_case, mocks = self._make_use_case()
+    def test_yukleniyor_gecisinde_stok_cikisi_hatasi_rollback_yapar(self, sevkiyat_guncelle_uc_mock):
+        use_case, mocks = sevkiyat_guncelle_uc_mock
         plan = _make_sevkiyat_entity(durum=SevkiyatDurum.PLANLANDI)
         siparis = _make_siparis_entity()
         dto = SevkiyatPlaniGuncelleRequestDTO(durum=SevkiyatDurum.YUKLENIYOR)

@@ -6,18 +6,8 @@ import pytest
 from unittest.mock import MagicMock
 
 from app.core.exceptions import StokVeriUyumsuzluguError
-from app.core.services.stok_cikis_domain_service import StokCikisDomainService
 
 pytestmark = pytest.mark.unit
-
-
-def _make_service():
-    mocks = {
-        "palet_repo": MagicMock(),
-        "hareket_repo": MagicMock(),
-        "log_repo": MagicMock(),
-    }
-    return StokCikisDomainService(**mocks), mocks
 
 
 def _make_kalem(urun_id: int, miktar: int):
@@ -29,8 +19,8 @@ def _make_kalem(urun_id: int, miktar: int):
 
 class TestSiparisBazliStokCikisi:
 
-    def test_stok_yetersizliginde_loglar_ve_exception_yeniden_firlatir(self):
-        service, mocks = _make_service()
+    def test_stok_yetersizliginde_loglar_ve_exception_yeniden_firlatir(self, stok_cikis_service_mock):
+        service, mocks = stok_cikis_service_mock
         kalemler = [_make_kalem(1, 10), _make_kalem(2, 5)]
 
         mocks["palet_repo"].getir_fifo_sirayla_kilitli.return_value = []

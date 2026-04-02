@@ -3,28 +3,14 @@ Unit testler: PaletSorgulamaService — DB vs veri kaynagi fallback (mock repo i
 """
 
 import pytest
-from unittest.mock import MagicMock
 
-from app.infrastructure.services.palet_sorgulama_service import PaletSorgulamaService
 from app.core.entities.palet import Palet
 from app.core.entities.lot import Lot
 from app.core.entities.raf import Raf
 from app.application.dto.palet_bilgi_dto import PaletBilgiDTO
+from unittest.mock import MagicMock
 
 pytestmark = pytest.mark.unit
-
-
-def _make_service():
-    mocks = {
-        "veri_kaynagi": MagicMock(),
-        "palet_repo": MagicMock(),
-        "lot_repo": MagicMock(),
-        "urun_repo": MagicMock(),
-        "depo_repo": MagicMock(),
-        "raf_repo": MagicMock(),
-    }
-    service = PaletSorgulamaService(**mocks)
-    return service, mocks
 
 
 def _make_urun_mock(isim="Test Urun", barkod="1234567890123"):
@@ -53,8 +39,8 @@ def _setup_db_palet(m, koli_adedi=80, aktif=True):
 
 class TestPaletSorgula:
 
-    def test_db_palet_var_sistem_kaynagi_doner(self):
-        service, m = _make_service()
+    def test_db_palet_var_sistem_kaynagi_doner(self, palet_sorgulama_service_mock):
+        service, m = palet_sorgulama_service_mock
         _setup_db_palet(m, koli_adedi=80)
 
         result = service.sorgula("PLT-2026-00001")
@@ -66,8 +52,8 @@ class TestPaletSorgula:
         assert result.giris_yapildi_mi is True
         m["veri_kaynagi"].palet_bilgisi_getir.assert_not_called()
 
-    def test_db_palet_yok_veri_kaynasindan_doner(self):
-        service, m = _make_service()
+    def test_db_palet_yok_veri_kaynasindan_doner(self, palet_sorgulama_service_mock):
+        service, m = palet_sorgulama_service_mock
         expected_dto = PaletBilgiDTO(
             palet_no="PLT-2026-00099",
             urun_id=1, urun_adi="Test Urun", miktar=50,
@@ -84,8 +70,8 @@ class TestPaletSorgula:
         assert result.giris_yapildi_mi is False
         m["veri_kaynagi"].palet_bilgisi_getir.assert_called_once_with("PLT-2026-00099")
 
-    def test_db_palet_pasif_durum_doner(self):
-        service, m = _make_service()
+    def test_db_palet_pasif_durum_doner(self, palet_sorgulama_service_mock):
+        service, m = palet_sorgulama_service_mock
         _setup_db_palet(m, koli_adedi=0, aktif=False)
 
         result = service.sorgula("PLT-2026-00001")

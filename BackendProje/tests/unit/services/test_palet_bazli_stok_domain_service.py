@@ -3,7 +3,7 @@ Unit testler: PaletBazliStokDomainService is kurallari (mock repo ile).
 """
 
 import pytest
-from unittest.mock import MagicMock, call
+from unittest.mock import call
 from datetime import date
 
 from app.core.services.palet_bazli_stok_domain_service import PaletBazliStokDomainService
@@ -23,20 +23,7 @@ from app.core.exceptions import (
 pytestmark = pytest.mark.unit
 
 
-# ── Helpers ──
-
-def _make_service():
-    mocks = {
-        "veri_kaynagi": MagicMock(),
-        "palet_repo": MagicMock(),
-        "lot_repo": MagicMock(),
-        "raf_repo": MagicMock(),
-        "hareket_repo": MagicMock(),
-        "log_repo": MagicMock(),
-    }
-    service = PaletBazliStokDomainService(**mocks)
-    return service, mocks
-
+# ── Test veri oluşturucuları ──
 
 def _make_palet_bilgi_dto(**overrides) -> PaletBilgiDTO:
     defaults = dict(
@@ -88,8 +75,8 @@ class TestPaletGiris:
         m["palet_repo"].olustur.return_value = Palet(id=10, lot_id=1, palet_no=dto.palet_no, koli_adedi=dto.miktar)
         m["hareket_repo"].olustur.return_value = StokHareketi(id=1, hareket_tipi=HareketTipi.GIRIS, miktar=dto.miktar)
 
-    def test_basarili_giris(self):
-        service, m = _make_service()
+    def test_basarili_giris(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         self._setup_giris(m)
 
         result = service.palet_giris("PLT-2026-00001", _make_kullanici())
@@ -98,8 +85,8 @@ class TestPaletGiris:
         m["veri_kaynagi"].palet_giris_onayla.assert_called_once_with("PLT-2026-00001")
         m["log_repo"].olustur.assert_called_once()
 
-    def test_kaynak_onayi_opsiyonel_kapatilabilir(self):
-        service, m = _make_service()
+    def test_kaynak_onayi_opsiyonel_kapatilabilir(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         self._setup_giris(m)
 
         result = service.palet_giris(
@@ -111,16 +98,16 @@ class TestPaletGiris:
         assert result.hareket_tipi == HareketTipi.GIRIS
         m["veri_kaynagi"].palet_giris_onayla.assert_not_called()
 
-    def test_zaten_giris_yapilmis(self):
-        service, m = _make_service()
+    def test_zaten_giris_yapilmis(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         dto = _make_palet_bilgi_dto(giris_yapildi_mi=True)
         m["veri_kaynagi"].palet_bilgisi_getir.return_value = dto
 
         with pytest.raises(GecersizIslemError, match="zaten sisteme kaydedilmis"):
             service.palet_giris("PLT-2026-00001", _make_kullanici())
 
-    def test_db_de_mevcut_palet_cakisma(self):
-        service, m = _make_service()
+    def test_db_de_mevcut_palet_cakisma(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         dto = _make_palet_bilgi_dto()
         m["veri_kaynagi"].palet_bilgisi_getir.return_value = dto
         m["palet_repo"].getir_palet_no_ile.return_value = _make_palet()
@@ -128,8 +115,8 @@ class TestPaletGiris:
         with pytest.raises(CakismaHatasi):
             service.palet_giris("PLT-2026-00001", _make_kullanici())
 
-    def test_depo_yetki_hatasi(self):
-        service, m = _make_service()
+    def test_depo_yetki_hatasi(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         dto = _make_palet_bilgi_dto(depo_id=2, depo_adi="Depo-B")
         m["veri_kaynagi"].palet_bilgisi_getir.return_value = dto
         m["palet_repo"].getir_palet_no_ile.return_value = None
@@ -137,8 +124,8 @@ class TestPaletGiris:
         with pytest.raises(DepoErisimHatasi):
             service.palet_giris("PLT-2026-00001", _make_kullanici(depo_id=1))
 
-    def test_mevcut_lot_bulunur(self):
-        service, m = _make_service()
+    def test_mevcut_lot_bulunur(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         mevcut_lot = Lot(id=5, urun_id=1, lot_no="LOT-2026-0001")
         self._setup_giris(m, lot=mevcut_lot)
 
@@ -146,17 +133,17 @@ class TestPaletGiris:
 
         m["lot_repo"].olustur.assert_not_called()
 
-    def test_lot_no_bos_yeni_lot_olusturulur(self):
-        service, m = _make_service()
+    def test_lot_no_bos_yeni_lot_olusturulur(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         self._setup_giris(m, dto=_make_palet_bilgi_dto(lot_no=None))
 
         service.palet_giris("PLT-2026-00001", _make_kullanici())
 
         m["lot_repo"].olustur.assert_called_once()
 
-    def test_depo_id_none_yetki_kontrolu_atlanir(self):
+    def test_depo_id_none_yetki_kontrolu_atlanir(self, palet_stok_service_mock):
         """depo_id=0 olan DTO'da yetki kontrolu yapilmaz."""
-        service, m = _make_service()
+        service, m = palet_stok_service_mock
         self._setup_giris(m, dto=_make_palet_bilgi_dto(depo_id=0))
 
         service.palet_giris("PLT-2026-00001", _make_kullanici(depo_id=99))
@@ -164,8 +151,8 @@ class TestPaletGiris:
 
 class TestTopluPaletGiris:
 
-    def test_toplu_giriste_kaynak_onayi_commit_sonrasina_birakilir(self):
-        service, m = _make_service()
+    def test_toplu_giriste_kaynak_onayi_commit_sonrasina_birakilir(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         paletler = ["PLT-2026-00001", "PLT-2026-00002"]
 
         def _dto_getir(palet_no):
@@ -222,8 +209,8 @@ class TestPaletCikis:
         )
         return palet
 
-    def test_tam_cikis(self):
-        service, m = _make_service()
+    def test_tam_cikis(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         self._setup_cikis(m)
 
         result = service.palet_cikis("PLT-2026-00001", _make_kullanici())
@@ -232,8 +219,8 @@ class TestPaletCikis:
         m["palet_repo"].guncelle.assert_called_once()
         m["log_repo"].olustur.assert_called_once()
 
-    def test_kismi_cikis(self):
-        service, m = _make_service()
+    def test_kismi_cikis(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         palet = self._setup_cikis(m)
         m["hareket_repo"].olustur.return_value = StokHareketi(
             id=1, hareket_tipi=HareketTipi.CIKIS, miktar=30,
@@ -245,44 +232,44 @@ class TestPaletCikis:
         assert palet.koli_adedi == 70  # 100 - 30
         assert palet.aktif is True
 
-    def test_palet_bulunamadi(self):
-        service, m = _make_service()
+    def test_palet_bulunamadi(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         m["palet_repo"].getir_palet_no_ile.return_value = None
 
         with pytest.raises(KayitBulunamadiError):
             service.palet_cikis("PLT-YOOOOK", _make_kullanici())
 
-    def test_pasif_palet(self):
-        service, m = _make_service()
+    def test_pasif_palet(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         m["palet_repo"].getir_palet_no_ile.return_value = _make_palet(aktif=False, koli_adedi=0)
 
         with pytest.raises(GecersizIslemError, match="stok bulunmuyor"):
             service.palet_cikis("PLT-2026-00001", _make_kullanici())
 
-    def test_bos_palet(self):
-        service, m = _make_service()
+    def test_bos_palet(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         m["palet_repo"].getir_palet_no_ile.return_value = _make_palet(koli_adedi=0)
 
         with pytest.raises(GecersizIslemError, match="stok bulunmuyor"):
             service.palet_cikis("PLT-2026-00001", _make_kullanici())
 
-    def test_miktar_asimi(self):
-        service, m = _make_service()
+    def test_miktar_asimi(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         self._setup_cikis(m, palet=_make_palet(koli_adedi=50))
 
         with pytest.raises(GecersizIslemError, match="fazla"):
             service.palet_cikis("PLT-2026-00001", _make_kullanici(), miktar=100)
 
-    def test_depo_yetki_hatasi(self):
-        service, m = _make_service()
+    def test_depo_yetki_hatasi(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         m["palet_repo"].getir_palet_no_ile.return_value = _make_palet()
         m["raf_repo"].getir_id_ile.return_value = Raf(id=5, depo_id=1, kod="R-01-A")
 
         with pytest.raises(DepoErisimHatasi):
             service.palet_cikis("PLT-2026-00001", _make_kullanici(depo_id=99))
 
-    def test_raf_id_none_yetki_kontrolu_atlanir(self):
-        service, m = _make_service()
+    def test_raf_id_none_yetki_kontrolu_atlanir(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
         palet = _make_palet(raf_id=None)
         m["palet_repo"].getir_palet_no_ile.return_value = palet
         m["lot_repo"].getir_id_ile.return_value = Lot(id=1, urun_id=1)
