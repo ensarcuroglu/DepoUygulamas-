@@ -280,21 +280,18 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
         });
     }, []);
 
-    // Auto-open group containing active route
-    useEffect(() => {
-        for (const group of menuGroups) {
-            const hasActive = group.items.some(item => location.pathname.startsWith(item.path));
-            if (hasActive) {
-                setOpenGroups(prev => {
-                    if (prev.has(group.id)) return prev;
-                    const next = new Set(prev);
-                    next.add(group.id);
-                    return next;
-                });
-                break;
-            }
-        }
+    // Ensure the group containing active route is visible without mutating state in an effect.
+    const activeGroupId = useMemo(() => {
+        const activeGroup = menuGroups.find((group) => group.items.some((item) => location.pathname.startsWith(item.path)));
+        return activeGroup?.id ?? null;
     }, [location.pathname]);
+
+    const visibleOpenGroups = useMemo(() => {
+        if (!activeGroupId || openGroups.has(activeGroupId)) return openGroups;
+        const next = new Set(openGroups);
+        next.add(activeGroupId);
+        return next;
+    }, [openGroups, activeGroupId]);
 
     const filteredBottomItems = useMemo(
         () => bottomItems.filter(item => !item.roles || item.roles.includes(user?.rol)),
@@ -416,7 +413,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
                                 collapsed={collapsed}
                                 isMobile={isMobile}
                                 userRole={user?.rol}
-                                openGroups={openGroups}
+                                openGroups={visibleOpenGroups}
                                 toggleGroup={toggleGroup}
                             />
                         ))}

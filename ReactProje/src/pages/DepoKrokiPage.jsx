@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Warehouse, Search, Building, LayoutGrid, AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, QrCode, Package, X, Printer, Info, Calendar, Clock, Tag, AlignLeft, Hash, ChevronDown, ChevronUp, Scale } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -15,16 +15,12 @@ export default function DepoKrokiPage() {
     // YENİ: Modal State
     const [seciliRafDetay, setSeciliRafDetay] = useState(null);
     const [seciliPaletDetay, setSeciliPaletDetay] = useState(null);
-
-    // Modal kapandığında palet detayını da sıfırla
-    useEffect(() => {
-        if (!seciliRafDetay) {
-            setSeciliPaletDetay(null);
-        }
-    }, [seciliRafDetay]);
+    const closeRafDetayModal = () => {
+        setSeciliRafDetay(null);
+        setSeciliPaletDetay(null);
+    };
 
     useEffect(() => {
-        setLoading(true);
         // Depoları çek
         api.get('/depolar/')
             .then(res => {
@@ -32,17 +28,19 @@ export default function DepoKrokiPage() {
                 setDepolar(aktifDepolar);
                 if (aktifDepolar.length > 0) {
                     setSeciliDepo(aktifDepolar[0]);
+                    return;
                 }
+                setLoading(false);
             })
-            .catch(() => toast.error('Depolar yüklenirken hata oluştu'))
-            .finally(() => setLoading(false));
+            .catch(() => {
+                toast.error('Depolar yüklenirken hata oluştu');
+                setLoading(false);
+            });
     }, []);
 
     // Seçili depo değiştiğinde raflarını ve paletlerini çek
     useEffect(() => {
         if (!seciliDepo) return;
-
-        setLoading(true);
         // O depoya ait rafları çek
         api.get(`/raflar/`)
             .then(res => {
@@ -367,6 +365,8 @@ export default function DepoKrokiPage() {
                                 value={seciliDepo?.id || ''}
                                 onChange={(e) => {
                                     const depo = depolar.find(d => d.id === parseInt(e.target.value));
+                                    if (!depo || depo.id === seciliDepo?.id) return;
+                                    setLoading(true);
                                     setSeciliDepo(depo);
                                 }}
                                 className="w-full h-11 pl-10 pr-8 text-[13px] font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl appearance-none focus:outline-none focus:bg-white focus:ring-2 focus:ring-violet-500/20 cursor-pointer transition-all"
@@ -517,7 +517,7 @@ export default function DepoKrokiPage() {
                                 </div>
                             </div>
                             <button
-                                onClick={() => setSeciliRafDetay(null)}
+                                onClick={closeRafDetayModal}
                                 className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors"
                             >
                                 <X className="w-4 h-4" />
@@ -693,7 +693,7 @@ export default function DepoKrokiPage() {
                         {/* Modal Footer */}
                         <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 shrink-0">
                             <button
-                                onClick={() => setSeciliRafDetay(null)}
+                                onClick={closeRafDetayModal}
                                 className="w-full py-3 px-4 rounded-xl bg-slate-800 text-white font-bold hover:bg-slate-900 transition-colors text-[14px] shadow-md"
                             >
                                 Kapat
