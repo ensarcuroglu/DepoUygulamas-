@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, FileText, Loader2, X, Printer, CheckCircle, AlertCircle
 } from 'lucide-react';
@@ -39,7 +39,7 @@ export default function IrsaliyelerPage() {
     durum: 'Taslak',
   });
 
-  const yükle = async () => {
+  const yükle = useCallback(async () => {
     const [irsRes, sipRes] = await run(() =>
       Promise.all([
         getIrsaliyeler({ limit: 100, durum: durumFiltre || undefined, arama: aramaMetni }),
@@ -48,11 +48,30 @@ export default function IrsaliyelerPage() {
     );
     setIrsaliyeler(irsRes?.data || []);
     setSiparisler(sipRes?.data || []);
-  };
+  }, [run, durumFiltre, aramaMetni]);
 
   useEffect(() => {
-    yükle();
-  }, [durumFiltre, aramaMetni]);
+    let aktif = true;
+
+    run(() =>
+      Promise.all([
+        getIrsaliyeler({ limit: 100, durum: durumFiltre || undefined, arama: aramaMetni }),
+        getSiparisler({ limit: 500 }),
+      ])
+    )
+      .then(([irsRes, sipRes]) => {
+        if (!aktif) return;
+        setIrsaliyeler(irsRes?.data || []);
+        setSiparisler(sipRes?.data || []);
+      })
+      .catch(() => {
+        // mevcut davranışı korumak için yükleme hatasında sessiz kal
+      });
+
+    return () => {
+      aktif = false;
+    };
+  }, [run, durumFiltre, aramaMetni]);
 
   const handleYeniIrsaliye = async () => {
     if (!formData.siparis_id) {
