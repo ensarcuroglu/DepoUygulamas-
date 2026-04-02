@@ -270,7 +270,7 @@ export default function LotlarPage() {
 
     const searchRef = useRef(null);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const [lotRes, sktRes] = await run(() => Promise.all([
                 getLotlar({ skip: page * limit, limit }),
@@ -281,9 +281,31 @@ export default function LotlarPage() {
         } catch {
             toast.error('Veriler yüklenemedi');
         }
-    };
+    }, [run, page, limit]);
 
-    useEffect(() => { fetchData(); }, [page]);
+    useEffect(() => {
+        let aktif = true;
+
+        run(() => Promise.all([
+            getLotlar({ skip: page * limit, limit }),
+            getSktYaklasanLotlar(60)
+        ]))
+            .then(([lotRes, sktRes]) => {
+                if (aktif) {
+                    setLotlar(lotRes.data);
+                    setSktLotlar(sktRes.data);
+                }
+            })
+            .catch(() => {
+                if (aktif) {
+                    toast.error('Veriler yüklenemedi');
+                }
+            });
+
+        return () => {
+            aktif = false;
+        };
+    }, [run, page, limit]);
     useEffect(() => { getMarkalar().then(res => setMarkalar(res.data)).catch(() => {}); }, []);
     useEffect(() => { if (filterOpen && searchRef.current) searchRef.current.focus(); }, [filterOpen]);
 
