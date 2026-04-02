@@ -147,3 +147,6 @@ def ana_sayfa():
 
 # KAMERA İZNİ İÇİN FARKLI TERMİNALLERDE ÇALIŞTIRMA KODU:
 # ssh -R 80:localhost:5173 nokey@localhost.run
+
+# LİNT HATALARI KODU 
+# npm run lint 2>&1 | tee lint-hatalari.log

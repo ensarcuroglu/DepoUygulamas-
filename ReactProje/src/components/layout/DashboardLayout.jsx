@@ -10,10 +10,9 @@ export default function DashboardLayout() {
     const [isMobile, setIsMobile] = useState(false);
     const location = useLocation();
 
-    // Sayfa geçişinde scroll'u sıfırla ve mobil menüyü kapat
+    // Sayfa gecisinde scroll'u sifirla
     useEffect(() => {
         window.scrollTo(0, 0);
-        setMobileOpen(false);
     }, [location.pathname]);
 
     // Ekran genişliğine göre sidebar durumu
@@ -91,3 +90,4 @@ export default function DashboardLayout() {
         </div>
     );
 }
+
