@@ -1,12 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Search, Settings, User, Menu, LogOut, ChevronDown, Plus, Package, ArrowLeftRight, AlertTriangle } from 'lucide-react';
+import { Bell, Search, Settings, Menu, LogOut, ChevronDown, Plus, Package, ArrowLeftRight, AlertTriangle } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { UrunModal } from '../../pages/UrunlerPage';
-import { HareketModal } from '../../pages/StokHareketleriPage';
-import { getKategoriler, getUrunler, createUrun, createStokHareketi } from '../../services/api';
 import toast from 'react-hot-toast';
-import { hataMetni } from '../../utils/hata';
 
 const PAGE_TITLES = {
     '/dashboard': { title: 'Dashboard', subtitle: 'Gerçek zamanlı depo istatistikleri' },
@@ -35,20 +31,6 @@ export default function Header({ onMobileMenuToggle }) {
     const dropdownRef = useRef(null);
     const quickActionRef = useRef(null);
 
-    // Modal state ve verileri
-    const [urunModalOpen, setUrunModalOpen] = useState(false);
-    const [stokModalOpen, setStokModalOpen] = useState(false);
-    const [kategoriler, setKategoriler] = useState([]);
-    const [urunler, setUrunler] = useState([]);
-
-    // Modallar için gerekli listeleri çek (sadece admin rolünde)
-    useEffect(() => {
-        if (user?.rol === 'admin') {
-            getKategoriler().then(res => setKategoriler(res.data)).catch(() => { });
-        }
-        getUrunler({ limit: 500 }).then(res => setUrunler(res.data)).catch(() => { });
-    }, [user?.rol]);
-
     const currentPage = Object.entries(PAGE_TITLES).find(([path]) =>
         location.pathname.startsWith(path)
     );
@@ -68,25 +50,9 @@ export default function Header({ onMobileMenuToggle }) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleUrunSave = async (data) => {
-        try {
-            await createUrun(data);
-            toast.success('Yeni ürün hızlıca oluşturuldu.');
-            setUrunModalOpen(false);
-            getUrunler({ limit: 500 }).then(res => setUrunler(res.data)); // Listeyi yenile
-        } catch (err) {
-            toast.error(hataMetni(err, 'Hızlı ürün ekleme başarısız oldu'));
-        }
-    };
-
-    const handleStokSave = async (data) => {
-        try {
-            await createStokHareketi(data);
-            toast.success(data.hareket_tipi === 'giris' ? 'Hızlı tedarik girişi eklendi.' : 'Hızlı sevkiyat çıkışı eklendi.');
-            setStokModalOpen(false);
-        } catch (err) {
-            toast.error(hataMetni(err, 'Stok hareketi eklenemedi'));
-        }
+    const navigateQuickAction = (path, options = {}) => {
+        setQuickActionOpen(false);
+        navigate(path, options);
     };
 
     const handleLogout = () => {
@@ -194,29 +160,29 @@ export default function Header({ onMobileMenuToggle }) {
                             </div>
 
                             <div className="px-2">
-                                <button onClick={() => { setQuickActionOpen(false); setUrunModalOpen(true); }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50/60 rounded-xl transition-all text-left group">
+                                <button onClick={() => navigateQuickAction('/urunler')} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50/60 rounded-xl transition-all text-left group">
                                     <div className="w-9 h-9 flex items-center justify-center bg-blue-100/50 text-blue-600 rounded-lg group-hover:bg-blue-500 group-hover:text-white transition-colors duration-300 shadow-sm shrink-0">
                                         <Package className="w-4 h-4 stroke-[2.5px]" />
                                     </div>
                                     <div>
                                         <p className="text-[13px] font-bold text-slate-800 group-hover:text-blue-700 transition-colors">Yeni Ürün Ekle</p>
-                                        <p className="text-[11px] font-medium text-slate-500 pt-0.5">Stok kartı oluşturun</p>
+                                        <p className="text-[11px] font-medium text-slate-500 pt-0.5">Ürün yönetim sayfasına gidin</p>
                                     </div>
                                 </button>
 
-                                <button onClick={() => { setQuickActionOpen(false); setStokModalOpen(true); }} className="w-full flex items-center gap-3 px-3 py-2.5 mt-1 hover:bg-emerald-50/60 rounded-xl transition-all text-left group">
+                                <button onClick={() => navigateQuickAction('/stok-hareketleri')} className="w-full flex items-center gap-3 px-3 py-2.5 mt-1 hover:bg-emerald-50/60 rounded-xl transition-all text-left group">
                                     <div className="w-9 h-9 flex items-center justify-center bg-emerald-100/50 text-emerald-600 rounded-lg group-hover:bg-emerald-500 group-hover:text-white transition-colors duration-300 shadow-sm shrink-0">
                                         <ArrowLeftRight className="w-4 h-4 stroke-[2.5px]" />
                                     </div>
                                     <div>
                                         <p className="text-[13px] font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">Hızlı Stok Girişi</p>
-                                        <p className="text-[11px] font-medium text-slate-500 pt-0.5">Tedarik eklemesi yapın</p>
+                                        <p className="text-[11px] font-medium text-slate-500 pt-0.5">Stok işlem ekranına geçin</p>
                                     </div>
                                 </button>
                                 
                                 <div className="h-px w-full bg-slate-100/80 my-1.5"></div>
 
-                                <button onClick={() => { setQuickActionOpen(false); toast('Bu özellik yapım aşamasında.', { icon: '🚧' }); }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-orange-50/60 rounded-xl transition-all text-left group">
+                                <button onClick={() => { setQuickActionOpen(false); toast('Bu özellik yapım aşamasında.', { icon: '!' }); }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-orange-50/60 rounded-xl transition-all text-left group">
                                     <div className="w-9 h-9 flex items-center justify-center bg-orange-100/50 text-orange-600 rounded-lg group-hover:bg-orange-500 group-hover:text-white transition-colors duration-300 shadow-sm shrink-0">
                                         <AlertTriangle className="w-4 h-4 stroke-[2.5px]" />
                                     </div>
@@ -307,10 +273,6 @@ export default function Header({ onMobileMenuToggle }) {
                     )}
                 </div>
             </div>
-
-            {/* Global Hızlı İşlem Modalları */}
-            <UrunModal isOpen={urunModalOpen} onClose={() => setUrunModalOpen(false)} onSave={handleUrunSave} kategoriler={kategoriler} urun={null} />
-            <HareketModal isOpen={stokModalOpen} onClose={() => setStokModalOpen(false)} onSave={handleStokSave} urunler={urunler} />
 
         </header>
     );
