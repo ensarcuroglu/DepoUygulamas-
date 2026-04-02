@@ -1,4 +1,4 @@
-import { cloneElement, createElement, useEffect, useRef, useState } from 'react';
+import { cloneElement, createElement, useCallback, useEffect, useRef, useState } from 'react';
 import {
     FolderOpen, Plus, Edit3, Trash2, X, Package, Search,
     ChevronDown, Sparkles, Tag, Box, Layers, Archive,
@@ -141,16 +141,12 @@ function DeleteConfirmModal({ isOpen, onClose, onConfirm, isim }) {
 }
 
 /* ─── Kategori Modalı ─── */
-function KategoriModal({ isOpen, onClose, onSave, kategori }) {
-    const [form, setForm] = useState({ isim: '', aciklama: '', ikon: 'FolderOpen' });
-
-    useEffect(() => {
-        setForm(kategori
+function KategoriModal({ onClose, onSave, kategori }) {
+    const [form, setForm] = useState(() => (
+        kategori
             ? { isim: kategori.isim, aciklama: kategori.aciklama || '', ikon: kategori.ikon || 'FolderOpen' }
-            : { isim: '', aciklama: '', ikon: 'FolderOpen' });
-    }, [kategori, isOpen]);
-
-    if (!isOpen) return null;
+            : { isim: '', aciklama: '', ikon: 'FolderOpen' }
+    ));
 
     const inputClass = `w-full h-11 px-4 text-[14px] font-medium rounded-xl border border-slate-200
     bg-slate-50/50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-[3px]
@@ -228,16 +224,34 @@ export default function KategorilerPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [deleteTarget, setDeleteTarget] = useState(null);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const res = await run(() => getKategoriler());
             setKategoriler(res.data);
         } catch {
             toast.error('Kategoriler yüklenemedi');
         }
-    };
+    }, [run]);
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => {
+        let aktif = true;
+
+        run(() => getKategoriler())
+            .then((res) => {
+                if (aktif) {
+                    setKategoriler(res.data);
+                }
+            })
+            .catch(() => {
+                if (aktif) {
+                    toast.error('Kategoriler yüklenemedi');
+                }
+            });
+
+        return () => {
+            aktif = false;
+        };
+    }, [run]);
 
     const handleDelete = (id, isim) => {
         setDeleteTarget({ id, isim });
@@ -424,8 +438,14 @@ export default function KategorilerPage() {
             </div>
 
             {/* ── Modaller ── */}
-            <KategoriModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditKategori(null); }}
-                onSave={handleSave} kategori={editKategori} />
+            {modalOpen && (
+                <KategoriModal
+                    key={editKategori?.id ?? 'new'}
+                    onClose={() => { setModalOpen(false); setEditKategori(null); }}
+                    onSave={handleSave}
+                    kategori={editKategori}
+                />
+            )}
 
             <DeleteConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)}
                 onConfirm={confirmDelete} isim={deleteTarget?.isim || ''} />
