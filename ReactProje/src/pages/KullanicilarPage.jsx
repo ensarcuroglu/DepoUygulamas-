@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Users, Plus, Edit3, Trash2, X, Shield, ShieldCheck, Eye,
     User, Lock, Mail, ChevronRight, AlertTriangle, CheckCircle2, Loader2,
@@ -317,15 +317,38 @@ export default function KullanicilarPage() {
     const [editKullanici, setEditKullanici] = useState(null);
     const { user: currentUser } = useAuth();
 
-    const fetchData = () => {
+    const fetchData = useCallback(() => {
         setLoading(true);
         getKullanicilar()
             .then(res => setKullanicilar(res.data))
             .catch(() => toast.error('Kullanıcı listesi yüklenemedi.'))
             .finally(() => setLoading(false));
-    };
+    }, []);
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => {
+        let aktif = true;
+
+        getKullanicilar()
+            .then((res) => {
+                if (aktif) {
+                    setKullanicilar(res.data);
+                }
+            })
+            .catch(() => {
+                if (aktif) {
+                    toast.error('Kullanıcı listesi yüklenemedi.');
+                }
+            })
+            .finally(() => {
+                if (aktif) {
+                    setLoading(false);
+                }
+            });
+
+        return () => {
+            aktif = false;
+        };
+    }, []);
 
     const handleDelete = async (id, isim) => {
         if (id === currentUser?.id) {
