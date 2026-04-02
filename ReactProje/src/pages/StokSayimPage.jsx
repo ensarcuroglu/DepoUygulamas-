@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { hataMetni } from '../utils/hata';
 
 export default function StokSayimPage() {
     const [sayimlar, setSayimlar] = useState([]);
@@ -16,7 +15,7 @@ export default function StokSayimPage() {
     const { loading, run } = useAsync();
 
     // Sayımları yükle
-    const yukle = async () => {
+    const yukle = useCallback(async () => {
         await run(async () => {
             const res = await api.get('/stok-sayimlar');
             setSayimlar(res.data);
@@ -24,9 +23,9 @@ export default function StokSayimPage() {
             const devam = res.data.find(s => s.durum === 'devam_ediyor');
             if (devam) setAktifSayim(devam);
         });
-    };
+    }, [run]);
 
-    useEffect(() => { yukle(); }, []);
+    useEffect(() => { void yukle(); }, [yukle]);
 
     // Aktif sayım değişince barkod input'una odaklan
     useEffect(() => {

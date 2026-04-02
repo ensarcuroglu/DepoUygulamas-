@@ -12,7 +12,7 @@ const ROL_LABELS = {
 };
 
 export default function ProfilAyarlariPage() {
-    const { user, login } = useAuth();
+    const { user } = useAuth();
 
     const [form, setForm] = useState({
         ad_soyad: user?.ad_soyad || '',

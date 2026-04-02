@@ -267,6 +267,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
     const location = useLocation();
     const { user } = useAuth();
     const [isMobile, setIsMobile] = useState(false);
+    const prevPathnameRef = useRef(location.pathname);
 
     // Accordion state — start with all open
     const [openGroups, setOpenGroups] = useState(() => new Set(menuGroups.map(g => g.id)));
@@ -307,10 +308,12 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
 
     // Close mobile menu on route change
     useEffect(() => {
-        if (isMobile && mobileOpen) {
+        const pathChanged = prevPathnameRef.current !== location.pathname;
+        if (pathChanged && isMobile && mobileOpen) {
             setMobileOpen(false);
         }
-    }, [location.pathname, isMobile]);
+        prevPathnameRef.current = location.pathname;
+    }, [location.pathname, isMobile, mobileOpen, setMobileOpen]);
 
     const showLabel = isMobile || !collapsed;
 

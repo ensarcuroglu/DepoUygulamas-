@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, createElement } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import {
     Package, AlertTriangle, ArrowLeftRight, DollarSign,
@@ -253,7 +253,7 @@ function AnimatedValue({ value, suffix = '', prefix = '' }) {
         }, duration / steps);
 
         return () => clearInterval(timer);
-    }, [numericValue]);
+    }, [numericValue, value]);
 
     if (typeof value === 'string' && isNaN(parseFloat(value))) {
         return <>{value}</>;
@@ -265,7 +265,7 @@ function AnimatedValue({ value, suffix = '', prefix = '' }) {
 /* ─────────────────────────────────────────────
    Stat Card – Redesigned
    ───────────────────────────────────────────── */
-function StatCard({ icon: Icon, label, value, trend, delay = 0, color = 'blue' }) {
+function StatCard({ icon: IconComponent, label, value, trend, delay = 0, color = 'blue' }) {
     const isPositive = trend >= 0;
     const ref = useRef(null);
 
@@ -355,7 +355,7 @@ function StatCard({ icon: Icon, label, value, trend, delay = 0, color = 'blue' }
                                     group-hover:scale-110 group-hover:rotate-3
                                     transition-all duration-500 ease-out`}
                          style={{ boxShadow: `0 8px 24px -4px ${palette.accent}40` }}>
-                        <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" strokeWidth={2.2} />
+                        {createElement(IconComponent, { className: 'w-6 h-6 sm:w-7 sm:h-7 text-white', strokeWidth: 2.2 })}
                     </div>
                 </div>
             </div>

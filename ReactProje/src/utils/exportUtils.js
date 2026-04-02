@@ -125,7 +125,7 @@ export const exportToPDF = (data, columns, fileName = 'Rapor', documentTitle = '
             },
             
             // --- 4. ALT BİLGİ (FOOTER) TASARIMI ---
-            didDrawPage: function (hookData) {
+            didDrawPage: function () {
                 // Alt çizgi
                 doc.setDrawColor(226, 232, 240); // Slate-200
                 doc.setLineWidth(0.5);

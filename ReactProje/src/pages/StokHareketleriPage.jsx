@@ -116,16 +116,22 @@ export default function StokHareketleriPage() {
     const zebraDetected = useMemo(() => isZebraDevice(), []);
 
     // ===== VERİ YÜKLEME =====
-    const fetchSonIslemler = async () => {
+    const fetchSonIslemler = useCallback(async () => {
         try {
             const hRes = await runHistory(() => getStokHareketleri({ limit: 20 }));
             setSonIslemler(hRes.data);
         } catch {
             toast.error('Son işlemler yüklenemedi');
         }
-    };
+    }, [runHistory]);
 
-    useEffect(() => { fetchSonIslemler(); }, []);
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            void fetchSonIslemler();
+        }, 0);
+
+        return () => clearTimeout(timeoutId);
+    }, [fetchSonIslemler]);
 
     useEffect(() => {
         return () => {
@@ -1002,14 +1008,10 @@ export default function StokHareketleriPage() {
 
 // HareketModal — Header'dan çağrılan hızlı işlem modalı (geriye dönük uyum)
 
-export function HareketModal({ isOpen, onClose, onSave, urunler }) {
-    const [form, setForm] = useState({ urun_id: '', hareket_tipi: 'giris', miktar: 1, aciklama: '' });
+const HAREKET_MODAL_INITIAL_FORM = { urun_id: '', hareket_tipi: 'giris', miktar: 1, aciklama: '' };
 
-    useEffect(() => {
-        if (isOpen) setForm({ urun_id: '', hareket_tipi: 'giris', miktar: 1, aciklama: '' });
-    }, [isOpen]);
-
-    if (!isOpen) return null;
+function HareketModalContent({ onClose, onSave, urunler }) {
+    const [form, setForm] = useState(HAREKET_MODAL_INITIAL_FORM);
 
     return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -1067,4 +1069,9 @@ export function HareketModal({ isOpen, onClose, onSave, urunler }) {
         </div>,
         document.body
     );
+}
+
+export function HareketModal({ isOpen, onClose, onSave, urunler }) {
+    if (!isOpen) return null;
+    return <HareketModalContent onClose={onClose} onSave={onSave} urunler={urunler} />;
 }

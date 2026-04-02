@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Download, Eye, Loader2, Calendar, Filter, RefreshCw, ArrowLeft, FileText, Settings2
@@ -21,13 +21,18 @@ export default function RaporOlusturPage() {
   const [exportFormat, setExportFormat] = useState('pdf');
   const [veriler, setVeriler] = useState(null);
 
+  const yükle = useCallback(async () => {
+    const res = await run1(() => getRaporSablonlari({ limit: 100 }));
+    setSablonlar(res?.data || []);
+  }, [run1]);
+
   useEffect(() => {
-    const yükle = async () => {
-      const res = await run1(() => getRaporSablonlari({ limit: 100 }));
-      setSablonlar(res?.data || []);
-    };
-    yükle();
-  }, []);
+    const timeoutId = setTimeout(() => {
+      void yükle();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [yükle]);
 
   const handleOnizle = async () => {
     if (!seciliSablon) {
