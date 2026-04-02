@@ -128,6 +128,71 @@ function injectStyles() {
 
         /* ── Floating dot ── */
         .dsh-float { animation: dsh-float 3s ease-in-out infinite; }
+
+        /* ── Refresh Button Styles (Mobile & GPU Optimized) ── */
+        .dsh-btn-refresh {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            transform: translateZ(0); /* Force GPU */
+        }
+        
+        @media (hover: hover) and (pointer: fine) {
+            .dsh-btn-refresh:not(:disabled):hover {
+                background-color: #f8fafc;
+                color: #2563eb;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                border-color: #bfdbfe;
+            }
+            .dsh-btn-refresh:not(:disabled):hover .dsh-btn-icon {
+                color: #2563eb;
+                transform: rotate(180deg) translateZ(0);
+            }
+        }
+
+        .dsh-btn-refresh:not(:disabled):active {
+            transform: scale(0.96) translateZ(0);
+        }
+
+        .dsh-btn-refresh:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: scale(1) translateZ(0);
+        }
+
+        .dsh-btn-icon {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease;
+            color: #64748b;
+            will-change: transform;
+            backface-visibility: hidden;
+        }
+
+        .dsh-btn-refresh.is-loading .dsh-btn-icon {
+            color: #3b82f6;
+            animation: dsh-spin-gpu 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        /* ── GPU Accelerated Spin ── */
+        @keyframes dsh-spin-gpu {
+            from { transform: rotate(0deg) translateZ(0); }
+            to   { transform: rotate(360deg) translateZ(0); }
+        }
     `;
     document.head.appendChild(style);
 }
@@ -560,9 +625,9 @@ export default function DashboardPage() {
                 <button
                     onClick={fetchData}
                     disabled={loading}
-                    className="flex-shrink-0 flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl font-semibold text-[14px] hover:bg-slate-50 hover:text-blue-600 transition-colors shadow-sm disabled:opacity-50"
+                    className={`dsh-btn-refresh ${loading ? 'is-loading' : ''}`}
                 >
-                    <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-500' : ''}`} />
+                    <RefreshCcw className="dsh-btn-icon" strokeWidth={2.5} />
                     <span className="hidden sm:inline">Verileri Yenile</span>
                 </button>
             </div>
