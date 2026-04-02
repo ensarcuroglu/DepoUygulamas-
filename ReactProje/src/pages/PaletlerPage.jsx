@@ -17,7 +17,7 @@ import { hataMetni } from '../utils/hata';
 /* ═══════════════════════════════════════════
    STAT CARD — Compact KPI display
    ═══════════════════════════════════════════ */
-function StatCard({ icon: Icon, label, value, color, suffix }) {
+function StatCard({ icon: IconComponent, label, value, color, suffix }) {
     const colorMap = {
         blue: 'from-blue-500 to-blue-600 shadow-blue-500/20',
         indigo: 'from-indigo-500 to-indigo-600 shadow-indigo-500/20',
@@ -28,7 +28,7 @@ function StatCard({ icon: Icon, label, value, color, suffix }) {
     return (
         <div className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-3 min-w-0 shadow-sm">
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colorMap[color]} shadow-lg flex-shrink-0 flex items-center justify-center`}>
-                <Icon className="w-5 h-5 text-white" />
+                {React.createElement(IconComponent, { className: 'w-5 h-5 text-white' })}
             </div>
             <div className="min-w-0">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">{label}</p>
@@ -430,7 +430,13 @@ export default function PaletlerPage() {
         }
     }, [run, limit]);
 
-    useEffect(() => { fetchData(0); }, []);
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            void fetchData(0);
+        }, 0);
+
+        return () => clearTimeout(timeoutId);
+    }, [fetchData]);
 
     // Infinite scroll observer
     useEffect(() => {

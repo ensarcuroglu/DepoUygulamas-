@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
     Package, Search, Plus, Edit3, Trash2, ChevronLeft, ChevronRight,
@@ -491,7 +491,7 @@ export default function App() {
         }
     });
 
-    const fetchData = () => {
+    const fetchData = useCallback(() => {
         setLoading(true);
         const params = { skip: page * limit, limit };
         if (search) params.search = search;
@@ -506,9 +506,15 @@ export default function App() {
             })
             .catch(() => toast.error('Veri tabanına ulaşılamadı. Sunucu bağlantısını kontrol edin.'))
             .finally(() => setLoading(false));
-    };
+    }, [page, limit, search, filterKategori, filterMarka]);
 
-    useEffect(() => { fetchData(); }, [page, search, filterKategori, filterMarka]);
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            void fetchData();
+        }, 0);
+
+        return () => clearTimeout(timeoutId);
+    }, [fetchData]);
 
     const handleDelete = async (id, isim) => {
         if (!confirm(`"${isim}" ürününü pasife almak istediğinize emin misiniz? (Stok geçmişi korunur)`)) return;

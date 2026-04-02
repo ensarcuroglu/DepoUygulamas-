@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Calendar, Truck, User, Phone, DoorOpen, Loader2, X, AlertCircle, Clock, FileText, Package
 } from 'lucide-react';
@@ -25,7 +25,6 @@ export default function SevkiyatPlanlamaPage() {
   const [siparisler, setSiparisler] = useState([]);
   const [durumFiltre, setDurumFiltre] = useState('');
   const [yeniPlanModal, setYeniPlanModal] = useState(false);
-  const [seciliPlan, setSeciliPlan] = useState(null);
 
   const [formData, setFormData] = useState({
     siparis_id: '',
@@ -40,7 +39,7 @@ export default function SevkiyatPlanlamaPage() {
     notlar: '',
   });
 
-  const yükle = async () => {
+  const yükle = useCallback(async () => {
     const [planRes, sipRes] = await run(() =>
       Promise.all([
         getSevkiyatPlanlari({ limit: 100, durum: durumFiltre || undefined }),
@@ -49,11 +48,15 @@ export default function SevkiyatPlanlamaPage() {
     );
     setPlanlar(planRes?.data || []);
     setSiparisler(sipRes?.data || []);
-  };
+  }, [durumFiltre, run]);
 
   useEffect(() => {
-    yükle();
-  }, [durumFiltre]);
+    const timeoutId = setTimeout(() => {
+      void yükle();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [yükle]);
 
   const handleYeniPlan = async () => {
     if (!formData.siparis_id || !formData.yukleme_tarihi) {
@@ -88,7 +91,6 @@ export default function SevkiyatPlanlamaPage() {
       await updateSevkiyatPlani(planId, { durum: yeniDurum });
       toast.success('Durum güncellendi');
       yükle();
-      setSeciliPlan(null);
     } catch (err) {
       toast.error(hataMetni(err, 'Güncelleme başarısız'));
     }

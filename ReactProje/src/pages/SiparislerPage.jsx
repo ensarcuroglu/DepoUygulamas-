@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Calendar, User, MapPin, Loader2, X, ChevronDown,
   Trash2, Eye, DollarSign, Package, ShoppingBag, Receipt
 } from 'lucide-react';
-import { getSiparisler, createSiparis, updateSiparis, deleteSiparis, getUrunler } from '../services/api';
+import { getSiparisler, createSiparis, deleteSiparis, getUrunler } from '../services/api';
 import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
 import toast from 'react-hot-toast';
@@ -32,7 +32,7 @@ export default function SiparislerPage() {
     kalemler: [{ urun_id: '', miktar: 1, birim_fiyat: 0, kdv_orani: 18 }],
   });
 
-  const yükle = async () => {
+  const yükle = useCallback(async () => {
     const [siparisRes, urunRes] = await run(() =>
       Promise.all([
         getSiparisler({ limit: 100, durum: durumFiltre, arama: aramaMetni }),
@@ -41,11 +41,15 @@ export default function SiparislerPage() {
     );
     setSiparisler(siparisRes?.data || []);
     setUrunler(urunRes?.data || []);
-  };
+  }, [aramaMetni, durumFiltre, run]);
 
   useEffect(() => {
-    yükle();
-  }, [durumFiltre, aramaMetni]);
+    const timeoutId = setTimeout(() => {
+      void yükle();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [yükle]);
 
   const handleYeniSiparis = async () => {
     if (!formData.musteri_adi || !formData.teslimat_adresi || !formData.teslimat_tarihi) {

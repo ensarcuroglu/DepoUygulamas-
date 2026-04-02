@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     ShieldAlert, Search, Filter, Clock, Activity,
     Trash2, PlusCircle, Edit3, Eye, X, ArrowRight,
@@ -42,18 +42,22 @@ export default function SistemLoglariPage() {
     // Detay Modalı State
     const [seciliLog, setSeciliLog] = useState(null);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const res = await run(() => getSistemLoglari(200));
             setLoglar(res.data);
         } catch {
             toast.error('Loglar yüklenirken hata oluştu');
         }
-    };
+    }, [run]);
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        const timeoutId = setTimeout(() => {
+            void fetchData();
+        }, 0);
+
+        return () => clearTimeout(timeoutId);
+    }, [fetchData]);
 
     // Modüllerin ve Tiplerin dinamik listesi (dropdown için)
     const moduller = useMemo(() => {
@@ -135,7 +139,7 @@ export default function SistemLoglariPage() {
         if (!data) return "Veri bulunmuyor.";
         try {
             return JSON.stringify(data, null, 2);
-        } catch (e) {
+        } catch {
             return String(data);
         }
     };
