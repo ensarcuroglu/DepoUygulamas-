@@ -47,8 +47,26 @@ export default function RaporZamanliPage() {
   };
 
   useEffect(() => {
-    yükle();
-  }, []);
+    let aktif = true;
+
+    run(() =>
+      Promise.all([
+        getRaporSchedules({ limit: 100 }),
+        getRaporSablonlari({ limit: 100 }),
+      ])
+    )
+      .then(([schRes, sabRes]) => {
+        if (aktif) {
+          setSchedules(schRes?.data || []);
+          setSablonlar(sabRes?.data || []);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      aktif = false;
+    };
+  }, [run]);
 
   const handleEkle = async () => {
     if (!formData.sablon_id || !formData.sablon_adi) {

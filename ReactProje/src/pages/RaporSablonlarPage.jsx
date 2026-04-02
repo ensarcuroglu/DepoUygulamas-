@@ -35,8 +35,20 @@ export default function RaporSablonlarPage() {
   };
 
   useEffect(() => {
-    yükle();
-  }, []);
+    let aktif = true;
+
+    run(() => getRaporSablonlari({ limit: 100 }))
+      .then((res) => {
+        if (aktif) {
+          setSablonlar(res?.data || []);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      aktif = false;
+    };
+  }, [run]);
 
   const handleEkle = async () => {
     if (!formData.ad) {

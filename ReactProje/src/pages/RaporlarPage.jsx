@@ -5,8 +5,6 @@ import {
 } from 'lucide-react';
 import { getRaporSablonlari, getRaporLoglari } from '../services/api';
 import { useAsync } from '../hooks/useAsync';
-import { hataMetni } from '../utils/hata';
-import toast from 'react-hot-toast';
 
 const turRenkleri = {
   'stok': 'bg-blue-50 text-blue-700 border-blue-100',
@@ -29,20 +27,27 @@ export default function RaporlarPage() {
   const [loglar, setLoglar] = useState([]);
   const [seciliTur, setSeciliTur] = useState('');
 
-  const yükle = async () => {
-    const [sabRes, logRes] = await run(() =>
+  useEffect(() => {
+    let aktif = true;
+
+    run(() =>
       Promise.all([
         getRaporSablonlari({ limit: 100 }),
         getRaporLoglari({ limit: 10 }),
       ])
-    );
-    setSablonlar(sabRes?.data || []);
-    setLoglar(logRes?.data || []);
-  };
+    )
+      .then(([sabRes, logRes]) => {
+        if (aktif) {
+          setSablonlar(sabRes?.data || []);
+          setLoglar(logRes?.data || []);
+        }
+      })
+      .catch(() => {});
 
-  useEffect(() => {
-    yükle();
-  }, []);
+    return () => {
+      aktif = false;
+    };
+  }, [run]);
 
   const filtrelenmis = seciliTur
     ? sablonlar.filter((s) => s.tur === seciliTur)
