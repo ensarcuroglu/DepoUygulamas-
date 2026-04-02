@@ -29,10 +29,16 @@ const isZebraDevice = () => {
 // ─── Barkod Sanitization ───
 // Zebra DataWedge prefix/suffix karakterleri, kontrol karakterleri,
 // zero-width space ve tutarsız büyük/küçük harf sorunlarını temizler.
+const stripControlChars = (value) => Array.from(value)
+    .filter((char) => {
+        const code = char.charCodeAt(0);
+        return code > 31 && code !== 127;
+    })
+    .join('');
+
 const sanitizePaletNo = (raw) => {
     if (!raw) return '';
-    return raw
-        .replace(/[\x00-\x1F\x7F]/g, '')       // Kontrol karakterleri (TAB, CR, LF...)
+    return stripControlChars(raw)
         .replace(/[\u200B-\u200F\uFEFF]/g, '')  // Zero-width / BOM
         .replace(/\s+/g, '')                     // Tüm boşluklar
         .toUpperCase()                           // Tutarlı büyük harf
@@ -310,7 +316,6 @@ export default function StokHareketleriPage() {
                     toast.success(`${sonuc.basarili} palet çıkış yapıldı`, { duration: 4000 });
                     return true;
                 }
-                return false;
             });
 
             if (!basarili) return;

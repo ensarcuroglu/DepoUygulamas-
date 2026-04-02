@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { cloneElement, createElement, useEffect, useRef, useState } from 'react';
 import {
     FolderOpen, Plus, Edit3, Trash2, X, Package, Search,
     ChevronDown, Sparkles, Tag, Box, Layers, Archive,
@@ -31,8 +31,13 @@ const ICON_MAP = {
 
 const ICON_NAMES = Object.keys(ICON_MAP);
 
-function getIcon(name) {
-    return ICON_MAP[name] || FolderOpen;
+const ICON_ELEMENTS = Object.fromEntries(
+    Object.entries(ICON_MAP).map(([name, IconComponent]) => [name, createElement(IconComponent)])
+);
+
+function renderIcon(name, className) {
+    const baseIcon = ICON_ELEMENTS[name] || ICON_ELEMENTS.FolderOpen;
+    return cloneElement(baseIcon, { className });
 }
 
 /* ─── Renk Paleti ─── */
@@ -51,7 +56,6 @@ function IconPicker({ selected, onSelect }) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const ref = useRef(null);
-    const SelectedIcon = getIcon(selected);
 
     useEffect(() => {
         const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -67,7 +71,7 @@ function IconPicker({ selected, onSelect }) {
                 className="flex items-center gap-2.5 h-11 px-4 rounded-xl border border-slate-200
                 bg-slate-50/50 hover:bg-white hover:border-blue-300 transition-all duration-200 w-full">
                 <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <SelectedIcon className="w-4 h-4 text-blue-600" />
+                    {renderIcon(selected, 'w-4 h-4 text-blue-600')}
                 </span>
                 <span className="text-[14px] font-medium text-slate-700 flex-1 text-left">{selected || 'FolderOpen'}</span>
                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
@@ -86,7 +90,6 @@ function IconPicker({ selected, onSelect }) {
                     </div>
                     <div className="grid grid-cols-7 gap-1 p-2 max-h-48 overflow-y-auto overscroll-contain">
                         {filtered.map(name => {
-                            const Ico = ICON_MAP[name];
                             return (
                                 <button key={name} type="button"
                                     onClick={() => { onSelect(name); setOpen(false); setSearch(''); }}
@@ -96,7 +99,7 @@ function IconPicker({ selected, onSelect }) {
                                     ${selected === name
                                             ? 'bg-blue-50 text-blue-600 ring-2 ring-blue-200'
                                             : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>
-                                    <Ico className="w-4 h-4" />
+                                    {renderIcon(name, 'w-4 h-4')}
                                 </button>
                             );
                         })}
@@ -371,7 +374,6 @@ export default function KategorilerPage() {
                     <div className="bg-white rounded-xl border border-slate-200/60 divide-y divide-slate-100 overflow-hidden">
                         {filtered.map((kat, i) => {
                             const color = COLORS[i % COLORS.length];
-                            const Icon = getIcon(kat.ikon);
                             return (
                                 <div key={kat.id}
                                     className="group flex items-center gap-4 px-4 sm:px-5 py-3.5
@@ -380,7 +382,7 @@ export default function KategorilerPage() {
 
                                     <div className={`w-9 h-9 rounded-lg ${color.bg} flex items-center justify-center
                                         shrink-0 group-hover:scale-105 transition-transform duration-300`}>
-                                        <Icon className={`w-4 h-4 ${color.text}`} />
+                                        {renderIcon(kat.ikon, `w-4 h-4 ${color.text}`)}
                                     </div>
 
                                     <div className="flex-1 min-w-0">
