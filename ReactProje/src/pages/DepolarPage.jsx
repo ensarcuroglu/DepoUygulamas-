@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Warehouse, Plus, X, MapPin, Building, ChevronRight } from 'lucide-react';
+import { Warehouse, Plus, X, MapPin, Building } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getDepolar, createDepo, deleteDepo, getRaflar, createRaf } from '../services/api';
+import { getDepolar, createDepo, createRaf } from '../services/api';
 import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
 
@@ -18,16 +18,34 @@ export default function DepolarPage() {
     const [rafModalOpen, setRafModalOpen] = useState(false);
     const [rafForm, setRafForm] = useState({ depo_id: '', kod: '', bolge: '', kapasite: 100 });
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const res = await run(() => getDepolar());
             setDepolar(res.data);
         } catch {
             toast.error('Depolar yüklenemedi');
         }
-    };
+    }, [run]);
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => {
+        let aktif = true;
+
+        run(() => getDepolar())
+            .then((res) => {
+                if (aktif) {
+                    setDepolar(res.data);
+                }
+            })
+            .catch(() => {
+                if (aktif) {
+                    toast.error('Depolar yüklenemedi');
+                }
+            });
+
+        return () => {
+            aktif = false;
+        };
+    }, [run]);
 
     const handleDepoSave = async (e) => {
         e.preventDefault();
@@ -36,7 +54,7 @@ export default function DepolarPage() {
             toast.success('Depo başarıyla oluşturuldu');
             setDepoModalOpen(false);
             setDepoForm({ isim: '', adres: '', aciklama: '' });
-            fetchData();
+            await fetchData();
         } catch (err) {
             toast.error(hataMetni(err, 'Depo oluşturulamadı'));
         }
