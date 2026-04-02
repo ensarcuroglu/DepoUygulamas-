@@ -113,3 +113,36 @@ class TestSevkiyatPlaniEndpoints:
         """Depocu sevkiyat planlarına erişememeli — 403."""
         response = depocu_client.get("/api/sevkiyat-planlama/")
         assert response.status_code == 403
+
+
+class TestSevkiyatDurumGecisi:
+    """
+    Sevkiyat planı durum makinesi geçiş kombinasyonları.
+
+    Geçerli geçişler  → HTTP 200
+    Geçersiz geçişler → HTTP 400  (GecersizDurumGecisiError)
+
+    Not: Planlandi → Yukleniyor geçişi FIFO stok çıkışı tetikler;
+    bu senaryo test_sevkiyat_guncelle ile ayrıca test edilmektedir.
+    Aşağıdaki parametrize stok bağımlılığı olmayan geçişleri kapsar.
+
+    Durum grafiği:
+      Planlandi ──► Yukleniyor ──► Yolda ──► TeslimEdildi
+    """
+
+    @pytest.mark.parametrize("baslangic,hedef,beklenen", [
+        # --- Geçerli geçişler (stok bağımlılığı yok) ---
+        ("Yukleniyor", "Yolda",         200),
+        ("Yolda",      "TeslimEdildi",  200),
+        # --- Geçersiz geçişler ---
+        ("Planlandi",    "TeslimEdildi", 400),  # Atlama
+        ("Planlandi",    "Yolda",        400),  # Atlama
+        ("TeslimEdildi", "Planlandi",    400),  # Geri
+        ("Yukleniyor",   "Planlandi",    400),  # Geri
+        ("Yolda",        "Planlandi",    400),  # Geri
+        ("Yolda",        "Yukleniyor",   400),  # Geri
+    ])
+    def test_sevkiyat_durum_gecisi(self, admin_client, db_session, baslangic, hedef, beklenen):
+        plan = SevkiyatPlaniFactory.create(durum=baslangic)
+        response = admin_client.put(f"/api/sevkiyat-planlama/{plan.id}", json={"durum": hedef})
+        assert response.status_code == beklenen

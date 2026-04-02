@@ -319,11 +319,11 @@ tests/
 | ERP Adapter | Var | - | - | Orta |
 | Stok Cikis | Var | - | - | Zayif |
 | Mal Kabul | Var | Var | - | Orta |
-| Siparis | - | - | - | Yok |
-| Lot/Raf/Depo/Kategori | - | - | - | Yok |
-| Kullanici | - | - | - | Yok |
-| Sevkiyat Planlama | - | - | - | Yok |
-| Stok Sayim | - | - | - | Yok |
+| Siparis | - | - | Var (B1+B2) | Iyi |
+| Lot/Raf/Depo/Kategori | - | - | Var (B1) | Orta |
+| Kullanici | - | - | Var (B1) | Orta |
+| Sevkiyat Planlama | - | - | Var (B1+B2) | Iyi |
+| Stok Sayim | - | - | Var (B1) | Orta |
 | Rapor | - | - | - | Yok |
 | Dashboard | - | - | - | Yok |
 
@@ -363,8 +363,8 @@ tests/
 
 | # | Aksiyon | Gerekce |
 |---|---------|---------|
-| B1 | Eksik modullere API testi ekle: Siparis, Lot, Raf, Depo, Kategori, Kullanici, Sevkiyat, StokSayim | 10+ modul test kapsaminda degil |
-| B2 | Parametrize test deseni kur: rol testleri, durum gecisi kombinasyonlari | Kod tekrari azalir, edge case kapsar |
+| B1 | ~~Eksik modullere API testi ekle: Siparis, Lot, Raf, Depo, Kategori, Kullanici, Sevkiyat, StokSayim~~ ✅ TAMAMLANDI (2026-04-02) — tests/api/routers/ altında 8 yeni dosya: test_kategoriler_api, test_depolar_api, test_raflar_api, test_lotlar_api, test_kullanicilar_api, test_siparisler_api, test_sevkiyat_planlama_api, test_stok_sayim_api. Toplam ~84 test, pytest -m api ile çalışır. conftest.py'ye lojistik_user + lojistik_client fixture'ları eklendi. | 10+ modul test kapsaminda degil |
+| B2 | ~~Parametrize test deseni kur: rol testleri, durum gecisi kombinasyonlari~~ ✅ TAMAMLANDI (2026-04-02) — test_erisim_kontrolu.py (yeni): 3 sınıf × çift parametrize → 44 test (3 erişim grubu × 4 rol × N endpoint). test_siparisler_api.py'ye TestSiparisDurumGecisi (10 kombinasyon: 5 geçerli/5 geçersiz), test_sevkiyat_planlama_api.py'ye TestSevkiyatDurumGecisi (8 kombinasyon) eklendi. Geçersiz geçişler HTTP 400 (GecersizDurumGecisiError) döner. | Kod tekrari azalir, edge case kapsar |
 | B3 | Conftest'e ortak mock fixture'lari tasi: `_make_service()` tekrarini gider | DRY, bakim maliyeti |
 | B4 | Sinir degeri testleri ekle: koli_adedi=0, bos string, NULL FK, max uzunluk | Uretimde surpriz hatalari onle |
 | B5 | Es zamanlilik testi ekle: ayni palet_no'ya paralel giris, FIFO cikis yarisi | FIFO ve palet islemleri icin kritik |

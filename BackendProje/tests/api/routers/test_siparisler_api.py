@@ -118,3 +118,36 @@ class TestSiparisEndpoints:
         """Depocu siparişlere erişememeli — 403."""
         response = depocu_client.get("/api/siparisler/")
         assert response.status_code == 403
+
+
+class TestSiparisDurumGecisi:
+    """
+    Sipariş durum makinesi geçiş kombinasyonları.
+
+    Geçerli geçişler  → HTTP 200
+    Geçersiz geçişler → HTTP 400  (GecersizDurumGecisiError)
+
+    Durum grafiği:
+      Bekleme ──► Hazirlaniyor ──► YolaCikti ──► TeslimEdildi
+          └────────────────────────────────────► Iptal
+                         └──────────────────────► Iptal
+    """
+
+    @pytest.mark.parametrize("baslangic,hedef,beklenen", [
+        # --- Geçerli geçişler ---
+        ("Bekleme",      "Hazirlaniyor",  200),
+        ("Bekleme",      "Iptal",         200),
+        ("Hazirlaniyor", "YolaCikti",     200),
+        ("Hazirlaniyor", "Iptal",         200),
+        ("YolaCikti",    "TeslimEdildi",  200),
+        # --- Geçersiz geçişler ---
+        ("Bekleme",      "TeslimEdildi",  400),  # Atlama
+        ("Bekleme",      "YolaCikti",     400),  # Atlama
+        ("TeslimEdildi", "Bekleme",       400),  # Geri
+        ("Iptal",        "Bekleme",       400),  # İptal geri alınamaz
+        ("Hazirlaniyor", "Bekleme",       400),  # Geri
+    ])
+    def test_siparis_durum_gecisi(self, admin_client, db_session, baslangic, hedef, beklenen):
+        siparis = SiparisFactory.create(durum=baslangic)
+        response = admin_client.put(f"/api/siparisler/{siparis.id}", json={"durum": hedef})
+        assert response.status_code == beklenen
