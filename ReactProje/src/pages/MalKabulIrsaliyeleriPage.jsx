@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     Plus, Search, Loader2, X, Truck, Package, CheckCircle, Clock,
     ChevronDown, ChevronUp, Trash2, FileCheck, Calendar, MapPin, User
@@ -35,6 +35,7 @@ export default function MalKabulIrsaliyeleriPage() {
     const [durumFiltre, setDurumFiltre] = useState('');
     const [yeniModal, setYeniModal] = useState(false);
     const [expandedId, setExpandedId] = useState(null);
+    const aramaMetniRef = useRef(aramaMetni);
 
     const [formData, setFormData] = useState({
         tedarikci_id: '',
@@ -80,7 +81,35 @@ export default function MalKabulIrsaliyeleriPage() {
         }
     };
 
-    useEffect(() => { yukle(); }, [durumFiltre]);
+    useEffect(() => {
+        aramaMetniRef.current = aramaMetni;
+    }, [aramaMetni]);
+
+    useEffect(() => {
+        let aktif = true;
+
+        run(() =>
+            getMalKabulIrsaliyeleri({
+                limit: 100,
+                durum: durumFiltre || undefined,
+                arama: aramaMetniRef.current || undefined,
+            })
+        )
+            .then((irsRes) => {
+                if (aktif) {
+                    setIrsaliyeler(irsRes?.data || []);
+                }
+            })
+            .catch(() => {
+                if (aktif) {
+                    toast.error('İrsaliyeler yüklenemedi');
+                }
+            });
+
+        return () => {
+            aktif = false;
+        };
+    }, [durumFiltre, run]);
 
     // ===== KALEM YÖNETİMİ =====
     const kalemEkle = () => {
