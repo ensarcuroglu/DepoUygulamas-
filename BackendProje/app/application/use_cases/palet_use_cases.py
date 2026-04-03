@@ -29,9 +29,10 @@ class PaletListeleUseCase:
         limit: int = 50,
         lot_id: int | None = None,
         raf_id: int | None = None,
+        ean: str | None = None,
     ) -> List[PaletResponseDTO]:
         paletler = self._palet_repo.getir_hepsi(
-            skip=skip, limit=limit, lot_id=lot_id, raf_id=raf_id
+            skip=skip, limit=limit, lot_id=lot_id, raf_id=raf_id, ean=ean
         )
         return [PaletResponseDTO.from_entity(p) for p in paletler]
 

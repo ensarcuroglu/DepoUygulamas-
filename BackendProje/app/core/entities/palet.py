@@ -1,7 +1,37 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
+
+
+# ── Hafif nested bilgi yapıları (DTO zenginleştirme amaçlı) ──
+
+@dataclass
+class UrunBilgi:
+    """Palet yanıtında taşınan minimal ürün bilgisi."""
+    id: Optional[int] = None
+    isim: str = ""
+    ean: Optional[str] = None
+    barkod: Optional[str] = None
+
+
+@dataclass
+class LotBilgi:
+    """Palet yanıtında taşınan minimal lot bilgisi."""
+    id: Optional[int] = None
+    lot_no: Optional[str] = None
+    urun_id: int = 0
+    uretim_tarihi: Optional[date] = None
+    son_kullanma_tarihi: Optional[date] = None
+    urun: Optional[UrunBilgi] = None
+
+
+@dataclass
+class RafBilgi:
+    """Palet yanıtında taşınan minimal raf bilgisi."""
+    id: Optional[int] = None
+    kod: str = ""
+    bolge: str = ""
 
 
 @dataclass
@@ -18,6 +48,10 @@ class Palet:
     tarih: datetime = field(default_factory=datetime.utcnow)
     aktif: bool = True
     olusturma_tarihi: datetime = field(default_factory=datetime.utcnow)
+
+    # Opsiyonel nested bilgi — mapper tarafından doldurulur
+    lot: Optional[LotBilgi] = None
+    raf: Optional[RafBilgi] = None
 
     # ── İş Kuralları ──
 

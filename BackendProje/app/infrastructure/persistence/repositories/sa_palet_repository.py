@@ -5,7 +5,7 @@ from sqlalchemy import case
 from app.core.entities.palet import Palet
 from app.core.repositories.palet_repository import IPaletRepository
 from app.infrastructure.persistence.mappers import palet_to_entity, palet_to_orm
-from models import Palet as PaletORM, Lot as LotORM
+from models import Palet as PaletORM, Lot as LotORM, Urun as UrunORM
 
 
 class SqlAlchemyPaletRepository(IPaletRepository):
@@ -17,10 +17,11 @@ class SqlAlchemyPaletRepository(IPaletRepository):
         self, skip: int = 0, limit: int = 50,
         lot_id: Optional[int] = None,
         raf_id: Optional[int] = None,
+        ean: Optional[str] = None,
         sadece_aktif: bool = True,
     ) -> List[Palet]:
         query = self._db.query(PaletORM).options(
-            joinedload(PaletORM.lot),
+            joinedload(PaletORM.lot).joinedload(LotORM.urun),
             joinedload(PaletORM.raf),
         )
         if sadece_aktif:
@@ -29,6 +30,11 @@ class SqlAlchemyPaletRepository(IPaletRepository):
             query = query.filter(PaletORM.lot_id == lot_id)
         if raf_id:
             query = query.filter(PaletORM.raf_id == raf_id)
+        if ean:
+            # Palet → Lot → Urun zinciriyle EAN exact match
+            query = query.join(LotORM, PaletORM.lot_id == LotORM.id) \
+                         .join(UrunORM, LotORM.urun_id == UrunORM.id) \
+                         .filter(UrunORM.ean == ean)
         orm_list = query.order_by(PaletORM.tarih.desc()).offset(skip).limit(limit).all()
         return [palet_to_entity(o) for o in orm_list]
 

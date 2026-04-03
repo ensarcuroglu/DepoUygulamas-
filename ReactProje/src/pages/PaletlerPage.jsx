@@ -3,7 +3,7 @@ import {
     Container, X, Barcode, Search, MapPin, PackageOpen,
     LayoutGrid, Scale, Clock, Trash2, List, SlidersHorizontal,
     ArrowUpDown, ChevronDown, Package, Weight, Layers, TrendingUp,
-    Filter, RotateCcw
+    Filter, RotateCcw, Hash
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -43,7 +43,7 @@ function StatCard({ icon: IconComponent, label, value, color, suffix }) {
 /* ═══════════════════════════════════════════
    FILTER PANEL — Collapsible, mobile-friendly
    ═══════════════════════════════════════════ */
-function FilterPanel({ filters, setFilters, lotlar, paletler, onReset }) {
+function FilterPanel({ filters, setFilters, lotlar, paletler, onReset, onEanChange }) {
     const uniqueVardiyalar = useMemo(() =>
         [...new Set(paletler.map(p => p.vardiya).filter(Boolean))],
         [paletler]
@@ -58,7 +58,11 @@ function FilterPanel({ filters, setFilters, lotlar, paletler, onReset }) {
     const chipActive = "bg-blue-50 border-blue-200 text-blue-700";
     const chipInactive = "bg-white border-slate-200 text-slate-600 hover:border-slate-300";
 
-    const hasActiveFilters = filters.lot_id || filters.vardiya || filters.raf;
+    const hasActiveFilters = filters.lot_id || filters.vardiya || filters.raf || filters.ean;
+
+    // EAN format doğrulama
+    const eanValue = filters.ean || '';
+    const eanValid = !eanValue || /^\d{8,14}$/.test(eanValue);
 
     return (
         <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3 shadow-sm">
@@ -71,6 +75,48 @@ function FilterPanel({ filters, setFilters, lotlar, paletler, onReset }) {
                     <button onClick={onReset} className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors">
                         <RotateCcw className="w-3 h-3" /> Temizle
                     </button>
+                )}
+            </div>
+
+            {/* EAN filter */}
+            <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">EAN Numarası</p>
+                <div className="relative">
+                    <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="EAN-8 / EAN-13 / EAN-14 girin veya tarayın..."
+                        value={eanValue}
+                        onChange={e => {
+                            const val = e.target.value.replace(/[^\d]/g, '').slice(0, 14);
+                            setFilters(f => ({ ...f, ean: val }));
+                            onEanChange(val);
+                        }}
+                        className={`w-full h-9 pl-9 pr-9 text-sm font-medium rounded-lg border bg-white
+                            focus:outline-none focus:ring-2 transition-all tabular-nums
+                            ${!eanValid
+                                ? 'border-red-300 focus:border-red-400 focus:ring-red-200/40'
+                                : eanValue
+                                    ? 'border-blue-300 focus:border-blue-400 focus:ring-blue-200/40'
+                                    : 'border-slate-200 focus:border-blue-400 focus:ring-blue-200/40'
+                            }
+                            text-slate-800 placeholder-slate-400`}
+                    />
+                    {eanValue && (
+                        <button
+                            onClick={() => { setFilters(f => ({ ...f, ean: '' })); onEanChange(''); }}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                </div>
+                {eanValue && !eanValid && (
+                    <p className="text-[10px] font-medium text-red-500 mt-1">EAN 8-14 haneli sayı olmalıdır</p>
+                )}
+                {eanValue && eanValid && (
+                    <p className="text-[10px] font-medium text-blue-500 mt-1">Tam eşleşme ile filtreleniyor</p>
                 )}
             </div>
 
@@ -142,9 +188,10 @@ function PaletListView({ paletler, onDelete }) {
     return (
         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
             {/* Desktop table header */}
-            <div className="hidden sm:grid sm:grid-cols-[1fr_1.2fr_0.7fr_0.7fr_0.8fr_0.7fr_auto] gap-3 px-4 py-3 bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <div className="hidden sm:grid sm:grid-cols-[1fr_1.2fr_0.8fr_0.7fr_0.7fr_0.8fr_0.7fr_auto] gap-3 px-4 py-3 bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 <span>Palet No</span>
                 <span>Ürün / LOT</span>
+                <span>EAN</span>
                 <span className="text-center">Koli</span>
                 <span className="text-center">Ağırlık</span>
                 <span>Raf</span>
@@ -156,7 +203,7 @@ function PaletListView({ paletler, onDelete }) {
                     <div
                         key={palet.id}
                         className="group px-4 py-3 hover:bg-blue-50/30 transition-colors duration-150
-                            grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_1.2fr_0.7fr_0.7fr_0.8fr_0.7fr_auto] gap-2 sm:gap-3 items-center"
+                            grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_1.2fr_0.8fr_0.7fr_0.7fr_0.8fr_0.7fr_auto] gap-2 sm:gap-3 items-center"
                     >
                         {/* Palet No */}
                         <div className="flex items-center gap-2.5">
@@ -185,7 +232,10 @@ function PaletListView({ paletler, onDelete }) {
                         </div>
 
                         {/* Mobile: metrics row */}
-                        <div className="col-span-2 sm:hidden flex items-center gap-3 text-xs text-slate-500">
+                        <div className="col-span-2 sm:hidden flex items-center gap-3 flex-wrap text-xs text-slate-500">
+                            {palet.lot?.urun?.ean && (
+                                <span className="flex items-center gap-1"><Hash className="w-3.5 h-3.5 text-violet-400" /> {palet.lot.urun.ean}</span>
+                            )}
                             <span className="flex items-center gap-1"><PackageOpen className="w-3.5 h-3.5 text-indigo-400" /> {palet.koli_adedi} koli</span>
                             <span className="flex items-center gap-1"><Scale className="w-3.5 h-3.5 text-emerald-400" /> {palet.palet_kg || '-'} kg</span>
                             <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-blue-400" /> {palet.raf?.kod || 'Raf Yok'}</span>
@@ -193,6 +243,15 @@ function PaletListView({ paletler, onDelete }) {
                         </div>
 
                         {/* Desktop only columns */}
+                        <div className="hidden sm:flex items-center gap-1">
+                            {palet.lot?.urun?.ean ? (
+                                <span className="text-xs font-mono font-medium text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100">
+                                    {palet.lot.urun.ean}
+                                </span>
+                            ) : (
+                                <span className="text-xs text-slate-300">—</span>
+                            )}
+                        </div>
                         <p className="hidden sm:block text-sm font-semibold text-slate-700 text-center tabular-nums">{palet.koli_adedi}</p>
                         <p className="hidden sm:block text-sm font-medium text-slate-500 text-center tabular-nums">{palet.palet_kg || '-'}</p>
                         <div className="hidden sm:flex items-center gap-1.5">
@@ -252,9 +311,16 @@ function PaletCard({ palet, onDelete }) {
                 <h3 className="text-[15px] font-bold text-slate-800 line-clamp-2 leading-snug mb-1">
                     {palet.lot?.urun?.isim || `LOT #${palet.lot_id}`}
                 </h3>
-                <span className="inline-flex text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                    LOT: {palet.lot?.lot_no || '-'}
-                </span>
+                <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                    <span className="inline-flex text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                        LOT: {palet.lot?.lot_no || '-'}
+                    </span>
+                    {palet.lot?.urun?.ean && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100">
+                            <Hash className="w-2.5 h-2.5" /> {palet.lot.urun.ean}
+                        </span>
+                    )}
+                </div>
 
                 {/* Metrics */}
                 <div className="grid grid-cols-2 gap-2 mt-3">
@@ -380,7 +446,8 @@ export default function PaletlerPage() {
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
     const [sortKey, setSortKey] = useState('default');
     const [filtersOpen, setFiltersOpen] = useState(false);
-    const [filters, setFilters] = useState({ lot_id: '', vardiya: '', raf: '' });
+    const [filters, setFilters] = useState({ lot_id: '', vardiya: '', raf: '', ean: '' });
+    const eanDebounceRef = useRef(null);
 
     // Infinite scroll state
     const [page, setPage] = useState(0);
@@ -392,8 +459,14 @@ export default function PaletlerPage() {
     // Initial + paginated fetch
     const fetchData = useCallback(async (pageNum = 0, append = false) => {
         try {
+            // EAN filtresi aktifse API'ye gönder
+            const apiParams = { skip: pageNum * limit, limit };
+            if (filters.ean && /^\d{8,14}$/.test(filters.ean)) {
+                apiParams.ean = filters.ean;
+            }
+
             const fetcher = () => Promise.all([
-                getPaletler({ skip: pageNum * limit, limit }),
+                getPaletler(apiParams),
                 ...(pageNum === 0 ? [getLotlar({ limit: 200 })] : [])
             ]);
 
@@ -428,7 +501,7 @@ export default function PaletlerPage() {
             toast.error('Veriler yüklenemedi');
             setLoadingMore(false);
         }
-    }, [run, limit]);
+    }, [run, limit, filters.ean]);
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
@@ -481,7 +554,19 @@ export default function PaletlerPage() {
         }
     };
 
-    const resetFilters = () => setFilters({ lot_id: '', vardiya: '', raf: '' });
+    const resetFilters = () => setFilters({ lot_id: '', vardiya: '', raf: '', ean: '' });
+
+    // EAN debounce handler — yazma bitince sunucu tarafı filtrele
+    const handleEanChange = useCallback((val) => {
+        if (eanDebounceRef.current) clearTimeout(eanDebounceRef.current);
+        eanDebounceRef.current = setTimeout(() => {
+            if (!val || /^\d{8,14}$/.test(val)) {
+                // Geçerli EAN veya boş → yeniden fetch
+                setPage(0);
+                setHasMore(true);
+            }
+        }, 500);
+    }, []);
 
     // Filter + search + sort pipeline (memoized)
     const processedPaletler = useMemo(() => {
@@ -493,7 +578,8 @@ export default function PaletlerPage() {
             result = result.filter(p =>
                 p.palet_no?.toLowerCase().includes(s) ||
                 p.lot?.urun?.isim?.toLowerCase().includes(s) ||
-                p.lot?.lot_no?.toLowerCase().includes(s)
+                p.lot?.lot_no?.toLowerCase().includes(s) ||
+                p.lot?.urun?.ean?.toLowerCase().includes(s)
             );
         }
 
@@ -525,7 +611,7 @@ export default function PaletlerPage() {
         lotCount: new Set(paletler.map(p => p.lot_id)).size,
     }), [paletler]);
 
-    const activeFilterCount = [filters.lot_id, filters.vardiya, filters.raf].filter(Boolean).length;
+    const activeFilterCount = [filters.lot_id, filters.vardiya, filters.raf, filters.ean].filter(Boolean).length;
 
     return (
         <div className="pb-24 sm:pb-8 max-w-[1400px] mx-auto px-4 sm:px-6 pt-4 sm:pt-6">
@@ -627,6 +713,7 @@ export default function PaletlerPage() {
                         lotlar={lotlar}
                         paletler={paletler}
                         onReset={resetFilters}
+                        onEanChange={handleEanChange}
                     />
                 </div>
             )}

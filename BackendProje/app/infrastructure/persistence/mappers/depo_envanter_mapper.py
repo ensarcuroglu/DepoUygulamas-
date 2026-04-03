@@ -11,7 +11,7 @@ from models import (
 from app.core.entities.depo import Depo
 from app.core.entities.raf import Raf
 from app.core.entities.lot import Lot
-from app.core.entities.palet import Palet
+from app.core.entities.palet import Palet, LotBilgi, UrunBilgi, RafBilgi
 
 
 def depo_to_entity(orm: DepoORM) -> Depo:
@@ -88,6 +88,46 @@ def lot_to_orm(entity: Lot) -> LotORM:
     )
 
 
+def _build_urun_bilgi(orm_lot) -> UrunBilgi | None:
+    """ORM Lot'un eager-loaded urun ilişkisinden UrunBilgi oluşturur."""
+    urun = getattr(orm_lot, "urun", None)
+    if urun is None:
+        return None
+    return UrunBilgi(
+        id=urun.id,
+        isim=urun.isim,
+        ean=urun.ean,
+        barkod=urun.barkod,
+    )
+
+
+def _build_lot_bilgi(orm) -> LotBilgi | None:
+    """ORM Palet'in eager-loaded lot ilişkisinden LotBilgi oluşturur."""
+    lot = getattr(orm, "lot", None)
+    if lot is None:
+        return None
+    return LotBilgi(
+        id=lot.id,
+        lot_no=lot.lot_no,
+        urun_id=lot.urun_id,
+        uretim_tarihi=lot.uretim_tarihi,
+        son_kullanma_tarihi=lot.son_kullanma_tarihi,
+        urun=_build_urun_bilgi(lot),
+    )
+
+
+def _build_raf_bilgi(orm) -> RafBilgi | None:
+    """ORM Palet'in eager-loaded raf ilişkisinden RafBilgi oluşturur."""
+    raf = getattr(orm, "raf", None)
+    if raf is None:
+        return None
+    return RafBilgi(
+        id=raf.id,
+        kod=raf.kod,
+        bolge=raf.bolge or "",
+    )
+
+
 def palet_to_entity(orm: PaletORM) -> Palet:
     return Palet(
         id=orm.id,
@@ -100,6 +140,8 @@ def palet_to_entity(orm: PaletORM) -> Palet:
         tarih=orm.tarih,
         aktif=orm.aktif,
         olusturma_tarihi=orm.olusturma_tarihi,
+        lot=_build_lot_bilgi(orm),
+        raf=_build_raf_bilgi(orm),
     )
 
 
@@ -116,3 +158,4 @@ def palet_to_orm(entity: Palet) -> PaletORM:
         aktif=entity.aktif,
         olusturma_tarihi=entity.olusturma_tarihi,
     )
+

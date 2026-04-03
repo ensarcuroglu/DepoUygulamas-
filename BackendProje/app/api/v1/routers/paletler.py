@@ -44,10 +44,11 @@ def paletleri_listele(
     limit: int = Query(default=50, ge=1, le=500),
     lot_id: Optional[int] = Query(None, description="LOT'a göre filtrele"),
     raf_id: Optional[int] = Query(None, description="Rafa göre filtrele"),
+    ean: Optional[str] = Query(None, description="EAN numarasına göre filtrele (tam eşleşme)"),
     current_user: Kullanici = Depends(get_current_user),
     uc: PaletListeleUseCase = Depends(get_palet_listele_uc),
 ):
-    return uc.execute(skip=skip, limit=limit, lot_id=lot_id, raf_id=raf_id)
+    return uc.execute(skip=skip, limit=limit, lot_id=lot_id, raf_id=raf_id, ean=ean)
 
 
 @router.get("/sonraki-numara")
