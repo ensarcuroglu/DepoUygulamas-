@@ -108,7 +108,7 @@ export default function StokSayimPage() {
             await api.post(`/stok-sayimlar/${aktifSayim.id}/onayla`);
             toast.success('Sayım onaylandı ve kapatıldı');
             setAktifSayim(null);
-            yukle();
+            await yukle();
         });
     };
 

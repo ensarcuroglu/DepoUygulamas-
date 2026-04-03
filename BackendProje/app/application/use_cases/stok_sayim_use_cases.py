@@ -86,6 +86,9 @@ class StokSayimBaslatUseCase:
         dto: StokSayimOlusturRequestDTO,
         kullanici_id: int,
     ) -> StokSayimResponseDTO:
+        if self._repo.aktif_sayim_var_mi():
+            raise GecersizIslemError("Zaten aktif bir sayım mevcut. Önce mevcut sayımı tamamlayın.")
+
         now = datetime.utcnow()
         sayim_no = f"SAY-{now.year}{now.month:02d}-{now.day:02d}-{now.hour:02d}{now.minute:02d}{now.second:02d}"
 
@@ -151,9 +154,9 @@ class StokSayimKalemKaydetUseCase:
             raise GecersizIslemError("Bu sayım aktif değil")
 
         if dto.ean:
-            urun = self._urun_repo.getir_ean_ile(dto.ean)
+            urun = self._urun_repo.getir_barkod_ile(dto.ean)
             if not urun:
-                raise KayitBulunamadiError("Ürün (EAN)", dto.ean)
+                raise KayitBulunamadiError("Ürün (EAN/Barkod)", dto.ean)
         else:
             urun = self._urun_repo.getir_id_ile(dto.urun_id)
             if not urun:

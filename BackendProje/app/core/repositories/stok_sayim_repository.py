@@ -37,6 +37,11 @@ class IStokSayimRepository(ABC):
         ...
 
     @abstractmethod
+    def aktif_sayim_var_mi(self) -> bool:
+        """devam_ediyor veya bitti durumunda sayım var mı kontrol eder."""
+        ...
+
+    @abstractmethod
     def stok_snapshot_getir(self) -> Dict[int, int]:
         """Aktif ürünlerin palet bazlı stok toplamını döner: {urun_id: toplam_koli}."""
         ...

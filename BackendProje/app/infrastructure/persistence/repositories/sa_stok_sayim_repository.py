@@ -93,6 +93,11 @@ class SqlAlchemyStokSayimRepository(IStokSayimRepository):
         ).first()
         return stok_sayim_kalemi_to_entity(orm) if orm else None
 
+    def aktif_sayim_var_mi(self) -> bool:
+        return self._db.query(StokSayimORM).filter(
+            StokSayimORM.durum.in_(["devam_ediyor", "bitti"])
+        ).first() is not None
+
     def stok_snapshot_getir(self) -> Dict[int, int]:
         rows = (
             self._db.query(
