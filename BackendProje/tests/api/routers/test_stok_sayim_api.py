@@ -99,12 +99,30 @@ class TestStokSayimEndpoints:
         assert "sayim_no" in data
         assert "varyanslar" in data
 
-    def test_sayim_onayla(self, admin_client, db_session):
+    def test_sayim_bitir(self, admin_client, db_session):
+        """devam_ediyor → bitti geçişi."""
         sayim = StokSayimFactory.create(durum="devam_ediyor")
+
+        response = admin_client.post(f"/api/stok-sayimlar/{sayim.id}/bitir")
+
+        assert response.status_code == 200
+        assert response.json()["sayim_no"] == sayim.sayim_no
+
+    def test_sayim_onayla(self, admin_client, db_session):
+        """bitti → onaylandi geçişi (doğrudan devam_ediyor'dan geçiş artık yasak)."""
+        sayim = StokSayimFactory.create(durum="bitti")
 
         response = admin_client.post(f"/api/stok-sayimlar/{sayim.id}/onayla")
 
         assert response.status_code == 200
+
+    def test_sayim_onayla_devam_ediyor_yasak(self, admin_client, db_session):
+        """devam_ediyor'dan doğrudan onaylama yapılamamalı — 422/400."""
+        sayim = StokSayimFactory.create(durum="devam_ediyor")
+
+        response = admin_client.post(f"/api/stok-sayimlar/{sayim.id}/onayla")
+
+        assert response.status_code == 400
 
     def test_sayim_onayla_depocu_yasak(self, depocu_client, db_session):
         """Depocu sayım onaylayamamalı — 403."""

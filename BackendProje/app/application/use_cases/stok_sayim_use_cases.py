@@ -102,7 +102,10 @@ class StokSayimBaslatUseCase:
             kontrol_eden_user_id=kullanici_id,
             referans_stok_json=referans_stok_json,
         )
-        sayim.baslat()
+        try:
+            sayim.baslat()
+        except ValueError as e:
+            raise GecersizIslemError(str(e))
 
         kaydedilen = self._repo.olustur(sayim)
 
@@ -280,7 +283,11 @@ class StokSayimBitirUseCase:
         if not sayim:
             raise KayitBulunamadiError("Sayım", sayim_id)
 
-        sayim.bitir()
+        try:
+            sayim.bitir()
+        except ValueError as e:
+            raise GecersizIslemError(str(e))
+
         self._repo.guncelle(sayim)
 
         self._log_repo.olustur(
@@ -321,7 +328,11 @@ class StokSayimOnaylaUseCase:
         if not sayim:
             raise KayitBulunamadiError("Sayım", sayim_id)
 
-        sayim.onayla(onaylayan_user_id=kullanici_id)
+        try:
+            sayim.onayla(onaylayan_user_id=kullanici_id)
+        except ValueError as e:
+            raise GecersizIslemError(str(e))
+
         self._repo.guncelle(sayim)
 
         self._log_repo.olustur(
