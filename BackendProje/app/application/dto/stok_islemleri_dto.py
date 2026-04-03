@@ -73,6 +73,7 @@ class TopluPaletGirisRequestDTO(BaseModel):
     """Toplu palet girisi istegi — max 50 palet."""
 
     palet_no_listesi: List[str]
+    irsaliye_no: Optional[str] = None
 
     @field_validator("palet_no_listesi", mode="before")
     @classmethod

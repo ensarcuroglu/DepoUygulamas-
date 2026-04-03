@@ -147,7 +147,7 @@ def toplu_palet_giris(
     """Birden fazla paleti tek seferde giris yapar. Pre-validation + all-or-nothing."""
     kullanici = kullanici_to_entity(current_user)
 
-    sonuclar = service.toplu_palet_giris(dto.palet_no_listesi, kullanici)
+    sonuclar = service.toplu_palet_giris(dto.palet_no_listesi, kullanici, irsaliye_no=dto.irsaliye_no)
 
     # Hata varsa commit yapma (pre-validation basarisiz)
     if any(not s.basarili for s in sonuclar):

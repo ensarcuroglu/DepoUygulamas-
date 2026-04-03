@@ -21,6 +21,7 @@ class StokHareketi:
     hareket_tipi: str = HareketTipi.GIRIS
     miktar: int = 0
     siparis_no: Optional[str] = None
+    irsaliye_no: Optional[str] = None
     tir_plaka: Optional[str] = None
     depo_kapi: Optional[str] = None
     barkodlar: Optional[List[str]] = None

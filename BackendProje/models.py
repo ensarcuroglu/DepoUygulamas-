@@ -204,6 +204,7 @@ class StokHareketi(Base):
     hareket_tipi = Column(String(10), nullable=False)             # "giris" veya "cikis"
     miktar = Column(Integer, nullable=False)
     siparis_no = Column(String(100), nullable=True)               # Ürün çıkışı için Sipariş Numarası
+    irsaliye_no = Column(String(100), nullable=True)              # Ürün girişi için Mal Kabul İrsaliye Numarası
     tir_plaka = Column(String(50), nullable=True)                 # Ürün çıkışı için Tır Plakası
     depo_kapi = Column(String(50), nullable=True)                 # Ürün çıkışı için Depo Kapısı
     barkodlar = Column(JSON, nullable=True)                       # Çoklu barkodları json array formatında saklamak için

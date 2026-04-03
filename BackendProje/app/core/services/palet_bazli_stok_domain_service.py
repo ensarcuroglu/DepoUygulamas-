@@ -68,8 +68,9 @@ class PaletBazliStokDomainService:
         palet_no: str,
         kullanici: Kullanici,
         kaynagi_onayla: bool = True,
+        irsaliye_no: Optional[str] = None,
     ) -> StokHareketi:
-        return self._giris.palet_giris(palet_no, kullanici, kaynagi_onayla)
+        return self._giris.palet_giris(palet_no, kullanici, kaynagi_onayla, irsaliye_no)
 
     def son_hareketi_getir_palet_ile(self, palet_no: str) -> Optional[StokHareketi]:
         return self._giris.son_hareketi_getir_palet_ile(palet_no)
@@ -92,8 +93,9 @@ class PaletBazliStokDomainService:
         self,
         palet_no_listesi: list[str],
         kullanici: Kullanici,
+        irsaliye_no: Optional[str] = None,
     ) -> list[TopluPaletSonuc]:
-        return self._giris.toplu_palet_giris(palet_no_listesi, kullanici)
+        return self._giris.toplu_palet_giris(palet_no_listesi, kullanici, irsaliye_no)
 
     def toplu_palet_giris_kaynagini_onayla(self, palet_no_listesi: list[str]) -> None:
         self._giris.toplu_palet_giris_kaynagini_onayla(palet_no_listesi)

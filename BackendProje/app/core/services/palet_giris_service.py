@@ -48,6 +48,7 @@ class PaletGirisService:
         palet_no: str,
         kullanici: Kullanici,
         kaynagi_onayla: bool = True,
+        irsaliye_no: Optional[str] = None,
     ) -> StokHareketi:
         """Palet numarası ile stok girişi yapar.
 
@@ -88,6 +89,7 @@ class PaletGirisService:
             raf_id=dto.raf_id,
             hareket_tipi=HareketTipi.GIRIS,
             miktar=dto.miktar,
+            irsaliye_no=irsaliye_no,
             kullanici_id=kullanici.id,
             aciklama=f"Palet bazli stok girisi: {palet_no}",
         )
@@ -119,6 +121,7 @@ class PaletGirisService:
         self,
         palet_no_listesi: list[str],
         kullanici: Kullanici,
+        irsaliye_no: Optional[str] = None,
     ) -> list[TopluPaletSonuc]:
         """Birden fazla paleti tek seferde giriş yapar (pre-validation + all-or-nothing)."""
         from app.core.services.palet_bazli_stok_domain_service import TopluPaletSonuc
@@ -135,7 +138,7 @@ class PaletGirisService:
             return sonuclar
 
         for sonuc in sonuclar:
-            sonuc.hareket = self.palet_giris(sonuc.palet_no, kullanici, kaynagi_onayla=False)
+            sonuc.hareket = self.palet_giris(sonuc.palet_no, kullanici, kaynagi_onayla=False, irsaliye_no=irsaliye_no)
 
         return sonuclar
 

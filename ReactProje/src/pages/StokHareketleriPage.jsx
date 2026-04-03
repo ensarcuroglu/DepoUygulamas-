@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
-    ArrowDownToLine, ArrowUpFromLine, Barcode, Check, Loader2, Package, Clock,
-    Search, X, TrendingUp, TrendingDown, ArrowLeft, MapPin, Calendar, Hash, Box,
-    ChevronDown, ChevronUp, Trash2, Scissors, AlertTriangle, Layers,
+    ArrowDownToLine, ArrowUpFromLine, Barcode, Check, Loader2, Clock,
+    Search, X, TrendingUp, TrendingDown, ArrowLeft, Box,
+    ChevronDown, ChevronUp, Scissors, AlertTriangle, Layers, FileText,
+    ClipboardList,
 } from 'lucide-react';
 import {
     getStokHareketleri, stokIslemleriPaletSorgula,
     stokIslemleriTopluGiris, stokIslemleriTopluCikis,
+    getSiparisler, getMalKabulIrsaliyeleri,
 } from '../services/api';
 import toast from 'react-hot-toast';
 import { useAsync } from '../hooks/useAsync';
@@ -91,6 +93,15 @@ export default function StokHareketleriPage() {
     const [step, setStep] = useState(1);
     const [hareketTipi, setHareketTipi] = useState('');
 
+    // Step 2: Referans belge seçimi
+    const [secilenSiparis, setSecilenSiparis] = useState(null);
+    const [secilenMalKabul, setSecilenMalKabul] = useState(null);
+    const [referansArama, setReferansArama] = useState('');
+    const [referansListesi, setReferansListesi] = useState([]);
+    const [referansYukleniyor, setReferansYukleniyor] = useState(false);
+    // Çıkış için: varsayılan "Hazirlaniyor", toggle ile "Bekleme" de gösterilebilir
+    const [siparisTabDurum, setSiparisTabDurum] = useState('Hazirlaniyor');
+
     // Toplu tarama listesi: [{palet_no, bilgi, durum:'yukleniyor'|'gecerli'|'hata', hataMesaji?}]
     const [taramaListesi, setTaramaListesi] = useState([]);
     const [paletNo, setPaletNo] = useState('');
@@ -99,10 +110,6 @@ export default function StokHareketleriPage() {
     // Çıkış: per-palet miktar düzenleme
     const [parcalaModu, setParcalaModu] = useState(null); // palet_no veya null
     const [parcalaMiktar, setParcalaMiktar] = useState('');
-
-    // Çıkış: ortak alanlar
-    const [cikisSiparisNo, setCikisSiparisNo] = useState('');
-    const [cikisAciklama, setCikisAciklama] = useState('');
 
     // Son işlemler
     const [sonIslemler, setSonIslemler] = useState([]);
@@ -142,11 +149,35 @@ export default function StokHareketleriPage() {
         };
     }, []);
 
+    // ===== REFERANS LİSTESİ YÜKLEME (Step 2) =====
+    useEffect(() => {
+        if (step !== 2) return;
+        let aktif = true;
+        const yukle = async () => {
+            setReferansYukleniyor(true);
+            try {
+                if (hareketTipi === 'cikis') {
+                    const res = await getSiparisler({ durum: siparisTabDurum, arama: referansArama || undefined, limit: 50 });
+                    if (aktif) setReferansListesi(res.data);
+                } else {
+                    const res = await getMalKabulIrsaliyeleri({ durum: 'Onaylandi', arama: referansArama || undefined, limit: 50 });
+                    if (aktif) setReferansListesi(res.data);
+                }
+            } catch {
+                if (aktif) toast.error('Liste yüklenemedi');
+            } finally {
+                if (aktif) setReferansYukleniyor(false);
+            }
+        };
+        const timer = setTimeout(yukle, referansArama ? 400 : 0);
+        return () => { aktif = false; clearTimeout(timer); };
+    }, [step, hareketTipi, siparisTabDurum, referansArama]);
+
     // ===== BARKOD TARAMA (Fiziksel okuyucu — Zebra DataWedge Keyboard Wedge) =====
     // ignoredInputTypes: Input fokuslu iken hook pasif olur → çift tetikleme engellenir.
     // Input boşken (fokus yok) arka plan taraması çalışmaya devam eder.
     useBarcodeScanner({
-        isEnabled: step === 2,
+        isEnabled: step === 3,
         maxGap: 150,
         minLength: 4,
         ignoredInputTypes: ['input', 'textarea'],
@@ -159,7 +190,7 @@ export default function StokHareketleriPage() {
     // Zebra cihazda ekran karardığında, modal kapandığında veya
     // tarama sonrası focus'un input alanına geri dönmesini garanti eder.
     useEffect(() => {
-        if (step === 2 && !cameraScannerOpen) {
+        if (step === 3 && !cameraScannerOpen) {
             const timer = setTimeout(() => paletInputRef.current?.focus(), 120);
             return () => clearTimeout(timer);
         }
@@ -168,7 +199,7 @@ export default function StokHareketleriPage() {
     // Visibility change: Ekran kararıp tekrar açıldığında focus'u geri al
     useEffect(() => {
         const handleVisibility = () => {
-            if (!document.hidden && step === 2 && !cameraScannerOpen) {
+            if (!document.hidden && step === 3 && !cameraScannerOpen) {
                 setTimeout(() => paletInputRef.current?.focus(), 200);
             }
         };
@@ -282,6 +313,7 @@ export default function StokHareketleriPage() {
                 if (hareketTipi === 'giris') {
                     const res = await stokIslemleriTopluGiris({
                         palet_no_listesi: gecerliPaletler.map(t => t.palet_no),
+                        irsaliye_no: secilenMalKabul?.irsaliye_no || undefined,
                     });
                     const sonuc = res.data;
                     if (sonuc.basarisiz > 0) {
@@ -304,8 +336,7 @@ export default function StokHareketleriPage() {
                             palet_no: t.palet_no,
                             miktar: t.miktar || undefined,
                         })),
-                        siparis_no: cikisSiparisNo || undefined,
-                        aciklama: cikisAciklama || undefined,
+                        siparis_no: secilenSiparis?.siparis_no || undefined,
                     });
                     const sonuc = res.data;
                     if (sonuc.basarisiz > 0) {
@@ -342,32 +373,41 @@ export default function StokHareketleriPage() {
     const resetForm = () => {
         setStep(1);
         setHareketTipi('');
+        setSecilenSiparis(null);
+        setSecilenMalKabul(null);
+        setReferansArama('');
+        setReferansListesi([]);
+        setSiparisTabDurum('Hazirlaniyor');
         setTaramaListesi([]);
         setPaletNo('');
         setParcalaModu(null);
         setParcalaMiktar('');
-        setCikisSiparisNo('');
-        setCikisAciklama('');
     };
 
     // ===== STEP INDICATOR =====
+    const ADIM_ETIKETLERI = ['Tip', 'Belge', 'Tara', 'Onayla'];
     const StepIndicator = () => (
-        <div className="flex items-center justify-center gap-2 py-4">
-            {[1, 2, 3].map((s) => (
-                <div key={s} className="flex items-center gap-2">
-                    <div className={`
-                        w-10 h-10 rounded-full flex items-center justify-center text-sm font-black transition-all duration-300
-                        ${step >= s
-                            ? step === s
-                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/40 scale-110'
-                                : 'bg-emerald-500 text-white'
-                            : 'bg-slate-200 text-slate-400'
-                        }
-                    `}>
-                        {step > s ? <Check className="w-5 h-5" strokeWidth={3} /> : s}
+        <div className="flex items-center justify-center gap-1.5 py-4">
+            {[1, 2, 3, 4].map((s) => (
+                <div key={s} className="flex items-center gap-1.5">
+                    <div className="flex flex-col items-center gap-1">
+                        <div className={`
+                            w-9 h-9 rounded-full flex items-center justify-center text-sm font-black transition-all duration-300
+                            ${step >= s
+                                ? step === s
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/40 scale-110'
+                                    : 'bg-emerald-500 text-white'
+                                : 'bg-slate-200 text-slate-400'
+                            }
+                        `}>
+                            {step > s ? <Check className="w-4 h-4" strokeWidth={3} /> : s}
+                        </div>
+                        <span className={`text-[9px] font-bold uppercase tracking-wide ${step >= s ? 'text-slate-500' : 'text-slate-300'}`}>
+                            {ADIM_ETIKETLERI[s - 1]}
+                        </span>
                     </div>
-                    {s < 3 && (
-                        <div className={`w-8 sm:w-12 h-1 rounded-full transition-all duration-500 ${step > s ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                    {s < 4 && (
+                        <div className={`w-6 sm:w-10 h-1 rounded-full mb-3 transition-all duration-500 ${step > s ? 'bg-emerald-500' : 'bg-slate-200'}`} />
                     )}
                 </div>
             ))}
@@ -632,10 +672,157 @@ export default function StokHareketleriPage() {
                         </div>
                     )}
 
-                    {/* ===== ADIM 2: ÇOKLU PALET TARAMA ===== */}
+                    {/* ===== ADIM 2: REFERANS BELGE SEÇİMİ ===== */}
                     {step === 2 && (
                         <div className="space-y-4">
                             <StepHeader onBack={resetForm} backLabel="Geri Dön" />
+
+                            {/* Başlık */}
+                            <div className={`rounded-2xl p-4 ${hareketTipi === 'giris' ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
+                                <div className="flex items-center gap-3">
+                                    {hareketTipi === 'giris'
+                                        ? <ClipboardList className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                                        : <FileText className="w-5 h-5 text-red-600 flex-shrink-0" />
+                                    }
+                                    <div>
+                                        <p className={`text-sm font-black ${hareketTipi === 'giris' ? 'text-emerald-800' : 'text-red-800'}`}>
+                                            {hareketTipi === 'giris' ? 'Mal Kabul İrsaliyesi Seçin' : 'Sipariş Seçin'}
+                                        </p>
+                                        <p className={`text-xs font-semibold mt-0.5 ${hareketTipi === 'giris' ? 'text-emerald-600/70' : 'text-red-600/70'}`}>
+                                            {hareketTipi === 'giris'
+                                                ? 'Girişi yapılacak malların bağlı olduğu irsaliyeyi seçin'
+                                                : 'Palet çıkışının bağlı olduğu siparişi seçin'
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Çıkış: Hazırlanıyor / Beklemede toggle */}
+                            {hareketTipi === 'cikis' && (
+                                <div className="flex rounded-xl border border-slate-200 overflow-hidden">
+                                    {['Hazirlaniyor', 'Bekleme'].map(durum => (
+                                        <button
+                                            key={durum}
+                                            onClick={() => setSiparisTabDurum(durum)}
+                                            className={`flex-1 py-2.5 text-sm font-black transition-all ${
+                                                siparisTabDurum === durum
+                                                    ? 'bg-red-600 text-white'
+                                                    : 'bg-white text-slate-500 hover:bg-slate-50'
+                                            }`}
+                                        >
+                                            {durum === 'Hazirlaniyor' ? 'Hazırlanıyor' : 'Beklemede'}
+                                            {durum === 'Hazirlaniyor' && siparisTabDurum === durum && (
+                                                <span className="ml-1.5 text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full">ÖNCELİKLİ</span>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Arama */}
+                            <div className="relative">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                                <input
+                                    type="text"
+                                    placeholder={hareketTipi === 'giris' ? 'İrsaliye no veya tedarikçi ara...' : 'Sipariş no veya müşteri ara...'}
+                                    value={referansArama}
+                                    onChange={e => setReferansArama(e.target.value)}
+                                    className="w-full h-14 pl-12 pr-4 text-base font-bold rounded-2xl
+                                        border-2 border-slate-200 bg-slate-50 text-slate-800
+                                        placeholder-slate-400
+                                        focus:outline-none focus:border-blue-500 focus:bg-white
+                                        focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                />
+                            </div>
+
+                            {/* Liste */}
+                            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                                {referansYukleniyor ? (
+                                    <div className="space-y-2">
+                                        {[...Array(3)].map((_, i) => (
+                                            <div key={i} className="h-20 bg-slate-100 rounded-2xl animate-pulse" />
+                                        ))}
+                                    </div>
+                                ) : referansListesi.length === 0 ? (
+                                    <div className="py-10 text-center">
+                                        <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                                        <p className="text-sm font-bold text-slate-400">
+                                            {referansArama ? 'Arama sonucu bulunamadı' : 'Uygun kayıt yok'}
+                                        </p>
+                                    </div>
+                                ) : referansListesi.map(kayit => {
+                                    const isGiris = hareketTipi === 'giris';
+                                    const no = isGiris ? kayit.irsaliye_no : kayit.siparis_no;
+                                    const altBaslik = isGiris
+                                        ? `Tedarikçi #${kayit.tedarikci_id} · ${kayit.tarih ? new Date(kayit.tarih).toLocaleDateString('tr-TR') : '—'}`
+                                        : `${kayit.musteri_adi} · ${kayit.teslimat_tarihi ? new Date(kayit.teslimat_tarihi).toLocaleDateString('tr-TR') : '—'}`;
+                                    const durumRenk = isGiris
+                                        ? { 'Onaylandi': 'bg-emerald-100 text-emerald-700' }[kayit.durum] || 'bg-slate-100 text-slate-500'
+                                        : { 'Hazirlaniyor': 'bg-red-100 text-red-700', 'Bekleme': 'bg-amber-100 text-amber-700' }[kayit.durum] || 'bg-slate-100 text-slate-500';
+                                    const durumEtiket = { Hazirlaniyor: 'Hazırlanıyor', Bekleme: 'Beklemede', Onaylandi: 'Onaylı' }[kayit.durum] || kayit.durum;
+
+                                    return (
+                                        <button
+                                            key={kayit.id}
+                                            onClick={() => {
+                                                if (isGiris) setSecilenMalKabul(kayit);
+                                                else setSecilenSiparis(kayit);
+                                                setStep(3);
+                                            }}
+                                            className="w-full text-left p-4 rounded-2xl border-2 border-slate-200 bg-white
+                                                hover:border-blue-400 hover:shadow-md hover:shadow-blue-500/10
+                                                active:scale-[0.98] transition-all group"
+                                        >
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-base font-black text-slate-800 group-hover:text-blue-700 transition-colors truncate">
+                                                        {no}
+                                                    </p>
+                                                    <p className="text-xs font-semibold text-slate-400 mt-0.5 truncate">{altBaslik}</p>
+                                                </div>
+                                                <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg flex-shrink-0 ${durumRenk}`}>
+                                                    {durumEtiket}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ===== ADIM 3: ÇOKLU PALET TARAMA ===== */}
+                    {step === 3 && (
+                        <div className="space-y-4">
+                            <StepHeader onBack={() => setStep(2)} backLabel="Belge Değiştir" />
+
+                            {/* Seçili referans bilgi şeridi */}
+                            {(secilenSiparis || secilenMalKabul) && (
+                                <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl ${
+                                    hareketTipi === 'giris'
+                                        ? 'bg-emerald-50 border border-emerald-200'
+                                        : 'bg-red-50 border border-red-200'
+                                }`}>
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                        hareketTipi === 'giris' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'
+                                    }`}>
+                                        {hareketTipi === 'giris' ? <ClipboardList className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`text-sm font-black truncate ${hareketTipi === 'giris' ? 'text-emerald-800' : 'text-red-800'}`}>
+                                            {hareketTipi === 'giris' ? secilenMalKabul?.irsaliye_no : secilenSiparis?.siparis_no}
+                                        </p>
+                                        <p className={`text-xs font-semibold truncate ${hareketTipi === 'giris' ? 'text-emerald-600/70' : 'text-red-600/70'}`}>
+                                            {hareketTipi === 'giris'
+                                                ? `Tedarikçi #${secilenMalKabul?.tedarikci_id}`
+                                                : secilenSiparis?.musteri_adi
+                                            }
+                                        </p>
+                                    </div>
+                                    <Check className={`w-4 h-4 flex-shrink-0 ${hareketTipi === 'giris' ? 'text-emerald-500' : 'text-red-500'}`} strokeWidth={3} />
+                                </div>
+                            )}
 
                             {/* Palet No Girişi */}
                             <div>
@@ -735,7 +922,7 @@ export default function StokHareketleriPage() {
                             {/* Devam Et Butonu */}
                             {taramaListesi.length > 0 && (
                                 <button
-                                    onClick={() => setStep(3)}
+                                    onClick={() => setStep(4)}
                                     disabled={gecerliPaletler.length === 0 || yukleniyor}
                                     className={`w-full h-16 rounded-2xl text-lg font-black text-white
                                         flex items-center justify-center gap-3 transition-all shadow-xl
@@ -753,11 +940,11 @@ export default function StokHareketleriPage() {
                         </div>
                     )}
 
-                    {/* ===== ADIM 3: TOPLU ÖNİZLEME + ONAYLA ===== */}
-                    {step === 3 && (
+                    {/* ===== ADIM 4: TOPLU ÖNİZLEME + ONAYLA ===== */}
+                    {step === 4 && (
                         <div className="space-y-5">
                             <StepHeader
-                                onBack={() => setStep(2)}
+                                onBack={() => setStep(3)}
                                 backLabel="Listeye Dön"
                             />
 
@@ -774,6 +961,25 @@ export default function StokHareketleriPage() {
                                         {gecerliPaletler.length} palet — {hareketTipi === 'giris' ? 'Giriş' : 'Çıkış'}
                                     </span>
                                 </div>
+
+                                {/* Referans belge satırı */}
+                                {(secilenSiparis || secilenMalKabul) && (
+                                    <div className={`px-4 py-2.5 flex items-center gap-2 border-b border-slate-200 ${
+                                        hareketTipi === 'giris' ? 'bg-emerald-50/60' : 'bg-red-50/60'
+                                    }`}>
+                                        {hareketTipi === 'giris'
+                                            ? <ClipboardList className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                                            : <FileText className="w-4 h-4 text-red-600 flex-shrink-0" />
+                                        }
+                                        <span className={`text-xs font-black ${hareketTipi === 'giris' ? 'text-emerald-700' : 'text-red-700'}`}>
+                                            {hareketTipi === 'giris' ? 'İrsaliye:' : 'Sipariş:'}
+                                        </span>
+                                        <span className={`text-xs font-bold truncate ${hareketTipi === 'giris' ? 'text-emerald-900' : 'text-red-900'}`}>
+                                            {hareketTipi === 'giris' ? secilenMalKabul?.irsaliye_no : secilenSiparis?.siparis_no}
+                                            {hareketTipi === 'cikis' && secilenSiparis?.musteri_adi && ` · ${secilenSiparis.musteri_adi}`}
+                                        </span>
+                                    </div>
+                                )}
 
                                 <div className="p-4 space-y-2 max-h-80 overflow-y-auto">
                                     {gecerliPaletler.map(kalem => (
@@ -808,43 +1014,6 @@ export default function StokHareketleriPage() {
                                     </span>
                                 </div>
                             </div>
-
-                            {/* Çıkış Ortak Alanları */}
-                            {hareketTipi === 'cikis' && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-xs font-black text-slate-500 uppercase tracking-[0.15em] mb-2 block">
-                                            Sipariş No
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={cikisSiparisNo}
-                                            onChange={e => setCikisSiparisNo(e.target.value)}
-                                            className="w-full h-14 px-4 text-base font-bold rounded-2xl
-                                                border-2 border-slate-200 bg-slate-50 text-slate-800
-                                                focus:outline-none focus:border-blue-500 focus:bg-white
-                                                focus:ring-4 focus:ring-blue-500/10 transition-all"
-                                            placeholder="Örn: ORD-123"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-black text-slate-500 uppercase tracking-[0.15em] mb-2 block">
-                                            Açıklama <span className="text-slate-300 normal-case tracking-normal">(opsiyonel)</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={cikisAciklama}
-                                            onChange={e => setCikisAciklama(e.target.value)}
-                                            className="w-full h-14 px-4 text-base font-bold rounded-2xl
-                                                border-2 border-slate-200 bg-slate-50 text-slate-800
-                                                placeholder-slate-400
-                                                focus:outline-none focus:border-blue-500 focus:bg-white
-                                                focus:ring-4 focus:ring-blue-500/10 transition-all"
-                                            placeholder="İrsaliye no, alıcı..."
-                                        />
-                                    </div>
-                                </div>
-                            )}
 
                             {/* Hatalı paletler uyarısı */}
                             {hataliPaletler.length > 0 && (

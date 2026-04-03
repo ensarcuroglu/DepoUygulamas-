@@ -83,6 +83,7 @@ class StokHareketiResponseDTO(BaseModel):
     hareket_tipi: str
     miktar: int
     siparis_no: Optional[str]
+    irsaliye_no: Optional[str] = None
     tir_plaka: Optional[str]
     depo_kapi: Optional[str]
     barkodlar: Optional[List[str]]
@@ -104,6 +105,7 @@ class StokHareketiResponseDTO(BaseModel):
             hareket_tipi=entity.hareket_tipi,
             miktar=entity.miktar,
             siparis_no=entity.siparis_no,
+            irsaliye_no=entity.irsaliye_no,
             tir_plaka=entity.tir_plaka,
             depo_kapi=entity.depo_kapi,
             barkodlar=entity.barkodlar,
