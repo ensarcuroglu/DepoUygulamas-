@@ -370,6 +370,14 @@ export default function StokHareketleriPage() {
         }
     };
 
+    const resetTaramaState = useCallback(() => {
+        pendingRef.current.clear();
+        setTaramaListesi([]);
+        setPaletNo('');
+        setParcalaModu(null);
+        setParcalaMiktar('');
+    }, []);
+
     const resetForm = () => {
         setStep(1);
         setHareketTipi('');
@@ -378,10 +386,7 @@ export default function StokHareketleriPage() {
         setReferansArama('');
         setReferansListesi([]);
         setSiparisTabDurum('Hazirlaniyor');
-        setTaramaListesi([]);
-        setPaletNo('');
-        setParcalaModu(null);
-        setParcalaMiktar('');
+        resetTaramaState();
     };
 
     // ===== STEP INDICATOR =====
@@ -766,6 +771,8 @@ export default function StokHareketleriPage() {
                                         <button
                                             key={kayit.id}
                                             onClick={() => {
+                                                // Belge değişiminde önceki tarama listesini yeni belgeye taşımamak için sıfırla.
+                                                resetTaramaState();
                                                 if (isGiris) setSecilenMalKabul(kayit);
                                                 else setSecilenSiparis(kayit);
                                                 setStep(3);
