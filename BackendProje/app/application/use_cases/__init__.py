@@ -105,6 +105,7 @@ from .stok_sayim_use_cases import (
     StokSayimBaslatUseCase,
     StokSayimKalemKaydetUseCase,
     StokSayimVaryansHesaplaUseCase,
+    StokSayimBitirUseCase,
     StokSayimOnaylaUseCase,
 )
 from .rapor_use_cases import (
@@ -181,7 +182,8 @@ __all__ = [
     "SevkiyatPlaniSilUseCase",
     # Stok Sayım
     "StokSayimListeleUseCase", "StokSayimGetirUseCase", "StokSayimBaslatUseCase",
-    "StokSayimKalemKaydetUseCase", "StokSayimVaryansHesaplaUseCase", "StokSayimOnaylaUseCase",
+    "StokSayimKalemKaydetUseCase", "StokSayimVaryansHesaplaUseCase",
+    "StokSayimBitirUseCase", "StokSayimOnaylaUseCase",
     # Rapor
     "RaporSablonuListeleUseCase", "RaporSablonuGetirUseCase", "RaporSablonuOlusturUseCase",
     "RaporSablonuGuncelleUseCase", "RaporSablonuSilUseCase",

@@ -150,11 +150,16 @@ class StokSayimKalemKaydetUseCase:
         if sayim.durum not in (SayimDurum.OLUSTURULDU, SayimDurum.DEVAM_EDIYOR):
             raise GecersizIslemError("Bu sayım aktif değil")
 
-        urun = self._urun_repo.getir_id_ile(dto.urun_id)
-        if not urun:
-            raise KayitBulunamadiError("Ürün", dto.urun_id)
+        if dto.ean:
+            urun = self._urun_repo.getir_ean_ile(dto.ean)
+            if not urun:
+                raise KayitBulunamadiError("Ürün (EAN)", dto.ean)
+        else:
+            urun = self._urun_repo.getir_id_ile(dto.urun_id)
+            if not urun:
+                raise KayitBulunamadiError("Ürün", dto.urun_id)
 
-        mevcut_kalem = self._sayim_repo.kalem_getir_by_sayim_urun(sayim_id, dto.urun_id)
+        mevcut_kalem = self._sayim_repo.kalem_getir_by_sayim_urun(sayim_id, urun.id)
 
         if mevcut_kalem:
             mevcut_kalem.sayilan_miktar = dto.sayilan_miktar
@@ -164,14 +169,14 @@ class StokSayimKalemKaydetUseCase:
         else:
             yeni_kalem = StokSayimKalemi(
                 sayim_id=sayim_id,
-                urun_id=dto.urun_id,
+                urun_id=urun.id,
                 sayilan_miktar=dto.sayilan_miktar,
                 notlar=dto.notlar,
                 user_id=kullanici_id,
             )
             kaydedilen = self._sayim_repo.kalem_ekle(yeni_kalem)
 
-        return StokSayimKalemiResponseDTO.from_entity(kaydedilen)
+        return StokSayimKalemiResponseDTO.from_entity(kaydedilen, urun_adi=urun.isim)
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -244,6 +249,47 @@ class StokSayimVaryansHesaplaUseCase:
                 len(varyanslar) / len(sayim.referans_stok_json) * 100, 1
             ) if sayim.referans_stok_json else 0,
         )
+
+
+# ─────────────────────────────────────────────────────────────────
+# SAYIM BİTİR
+# ─────────────────────────────────────────────────────────────────
+
+class StokSayimBitirUseCase:
+    """
+    Sayımı bitirir (devam_ediyor → bitti).
+
+    İş kuralları:
+    - Domain entity bitir() metodu durum geçişini doğrular.
+    - Bitiş logu yazılır.
+    """
+
+    def __init__(
+        self,
+        sayim_repo: IStokSayimRepository,
+        log_repo: ISistemLogRepository,
+    ):
+        self._repo = sayim_repo
+        self._log_repo = log_repo
+
+    def execute(self, sayim_id: int, kullanici_id: int) -> dict:
+        sayim = self._repo.getir_id_ile(sayim_id)
+        if not sayim:
+            raise KayitBulunamadiError("Sayım", sayim_id)
+
+        sayim.bitir()
+        self._repo.guncelle(sayim)
+
+        self._log_repo.olustur(
+            SistemLog.olustur(
+                kullanici_id=kullanici_id,
+                islem_tipi=IslemTipi.UPDATE,
+                modul="Stok Sayım",
+                detay=f"Stok sayımı bitirildi: {sayim.sayim_no}",
+            )
+        )
+
+        return {"message": "Sayım bitirildi", "sayim_no": sayim.sayim_no}
 
 
 # ─────────────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@ Stok Sayım veri transfer nesneleri (DTO).
 from __future__ import annotations
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # ─────────────────────────────────────────
@@ -19,11 +19,18 @@ class StokSayimOlusturRequestDTO(BaseModel):
 
 
 class StokSayimKalemiKaydetRequestDTO(BaseModel):
-    """Sayım kalemi kaydetme (upsert) isteği."""
+    """Sayım kalemi kaydetme (upsert) isteği. urun_id veya ean'den biri zorunlu."""
 
-    urun_id: int = Field(..., gt=0)
-    sayilan_miktar: int = Field(..., ge=0)
+    urun_id: Optional[int] = Field(default=None, gt=0)
+    ean: Optional[str] = Field(default=None, max_length=14)
+    sayilan_miktar: int = Field(..., gt=0)
     notlar: str = Field(default="", max_length=500)
+
+    @model_validator(mode="after")
+    def urun_id_veya_ean_zorunlu(self) -> "StokSayimKalemiKaydetRequestDTO":
+        if self.urun_id is None and not self.ean:
+            raise ValueError("urun_id veya ean alanlarından biri zorunludur.")
+        return self
 
 
 # ─────────────────────────────────────────
@@ -36,6 +43,7 @@ class StokSayimKalemiResponseDTO(BaseModel):
     id: int
     sayim_id: int
     urun_id: int
+    urun_adi: Optional[str] = None
     sayilan_miktar: int
     notlar: str
     user_id: Optional[int] = None
@@ -44,11 +52,12 @@ class StokSayimKalemiResponseDTO(BaseModel):
     model_config = {"from_attributes": True}
 
     @classmethod
-    def from_entity(cls, entity) -> "StokSayimKalemiResponseDTO":
+    def from_entity(cls, entity, urun_adi: Optional[str] = None) -> "StokSayimKalemiResponseDTO":
         return cls(
             id=entity.id,
             sayim_id=entity.sayim_id,
             urun_id=entity.urun_id,
+            urun_adi=urun_adi,
             sayilan_miktar=entity.sayilan_miktar,
             notlar=entity.notlar,
             user_id=entity.user_id,

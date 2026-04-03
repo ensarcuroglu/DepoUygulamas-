@@ -13,6 +13,7 @@ from app.application.use_cases import (
     StokSayimBaslatUseCase,
     StokSayimKalemKaydetUseCase,
     StokSayimVaryansHesaplaUseCase,
+    StokSayimBitirUseCase,
     StokSayimOnaylaUseCase,
 )
 from app.infrastructure.di.modules.kullanici_destek_di import get_log_repo
@@ -84,6 +85,13 @@ def get_stok_sayim_varyans_uc(
     urun_repo=Depends(get_urun_repo),
 ):
     return StokSayimVaryansHesaplaUseCase(sayim_repo, urun_repo)
+
+
+def get_stok_sayim_bitir_uc(
+    sayim_repo=Depends(get_stok_sayim_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return StokSayimBitirUseCase(sayim_repo, log_repo)
 
 
 def get_stok_sayim_onayla_uc(

@@ -109,6 +109,7 @@ from app.infrastructure.di.modules.stok_di import (  # noqa: F401
     get_stok_sayim_baslat_uc,
     get_stok_sayim_kalem_kaydet_uc,
     get_stok_sayim_varyans_uc,
+    get_stok_sayim_bitir_uc,
     get_stok_sayim_onayla_uc,
 )
 

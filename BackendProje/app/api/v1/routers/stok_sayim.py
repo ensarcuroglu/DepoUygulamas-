@@ -11,6 +11,7 @@ from app.infrastructure.di.container import (
     get_stok_sayim_baslat_uc,
     get_stok_sayim_kalem_kaydet_uc,
     get_stok_sayim_varyans_uc,
+    get_stok_sayim_bitir_uc,
     get_stok_sayim_onayla_uc,
 )
 from app.application.dto.stok_sayim_dto import (
@@ -67,6 +68,15 @@ def varyans_hesapla(
     current_user: Kullanici = Depends(get_current_user),
 ):
     return uc.execute(sayim_id)
+
+
+@router.post("/{sayim_id}/bitir")
+def sayimi_bitir(
+    sayim_id: int,
+    uc=Depends(get_stok_sayim_bitir_uc),
+    current_user: Kullanici = Depends(require_role("admin")),
+):
+    return uc.execute(sayim_id, kullanici_id=current_user.id)
 
 
 @router.post("/{sayim_id}/onayla")

@@ -3,6 +3,8 @@ import { useAsync } from '../hooks/useAsync';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
+const EAN_REGEX = /^\d{8,14}$/;
+
 export default function StokSayimPage() {
     const [sayimlar, setSayimlar] = useState([]);
     const [aktifSayim, setAktifSayim] = useState(null);
@@ -10,6 +12,8 @@ export default function StokSayimPage() {
     const [varyansModal, setVaryansModal] = useState(false);
     const [aciklama, setAciklama] = useState('');
     const [aciklamaModal, setAciklamaModal] = useState(false);
+    const [cozumlenenUrun, setCozumlenenUrun] = useState(null);
+    const [miktar, setMiktar] = useState(1);
     const barkodRef = useRef(null);
 
     const { loading, run } = useAsync();
@@ -19,9 +23,9 @@ export default function StokSayimPage() {
         await run(async () => {
             const res = await api.get('/stok-sayimlar');
             setSayimlar(res.data);
-            // Aktif sayım varsa seç
-            const devam = res.data.find(s => s.durum === 'devam_ediyor');
-            if (devam) setAktifSayim(devam);
+            // Aktif sayım: devam ediyor veya bitti (onay bekliyor) durumundakini seç
+            const aktif = res.data.find(s => s.durum === 'devam_ediyor' || s.durum === 'bitti');
+            setAktifSayim(aktif ?? null);
         });
     }, [run]);
 
@@ -29,7 +33,7 @@ export default function StokSayimPage() {
 
     // Aktif sayım değişince barkod input'una odaklan
     useEffect(() => {
-        if (aktifSayim && barkodRef.current) {
+        if (aktifSayim?.durum === 'devam_ediyor' && barkodRef.current) {
             barkodRef.current.focus();
         }
     }, [aktifSayim]);
@@ -48,24 +52,38 @@ export default function StokSayimPage() {
 
     // Barkod ile ürün kaydet
     const urunKaydet = async (barkodDegeri) => {
-        if (!aktifSayim) return;
-        const urunId = parseInt(barkodDegeri);
-        if (!urunId || isNaN(urunId)) {
-            toast.error('Geçersiz barkod değeri');
+        if (!aktifSayim || aktifSayim.durum !== 'devam_ediyor') {
+            toast.error('Bu sayım artık düzenlenemez.');
+            return;
+        }
+        if (!EAN_REGEX.test(barkodDegeri)) {
+            toast.error('Geçersiz EAN barkod (8-14 rakam olmalı)');
             return;
         }
         await run(async () => {
             const res = await api.post(`/stok-sayimlar/${aktifSayim.id}/kalemler`, {
-                urun_id: urunId,
-                sayilan_miktar: 1,
+                ean: barkodDegeri,
+                sayilan_miktar: miktar,
                 notlar: ''
             });
-            // Kalem listesini güncelle (upsert mantığı)
             setAktifSayim(prev => {
                 const mevcutKalemler = prev.sayim_kalemleri.filter(k => k.urun_id !== res.data.urun_id);
                 return { ...prev, sayim_kalemleri: [res.data, ...mevcutKalemler] };
             });
-            toast.success(`Ürün kaydedildi: ${res.data.urun_adi || `#${urunId}`}`);
+            setCozumlenenUrun({ id: res.data.urun_id, isim: res.data.urun_adi || `#${res.data.urun_id}` });
+            setMiktar(1);
+            toast.success(`Kaydedildi: ${res.data.urun_adi || `Ürün #${res.data.urun_id}`} × ${miktar}`);
+        });
+    };
+
+    // Sayımı bitir (devam_ediyor → bitti)
+    const sayimiBitir = async () => {
+        if (!aktifSayim) return;
+        if (!window.confirm(`"${aktifSayim.sayim_no}" sayımını bitirmek istediğinize emin misiniz?`)) return;
+        await run(async () => {
+            await api.post(`/stok-sayimlar/${aktifSayim.id}/bitir`);
+            toast.success('Sayım bitirildi. Admin onayı bekliyor.');
+            await yukle();
         });
     };
 
@@ -78,9 +96,13 @@ export default function StokSayimPage() {
         });
     };
 
-    // Sayımı onayla / kapat
+    // Sayımı onayla (bitti → onaylandı)
     const sayimiKapat = async () => {
         if (!aktifSayim) return;
+        if (aktifSayim.durum !== 'bitti') {
+            toast.error('Önce sayımı bitirmeniz gerekiyor.');
+            return;
+        }
         if (!window.confirm(`"${aktifSayim.sayim_no}" sayımını onaylamak istediğinize emin misiniz?`)) return;
         await run(async () => {
             await api.post(`/stok-sayimlar/${aktifSayim.id}/onayla`);
@@ -93,8 +115,10 @@ export default function StokSayimPage() {
     const durumRenk = (durum) => {
         if (durum === 'onaylandı') return 'bg-emerald-100 text-emerald-800';
         if (durum === 'devam_ediyor') return 'bg-amber-100 text-amber-800';
+        if (durum === 'bitti') return 'bg-blue-100 text-blue-800';
         return 'bg-slate-100 text-slate-700';
     };
+    const sayimDuzenlenebilir = aktifSayim?.durum === 'devam_ediyor';
 
     return (
         <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -128,12 +152,22 @@ export default function StokSayimPage() {
                             >
                                 Varyans Gör
                             </button>
+                            {aktifSayim.durum === 'devam_ediyor' && (
+                                <button
+                                    onClick={sayimiBitir}
+                                    disabled={loading}
+                                    className="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-amber-700"
+                                >
+                                    Sayımı Bitir
+                                </button>
+                            )}
                             <button
                                 onClick={sayimiKapat}
-                                disabled={loading}
-                                className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-emerald-700"
+                                disabled={loading || aktifSayim.durum !== 'bitti'}
+                                className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                                title={aktifSayim.durum !== 'bitti' ? 'Önce sayımı bitirin' : ''}
                             >
-                                Sayımı Onayla
+                                Onayla
                             </button>
                         </div>
                     </div>
@@ -141,20 +175,64 @@ export default function StokSayimPage() {
                     {/* BARKOD GİRİŞİ */}
                     <div className="mb-4">
                         <label className="block text-sm font-semibold text-amber-800 mb-1">
-                            Barkod Tara / Ürün ID Gir
+                            EAN Barkod Tara
                         </label>
                         <input
                             ref={barkodRef}
-                            type="number"
-                            placeholder="Ürün ID veya barkod okutun, Enter'a basın..."
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            disabled={!sayimDuzenlenebilir || loading}
+                            placeholder="EAN barkod okutun (8-14 rakam), Enter'a basın..."
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter' && e.target.value.trim()) {
+                                if (sayimDuzenlenebilir && e.key === 'Enter' && e.target.value.trim()) {
                                     urunKaydet(e.target.value.trim());
                                     e.target.value = '';
                                 }
                             }}
-                            className="border border-amber-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-base"
+                            className="border border-amber-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-base disabled:bg-slate-100 disabled:cursor-not-allowed"
                         />
+                        {!sayimDuzenlenebilir && (
+                            <p className="mt-1 text-xs text-slate-600">
+                                Bu sayım bitirilmiş durumda; barkod girişi kapalıdır.
+                            </p>
+                        )}
+                        {cozumlenenUrun && (
+                            <p className="mt-1 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-1">
+                                Son: <span className="font-semibold">{cozumlenenUrun.isim}</span> <span className="text-emerald-500">#{cozumlenenUrun.id}</span>
+                            </p>
+                        )}
+                    </div>
+
+                    {/* MİKTAR GİRİŞİ */}
+                    <div className="mb-4 flex items-center gap-3">
+                        <label className="text-sm font-semibold text-amber-800 whitespace-nowrap">Sayım Miktarı</label>
+                        <div className="flex items-center gap-1">
+                            <button
+                                type="button"
+                                onClick={() => setMiktar(m => Math.max(1, m - 1))}
+                                disabled={!sayimDuzenlenebilir || loading}
+                                className="w-8 h-8 rounded-lg border border-amber-300 bg-white text-amber-800 font-bold hover:bg-amber-50 flex items-center justify-center disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                            >
+                                −
+                            </button>
+                            <input
+                                type="number"
+                                min="1"
+                                value={miktar}
+                                disabled={!sayimDuzenlenebilir || loading}
+                                onChange={e => setMiktar(Math.max(1, parseInt(e.target.value) || 1))}
+                                className="w-16 text-center border border-amber-300 rounded-lg p-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setMiktar(m => m + 1)}
+                                disabled={!sayimDuzenlenebilir || loading}
+                                className="w-8 h-8 rounded-lg border border-amber-300 bg-white text-amber-800 font-bold hover:bg-amber-50 flex items-center justify-center disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                            >
+                                +
+                            </button>
+                        </div>
                     </div>
 
                     {/* SAYILAN ÜRÜNLER */}
@@ -228,12 +306,12 @@ export default function StokSayimPage() {
                                         >
                                             Varyans
                                         </button>
-                                        {s.durum === 'devam_ediyor' && (
+                                        {(s.durum === 'devam_ediyor' || s.durum === 'bitti') && (
                                             <button
                                                 onClick={() => setAktifSayim(s)}
                                                 className="text-amber-600 hover:text-amber-800 text-xs font-semibold hover:underline"
                                             >
-                                                Devam Et
+                                                {s.durum === 'bitti' ? 'Onayla' : 'Devam Et'}
                                             </button>
                                         )}
                                     </td>
