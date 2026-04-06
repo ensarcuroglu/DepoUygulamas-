@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional, List
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 TOPLU_ISLEM_MAKS_PALET = 50
 
@@ -96,12 +96,12 @@ class TopluPaletCikisRequestDTO(BaseModel):
     """Toplu palet cikisi istegi — max 50 palet, per-palet opsiyonel miktar."""
 
     kalemler: List[TopluPaletCikisKalemiDTO]
-    siparis_no: Optional[str] = None
-    tir_plaka: Optional[str] = None
-    depo_kapi: Optional[str] = None
-    sofor_adi: Optional[str] = None
-    tasiyici_firma: Optional[str] = None
-    aciklama: Optional[str] = None
+    siparis_no: Optional[str] = Field(None, max_length=100)
+    tir_plaka: Optional[str] = Field(None, max_length=50)
+    depo_kapi: Optional[str] = Field(None, max_length=50)
+    sofor_adi: Optional[str] = Field(None, max_length=100)
+    tasiyici_firma: Optional[str] = Field(None, max_length=100)
+    aciklama: Optional[str] = Field(None, max_length=1000)
 
     @field_validator("kalemler")
     @classmethod

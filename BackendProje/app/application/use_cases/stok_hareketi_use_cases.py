@@ -120,6 +120,8 @@ class StokHareketiOlusturUseCase:
             siparis_no=dto.siparis_no,
             tir_plaka=dto.tir_plaka,
             depo_kapi=dto.depo_kapi,
+            sofor_adi=dto.sofor_adi,
+            tasiyici_firma=dto.tasiyici_firma,
             barkodlar=dto.barkodlar,
             aciklama=dto.aciklama,
             kullanici_id=kullanici_id,
