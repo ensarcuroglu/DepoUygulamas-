@@ -36,6 +36,11 @@ from .depo_dto import (
     DepoGuncelleRequestDTO,
     DepoResponseDTO,
 )
+from .zon_dto import (
+    ZonOlusturRequestDTO,
+    ZonGuncelleRequestDTO,
+    ZonResponseDTO,
+)
 from .raf_dto import (
     RafOlusturRequestDTO,
     RafGuncelleRequestDTO,
@@ -113,6 +118,8 @@ __all__ = [
     "TedarikciOlusturRequestDTO", "TedarikciGuncelleRequestDTO", "TedarikciResponseDTO",
     # Depo
     "DepoOlusturRequestDTO", "DepoGuncelleRequestDTO", "DepoResponseDTO",
+    # Zon
+    "ZonOlusturRequestDTO", "ZonGuncelleRequestDTO", "ZonResponseDTO",
     # Raf
     "RafOlusturRequestDTO", "RafGuncelleRequestDTO", "RafResponseDTO",
     # Lot

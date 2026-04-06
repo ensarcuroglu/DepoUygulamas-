@@ -4,7 +4,7 @@ ORM Model ↔ Domain Entity dönüşüm fonksiyonları — re-export hub.
 Tüm importlar `from app.infrastructure.persistence.mappers import <fn>` şeklinde çalışır.
 Alt modüller domain grubuna göre ayrılmıştır:
   - katalog_mapper          : Marka, Kategori, Tedarikci
-  - depo_envanter_mapper    : Depo, Raf, Lot, Palet
+  - depo_envanter_mapper    : Depo, Zon, Raf, Lot, Palet
   - urun_mapper             : Urun, StokHareketi
   - kullanici_destek_mapper : Kullanici, SistemLog, DestekTalebi
   - siparis_lojistik_mapper : Siparis, SiparisKalemi, SevkiyatPlani, Irsaliye
@@ -24,6 +24,8 @@ from app.infrastructure.persistence.mappers.katalog_mapper import (  # noqa: F40
 from app.infrastructure.persistence.mappers.depo_envanter_mapper import (  # noqa: F401
     depo_to_entity,
     depo_to_orm,
+    zon_to_entity,
+    zon_to_orm,
     raf_to_entity,
     raf_to_orm,
     lot_to_entity,

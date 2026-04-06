@@ -32,6 +32,7 @@ from app.api.v1.routers import (
     kategoriler_router as v1_kategoriler_router,
     tedarikciler_router as v1_tedarikciler_router,
     depolar_router as v1_depolar_router,
+    zonlar_router as v1_zonlar_router,
     raflar_router as v1_raflar_router,
     lotlar_router as v1_lotlar_router,
     paletler_router as v1_paletler_router,
@@ -112,6 +113,7 @@ app.include_router(v1_markalar_router)
 app.include_router(v1_kategoriler_router)
 app.include_router(v1_tedarikciler_router)
 app.include_router(v1_depolar_router)
+app.include_router(v1_zonlar_router)
 app.include_router(v1_raflar_router)
 app.include_router(v1_lotlar_router)
 app.include_router(v1_paletler_router)

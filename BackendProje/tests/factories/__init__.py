@@ -2,6 +2,7 @@ from tests.factories.kullanici_factory import KullaniciFactory
 from tests.factories.marka_factory import MarkaFactory
 from tests.factories.kategori_factory import KategoriFactory
 from tests.factories.depo_factory import DepoFactory
+from tests.factories.zon_factory import ZonFactory
 from tests.factories.raf_factory import RafFactory
 from tests.factories.tedarikci_factory import TedarikciFactory
 from tests.factories.urun_factory import UrunFactory
@@ -16,7 +17,7 @@ from tests.factories.stok_sayim_factory import StokSayimFactory, StokSayimKalemi
 from tests.factories.mal_kabul_irsaliye_factory import MalKabulIrsaliyeFactory, MalKabulKalemiFactory
 
 ALL_FACTORIES = [
-    KullaniciFactory, MarkaFactory, KategoriFactory, DepoFactory,
+    KullaniciFactory, MarkaFactory, KategoriFactory, DepoFactory, ZonFactory,
     RafFactory, TedarikciFactory, UrunFactory, LotFactory,
     PaletFactory, StokHareketiFactory,
     SiparisFactory, SiparisKalemiFactory,
@@ -31,6 +32,7 @@ __all__ = [
     "MarkaFactory",
     "KategoriFactory",
     "DepoFactory",
+    "ZonFactory",
     "RafFactory",
     "TedarikciFactory",
     "UrunFactory",

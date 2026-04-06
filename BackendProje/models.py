@@ -55,7 +55,29 @@ class Depo(Base):
     olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
 
     # İlişki
+    zonlar = relationship("Zon", back_populates="depo")
     raflar = relationship("Raf", back_populates="depo")
+
+
+# ========================
+# ZON
+# ========================
+
+class Zon(Base):
+    __tablename__ = "zonlar"
+
+    id = Column(Integer, primary_key=True, index=True)
+    depo_id = Column(Integer, ForeignKey("depolar.id"), nullable=False)
+    isim = Column(String(100), nullable=False)
+    tip = Column(String(30), nullable=False)                     # Or: MalKabul, Genel, Soguk...
+    kod = Column(String(10), unique=True, nullable=False)
+    aciklama = Column(Text, default="")
+    sira = Column(Integer, default=0)
+    aktif = Column(Boolean, default=True)
+    olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
+
+    # Iliski
+    depo = relationship("Depo", back_populates="zonlar")
 
 
 # ========================

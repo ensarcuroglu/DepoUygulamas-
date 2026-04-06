@@ -1,4 +1,4 @@
-"""DI — Depo, Raf, Lot, Palet, Palet Bazlı Stok İşlemleri."""
+﻿"""DI â€” Depo, Raf, Lot, Palet, Palet BazlÄ± Stok Ä°ÅŸlemleri."""
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from app.infrastructure.persistence.repositories import (
     SqlAlchemyDepoRepository,
+    SqlAlchemyZonRepository,
     SqlAlchemyRafRepository,
     SqlAlchemyLotRepository,
     SqlAlchemyPaletRepository,
@@ -18,6 +19,11 @@ from app.application.use_cases import (
     DepoOlusturUseCase,
     DepoGuncelleUseCase,
     DepoSilUseCase,
+    ZonListeleUseCase,
+    ZonGetirUseCase,
+    ZonOlusturUseCase,
+    ZonGuncelleUseCase,
+    ZonSilUseCase,
     RafListeleUseCase,
     RafGetirUseCase,
     RafOlusturUseCase,
@@ -49,10 +55,14 @@ _erp_config = ErpConfig.from_env()
 _mock_erp_adapter = None
 
 
-# ── Repository factory'leri ──
+# â”€â”€ Repository factory'leri â”€â”€
 
 def get_depo_repo(db: Session = Depends(get_db)):
     return SqlAlchemyDepoRepository(db)
+
+
+def get_zon_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyZonRepository(db)
 
 
 def get_raf_repo(db: Session = Depends(get_db)):
@@ -75,7 +85,7 @@ def get_mal_kabul_irsaliye_repo(db: Session = Depends(get_db)):
     return SqlAlchemyMalKabulIrsaliyeRepository(db)
 
 
-# ── Depo use case factory'leri ──
+# â”€â”€ Depo use case factory'leri â”€â”€
 
 def get_depo_listele_uc(
     depo_repo=Depends(get_depo_repo),
@@ -109,8 +119,42 @@ def get_depo_sil_uc(
 ):
     return DepoSilUseCase(depo_repo, log_repo)
 
+def get_zon_listele_uc(
+    zon_repo=Depends(get_zon_repo),
+):
+    return ZonListeleUseCase(zon_repo)
 
-# ── Raf use case factory'leri ──
+
+def get_zon_getir_uc(
+    zon_repo=Depends(get_zon_repo),
+):
+    return ZonGetirUseCase(zon_repo)
+
+
+def get_zon_olustur_uc(
+    zon_repo=Depends(get_zon_repo),
+    depo_repo=Depends(get_depo_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return ZonOlusturUseCase(zon_repo, depo_repo, log_repo)
+
+
+def get_zon_guncelle_uc(
+    zon_repo=Depends(get_zon_repo),
+    depo_repo=Depends(get_depo_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return ZonGuncelleUseCase(zon_repo, depo_repo, log_repo)
+
+
+def get_zon_sil_uc(
+    zon_repo=Depends(get_zon_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return ZonSilUseCase(zon_repo, log_repo)
+
+
+# â”€â”€ Raf use case factory'leri â”€â”€
 
 def get_raf_listele_uc(
     raf_repo=Depends(get_raf_repo),
@@ -146,7 +190,7 @@ def get_raf_sil_uc(
     return RafSilUseCase(raf_repo, log_repo)
 
 
-# ── Lot use case factory'leri ──
+# â”€â”€ Lot use case factory'leri â”€â”€
 
 def get_lot_listele_uc(
     lot_repo=Depends(get_lot_repo),
@@ -187,7 +231,7 @@ def get_lot_sil_uc(
     return LotSilUseCase(lot_repo, log_repo)
 
 
-# ── Palet use case factory'leri ──
+# â”€â”€ Palet use case factory'leri â”€â”€
 
 def get_palet_listele_uc(
     palet_repo=Depends(get_palet_repo),
@@ -236,7 +280,7 @@ def get_palet_sil_uc(
     return PaletSilUseCase(palet_repo, log_repo)
 
 
-# ── Palet Veri Kaynağı Adapter + Domain Service factory'leri ──
+# â”€â”€ Palet Veri KaynaÄŸÄ± Adapter + Domain Service factory'leri â”€â”€
 
 def get_palet_veri_kaynagi(
     mal_kabul_repo=Depends(get_mal_kabul_irsaliye_repo),
@@ -245,11 +289,11 @@ def get_palet_veri_kaynagi(
     raf_repo=Depends(get_raf_repo),
     lot_repo=Depends(get_lot_repo),
 ):
-    """PALET_VERI_KAYNAGI env değişkenine göre adapter döner.
+    """PALET_VERI_KAYNAGI env deÄŸiÅŸkenine gÃ¶re adapter dÃ¶ner.
 
-    LOCAL → IrsaliyePaletVeriKaynagiService (varsayılan)
-    MOCK  → MockErpPaletVeriKaynagiService (demo/dev)
-    ERP   → ErpPaletVeriKaynagiService (gerçek ERP)
+    LOCAL â†’ IrsaliyePaletVeriKaynagiService (varsayÄ±lan)
+    MOCK  â†’ MockErpPaletVeriKaynagiService (demo/dev)
+    ERP   â†’ ErpPaletVeriKaynagiService (gerÃ§ek ERP)
     """
     global _mock_erp_adapter
 
@@ -267,7 +311,7 @@ def get_palet_veri_kaynagi(
         )
         return ErpPaletVeriKaynagiService(_erp_config)
 
-    # LOCAL (varsayılan)
+    # LOCAL (varsayÄ±lan)
     return IrsaliyePaletVeriKaynagiService(
         mal_kabul_repo, urun_repo, depo_repo, raf_repo, lot_repo,
     )
@@ -297,3 +341,4 @@ def get_palet_sorgulama_service(
     return PaletSorgulamaService(
         veri_kaynagi, palet_repo, lot_repo, urun_repo, depo_repo, raf_repo,
     )
+

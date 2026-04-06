@@ -67,6 +67,7 @@ from app.infrastructure.di.modules.katalog_di import (  # noqa: F401
 
 from app.infrastructure.di.modules.depo_envanter_di import (  # noqa: F401
     get_depo_repo,
+    get_zon_repo,
     get_raf_repo,
     get_lot_repo,
     get_palet_repo,
@@ -77,6 +78,11 @@ from app.infrastructure.di.modules.depo_envanter_di import (  # noqa: F401
     get_depo_olustur_uc,
     get_depo_guncelle_uc,
     get_depo_sil_uc,
+    get_zon_listele_uc,
+    get_zon_getir_uc,
+    get_zon_olustur_uc,
+    get_zon_guncelle_uc,
+    get_zon_sil_uc,
     get_raf_listele_uc,
     get_raf_getir_uc,
     get_raf_olustur_uc,

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from models import (
     Depo as DepoORM,
+    Zon as ZonORM,
     Raf as RafORM,
     Lot as LotORM,
     Palet as PaletORM,
 )
 from app.core.entities.depo import Depo
+from app.core.entities.zon import Zon
 from app.core.entities.raf import Raf
 from app.core.entities.lot import Lot
 from app.core.entities.palet import Palet, LotBilgi, UrunBilgi, RafBilgi
@@ -31,6 +33,34 @@ def depo_to_orm(entity: Depo) -> DepoORM:
         isim=entity.isim,
         adres=entity.adres,
         aciklama=entity.aciklama,
+        aktif=entity.aktif,
+        olusturma_tarihi=entity.olusturma_tarihi,
+    )
+
+
+def zon_to_entity(orm: ZonORM) -> Zon:
+    return Zon(
+        id=orm.id,
+        depo_id=orm.depo_id,
+        isim=orm.isim,
+        tip=orm.tip,
+        kod=orm.kod,
+        aciklama=orm.aciklama or "",
+        sira=orm.sira,
+        aktif=orm.aktif,
+        olusturma_tarihi=orm.olusturma_tarihi,
+    )
+
+
+def zon_to_orm(entity: Zon) -> ZonORM:
+    return ZonORM(
+        id=entity.id,
+        depo_id=entity.depo_id,
+        isim=entity.isim,
+        tip=entity.tip,
+        kod=entity.kod,
+        aciklama=entity.aciklama,
+        sira=entity.sira,
         aktif=entity.aktif,
         olusturma_tarihi=entity.olusturma_tarihi,
     )
@@ -158,4 +188,3 @@ def palet_to_orm(entity: Palet) -> PaletORM:
         aktif=entity.aktif,
         olusturma_tarihi=entity.olusturma_tarihi,
     )
-

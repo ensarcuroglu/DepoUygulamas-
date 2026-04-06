@@ -5,6 +5,7 @@ from .markalar import router as markalar_router
 from .kategoriler import router as kategoriler_router
 from .tedarikciler import router as tedarikciler_router
 from .depolar import router as depolar_router
+from .zonlar import router as zonlar_router
 from .raflar import router as raflar_router
 from .lotlar import router as lotlar_router
 from .paletler import router as paletler_router
@@ -28,6 +29,7 @@ __all__ = [
     "kategoriler_router",
     "tedarikciler_router",
     "depolar_router",
+    "zonlar_router",
     "raflar_router",
     "lotlar_router",
     "paletler_router",

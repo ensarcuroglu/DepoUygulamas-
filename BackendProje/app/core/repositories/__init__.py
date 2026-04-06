@@ -1,6 +1,7 @@
 from .marka_repository import IMarkaRepository
 from .kategori_repository import IKategoriRepository
 from .depo_repository import IDepoRepository
+from .zon_repository import IZonRepository
 from .raf_repository import IRafRepository
 from .tedarikci_repository import ITedarikciRepository
 from .urun_repository import IUrunRepository
@@ -19,7 +20,7 @@ from .dashboard_repository import IDashboardRepository
 from .mal_kabul_irsaliye_repository import IMalKabulIrsaliyeRepository
 
 __all__ = [
-    "IMarkaRepository", "IKategoriRepository", "IDepoRepository",
+    "IMarkaRepository", "IKategoriRepository", "IDepoRepository", "IZonRepository",
     "IRafRepository", "ITedarikciRepository", "IUrunRepository",
     "ILotRepository", "IPaletRepository", "IStokHareketiRepository",
     "IKullaniciRepository", "ISistemLogRepository", "IDestekTalebiRepository",

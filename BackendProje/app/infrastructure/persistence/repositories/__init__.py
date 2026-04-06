@@ -1,6 +1,7 @@
 from .sa_marka_repository import SqlAlchemyMarkaRepository
 from .sa_kategori_repository import SqlAlchemyKategoriRepository
 from .sa_depo_repository import SqlAlchemyDepoRepository
+from .sa_zon_repository import SqlAlchemyZonRepository
 from .sa_raf_repository import SqlAlchemyRafRepository
 from .sa_tedarikci_repository import SqlAlchemyTedarikciRepository
 from .sa_urun_repository import SqlAlchemyUrunRepository
@@ -27,6 +28,7 @@ __all__ = [
     "SqlAlchemyMarkaRepository",
     "SqlAlchemyKategoriRepository",
     "SqlAlchemyDepoRepository",
+    "SqlAlchemyZonRepository",
     "SqlAlchemyRafRepository",
     "SqlAlchemyTedarikciRepository",
     "SqlAlchemyUrunRepository",
