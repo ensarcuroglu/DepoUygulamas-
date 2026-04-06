@@ -46,6 +46,10 @@ class PaletCikisService:
         miktar: Optional[int] = None,
         siparis_no: Optional[str] = None,
         aciklama: Optional[str] = None,
+        tir_plaka: Optional[str] = None,
+        depo_kapi: Optional[str] = None,
+        sofor_adi: Optional[str] = None,
+        tasiyici_firma: Optional[str] = None,
     ) -> StokHareketi:
         """Palet numarası ile stok çıkışı yapar.
 
@@ -82,6 +86,10 @@ class PaletCikisService:
             hareket_tipi=HareketTipi.CIKIS,
             miktar=gercek_miktar,
             siparis_no=siparis_no,
+            tir_plaka=tir_plaka,
+            depo_kapi=depo_kapi,
+            sofor_adi=sofor_adi,
+            tasiyici_firma=tasiyici_firma,
             kullanici_id=kullanici.id,
             aciklama=aciklama or f"Palet bazli stok cikisi: {palet_no}",
         )
@@ -111,6 +119,10 @@ class PaletCikisService:
         kullanici: Kullanici,
         siparis_no: Optional[str] = None,
         aciklama: Optional[str] = None,
+        tir_plaka: Optional[str] = None,
+        depo_kapi: Optional[str] = None,
+        sofor_adi: Optional[str] = None,
+        tasiyici_firma: Optional[str] = None,
     ) -> list[TopluPaletSonuc]:
         """Birden fazla paletten tek seferde çıkış yapar (pre-validation + all-or-nothing).
 
@@ -138,6 +150,10 @@ class PaletCikisService:
                 miktar=kalem.get("miktar"),
                 siparis_no=siparis_no,
                 aciklama=aciklama,
+                tir_plaka=tir_plaka,
+                depo_kapi=depo_kapi,
+                sofor_adi=sofor_adi,
+                tasiyici_firma=tasiyici_firma,
             )
 
         return sonuclar

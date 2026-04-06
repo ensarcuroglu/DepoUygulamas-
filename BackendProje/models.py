@@ -208,6 +208,8 @@ class StokHareketi(Base):
     tir_plaka = Column(String(50), nullable=True)                 # Ürün çıkışı için Tır Plakası
     depo_kapi = Column(String(50), nullable=True)                 # Ürün çıkışı için Depo Kapısı
     barkodlar = Column(JSON, nullable=True)                       # Çoklu barkodları json array formatında saklamak için
+    sofor_adi = Column(String(100), nullable=True)                # Çıkış için sürücü adı
+    tasiyici_firma = Column(String(100), nullable=True)           # Çıkış için taşıyıcı/nakliye firması
     aciklama = Column(Text, default="")
     kullanici_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
     tarih = Column(DateTime, default=datetime.utcnow)

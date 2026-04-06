@@ -97,6 +97,10 @@ class TopluPaletCikisRequestDTO(BaseModel):
 
     kalemler: List[TopluPaletCikisKalemiDTO]
     siparis_no: Optional[str] = None
+    tir_plaka: Optional[str] = None
+    depo_kapi: Optional[str] = None
+    sofor_adi: Optional[str] = None
+    tasiyici_firma: Optional[str] = None
     aciklama: Optional[str] = None
 
     @field_validator("kalemler")

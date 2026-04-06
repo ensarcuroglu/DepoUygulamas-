@@ -193,6 +193,10 @@ def toplu_palet_cikis(
         kullanici=kullanici,
         siparis_no=dto.siparis_no,
         aciklama=dto.aciklama,
+        tir_plaka=dto.tir_plaka,
+        depo_kapi=dto.depo_kapi,
+        sofor_adi=dto.sofor_adi,
+        tasiyici_firma=dto.tasiyici_firma,
     )
 
     if any(not s.basarili for s in sonuclar):

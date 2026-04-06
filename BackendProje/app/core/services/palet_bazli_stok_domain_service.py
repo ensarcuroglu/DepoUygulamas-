@@ -108,8 +108,16 @@ class PaletBazliStokDomainService:
         kullanici: Kullanici,
         siparis_no: Optional[str] = None,
         aciklama: Optional[str] = None,
+        tir_plaka: Optional[str] = None,
+        depo_kapi: Optional[str] = None,
+        sofor_adi: Optional[str] = None,
+        tasiyici_firma: Optional[str] = None,
     ) -> list[TopluPaletSonuc]:
-        return self._cikis.toplu_palet_cikis(kalemler, kullanici, siparis_no, aciklama)
+        return self._cikis.toplu_palet_cikis(
+            kalemler, kullanici, siparis_no, aciklama,
+            tir_plaka=tir_plaka, depo_kapi=depo_kapi,
+            sofor_adi=sofor_adi, tasiyici_firma=tasiyici_firma,
+        )
 
     # ── Test uyumluluğu için static yardımcı ──
 

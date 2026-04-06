@@ -4,7 +4,7 @@ import {
     ArrowDownToLine, ArrowUpFromLine, Barcode, Check, Loader2, Clock,
     Search, X, TrendingUp, TrendingDown, ArrowLeft, Box,
     ChevronDown, ChevronUp, Scissors, AlertTriangle, Layers, FileText,
-    ClipboardList,
+    ClipboardList, Truck, DoorClosed, User, Building2,
 } from 'lucide-react';
 import {
     getStokHareketleri, stokIslemleriPaletSorgula,
@@ -110,6 +110,12 @@ export default function StokHareketleriPage() {
     // Çıkış: per-palet miktar düzenleme
     const [parcalaModu, setParcalaModu] = useState(null); // palet_no veya null
     const [parcalaMiktar, setParcalaMiktar] = useState('');
+
+    // Step 4: Sevkiyat bilgileri (çıkış)
+    const [tirPlaka, setTirPlaka] = useState('');
+    const [depoKapi, setDepoKapi] = useState('');
+    const [soforAdi, setSoforAdi] = useState('');
+    const [tasiyiciFirma, setTasiyiciFirma] = useState('');
 
     // Son işlemler
     const [sonIslemler, setSonIslemler] = useState([]);
@@ -337,6 +343,10 @@ export default function StokHareketleriPage() {
                             miktar: t.miktar || undefined,
                         })),
                         siparis_no: secilenSiparis?.siparis_no || undefined,
+                        tir_plaka: tirPlaka || undefined,
+                        depo_kapi: depoKapi || undefined,
+                        sofor_adi: soforAdi || undefined,
+                        tasiyici_firma: tasiyiciFirma || undefined,
                     });
                     const sonuc = res.data;
                     if (sonuc.basarisiz > 0) {
@@ -386,6 +396,10 @@ export default function StokHareketleriPage() {
         setReferansArama('');
         setReferansListesi([]);
         setSiparisTabDurum('Hazirlaniyor');
+        setTirPlaka('');
+        setDepoKapi('');
+        setSoforAdi('');
+        setTasiyiciFirma('');
         resetTaramaState();
     };
 
@@ -955,6 +969,79 @@ export default function StokHareketleriPage() {
                                 backLabel="Listeye Dön"
                             />
 
+                            {/* Sevkiyat Bilgileri — sadece çıkış */}
+                            {hareketTipi === 'cikis' && (
+                                <div className="rounded-2xl border-2 border-red-200 bg-red-50/30 overflow-hidden">
+                                    <div className="px-4 py-3 bg-red-800 flex items-center gap-3">
+                                        <Truck className="w-5 h-5 text-red-300" />
+                                        <span className="text-sm font-black text-white tracking-wide">Sevkiyat Bilgileri</span>
+                                        <span className="ml-auto text-[10px] font-bold text-red-300 uppercase tracking-wider">Opsiyonel</span>
+                                    </div>
+                                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                                <Truck className="w-3.5 h-3.5" /> TIR / Araç Plakası
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="34 ABC 123"
+                                                value={tirPlaka}
+                                                onChange={e => setTirPlaka(e.target.value)}
+                                                maxLength={50}
+                                                className="w-full h-11 px-3 text-sm font-bold rounded-xl
+                                                    border-2 border-slate-200 bg-white text-slate-800 placeholder-slate-300
+                                                    focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/10 transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                                <DoorClosed className="w-3.5 h-3.5" /> Depo Kapısı / Rampa
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="K1, Rampa-3..."
+                                                value={depoKapi}
+                                                onChange={e => setDepoKapi(e.target.value)}
+                                                maxLength={50}
+                                                className="w-full h-11 px-3 text-sm font-bold rounded-xl
+                                                    border-2 border-slate-200 bg-white text-slate-800 placeholder-slate-300
+                                                    focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/10 transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                                <User className="w-3.5 h-3.5" /> Sürücü Adı
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="Ad Soyad"
+                                                value={soforAdi}
+                                                onChange={e => setSoforAdi(e.target.value)}
+                                                maxLength={100}
+                                                className="w-full h-11 px-3 text-sm font-bold rounded-xl
+                                                    border-2 border-slate-200 bg-white text-slate-800 placeholder-slate-300
+                                                    focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/10 transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                                <Building2 className="w-3.5 h-3.5" /> Taşıyıcı Firma
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="Nakliye firması"
+                                                value={tasiyiciFirma}
+                                                onChange={e => setTasiyiciFirma(e.target.value)}
+                                                maxLength={100}
+                                                className="w-full h-11 px-3 text-sm font-bold rounded-xl
+                                                    border-2 border-slate-200 bg-white text-slate-800 placeholder-slate-300
+                                                    focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/10 transition-all"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Özet Kart */}
                             <div className="rounded-2xl border-2 border-slate-200 bg-slate-50 overflow-hidden">
                                 <div className="px-4 py-3.5 bg-slate-800 flex items-center gap-3">
@@ -1126,6 +1213,7 @@ export default function StokHareketleriPage() {
                                             <p className="text-xs font-semibold text-slate-400 mt-1">
                                                 {tarih.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })} {tarih.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                                                 {h.siparis_no ? ` · ${h.siparis_no}` : ''}
+                                                {h.tir_plaka ? ` · ${h.tir_plaka}` : ''}
                                                 {h.aciklama ? ` · ${h.aciklama}` : ''}
                                             </p>
                                         </div>

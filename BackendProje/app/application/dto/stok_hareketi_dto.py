@@ -34,6 +34,12 @@ class StokHareketiOlusturRequestDTO(BaseModel):
     depo_kapi: Optional[str] = Field(
         None, max_length=50, description="Çıkış için depo kapısı"
     )
+    sofor_adi: Optional[str] = Field(
+        None, max_length=100, description="Çıkış için sürücü adı"
+    )
+    tasiyici_firma: Optional[str] = Field(
+        None, max_length=100, description="Çıkış için taşıyıcı/nakliye firması"
+    )
     barkodlar: Optional[List[str]] = Field(
         None, description="Taranan barkodlar listesi"
     )
@@ -86,6 +92,8 @@ class StokHareketiResponseDTO(BaseModel):
     irsaliye_no: Optional[str] = None
     tir_plaka: Optional[str]
     depo_kapi: Optional[str]
+    sofor_adi: Optional[str] = None
+    tasiyici_firma: Optional[str] = None
     barkodlar: Optional[List[str]]
     aciklama: str
     kullanici_id: Optional[int]
@@ -108,6 +116,8 @@ class StokHareketiResponseDTO(BaseModel):
             irsaliye_no=entity.irsaliye_no,
             tir_plaka=entity.tir_plaka,
             depo_kapi=entity.depo_kapi,
+            sofor_adi=entity.sofor_adi,
+            tasiyici_firma=entity.tasiyici_firma,
             barkodlar=entity.barkodlar,
             aciklama=entity.aciklama,
             kullanici_id=entity.kullanici_id,

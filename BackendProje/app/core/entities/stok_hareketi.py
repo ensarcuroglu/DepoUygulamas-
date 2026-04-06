@@ -24,6 +24,8 @@ class StokHareketi:
     irsaliye_no: Optional[str] = None
     tir_plaka: Optional[str] = None
     depo_kapi: Optional[str] = None
+    sofor_adi: Optional[str] = None
+    tasiyici_firma: Optional[str] = None
     barkodlar: Optional[List[str]] = None
     aciklama: str = ""
     kullanici_id: Optional[int] = None
