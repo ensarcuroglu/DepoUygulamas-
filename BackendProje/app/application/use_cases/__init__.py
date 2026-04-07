@@ -139,6 +139,7 @@ from .mal_kabul_irsaliye_use_cases import (
     MalKabulIrsaliyeOlusturUseCase,
     MalKabulIrsaliyeGuncelleUseCase,
     MalKabulIrsaliyeSilUseCase,
+    IrsaliyeOnaylaVeGorevOlusturUseCase,
 )
 
 from .yerlestirme_gorevi_use_cases import (
@@ -150,6 +151,10 @@ from .yerlestirme_gorevi_use_cases import (
     YerlestirmeGoreviTamamlaUseCase,
     YerlestirmeGoreviOverrideUseCase,
     YerlestirmeGoreviIptalUseCase,
+    YerlestirmeOnaylaUseCase,
+    BilinmeyenKonumGorevleriOlusturUseCase,
+    KarantinadanCikarUseCase,
+    KarantinayaAlUseCase,
 )
 
 __all__ = [
@@ -215,10 +220,12 @@ __all__ = [
     # Mal Kabul İrsaliyesi
     "MalKabulIrsaliyeListeleUseCase", "MalKabulIrsaliyeGetirUseCase",
     "MalKabulIrsaliyeOlusturUseCase", "MalKabulIrsaliyeGuncelleUseCase",
-    "MalKabulIrsaliyeSilUseCase",
+    "MalKabulIrsaliyeSilUseCase", "IrsaliyeOnaylaVeGorevOlusturUseCase",
     # Yerleştirme Görevi
     "YerlestirmeGoreviListeleUseCase", "YerlestirmeGoreviGetirUseCase",
     "YerlestirmeGoreviOlusturUseCase", "SonrakiGorevisiniAlUseCase",
     "YerlestirmeGoreviBaslatUseCase", "YerlestirmeGoreviTamamlaUseCase",
     "YerlestirmeGoreviOverrideUseCase", "YerlestirmeGoreviIptalUseCase",
+    "YerlestirmeOnaylaUseCase", "BilinmeyenKonumGorevleriOlusturUseCase",
+    "KarantinadanCikarUseCase", "KarantinayaAlUseCase",
 ]

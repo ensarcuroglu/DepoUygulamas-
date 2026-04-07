@@ -53,6 +53,10 @@ from app.application.use_cases.yerlestirme_gorevi_use_cases import (
     YerlestirmeGoreviTamamlaUseCase,
     YerlestirmeGoreviOverrideUseCase,
     YerlestirmeGoreviIptalUseCase,
+    YerlestirmeOnaylaUseCase,
+    BilinmeyenKonumGorevleriOlusturUseCase,
+    KarantinadanCikarUseCase,
+    KarantinayaAlUseCase,
 )
 from app.core.services.palet_bazli_stok_domain_service import PaletBazliStokDomainService
 from app.core.services.zon_uyumluluk_servisi import ZonUyumlulukServisi
@@ -446,3 +450,64 @@ def get_yerlestirme_algoritmasi(
     kapasite=Depends(get_kapasite_dogrulama_servisi),
 ):
     return YerlestirmeAlgoritmasi(raf_repo, zon_repo, palet_repo, zon_uyumluluk, kapasite)
+
+
+# ── Faz 2 — İş Akışı Entegrasyonu factory'leri ──
+
+def get_yerlestirme_onayla_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+    palet_repo=Depends(get_palet_repo),
+    raf_repo=Depends(get_raf_repo),
+    lot_repo=Depends(get_lot_repo),
+    urun_repo=Depends(get_urun_repo),
+    zon_repo=Depends(get_zon_repo),
+    zon_uyumluluk=Depends(get_zon_uyumluluk_servisi),
+    kapasite=Depends(get_kapasite_dogrulama_servisi),
+    log_repo=Depends(get_log_repo),
+):
+    return YerlestirmeOnaylaUseCase(
+        repo, palet_repo, raf_repo, lot_repo, urun_repo,
+        zon_repo, zon_uyumluluk, kapasite, log_repo,
+    )
+
+
+def get_bilinmeyen_konum_gorevleri_olustur_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+    palet_repo=Depends(get_palet_repo),
+    raf_repo=Depends(get_raf_repo),
+    lot_repo=Depends(get_lot_repo),
+    urun_repo=Depends(get_urun_repo),
+    algoritma=Depends(get_yerlestirme_algoritmasi),
+    log_repo=Depends(get_log_repo),
+):
+    return BilinmeyenKonumGorevleriOlusturUseCase(
+        repo, palet_repo, raf_repo, lot_repo, urun_repo, algoritma, log_repo,
+    )
+
+
+def get_karantinadan_cikar_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+    palet_repo=Depends(get_palet_repo),
+    raf_repo=Depends(get_raf_repo),
+    lot_repo=Depends(get_lot_repo),
+    urun_repo=Depends(get_urun_repo),
+    zon_repo=Depends(get_zon_repo),
+    algoritma=Depends(get_yerlestirme_algoritmasi),
+    log_repo=Depends(get_log_repo),
+):
+    return KarantinadanCikarUseCase(
+        repo, palet_repo, raf_repo, lot_repo, urun_repo, zon_repo, algoritma, log_repo,
+    )
+
+
+def get_karantinaya_al_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+    palet_repo=Depends(get_palet_repo),
+    raf_repo=Depends(get_raf_repo),
+    zon_repo=Depends(get_zon_repo),
+    kapasite=Depends(get_kapasite_dogrulama_servisi),
+    log_repo=Depends(get_log_repo),
+):
+    return KarantinayaAlUseCase(
+        repo, palet_repo, raf_repo, zon_repo, kapasite, log_repo,
+    )

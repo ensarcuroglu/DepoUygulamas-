@@ -4,7 +4,7 @@ Yerleştirme Görevi veri transfer nesneleri (DTO).
 
 from __future__ import annotations
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.entities.yerlestirme_gorevi import GorevTipi, GorevDurum, YerlestirmeGorevi
@@ -43,9 +43,51 @@ class YerlestirmeGoreviIptalRequestDTO(BaseModel):
     neden: str = Field(..., min_length=1, max_length=500)
 
 
+class YerlestirmeOnaylaRequestDTO(BaseModel):
+    """Scan-to-verify: operatör raf barkodunu okuttuğunda gönderilir."""
+    okutulan_raf_kodu: str = Field(..., min_length=1, max_length=50, description="Raf barkodu")
+    depo_id: int = Field(..., gt=0, description="İşlemin yapıldığı depo")
+
+
+class KarantinadanCikarRequestDTO(BaseModel):
+    palet_id: int = Field(..., gt=0)
+
+
+class KarantinayaAlRequestDTO(BaseModel):
+    palet_id: int = Field(..., gt=0)
+    neden: str = Field(..., min_length=3, max_length=500, description="Karantinaya alma gerekçesi")
+
+
 # ─────────────────────────────────────────
 # YANIT (RESPONSE) DTO'LARI
 # ─────────────────────────────────────────
+
+class AlternatifRafDTO(BaseModel):
+    raf_id: int
+    raf_kod: str
+    bos_slot: int
+    skor: float
+
+
+class YerlestirmeOnaylaSonucDTO(BaseModel):
+    """Scan-to-verify sonuç DTO'su. Hem başarı hem hata için kullanılır."""
+    basarili: bool
+    durum: str                                  # "TAMAMLANDI" | "DOGRULAMA_HATASI"
+    palet_no: Optional[str] = None
+    raf_kod: Optional[str] = None
+    zon: Optional[str] = None
+    onerilen_raf_kod: Optional[str] = None      # Farklıysa gösterilir
+    mesaj: str = ""
+    hata_tipi: Optional[str] = None             # "KAPASITE_YETERSIZ" | "ZON_UYUMSUZ"
+    alternatifler: List[AlternatifRafDTO] = []
+    override_gerekli: bool = False
+    gorev: Optional["YerlestirmeGoreviResponseDTO"] = None
+
+
+class BilinmeyenKonumGorevleriOlusturSonucDTO(BaseModel):
+    olusturulan_gorev_sayisi: int
+    palet_sayisi: int
+    uyari_mesajlari: List[str] = []
 
 class YerlestirmeGoreviResponseDTO(BaseModel):
     id: int

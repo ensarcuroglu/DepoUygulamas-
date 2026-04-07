@@ -30,6 +30,7 @@ from app.application.use_cases import (
     MalKabulIrsaliyeOlusturUseCase,
     MalKabulIrsaliyeGuncelleUseCase,
     MalKabulIrsaliyeSilUseCase,
+    IrsaliyeOnaylaVeGorevOlusturUseCase,
 )
 from app.core.services.stok_cikis_domain_service import StokCikisDomainService
 
@@ -43,6 +44,8 @@ from app.infrastructure.di.modules.depo_envanter_di import (
     get_palet_repo,
     get_hareket_repo,
     get_mal_kabul_irsaliye_repo,
+    get_yerlestirme_gorevi_repo,
+    get_yerlestirme_algoritmasi,
 )
 
 
@@ -222,3 +225,21 @@ def get_mal_kabul_irsaliye_sil_uc(
     log_repo=Depends(get_log_repo),
 ):
     return MalKabulIrsaliyeSilUseCase(repo, log_repo)
+
+
+def get_irsaliye_onayla_ve_gorev_olustur_uc(
+    db: Session = Depends(get_db),
+    repo=Depends(get_mal_kabul_irsaliye_repo),
+    urun_repo=Depends(get_urun_repo),
+    lot_repo=Depends(get_lot_repo),
+    palet_repo=Depends(get_palet_repo),
+    hareket_repo=Depends(get_hareket_repo),
+    gorev_repo=Depends(get_yerlestirme_gorevi_repo),
+    raf_repo=Depends(get_raf_repo),
+    algoritma=Depends(get_yerlestirme_algoritmasi),
+    log_repo=Depends(get_log_repo),
+):
+    return IrsaliyeOnaylaVeGorevOlusturUseCase(
+        repo, urun_repo, lot_repo, palet_repo, hareket_repo,
+        gorev_repo, raf_repo, algoritma, log_repo, db,
+    )

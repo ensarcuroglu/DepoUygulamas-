@@ -67,6 +67,14 @@ class SqlAlchemyRafRepository(IRafRepository):
         )
         return raf_to_entity(orm) if orm else None
 
+    def getir_staging_raf(self, depo_id: int) -> Optional[Raf]:
+        orm = (
+            self._db.query(RafORM)
+            .filter(RafORM.depo_id == depo_id, RafORM.kod.like("%-X-00-00-00"))
+            .first()
+        )
+        return raf_to_entity(orm) if orm else None
+
     def sil(self, raf_id: int) -> bool:
         orm = self._db.query(RafORM).filter(RafORM.id == raf_id).first()
         if not orm:

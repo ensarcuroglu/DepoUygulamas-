@@ -62,6 +62,8 @@ class PaletCikisService:
         if not palet.aktif or palet.bos_mu():
             raise GecersizIslemError("Bu palette stok bulunmuyor.")
 
+        self._staging_kontrolu(palet.raf_id)
+
         hedef_depo_id = self._raf_depo_id_coz(palet.raf_id)
         if hedef_depo_id:
             self._depo_erisim_dogrula(kullanici, hedef_depo_id)
@@ -169,7 +171,11 @@ class PaletCikisService:
         if not palet.aktif or palet.bos_mu():
             return "Bu palette stok bulunmuyor."
 
-        hedef_depo_id = self._raf_depo_id_coz(palet.raf_id)
+        raf = self._raf_repo.getir_id_ile(palet.raf_id) if palet.raf_id else None
+        if raf and self._is_staging_raf(raf.kod):
+            return "Konumu belirsiz palet sevk edilemez. Önce yerleştirme yapılmalı."
+
+        hedef_depo_id = raf.depo_id if raf else None
         if hedef_depo_id and not kullanici.depo_erisim_var(hedef_depo_id):
             return "Bu palet farkli bir depoya ait, yetkiniz bulunmuyor."
 
@@ -177,6 +183,21 @@ class PaletCikisService:
             return f"Istenen miktar ({miktar}) paletteki stoktan ({palet.koli_adedi}) fazla."
 
         return None
+
+    def _staging_kontrolu(self, raf_id: Optional[int]) -> None:
+        """Palet MIGRATION_STAGING raftaysa sevkiyatı engeller."""
+        if not raf_id:
+            return
+        raf = self._raf_repo.getir_id_ile(raf_id)
+        if raf and self._is_staging_raf(raf.kod):
+            raise GecersizIslemError(
+                "Konumu belirsiz palet sevk edilemez. Önce yerleştirme yapılmalı."
+            )
+
+    @staticmethod
+    def _is_staging_raf(raf_kod: str) -> bool:
+        """MIGRATION_STAGING raflarını koddan tanır: '%-X-00-00-00' paterni."""
+        return raf_kod.endswith("-X-00-00-00")
 
     def _raf_depo_id_coz(self, raf_id: Optional[int]) -> Optional[int]:
         """Raf ID'sinden depo ID'sini çözümler."""

@@ -33,5 +33,10 @@ class IRafRepository(ABC):
         ...
 
     @abstractmethod
+    def getir_staging_raf(self, depo_id: int) -> Optional[Raf]:
+        """Depo için MIGRATION_STAGING rafını döner (kod '%-X-00-00-00' paterni)."""
+        ...
+
+    @abstractmethod
     def sil(self, raf_id: int) -> bool:
         ...

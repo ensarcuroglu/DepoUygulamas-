@@ -14,7 +14,7 @@ Modül grupları:
     katalog_di         — Marka, Kategori, Tedarikçi
     depo_envanter_di   — Depo, Raf, Lot, Palet, Palet Bazlı Stok
     kullanici_destek_di — Kullanıcı, Destek Talebi, Sistem Log
-    siparis_lojistik_di — Sipariş, İrsaliye, Sevkiyat, Mal Kabul, Stok Çıkış
+    siparis_lojistik_di — Sipariş, İrsaliye, Sevkiyat, Mal Kabul, Stok Çıkış, İrsaliye Onay+Görev
     rapor_dashboard_di  — Rapor, Dashboard
 """
 
@@ -116,6 +116,10 @@ from app.infrastructure.di.modules.depo_envanter_di import (  # noqa: F401
     get_zon_uyumluluk_servisi,
     get_kapasite_dogrulama_servisi,
     get_yerlestirme_algoritmasi,
+    get_yerlestirme_onayla_uc,
+    get_bilinmeyen_konum_gorevleri_olustur_uc,
+    get_karantinadan_cikar_uc,
+    get_karantinaya_al_uc,
 )
 
 from app.infrastructure.di.modules.stok_di import (  # noqa: F401
@@ -156,6 +160,7 @@ from app.infrastructure.di.modules.siparis_lojistik_di import (  # noqa: F401
     get_mal_kabul_irsaliye_olustur_uc,
     get_mal_kabul_irsaliye_guncelle_uc,
     get_mal_kabul_irsaliye_sil_uc,
+    get_irsaliye_onayla_ve_gorev_olustur_uc,
 )
 
 from app.infrastructure.di.modules.rapor_dashboard_di import (  # noqa: F401

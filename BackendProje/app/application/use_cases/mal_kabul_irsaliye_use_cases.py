@@ -6,18 +6,29 @@ Kalemler (palet tanımları) irsaliye ile birlikte yönetilir.
 """
 
 from __future__ import annotations
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
+
+from sqlalchemy.orm import Session
 
 from app.core.repositories.mal_kabul_irsaliye_repository import IMalKabulIrsaliyeRepository
 from app.core.repositories.tedarikci_repository import ITedarikciRepository
 from app.core.repositories.depo_repository import IDepoRepository
 from app.core.repositories.urun_repository import IUrunRepository
 from app.core.repositories.sistem_log_repository import ISistemLogRepository
+from app.core.repositories.lot_repository import ILotRepository
+from app.core.repositories.palet_repository import IPaletRepository
+from app.core.repositories.stok_hareketi_repository import IStokHareketiRepository
+from app.core.repositories.raf_repository import IRafRepository
+from app.core.repositories.yerlestirme_gorevi_repository import IYerlestirmeGoreviRepository
 from app.core.entities.mal_kabul_irsaliye import (
     MalKabulIrsaliye,
     MalKabulKalemi,
     MalKabulDurum,
 )
+from app.core.entities.lot import Lot
+from app.core.entities.palet import Palet
+from app.core.entities.stok_hareketi import StokHareketi, HareketTipi
+from app.core.entities.yerlestirme_gorevi import YerlestirmeGorevi, GorevTipi
 from app.core.entities.sistem_log import SistemLog, IslemTipi
 from app.core.exceptions import KayitBulunamadiError, GecersizDurumGecisiError, GecersizIslemError
 from app.application.dto.mal_kabul_irsaliye_dto import (
@@ -26,6 +37,9 @@ from app.application.dto.mal_kabul_irsaliye_dto import (
     MalKabulIrsaliyeResponseDTO,
     MalKabulKalemiOlusturDTO,
 )
+
+if TYPE_CHECKING:
+    from app.core.services.yerlestirme_algoritmasi import YerlestirmeAlgoritmasi
 
 
 def _dto_to_kalem_entity(dto: MalKabulKalemiOlusturDTO) -> MalKabulKalemi:
@@ -260,3 +274,155 @@ class MalKabulIrsaliyeSilUseCase:
         )
 
         return silindi
+
+
+# ─────────────────────────────────────────────────────────────────
+# İRSALİYE ONAYLA VE GÖREV OLUŞTUR (Faz 2.1)
+# ─────────────────────────────────────────────────────────────────
+
+class IrsaliyeOnaylaVeGorevOlusturUseCase:
+    """
+    İrsaliye onayında her kalem için Palet + StokHareketi + YerlestirmeGorevi oluşturur.
+
+    Akış:
+      1. İrsaliye doğrula (durum TASLAK olmalı)
+      2. MIGRATION_STAGING rafını bul (onerilen_raf yoksa staging'e atanır)
+      3. Her kalem için:
+         a. Lot bul veya oluştur
+         b. Palet oluştur (raf_id = STAGING)
+         c. StokHareketi (giris) oluştur
+         d. YerlestirmeAlgoritmasi çalıştır → önerilen raf
+         e. YerlestirmeGorevi oluştur (durum = BEKLIYOR)
+         f. Kalemi GirisYapildi olarak işaretle
+      4. İrsaliyeyi ONAYLANDI durumuna geçir
+      5. Tek transaction ile commit
+    """
+
+    def __init__(
+        self,
+        repo: IMalKabulIrsaliyeRepository,
+        urun_repo: IUrunRepository,
+        lot_repo: ILotRepository,
+        palet_repo: IPaletRepository,
+        hareket_repo: IStokHareketiRepository,
+        gorev_repo: IYerlestirmeGoreviRepository,
+        raf_repo: IRafRepository,
+        yerlestirme_algoritmasi: "YerlestirmeAlgoritmasi",
+        log_repo: ISistemLogRepository,
+        db: Session,
+    ):
+        self._repo = repo
+        self._urun_repo = urun_repo
+        self._lot_repo = lot_repo
+        self._palet_repo = palet_repo
+        self._hareket_repo = hareket_repo
+        self._gorev_repo = gorev_repo
+        self._raf_repo = raf_repo
+        self._algoritma = yerlestirme_algoritmasi
+        self._log_repo = log_repo
+        self._db = db
+
+    def execute(
+        self, irsaliye_id: int, kullanici_id: int
+    ) -> MalKabulIrsaliyeResponseDTO:
+        irsaliye = self._repo.getir_id_ile(irsaliye_id)
+        if not irsaliye:
+            raise KayitBulunamadiError("Mal Kabul İrsaliyesi", irsaliye_id)
+
+        if irsaliye.durum != MalKabulDurum.TASLAK:
+            raise GecersizIslemError(
+                f"Sadece taslak irsaliyeler onaylanabilir. Mevcut durum: {irsaliye.durum}"
+            )
+        if not irsaliye.kalemler:
+            raise GecersizIslemError("Kalemsiz irsaliye onaylanamaz.")
+
+        staging_raf = self._raf_repo.getir_staging_raf(irsaliye.depo_id)
+        if not staging_raf:
+            raise GecersizIslemError(
+                f"Depo {irsaliye.depo_id} için MIGRATION_STAGING rafı bulunamadı. "
+                "Lütfen migrate_putaway_system.py'yi çalıştırın."
+            )
+
+        try:
+            for kalem in irsaliye.kalemler:
+                if not kalem.giris_bekliyor_mu():
+                    continue
+
+                urun = self._urun_repo.getir_id_ile(kalem.urun_id)
+                if not urun:
+                    raise KayitBulunamadiError("Ürün", kalem.urun_id)
+
+                lot = self._lot_bul_veya_olustur(kalem)
+
+                palet = Palet(
+                    lot_id=lot.id,
+                    raf_id=staging_raf.id,
+                    palet_no=kalem.palet_no,
+                    koli_adedi=kalem.miktar,
+                )
+                palet = self._palet_repo.olustur(palet, auto_commit=False)
+
+                hareket = StokHareketi(
+                    urun_id=urun.id,
+                    lot_id=lot.id,
+                    palet_id=palet.id,
+                    raf_id=staging_raf.id,
+                    hareket_tipi=HareketTipi.GIRIS,
+                    miktar=kalem.miktar,
+                    irsaliye_no=irsaliye.irsaliye_no,
+                    kullanici_id=kullanici_id,
+                    aciklama=f"Mal kabul girişi: {irsaliye.irsaliye_no} — {kalem.palet_no}",
+                )
+                self._hareket_repo.olustur(hareket, auto_commit=False)
+
+                oneri = self._algoritma.raf_oner(palet, urun, irsaliye.depo_id)
+                onerilen_raf_id = oneri.onerilen_raf.id if oneri else staging_raf.id
+
+                gorev = YerlestirmeGorevi(
+                    palet_id=palet.id,
+                    mal_kabul_irsaliye_id=irsaliye.id,
+                    tip=GorevTipi.YERLESTIRME,
+                    onerilen_raf_id=onerilen_raf_id,
+                    oncelik=5,
+                )
+                self._gorev_repo.olustur(gorev)
+
+                kalem.giris_yapildi()
+
+            irsaliye.onayla()
+            self._repo.guncelle(irsaliye)
+
+            self._log_repo.olustur(
+                SistemLog.olustur(
+                    kullanici_id=kullanici_id,
+                    islem_tipi=IslemTipi.UPDATE,
+                    modul="Mal Kabul İrsaliyesi",
+                    detay=(
+                        f"İrsaliye onaylandı + görevler oluşturuldu: {irsaliye.irsaliye_no} "
+                        f"| {len(irsaliye.kalemler)} kalem"
+                    ),
+                ),
+                auto_commit=False,
+            )
+
+            self._db.commit()
+        except Exception:
+            self._db.rollback()
+            raise
+
+        return MalKabulIrsaliyeResponseDTO.from_entity(
+            self._repo.getir_id_ile(irsaliye_id)
+        )
+
+    def _lot_bul_veya_olustur(self, kalem: MalKabulKalemi) -> Lot:
+        if kalem.lot_no:
+            mevcut = self._lot_repo.getir_lot_no_ile(kalem.lot_no)
+            if mevcut:
+                return mevcut
+        lot = Lot(
+            urun_id=kalem.urun_id,
+            lot_no=kalem.lot_no,
+            uretim_tarihi=kalem.uretim_tarihi,
+            son_kullanma_tarihi=kalem.son_kullanma_tarihi,
+        )
+        return self._lot_repo.olustur(lot, auto_commit=False)
