@@ -48,6 +48,7 @@ from app.api.v1.routers import (
     mal_kabul_irsaliyeleri_router as v1_mal_kabul_irsaliyeleri_router,
     stok_islemleri_router as v1_stok_islemleri_router,
     yerlestirme_gorevleri_router as v1_yerlestirme_gorevleri_router,
+    mobil_terminal_router as v1_mobil_terminal_router,
 )
 
 _scheduler = RaporScheduler()
@@ -130,6 +131,7 @@ app.include_router(v1_raporlar_router)
 app.include_router(v1_mal_kabul_irsaliyeleri_router)
 app.include_router(v1_stok_islemleri_router)
 app.include_router(v1_yerlestirme_gorevleri_router)
+app.include_router(v1_mobil_terminal_router)
 
 # Auth + Dashboard Router (CA — Faz 3d)
 app.include_router(v1_auth_router)

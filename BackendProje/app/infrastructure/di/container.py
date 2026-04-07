@@ -113,6 +113,8 @@ from app.infrastructure.di.modules.depo_envanter_di import (  # noqa: F401
     get_yerlestirme_gorevi_tamamla_uc,
     get_yerlestirme_gorevi_override_uc,
     get_yerlestirme_gorevi_iptal_uc,
+    get_yerlestirme_gorevi_birak_uc,
+    get_yerlestirme_gorevi_bekleyen_ozet_uc,
     get_zon_uyumluluk_servisi,
     get_kapasite_dogrulama_servisi,
     get_yerlestirme_algoritmasi,

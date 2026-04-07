@@ -639,7 +639,14 @@ Kontrol noktası: palet_cikis() metodu içinde
 ---
 
 ## Faz 3 — API Endpoints
+> **Durum (2026-04-07):** ✅ Tamamlandı.
 > **Agent Notu:** Router standardı `/api/<çoğul>` + `require_role(...)` + rate-limit dekoratörü korunmalı.
+> **Uygulama Notları:**
+> - 3.1 Zon Yönetimi: Faz 0.1'de zaten tamamlanmıştı.
+> - 3.2 Yerleştirme Görevleri: `/bekleyen/ozet`, `/{id}/birak`, `/karantinadan-cikar`, `/karantinaya-al`, `/bilinmeyen-konum-gorevleri-olustur` endpoint'leri eklendi. `YerlestirmeGoreviBirakUseCase` ve `YerlestirmeGoreviYerlestirmeGoreviBekleyenOzetUseCase` use case'leri oluşturuldu. DI container'a kaydedildi.
+> - 3.3 Mobil Terminal: `app/api/v1/routers/mobil_terminal.py` sıfırdan yazıldı. `POST /yerlestir` endpoint'i palet barkodunu gorev_id ile çapraz doğrular; ardından `YerlestirmeOnaylaUseCase`'i çağırır.
+> - 3.4 Raporlama: `GET /raporlar/yerlestirme-performans` ve `GET /raporlar/bilinmeyen-konum` `raporlar.py`'ye eklendi; `get_yerlestirme_gorevi_repo`, `get_raf_repo`, `get_palet_repo` DI'larını direkt kullanır, yeni use case gerektirmez.
+> - `mobil_terminal_router` `__init__.py` ve `main.py`'ye kaydedildi.
 
 > **Amaç:** Mobil terminal ve web yönetim paneli için gerekli API'leri sunmak.
 

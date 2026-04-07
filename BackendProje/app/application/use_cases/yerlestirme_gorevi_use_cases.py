@@ -252,6 +252,43 @@ class YerlestirmeGoreviOverrideUseCase:
         return YerlestirmeGoreviResponseDTO.from_entity(kaydedilen)
 
 
+class YerlestirmeGoreviBirakUseCase:
+    """Operatör görevi havuza iade eder: ATANDI → BEKLIYOR."""
+
+    def __init__(self, repo: IYerlestirmeGoreviRepository):
+        self._repo = repo
+
+    def execute(self, gorev_id: int, kullanici_id: int) -> YerlestirmeGoreviResponseDTO:
+        gorev = self._repo.getir_id_ile(gorev_id)
+        if not gorev:
+            raise KayitBulunamadiError("YerlestirmeGorevi", gorev_id)
+        if gorev.atanan_kullanici_id != kullanici_id:
+            raise GecersizIslemError("Bu görev size atanmamış.")
+        gorev.bırak()
+        kaydedilen = self._repo.guncelle(gorev)
+        return YerlestirmeGoreviResponseDTO.from_entity(kaydedilen)
+
+
+class YerlestirmeGoreviYerlestirmeGoreviBekleyenOzetUseCase:
+    """Bekleyen görev havuzunu özetler: sayı ve öncelik dağılımı."""
+
+    def __init__(self, repo: IYerlestirmeGoreviRepository):
+        self._repo = repo
+
+    def execute(self) -> dict:
+        bekleyenler = self._repo.getir_hepsi(durum="Bekliyor", limit=10000)
+        toplam = len(bekleyenler)
+        acil = sum(1 for g in bekleyenler if g.oncelik == 1)
+        yuksek = sum(1 for g in bekleyenler if g.oncelik == 2)
+        normal = sum(1 for g in bekleyenler if g.oncelik >= 3)
+        return {
+            "toplam_bekleyen": toplam,
+            "acil": acil,
+            "yuksek_oncelikli": yuksek,
+            "normal": normal,
+        }
+
+
 class YerlestirmeGoreviIptalUseCase:
     def __init__(self, repo: IYerlestirmeGoreviRepository, log_repo: ISistemLogRepository):
         self._repo = repo

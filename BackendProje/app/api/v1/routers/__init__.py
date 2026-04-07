@@ -21,6 +21,7 @@ from .dashboard import router as dashboard_router
 from .mal_kabul_irsaliyeleri import router as mal_kabul_irsaliyeleri_router
 from .stok_islemleri import router as stok_islemleri_router
 from .yerlestirme_gorevleri import router as yerlestirme_gorevleri_router
+from .mobil_terminal import router as mobil_terminal_router
 
 __all__ = [
     "urunler_router",
@@ -46,4 +47,5 @@ __all__ = [
     "mal_kabul_irsaliyeleri_router",
     "stok_islemleri_router",
     "yerlestirme_gorevleri_router",
+    "mobil_terminal_router",
 ]

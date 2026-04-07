@@ -18,6 +18,11 @@ from app.infrastructure.di.container import (
     get_yerlestirme_gorevi_tamamla_uc,
     get_yerlestirme_gorevi_override_uc,
     get_yerlestirme_gorevi_iptal_uc,
+    get_yerlestirme_gorevi_birak_uc,
+    get_yerlestirme_gorevi_bekleyen_ozet_uc,
+    get_karantinadan_cikar_uc,
+    get_karantinaya_al_uc,
+    get_bilinmeyen_konum_gorevleri_olustur_uc,
 )
 from app.application.dto.yerlestirme_gorevi_dto import (
     YerlestirmeGoreviOlusturRequestDTO,
@@ -25,6 +30,9 @@ from app.application.dto.yerlestirme_gorevi_dto import (
     YerlestirmeGoreviOverrideRequestDTO,
     YerlestirmeGoreviIptalRequestDTO,
     YerlestirmeGoreviResponseDTO,
+    KarantinadanCikarRequestDTO,
+    KarantinayaAlRequestDTO,
+    BilinmeyenKonumGorevleriOlusturSonucDTO,
 )
 from app.application.use_cases.yerlestirme_gorevi_use_cases import (
     YerlestirmeGoreviListeleUseCase,
@@ -35,6 +43,11 @@ from app.application.use_cases.yerlestirme_gorevi_use_cases import (
     YerlestirmeGoreviTamamlaUseCase,
     YerlestirmeGoreviOverrideUseCase,
     YerlestirmeGoreviIptalUseCase,
+    YerlestirmeGoreviBirakUseCase,
+    YerlestirmeGoreviYerlestirmeGoreviBekleyenOzetUseCase,
+    KarantinadanCikarUseCase,
+    KarantinayaAlUseCase,
+    BilinmeyenKonumGorevleriOlusturUseCase,
 )
 
 router = APIRouter(prefix="/api/yerlestirme-gorevleri", tags=["Yerleştirme Görevleri"])
@@ -147,3 +160,70 @@ def gorev_iptal(
     uc: YerlestirmeGoreviIptalUseCase = Depends(get_yerlestirme_gorevi_iptal_uc),
 ):
     return uc.execute(gorev_id, dto, kullanici_id=current_user.id)
+
+
+@router.post("/{gorev_id}/birak", response_model=YerlestirmeGoreviResponseDTO)
+@limiter.limit("60/minute")
+def gorev_birak(
+    request: Request,
+    gorev_id: int,
+    current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
+    uc: YerlestirmeGoreviBirakUseCase = Depends(get_yerlestirme_gorevi_birak_uc),
+):
+    """Operatör görevi havuza iade eder: ATANDI → BEKLIYOR."""
+    return uc.execute(gorev_id, kullanici_id=current_user.id)
+
+
+@router.get("/bekleyen/ozet")
+@limiter.limit("100/minute")
+def bekleyen_gorev_ozet(
+    request: Request,
+    current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
+    uc: YerlestirmeGoreviYerlestirmeGoreviBekleyenOzetUseCase = Depends(
+        get_yerlestirme_gorevi_bekleyen_ozet_uc
+    ),
+):
+    """Bekleyen görev havuzu özeti: toplam sayı ve öncelik dağılımı."""
+    return uc.execute()
+
+
+@router.post("/karantinadan-cikar", response_model=YerlestirmeGoreviResponseDTO, status_code=201)
+@limiter.limit("30/minute")
+def karantinadan_cikar(
+    request: Request,
+    dto: KarantinadanCikarRequestDTO,
+    current_user: Kullanici = Depends(require_role("admin")),
+    uc: KarantinadanCikarUseCase = Depends(get_karantinadan_cikar_uc),
+):
+    """Admin onayı: Palet karantinadan çıkar → Transfer görevi oluştur."""
+    return uc.execute(dto, kullanici_id=current_user.id)
+
+
+@router.post("/karantinaya-al", response_model=YerlestirmeGoreviResponseDTO, status_code=201)
+@limiter.limit("30/minute")
+def karantinaya_al(
+    request: Request,
+    dto: KarantinayaAlRequestDTO,
+    current_user: Kullanici = Depends(require_role("admin")),
+    uc: KarantinayaAlUseCase = Depends(get_karantinaya_al_uc),
+):
+    """Admin: Paleti karantinaya al → Transfer görevi oluştur (oncelik=1)."""
+    return uc.execute(dto, kullanici_id=current_user.id)
+
+
+@router.post(
+    "/bilinmeyen-konum-gorevleri-olustur",
+    response_model=BilinmeyenKonumGorevleriOlusturSonucDTO,
+    status_code=201,
+)
+@limiter.limit("10/minute")
+def bilinmeyen_konum_gorevleri_olustur(
+    request: Request,
+    depo_id: int,
+    current_user: Kullanici = Depends(require_role("admin", "lojistik")),
+    uc: BilinmeyenKonumGorevleriOlusturUseCase = Depends(
+        get_bilinmeyen_konum_gorevleri_olustur_uc
+    ),
+):
+    """MIGRATION_STAGING raftaki paletler için yüksek öncelikli yerleştirme görevi oluşturur."""
+    return uc.execute(depo_id=depo_id, kullanici_id=current_user.id)

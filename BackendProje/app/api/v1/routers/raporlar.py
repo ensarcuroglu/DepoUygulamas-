@@ -26,6 +26,9 @@ from app.infrastructure.di.container import (
     get_rapor_schedule_tetikle_uc,
     get_rapor_veri_sorgula_uc,
     get_rapor_export_uc,
+    get_yerlestirme_gorevi_repo,
+    get_raf_repo,
+    get_palet_repo,
 )
 from app.application.dto.rapor_dto import (
     RaporSablonuOlusturRequestDTO,
@@ -300,3 +303,105 @@ def rapor_schedule_tetikle(
     uc: RaporScheduleTetikleUseCase = Depends(get_rapor_schedule_tetikle_uc),
 ):
     return uc.execute(schedule_id, kullanici_id=current_user.id)
+
+
+# ─────────────────────────────────────────
+# FAZ 3 — PUTAWAY RAPORLAMA ENDPOİNT'LERİ
+# ─────────────────────────────────────────
+
+@router.get("/yerlestirme-performans")
+@limiter.limit("60/minute")
+def yerlestirme_performans_raporu(
+    request: Request,
+    depo_id: Optional[int] = Query(None),
+    current_user: Kullanici = Depends(require_role("admin", "lojistik")),
+    gorev_repo=Depends(get_yerlestirme_gorevi_repo),
+    raf_repo=Depends(get_raf_repo),
+):
+    """
+    Yerleştirme performans raporu:
+    - Ortalama yerleştirme süresi (ATANDI → TAMAMLANDI)
+    - Override oranı (gerceklesen_raf != onerilen_raf)
+    - Görev tipi dağılımı
+    """
+    gorevler = gorev_repo.getir_hepsi(durum="Tamamlandi", limit=10000)
+    if depo_id is not None:
+        raf_depo_cache = {}
+
+        def _raf_depo_id_getir(raf_id: int) -> Optional[int]:
+            if raf_id not in raf_depo_cache:
+                raf = raf_repo.getir_id_ile(raf_id)
+                raf_depo_cache[raf_id] = raf.depo_id if raf else None
+            return raf_depo_cache[raf_id]
+
+        gorevler = [
+            g for g in gorevler
+            if (g.gerceklesen_raf_id or g.onerilen_raf_id)
+            and _raf_depo_id_getir(g.gerceklesen_raf_id or g.onerilen_raf_id) == depo_id
+        ]
+
+    sureli = [
+        g for g in gorevler
+        if g.baslama_tarihi and g.tamamlanma_tarihi
+    ]
+    override_sayisi = sum(
+        1 for g in gorevler
+        if g.gerceklesen_raf_id and g.gerceklesen_raf_id != g.onerilen_raf_id
+    )
+
+    ort_sure_dk = None
+    if sureli:
+        toplam_sn = sum(
+            (g.tamamlanma_tarihi - g.baslama_tarihi).total_seconds()
+            for g in sureli
+        )
+        ort_sure_dk = round(toplam_sn / len(sureli) / 60, 1)
+
+    tip_dagilimi: dict = {}
+    for g in gorevler:
+        tip_dagilimi[g.tip] = tip_dagilimi.get(g.tip, 0) + 1
+
+    return {
+        "toplam_tamamlanan": len(gorevler),
+        "override_sayisi": override_sayisi,
+        "override_orani_yuzde": round(override_sayisi / max(len(gorevler), 1) * 100, 1),
+        "ortalama_sure_dakika": ort_sure_dk,
+        "tip_dagilimi": tip_dagilimi,
+    }
+
+
+@router.get("/bilinmeyen-konum")
+@limiter.limit("60/minute")
+def bilinmeyen_konum_raporu(
+    request: Request,
+    depo_id: int = Query(..., description="Depo ID"),
+    current_user: Kullanici = Depends(require_role("admin", "lojistik", "depocu")),
+    raf_repo=Depends(get_raf_repo),
+    palet_repo=Depends(get_palet_repo),
+):
+    """
+    MIGRATION_STAGING raftaki palet sayısı — doluluk oranları kesin değildir uyarısı.
+    """
+    staging_raf = raf_repo.getir_staging_raf(depo_id)
+    if not staging_raf:
+        return {
+            "uyari": None,
+            "bilinmeyen_konum_palet_sayisi": 0,
+            "mesaj": "Bu depo için MIGRATION_STAGING rafı bulunamadı.",
+        }
+
+    paletler = palet_repo.getir_hepsi(raf_id=staging_raf.id, sadece_aktif=True, limit=10000)
+    palet_sayisi = len(paletler)
+
+    return {
+        "uyari": "Geçici Veri İçeriyor" if palet_sayisi > 0 else None,
+        "bilinmeyen_konum_palet_sayisi": palet_sayisi,
+        "staging_raf_id": staging_raf.id,
+        "staging_raf_kod": staging_raf.kod,
+        "mesaj": (
+            f"{palet_sayisi} palet henüz konumlandırılmamış. "
+            "Doluluk oranları kesin değildir."
+            if palet_sayisi > 0
+            else "Tüm paletler konumlandırılmış."
+        ),
+    }

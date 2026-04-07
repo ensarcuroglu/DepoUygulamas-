@@ -53,6 +53,8 @@ from app.application.use_cases.yerlestirme_gorevi_use_cases import (
     YerlestirmeGoreviTamamlaUseCase,
     YerlestirmeGoreviOverrideUseCase,
     YerlestirmeGoreviIptalUseCase,
+    YerlestirmeGoreviBirakUseCase,
+    YerlestirmeGoreviYerlestirmeGoreviBekleyenOzetUseCase,
     YerlestirmeOnaylaUseCase,
     BilinmeyenKonumGorevleriOlusturUseCase,
     KarantinadanCikarUseCase,
@@ -425,6 +427,18 @@ def get_yerlestirme_gorevi_iptal_uc(
     log_repo=Depends(get_log_repo),
 ):
     return YerlestirmeGoreviIptalUseCase(repo, log_repo)
+
+
+def get_yerlestirme_gorevi_birak_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+):
+    return YerlestirmeGoreviBirakUseCase(repo)
+
+
+def get_yerlestirme_gorevi_bekleyen_ozet_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+):
+    return YerlestirmeGoreviYerlestirmeGoreviBekleyenOzetUseCase(repo)
 
 
 # ── Faz 1 — Domain Servis factory'leri ──
