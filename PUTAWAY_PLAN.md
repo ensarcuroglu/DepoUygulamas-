@@ -380,6 +380,13 @@ class YerlestirmeGorevi(Base):
 ---
 
 ## Faz 1 — Domain Servisleri
+> **Durum (2026-04-07):** ✅ Tamamlandı.
+> **Uygulama Notları:**
+> - `ZonUyumlulukServisi.uyumlu_mu()` pure (DB yok); `uyumlu_zonlari_getir()` zon_repo kullanır.
+> - `KapasiteDogrulamaServisi` hem `IPaletRepository` hem `IRafRepository` alır — plan `palet_repo` only gösteriyordu; `alternatif_raflar_getir()` için `raf_repo` da gerekti.
+> - `YerlestirmeAlgoritmasi` Karantina zonunu önerilerden otomatik çıkarır. Skorlama N+1 sorgu içerir (palet_repo.getir_hepsi per shelf) — küçük/orta depo konfigürasyonlarında kabul edilebilir; büyük depolarda batch sorgu optimizasyonu gerekebilir.
+> - `IRafRepository.getir_hepsi` ve `sa_raf_repository` `zon_id` parametresi eklendi (backward-compatible).
+> - `sa_raf_repository.guncelle` Faz 0.2 alanları (zon_id, max_agirlik_kg, koridor, kat, goz) eksikti — bu fazda tamamlandı.
 > **Agent Notu:** Domain servisleri pure kalmalı; DB erişimi sadece repository katmanından yapılmalı.
 
 > **Amaç:** Yerleştirme algoritması ve doğrulama servislerini oluşturmak.

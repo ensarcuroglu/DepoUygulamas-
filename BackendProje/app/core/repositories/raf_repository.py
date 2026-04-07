@@ -9,7 +9,9 @@ class IRafRepository(ABC):
     @abstractmethod
     def getir_hepsi(
         self, skip: int = 0, limit: int = 100,
-        depo_id: Optional[int] = None, sadece_aktif: bool = True,
+        depo_id: Optional[int] = None,
+        zon_id: Optional[int] = None,
+        sadece_aktif: bool = True,
     ) -> List[Raf]:
         ...
 

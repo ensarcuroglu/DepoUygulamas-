@@ -55,6 +55,9 @@ from app.application.use_cases.yerlestirme_gorevi_use_cases import (
     YerlestirmeGoreviIptalUseCase,
 )
 from app.core.services.palet_bazli_stok_domain_service import PaletBazliStokDomainService
+from app.core.services.zon_uyumluluk_servisi import ZonUyumlulukServisi
+from app.core.services.kapasite_dogrulama_servisi import KapasiteDogrulamaServisi
+from app.core.services.yerlestirme_algoritmasi import YerlestirmeAlgoritmasi
 from app.infrastructure.services.irsaliye_palet_veri_kaynagi_service import IrsaliyePaletVeriKaynagiService
 from app.infrastructure.services.palet_sorgulama_service import PaletSorgulamaService
 from app.infrastructure.config.erp_config import ErpConfig, PaletVeriKaynagi
@@ -418,3 +421,28 @@ def get_yerlestirme_gorevi_iptal_uc(
     log_repo=Depends(get_log_repo),
 ):
     return YerlestirmeGoreviIptalUseCase(repo, log_repo)
+
+
+# ── Faz 1 — Domain Servis factory'leri ──
+
+def get_zon_uyumluluk_servisi(
+    zon_repo=Depends(get_zon_repo),
+):
+    return ZonUyumlulukServisi(zon_repo)
+
+
+def get_kapasite_dogrulama_servisi(
+    palet_repo=Depends(get_palet_repo),
+    raf_repo=Depends(get_raf_repo),
+):
+    return KapasiteDogrulamaServisi(palet_repo, raf_repo)
+
+
+def get_yerlestirme_algoritmasi(
+    raf_repo=Depends(get_raf_repo),
+    zon_repo=Depends(get_zon_repo),
+    palet_repo=Depends(get_palet_repo),
+    zon_uyumluluk=Depends(get_zon_uyumluluk_servisi),
+    kapasite=Depends(get_kapasite_dogrulama_servisi),
+):
+    return YerlestirmeAlgoritmasi(raf_repo, zon_repo, palet_repo, zon_uyumluluk, kapasite)
