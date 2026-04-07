@@ -72,7 +72,9 @@ class YerlestirmeGorevi:
     def _durum_gecisi(self, hedef: str) -> None:
         if not GorevDurum.gecis_gecerli_mi(self.durum, hedef):
             raise GecersizDurumGecisiError(
-                f"Geçersiz durum geçişi: {self.durum} → {hedef}"
+                f"Geçersiz durum geçişi: {self.durum} → {hedef}",
+                mevcut=self.durum,
+                hedef=hedef
             )
         self.durum = hedef
 

@@ -100,7 +100,7 @@ def gorev_olustur(
     return uc.execute(dto, kullanici_id=current_user.id)
 
 
-@router.post("/sonraki-gorevi-al", response_model=Optional[YerlestirmeGoreviResponseDTO])
+@router.post("/siradaki-al", response_model=Optional[YerlestirmeGoreviResponseDTO])
 @limiter.limit("60/minute")
 def sonraki_gorevi_al(
     request: Request,

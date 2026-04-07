@@ -33,8 +33,10 @@ def _staging_raf() -> Raf:
     return Raf(id=999, kod="STG-000", kapasite=1000, zon_id=None, aktif=True)
 
 
-def _kalem(palet_no="PLT-001", urun_id=1, miktar=10) -> MalKabulKalemi:
+def _kalem(palet_no="PLT-001", urun_id=1, miktar=10, kalem_id=1, irsaliye_id=1) -> MalKabulKalemi:
     return MalKabulKalemi(
+        id=kalem_id,                           # <-- EKLENDİ
+        mal_kabul_irsaliyesi_id=irsaliye_id,   # <-- EKLENDİ
         palet_no=palet_no,
         urun_id=urun_id,
         lot_no="L001",
@@ -46,7 +48,8 @@ def _kalem(palet_no="PLT-001", urun_id=1, miktar=10) -> MalKabulKalemi:
 
 
 def _irsaliye(durum=MalKabulDurum.TASLAK, kalem_sayisi=1) -> MalKabulIrsaliye:
-    kalemler = [_kalem(palet_no=f"PLT-{i:03d}", urun_id=1) for i in range(kalem_sayisi)]
+    # Her kalem için benzersiz bir ID (i+1) veriyoruz
+    kalemler = [_kalem(palet_no=f"PLT-{i:03d}", urun_id=1, kalem_id=i+1, irsaliye_id=1) for i in range(kalem_sayisi)]
     return MalKabulIrsaliye(
         id=1,
         irsaliye_no="MK-2026-001",
