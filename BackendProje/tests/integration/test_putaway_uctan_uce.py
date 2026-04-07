@@ -131,13 +131,13 @@ class TestGorevHavuzuIzolasyonu:
 
         client.headers["Authorization"] = f"Bearer {token_a}"
         # URL güncellendi: /siradaki-al -> /sonraki-gorevi-al
-        res_a = client.post("/api/yerlestirme-gorevleri/sonraki-gorevi-al")
+        res_a = client.post("/api/yerlestirme-gorevleri/siradaki-al")
         assert res_a.status_code == 200
         assert res_a.json()["durum"] == "Atandi"
 
         client.headers["Authorization"] = f"Bearer {token_b}"
         # URL güncellendi: /siradaki-al -> /sonraki-gorevi-al
-        res_b = client.post("/api/yerlestirme-gorevleri/sonraki-gorevi-al")
+        res_b = client.post("/api/yerlestirme-gorevleri/siradaki-al")
         assert res_b.status_code == 200
         assert res_b.json() is None  # Havuzda bekleyen kalmadı
 
@@ -159,7 +159,7 @@ class TestGorevHavuzuIzolasyonu:
         # A alır
         client.headers["Authorization"] = f"Bearer {token_a}"
         # URL güncellendi: /siradaki-al -> /sonraki-gorevi-al
-        res_a = client.post("/api/yerlestirme-gorevleri/sonraki-gorevi-al")
+        res_a = client.post("/api/yerlestirme-gorevleri/siradaki-al")
         assert res_a.status_code == 200
         assert res_a.json()["durum"] == "Atandi"
         gorev_id = res_a.json()["id"]
@@ -172,7 +172,7 @@ class TestGorevHavuzuIzolasyonu:
         # B alır
         client.headers["Authorization"] = f"Bearer {token_b}"
         # URL güncellendi: /siradaki-al -> /sonraki-gorevi-al
-        res_b = client.post("/api/yerlestirme-gorevleri/sonraki-gorevi-al")
+        res_b = client.post("/api/yerlestirme-gorevleri/siradaki-al")
         assert res_b.status_code == 200
         assert res_b.json()["durum"] == "Atandi"
         assert res_b.json()["atanan_kullanici_id"] == depocu_b.id
