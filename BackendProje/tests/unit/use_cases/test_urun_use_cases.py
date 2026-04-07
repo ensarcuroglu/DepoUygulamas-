@@ -26,6 +26,7 @@ def _mock_urun_entity(**overrides):
         ic_adet=1, gramaj=None, birim="Adet", fiyat=25.0,
         min_stok=5, aciklama="", stok_miktari=0, durum="Stok Yok",
         aktif=True, marka_id=None, kategori_id=None, tedarikci_id=None,
+        depolama_tipi="Kuru",
         olusturma_tarihi=datetime(2026, 1, 1),
         guncelleme_tarihi=datetime(2026, 1, 1),
     )

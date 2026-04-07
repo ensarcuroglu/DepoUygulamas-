@@ -485,6 +485,7 @@ class YerlestirmeOnerisi:
 ---
 
 ## Faz 2 — İş Akışı Entegrasyonu
+**Durum (2026-04-07):** ✅ Tamamlandı.
 > **Agent Notu:** İş akışında tek transaction sınırı korunmalı; parçalı commit yapılmamalı.
 
 > **Amaç:** İrsaliye onayından fiziksel yerleştirmeye kadar uçtan uca akışı kurmak.
