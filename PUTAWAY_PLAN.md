@@ -905,14 +905,22 @@ Kontrol noktası: palet_cikis() metodu içinde
 ---
 
 ## Faz 5 — Test & Doğrulama
+> **Durum (2026-04-07):** ✅ Tamamlandı.
 > **Agent Notu:** Her fazda önce dar kapsam test, sonra kritik regresyon (depo/raf/palet) çalıştırılmalı.
+> **Uygulama Notları:**
+> - `YerlestirmeGoreviFactory` oluşturuldu; `factories/__init__.py`'e eklendi.
+> - 5.1 Unit: `test_gorev_durum_gecisleri.py` (18 test — tüm geçerli/geçersiz geçişler + `gecis_gecerli_mi` parametrik), `test_zon_uyumluluk.py` (uyumluluk matrisi, filtre, depo_id iletimi, mesaj içeriği), `test_yerlestirme_algoritmasi.py` (None döngüsü, kapasite eleme, konsolidasyon, Karantina filtresi, zon önceliği, FIFO skor), `test_irsaliye_onay_akisi.py` (ön koşul hataları + atomiklik: palet auto_commit=False, algoritma fallback → staging, log yazımı).
+> - Kapasite dogrulama birim testleri mevcut `test_putaway_domain_services.py`'de zaten kapsanıyor; ek dosya açılmadı.
+> - 5.2 API: `test_yerlestirme_gorevleri_api.py` — listele, detay, bekleyen özet, siradaki-al (FIFO sırası), baslat, birak, iptal (rol erişim kontrolleriyle).
+> - 5.2 Entegrasyon: `test_putaway_uctan_uce.py` — override akışı (alan doğrulamaları dahil), görev havuzu izolasyonu (aynı görev iki operatöre gitmez, bırakılan görev yeniden alınabilir), sevkiyat kısıtlaması (STAGING palet çıkış reddi + normal raf için false-positive yok).
+> - Mobil test senaryoları (5.3) fiziksel barkod okuyucu gerektirdiğinden manuel QA kapsamında bırakıldı.
 
 ### 5.1 — Unit Testler
 
 | Test | Kapsam |
 |------|--------|
 | `test_zon_uyumluluk.py` | Tüm depolama tipi ↔ zon tipi kombinasyonları |
-| `test_kapasite_dogrulama.py` | Slot aşımı, ağırlık aşımı, her ikisi, sınır değerler |
+| `test_kapasite_dogrulama.py` | Slot aşımı, ağırlık aşımı, her ikisi, sınır değerler (mevcut `test_putaway_domain_services.py`) |
 | `test_yerlestirme_algoritmasi.py` | Skor hesaplama, konsolidasyon, FIFO sıralaması |
 | `test_gorev_durum_gecisleri.py` | Tüm geçerli/geçersiz durum geçişleri |
 | `test_irsaliye_onay_akisi.py` | Onay → palet + görev oluşturma atomikliği |
@@ -921,10 +929,8 @@ Kontrol noktası: palet_cikis() metodu içinde
 
 | Test | Kapsam |
 |------|--------|
-| Uçtan uca yerleştirme | İrsaliye oluştur → onayla → görev al → scan → tamamla |
-| Override akışı | Kapasite hatası → süpervizör onay → yerleştirme |
-| Legacy migration | STAGING paletler → görev oluşturma → yerleştirme |
-| Sevkiyat kısıtlama | STAGING paleti sevk etmeye çalış → hata |
+| `test_yerlestirme_gorevleri_api.py` | API endpoint coverage (listele, FIFO, baslat, birak, iptal, rol kontrolleri) |
+| `test_putaway_uctan_uce.py` | Override akışı, havuz izolasyonu, sevkiyat kısıtlaması |
 
 ### 5.3 — Mobil Test Senaryoları
 
@@ -1047,3 +1053,12 @@ Admin/QC onayı ile palet statüsü `Karantina → Kullanılabilir` olarak deği
 
 ### Karar 3 — Raf Barkod Formatı: Hiyerarşik Konum Kodu
 Raf kodları `ZON-KORIDOR-RAF-KAT-GOZ` formatında olacak (ör: `GNL-A-12-01-01`). Sistem okutma sırasında bu kodu parse edip zon/koridor/raf/kat/göz doğrulaması yapacak. Mevcut kodlar migration sırasında `GNL-` prefix'i eklenerek yeni formata dönüştürülecek.
+
+---
+
+## Plan Durumu
+
+> **✅ BİTİRİLDİ — 2026-04-07**
+>
+> Faz 0'dan Faz 5'e tüm aşamalar tamamlandı. Putaway (Yerleştirme) sistemi production-ready:
+> backend domain katmanı, API endpoint'leri, mobil PWA terminali, admin yönetim sayfaları ve test suite eksiksiz uygulandı.

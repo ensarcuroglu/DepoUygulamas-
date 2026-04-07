@@ -15,6 +15,7 @@ from tests.factories.irsaliye_factory import IrsaliyeFactory
 from tests.factories.rapor_sablonu_factory import RaporSablonuFactory, RaporLoguFactory, RaporScheduleFactory
 from tests.factories.stok_sayim_factory import StokSayimFactory, StokSayimKalemiFactory
 from tests.factories.mal_kabul_irsaliye_factory import MalKabulIrsaliyeFactory, MalKabulKalemiFactory
+from tests.factories.yerlestirme_gorevi_factory import YerlestirmeGoreviFactory
 
 ALL_FACTORIES = [
     KullaniciFactory, MarkaFactory, KategoriFactory, DepoFactory, ZonFactory,
@@ -25,6 +26,7 @@ ALL_FACTORIES = [
     RaporSablonuFactory, RaporLoguFactory, RaporScheduleFactory,
     StokSayimFactory, StokSayimKalemiFactory,
     MalKabulIrsaliyeFactory, MalKabulKalemiFactory,
+    YerlestirmeGoreviFactory,
 ]
 
 __all__ = [
@@ -50,5 +52,6 @@ __all__ = [
     "StokSayimKalemiFactory",
     "MalKabulIrsaliyeFactory",
     "MalKabulKalemiFactory",
+    "YerlestirmeGoreviFactory",
     "ALL_FACTORIES",
 ]
