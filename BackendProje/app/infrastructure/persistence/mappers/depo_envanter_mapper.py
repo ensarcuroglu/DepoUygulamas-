@@ -70,9 +70,14 @@ def raf_to_entity(orm: RafORM) -> Raf:
     return Raf(
         id=orm.id,
         depo_id=orm.depo_id,
+        zon_id=orm.zon_id,
         kod=orm.kod,
         bolge=orm.bolge or "",
         kapasite=orm.kapasite,
+        max_agirlik_kg=orm.max_agirlik_kg,
+        koridor=orm.koridor or "",
+        kat=orm.kat or 0,
+        goz=orm.goz or 0,
         aktif=orm.aktif,
         olusturma_tarihi=orm.olusturma_tarihi,
     )
@@ -82,9 +87,14 @@ def raf_to_orm(entity: Raf) -> RafORM:
     return RafORM(
         id=entity.id,
         depo_id=entity.depo_id,
+        zon_id=entity.zon_id,
         kod=entity.kod,
         bolge=entity.bolge,
         kapasite=entity.kapasite,
+        max_agirlik_kg=entity.max_agirlik_kg,
+        koridor=entity.koridor,
+        kat=entity.kat,
+        goz=entity.goz,
         aktif=entity.aktif,
         olusturma_tarihi=entity.olusturma_tarihi,
     )

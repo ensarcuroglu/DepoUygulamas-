@@ -7,6 +7,7 @@ from typing import List, Optional
 
 from app.core.repositories.raf_repository import IRafRepository
 from app.core.repositories.depo_repository import IDepoRepository
+from app.core.repositories.zon_repository import IZonRepository
 from app.core.repositories.sistem_log_repository import ISistemLogRepository
 from app.core.entities.raf import Raf
 from app.core.entities.sistem_log import SistemLog, IslemTipi
@@ -50,6 +51,7 @@ class RafOlusturUseCase:
 
     İş kuralları:
     - Bağlı depo var olmalı.
+    - zon_id verilmişse, zon var olmalı.
     - Aynı depoda mükerrer raf kodu olamaz.
     """
 
@@ -58,10 +60,12 @@ class RafOlusturUseCase:
         raf_repo: IRafRepository,
         depo_repo: IDepoRepository,
         log_repo: ISistemLogRepository,
+        zon_repo: Optional[IZonRepository] = None,
     ):
         self._raf_repo = raf_repo
         self._depo_repo = depo_repo
         self._log_repo = log_repo
+        self._zon_repo = zon_repo
 
     def execute(self, dto: RafOlusturRequestDTO, kullanici_id: int) -> RafResponseDTO:
         # Depo varlık kontrolü
@@ -69,16 +73,27 @@ class RafOlusturUseCase:
         if not depo:
             raise KayitBulunamadiError("Depo", dto.depo_id)
 
-        # Aynı depoda mükerrer raf kodu kontrolü (DB seviyesinde tek sorgu)
+        # Zon varlık kontrolü (zon_id verilmişse)
+        if dto.zon_id and self._zon_repo:
+            zon = self._zon_repo.getir_id_ile(dto.zon_id)
+            if not zon:
+                raise KayitBulunamadiError("Zon", dto.zon_id)
+
+        # Aynı depoda mükerrer raf kodu kontrolü
         mevcut_raf = self._raf_repo.getir_kod_ile(dto.kod, dto.depo_id)
         if mevcut_raf:
             raise CakismaHatasi("Raf kodu", dto.kod)
 
         raf = Raf(
             depo_id=dto.depo_id,
+            zon_id=dto.zon_id,
             kod=dto.kod,
             bolge=dto.bolge,
             kapasite=dto.kapasite,
+            max_agirlik_kg=dto.max_agirlik_kg,
+            koridor=dto.koridor,
+            kat=dto.kat,
+            goz=dto.goz,
         )
         kaydedilen = self._raf_repo.olustur(raf)
 
@@ -88,7 +103,11 @@ class RafOlusturUseCase:
                 islem_tipi=IslemTipi.CREATE,
                 modul="Raf Yönetimi",
                 detay=f"Yeni raf eklendi: {kaydedilen.kod} (Depo: {depo.isim})",
-                yeni_veri={"kod": kaydedilen.kod, "depo_id": kaydedilen.depo_id},
+                yeni_veri={
+                    "kod": kaydedilen.kod,
+                    "depo_id": kaydedilen.depo_id,
+                    "zon_id": kaydedilen.zon_id,
+                },
             )
         )
 
@@ -98,9 +117,15 @@ class RafOlusturUseCase:
 class RafGuncelleUseCase:
     """Mevcut rafı günceller."""
 
-    def __init__(self, raf_repo: IRafRepository, log_repo: ISistemLogRepository):
+    def __init__(
+        self,
+        raf_repo: IRafRepository,
+        log_repo: ISistemLogRepository,
+        zon_repo: Optional[IZonRepository] = None,
+    ):
         self._raf_repo = raf_repo
         self._log_repo = log_repo
+        self._zon_repo = zon_repo
 
     def execute(
         self, raf_id: int, dto: RafGuncelleRequestDTO, kullanici_id: int
@@ -109,10 +134,17 @@ class RafGuncelleUseCase:
         if not mevcut:
             raise KayitBulunamadiError("Raf", raf_id)
 
+        # Zon varlık kontrolü (zon_id değişiyorsa)
+        guncel_veri = dto.model_dump(exclude_unset=True)
+        yeni_zon_id = guncel_veri.get("zon_id")
+        if yeni_zon_id and self._zon_repo:
+            zon = self._zon_repo.getir_id_ile(yeni_zon_id)
+            if not zon:
+                raise KayitBulunamadiError("Zon", yeni_zon_id)
+
         eski_veri = {"kod": mevcut.kod, "kapasite": mevcut.kapasite}
 
         # Kod değişiyorsa çakışma kontrolü
-        guncel_veri = dto.model_dump(exclude_unset=True)
         yeni_kod = guncel_veri.get("kod")
         hedef_depo = guncel_veri.get("depo_id", mevcut.depo_id)
         if yeni_kod and (yeni_kod.lower() != mevcut.kod.lower() or hedef_depo != mevcut.depo_id):

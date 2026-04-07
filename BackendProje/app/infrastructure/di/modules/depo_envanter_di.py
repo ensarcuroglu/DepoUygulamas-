@@ -172,15 +172,17 @@ def get_raf_olustur_uc(
     raf_repo=Depends(get_raf_repo),
     depo_repo=Depends(get_depo_repo),
     log_repo=Depends(get_log_repo),
+    zon_repo=Depends(get_zon_repo),
 ):
-    return RafOlusturUseCase(raf_repo, depo_repo, log_repo)
+    return RafOlusturUseCase(raf_repo, depo_repo, log_repo, zon_repo)
 
 
 def get_raf_guncelle_uc(
     raf_repo=Depends(get_raf_repo),
     log_repo=Depends(get_log_repo),
+    zon_repo=Depends(get_zon_repo),
 ):
-    return RafGuncelleUseCase(raf_repo, log_repo)
+    return RafGuncelleUseCase(raf_repo, log_repo, zon_repo)
 
 
 def get_raf_sil_uc(

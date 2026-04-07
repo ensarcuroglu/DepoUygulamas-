@@ -78,6 +78,7 @@ class Zon(Base):
 
     # Iliski
     depo = relationship("Depo", back_populates="zonlar")
+    raflar = relationship("Raf", back_populates="zon")
 
 
 # ========================
@@ -89,14 +90,20 @@ class Raf(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     depo_id = Column(Integer, ForeignKey("depolar.id"), nullable=True)
-    kod = Column(String(20), unique=True, nullable=False)       # Örn: "A-12", "B-04"
-    bolge = Column(String(50), default="")                       # Örn: "Zemin Kat"
+    zon_id = Column(Integer, ForeignKey("zonlar.id"), nullable=True)   # Faz 0.2
+    kod = Column(String(50), unique=True, nullable=False)              # Örn: "GNL-A-12-01-01"
+    bolge = Column(String(50), default="")                             # DEPRECATED: zon_id kullanılır
     kapasite = Column(Integer, default=100)
+    max_agirlik_kg = Column(Float, nullable=True)                      # Faz 0.2
+    koridor = Column(String(10), default="")                           # Faz 0.2
+    kat = Column(Integer, default=0)                                   # Faz 0.2
+    goz = Column(Integer, default=0)                                   # Faz 0.2
     aktif = Column(Boolean, default=True)
     olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
 
     # İlişkiler
     depo = relationship("Depo", back_populates="raflar")
+    zon = relationship("Zon", back_populates="raflar")
     paletler = relationship("Palet", back_populates="raf")
 
 

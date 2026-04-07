@@ -39,6 +39,10 @@ Mal kabul irsaliyesi onaylandığında paletler otomatik oluşturulacak ve bir *
 > **Amaç:** Yeni entity'ler ve mevcut entity değişiklikleri ile veritabanı temelini kurmak.
 
 ### 0.1 — Zon (Bölge) Entity Oluştur
+> **Durum (2026-04-06):** ✅ Tamamlandı.
+> **Kısa Uygulama Notu:** `zon_mapper.py` yerine mevcut mimari nedeniyle mapper entegrasyonu `depo_envanter_mapper.py` içinde yapıldı.
+> **Doğrulama:** `tests/api/routers/test_zonlar_api.py` eklendi (6/6 geçti).
+> **Endpoint:** `/api/zonlar`
 
 **Yeni dosyalar:**
 - `app/core/entities/zon.py`
@@ -99,6 +103,9 @@ class Zon(Base):
 ---
 
 ### 0.2 — Raf Entity Genişletme
+> **Durum (2026-04-07):** ✅ Tamamlandı.
+> **Uygulama Notu:** `bolge` deprecated olarak bırakıldı, tüm yeni alanlar optional — eski API sözleşmesi korundu. `zon_repo` DI factory'lerine inject edildi (`RafOlusturUseCase`, `RafGuncelleUseCase`). Migration: `migrate_raf_genisletme.py` (4-parçalı eski kodlar otomatik `GNL-` prefix ile dönüştürülür).
+> **Agent Notu:** `bolge` alanı backward-compat için korunmalı; `zon_id` geçişinde mevcut raf API sözleşmesi kırılmamalı.
 
 **Değişen dosyalar:**
 - `app/core/entities/raf.py`
@@ -172,6 +179,7 @@ class KapasiteSonuc:
 ---
 
 ### 0.3 — Urun Entity'ye Depolama Tipi Ekle
+> **Agent Notu:** `depolama_tipi` varsayılanı `"Kuru"` korunmalı; legacy ürün kayıtlarıyla uyumluluk bozulmamalı.
 
 **Değişen dosyalar:**
 - `app/core/entities/urun.py`
@@ -206,6 +214,7 @@ ZON_DEPOLAMA_UYUMLULUK = {
 ---
 
 ### 0.4 — Yerleştirme Görevi (Putaway Task) Entity
+> **Agent Notu:** Görev durum stringleri stabil tutulmalı; mevcut exception/log patterni ile ilerlenmeli.
 
 **Yeni dosyalar:**
 - `app/core/entities/yerlestirme_gorevi.py`
@@ -328,6 +337,7 @@ class YerlestirmeGorevi(Base):
 ---
 
 ### 0.5 — DB Migration Script
+> **Agent Notu:** Migration script idempotent yazılmalı; model şeması ve test DB (`create_all`) tutarlılığı korunmalı.
 
 **Yeni dosya:** `migrate_putaway_system.py`
 
@@ -359,6 +369,7 @@ class YerlestirmeGorevi(Base):
 ---
 
 ## Faz 1 — Domain Servisleri
+> **Agent Notu:** Domain servisleri pure kalmalı; DB erişimi sadece repository katmanından yapılmalı.
 
 > **Amaç:** Yerleştirme algoritması ve doğrulama servislerini oluşturmak.
 
@@ -456,6 +467,7 @@ class YerlestirmeOnerisi:
 ---
 
 ## Faz 2 — İş Akışı Entegrasyonu
+> **Agent Notu:** İş akışında tek transaction sınırı korunmalı; parçalı commit yapılmamalı.
 
 > **Amaç:** İrsaliye onayından fiziksel yerleştirmeye kadar uçtan uca akışı kurmak.
 
@@ -608,6 +620,7 @@ Kontrol noktası: palet_cikis() metodu içinde
 ---
 
 ## Faz 3 — API Endpoints
+> **Agent Notu:** Router standardı `/api/<çoğul>` + `require_role(...)` + rate-limit dekoratörü korunmalı.
 
 > **Amaç:** Mobil terminal ve web yönetim paneli için gerekli API'leri sunmak.
 
@@ -708,6 +721,7 @@ Kontrol noktası: palet_cikis() metodu içinde
 ---
 
 ## Faz 4 — Frontend: Mobil Terminal UI
+> **Agent Notu:** Terminal akışı ayrı route grubu ile eklenmeli; mevcut web panel route yapısı bozulmamalı.
 
 > **Amaç:** Saha operatörleri için scan-to-verify iş akışını sunan mobil-optimized PWA arayüzü.
 
@@ -856,6 +870,7 @@ Kontrol noktası: palet_cikis() metodu içinde
 ---
 
 ## Faz 5 — Test & Doğrulama
+> **Agent Notu:** Her fazda önce dar kapsam test, sonra kritik regresyon (depo/raf/palet) çalıştırılmalı.
 
 ### 5.1 — Unit Testler
 

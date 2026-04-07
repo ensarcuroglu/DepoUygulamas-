@@ -16,9 +16,14 @@ from app.core.entities.raf import Raf
 
 class RafOlusturRequestDTO(BaseModel):
     depo_id: int = Field(..., gt=0, description="Bağlı olduğu depo ID")
-    kod: str = Field(..., min_length=1, max_length=50, description="Raf kodu (ör: A-01)")
-    bolge: str = Field(default="", max_length=100, description="Bölge adı")
+    zon_id: Optional[int] = Field(None, gt=0, description="Bağlı zon ID (Faz 0.2+)")
+    kod: str = Field(..., min_length=1, max_length=50, description="Raf kodu (ör: GNL-A-12-01-01)")
+    bolge: str = Field(default="", max_length=100, description="[DEPRECATED] Bölge adı; yeni akışlarda zon_id kullanılır")
     kapasite: int = Field(default=100, ge=1, description="Palet kapasitesi")
+    max_agirlik_kg: Optional[float] = Field(None, gt=0, description="Maksimum ağırlık (kg)")
+    koridor: str = Field(default="", max_length=10, description="Koridor kodu (ör: 'A')")
+    kat: int = Field(default=0, ge=0, description="Kat numarası")
+    goz: int = Field(default=0, ge=0, description="Göz numarası")
 
     @field_validator("kod")
     @classmethod
@@ -30,9 +35,14 @@ class RafOlusturRequestDTO(BaseModel):
 
 class RafGuncelleRequestDTO(BaseModel):
     depo_id: Optional[int] = Field(None, gt=0)
+    zon_id: Optional[int] = Field(None, gt=0)
     kod: Optional[str] = Field(None, min_length=1, max_length=50)
     bolge: Optional[str] = Field(None, max_length=100)
     kapasite: Optional[int] = Field(None, ge=1)
+    max_agirlik_kg: Optional[float] = Field(None, gt=0)
+    koridor: Optional[str] = Field(None, max_length=10)
+    kat: Optional[int] = Field(None, ge=0)
+    goz: Optional[int] = Field(None, ge=0)
     aktif: Optional[bool] = None
 
     @field_validator("kod")
@@ -50,9 +60,14 @@ class RafGuncelleRequestDTO(BaseModel):
 class RafResponseDTO(BaseModel):
     id: int
     depo_id: Optional[int]
+    zon_id: Optional[int]
     kod: str
     bolge: str
     kapasite: int
+    max_agirlik_kg: Optional[float]
+    koridor: str
+    kat: int
+    goz: int
     aktif: bool
     olusturma_tarihi: datetime
 
@@ -63,9 +78,14 @@ class RafResponseDTO(BaseModel):
         return cls(
             id=entity.id,
             depo_id=entity.depo_id,
+            zon_id=entity.zon_id,
             kod=entity.kod,
             bolge=entity.bolge,
             kapasite=entity.kapasite,
+            max_agirlik_kg=entity.max_agirlik_kg,
+            koridor=entity.koridor,
+            kat=entity.kat,
+            goz=entity.goz,
             aktif=entity.aktif,
             olusturma_tarihi=entity.olusturma_tarihi,
         )
