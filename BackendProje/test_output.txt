@@ -1,0 +1,58 @@
+﻿============================= test session starts =============================
+collecting ... collected 387 items / 372 deselected / 15 selected
+
+tests/integration/repositories/test_transactional_write_repositories.py::TestIrsaliyeRepositoryTransactions::test_olustur_auto_commit_false_rollback_sonrasi_kalici_olmaz PASSED [  6%]
+tests/integration/repositories/test_transactional_write_repositories.py::TestIrsaliyeRepositoryTransactions::test_guncelle_auto_commit_true_davranisi_korur PASSED [ 13%]
+tests/integration/repositories/test_transactional_write_repositories.py::TestSevkiyatRepositoryTransactions::test_olustur_auto_commit_false_rollback_sonrasi_kalici_olmaz PASSED [ 20%]
+tests/integration/repositories/test_transactional_write_repositories.py::TestSevkiyatRepositoryTransactions::test_guncelle_auto_commit_true_davranisi_korur PASSED [ 26%]
+tests/integration/services/test_irsaliye_palet_veri_kaynagi.py::TestPaletBilgisiGetir::test_basarili_getir PASSED [ 33%]
+tests/integration/services/test_irsaliye_palet_veri_kaynagi.py::TestPaletBilgisiGetir::test_bulunamadi PASSED [ 40%]
+tests/integration/services/test_irsaliye_palet_veri_kaynagi.py::TestPaletGirisOnayla::test_basarili_onay PASSED [ 46%]
+tests/integration/services/test_irsaliye_palet_veri_kaynagi.py::TestPaletGirisOnayla::test_zaten_giris_yapilmis PASSED [ 53%]
+tests/integration/test_eszamanlilik.py::TestPaletGirisEszamanlilik::test_ayni_palet_no_ile_paralel_giris_sadece_biri_basarili PASSED [ 60%]
+tests/integration/test_eszamanlilik.py::TestPaletGirisEszamanlilik::test_farkli_palet_no_ile_paralel_giris_hepsi_basarili PASSED [ 66%]
+tests/integration/test_eszamanlilik.py::TestFifoCikisYarisi::test_paralel_fifo_cikis_stok_yeterli PASSED [ 73%]
+tests/integration/test_eszamanlilik.py::TestFifoCikisYarisi::test_paralel_fifo_cikis_stok_yetersiz PASSED [ 80%]
+tests/integration/test_eszamanlilik.py::TestFifoCikisYarisi::test_fifo_sira_korunur_skt_bazli PASSED [ 86%]
+tests/integration/test_eszamanlilik.py::TestPaletCikisEszamanlilik::test_ayni_paletten_paralel_kismi_cikis PASSED [ 93%]
+tests/integration/test_eszamanlilik.py::TestDeadlockDayanakliligi::test_capraz_palet_erisimi_deadlock_dayanikliligi PASSED [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\slowapi\extension.py:717: 100 warnings
+  D:\Ensar Dosya\DepoUygulamas²\BackendProje\.venv\Lib\site-packages\slowapi\extension.py:717: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+tests/integration/repositories/test_transactional_write_repositories.py: 14 warnings
+tests/integration/services/test_irsaliye_palet_veri_kaynagi.py: 28 warnings
+tests/integration/test_eszamanlilik.py: 92 warnings
+  D:\Ensar Dosya\DepoUygulamas²\BackendProje\.venv\Lib\site-packages\sqlalchemy\sql\schema.py:3624: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/integration/repositories/test_transactional_write_repositories.py::TestIrsaliyeRepositoryTransactions::test_olustur_auto_commit_false_rollback_sonrasi_kalici_olmaz
+  <string>:12: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/integration/repositories/test_transactional_write_repositories.py::TestIrsaliyeRepositoryTransactions::test_olustur_auto_commit_false_rollback_sonrasi_kalici_olmaz
+  <string>:13: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/integration/repositories/test_transactional_write_repositories.py::TestSevkiyatRepositoryTransactions::test_olustur_auto_commit_false_rollback_sonrasi_kalici_olmaz
+  <string>:14: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/integration/repositories/test_transactional_write_repositories.py::TestSevkiyatRepositoryTransactions::test_olustur_auto_commit_false_rollback_sonrasi_kalici_olmaz
+  <string>:15: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/integration/services/test_irsaliye_palet_veri_kaynagi.py::TestPaletGirisOnayla::test_basarili_onay
+  D:\Ensar Dosya\DepoUygulamas²\BackendProje\app\core\entities\mal_kabul_irsaliye.py:98: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.guncelleme_tarihi = datetime.utcnow()
+
+tests/integration/test_eszamanlilik.py::TestPaletGirisEszamanlilik::test_ayni_palet_no_ile_paralel_giris_sadece_biri_basarili
+tests/integration/test_eszamanlilik.py::TestPaletGirisEszamanlilik::test_farkli_palet_no_ile_paralel_giris_hepsi_basarili
+tests/integration/test_eszamanlilik.py::TestFifoCikisYarisi::test_paralel_fifo_cikis_stok_yeterli
+tests/integration/test_eszamanlilik.py::TestFifoCikisYarisi::test_paralel_fifo_cikis_stok_yetersiz
+tests/integration/test_eszamanlilik.py::TestFifoCikisYarisi::test_fifo_sira_korunur_skt_bazli
+tests/integration/test_eszamanlilik.py::TestPaletCikisEszamanlilik::test_ayni_paletten_paralel_kismi_cikis
+tests/integration/test_eszamanlilik.py::TestDeadlockDayanakliligi::test_capraz_palet_erisimi_deadlock_dayanikliligi
+  D:\Ensar Dosya\DepoUygulamas²\BackendProje\tests\integration\test_eszamanlilik.py:142: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    barkod=f"CONC-{datetime.utcnow().timestamp()}-{isim_suffix}",
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============== 15 passed, 372 deselected, 246 warnings in 19.09s ==============
