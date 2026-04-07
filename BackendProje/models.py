@@ -593,6 +593,39 @@ class StokSayimKalemi(Base):
     user = relationship("Kullanici", foreign_keys="StokSayimKalemi.user_id")
 
 
+# ========================
+# YERLEŞTİRME GÖREVİ
+# ========================
+
+class YerlestirmeGorevi(Base):
+    __tablename__ = "yerlestirme_gorevleri"
+
+    id = Column(Integer, primary_key=True, index=True)
+    palet_id = Column(Integer, ForeignKey("paletler.id"), nullable=False)
+    mal_kabul_irsaliye_id = Column(Integer, ForeignKey("mal_kabul_irsaliyeleri.id"), nullable=True)
+    tip = Column(String(20), default="Yerlestirme", nullable=False)           # GorevTipi
+    kaynak_raf_id = Column(Integer, ForeignKey("raflar.id"), nullable=True)   # Transfer için
+    onerilen_raf_id = Column(Integer, ForeignKey("raflar.id"), nullable=False)
+    gerceklesen_raf_id = Column(Integer, ForeignKey("raflar.id"), nullable=True)
+    durum = Column(String(20), default="Bekliyor", nullable=False, index=True)
+    oncelik = Column(Integer, default=5, index=True)
+    atanan_kullanici_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
+    override_kullanici_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
+    override_neden = Column(Text, nullable=True)
+    olusturma_tarihi = Column(DateTime, default=datetime.utcnow, index=True)
+    baslama_tarihi = Column(DateTime, nullable=True)
+    tamamlanma_tarihi = Column(DateTime, nullable=True)
+    iptal_nedeni = Column(Text, nullable=True)
+
+    # İlişkiler
+    palet = relationship("Palet")
+    kaynak_raf = relationship("Raf", foreign_keys=[kaynak_raf_id])
+    onerilen_raf = relationship("Raf", foreign_keys=[onerilen_raf_id])
+    gerceklesen_raf = relationship("Raf", foreign_keys=[gerceklesen_raf_id])
+    atanan_kullanici = relationship("Kullanici", foreign_keys=[atanan_kullanici_id])
+    override_kullanici = relationship("Kullanici", foreign_keys=[override_kullanici_id])
+
+
 from sqlalchemy import select, func
 from sqlalchemy.orm import column_property
 

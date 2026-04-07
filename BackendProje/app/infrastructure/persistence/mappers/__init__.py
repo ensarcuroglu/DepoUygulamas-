@@ -80,3 +80,8 @@ from app.infrastructure.persistence.mappers.stok_sayim_mal_kabul_mapper import (
     mal_kabul_irsaliye_to_entity,
     mal_kabul_irsaliye_to_orm,
 )
+
+from app.infrastructure.persistence.mappers.yerlestirme_mapper import (  # noqa: F401
+    yerlestirme_gorevi_to_entity,
+    yerlestirme_gorevi_to_orm,
+)

@@ -104,6 +104,15 @@ from app.infrastructure.di.modules.depo_envanter_di import (  # noqa: F401
     get_palet_veri_kaynagi,
     get_palet_bazli_stok_service,
     get_palet_sorgulama_service,
+    get_yerlestirme_gorevi_repo,
+    get_yerlestirme_gorevi_listele_uc,
+    get_yerlestirme_gorevi_getir_uc,
+    get_yerlestirme_gorevi_olustur_uc,
+    get_sonraki_gorevini_al_uc,
+    get_yerlestirme_gorevi_baslat_uc,
+    get_yerlestirme_gorevi_tamamla_uc,
+    get_yerlestirme_gorevi_override_uc,
+    get_yerlestirme_gorevi_iptal_uc,
 )
 
 from app.infrastructure.di.modules.stok_di import (  # noqa: F401

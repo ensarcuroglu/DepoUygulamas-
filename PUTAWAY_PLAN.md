@@ -216,6 +216,8 @@ ZON_DEPOLAMA_UYUMLULUK = {
 ---
 
 ### 0.4 — Yerleştirme Görevi (Putaway Task) Entity
+> **Durum (2026-04-07):** ✅ Tamamlandı.
+> **Uygulama Notu:** `GorevDurum._GECISLER` dict'i class body dışında kurulur (forward-reference sorunu nedeniyle). `sonraki_gorevi_kilitle` SA `with_for_update(skip_locked=True)` kullanır — MySQL 8+/InnoDB gerektirir. `bırak()` metodu ATANDI→BEKLIYOR geçişini domain'de yönetir. Migration: `migrate_yerlestirme_gorevi.py` (idempotent, tablo varlığını kontrol eder).
 > **Agent Notu:** Görev durum stringleri stabil tutulmalı; mevcut exception/log patterni ile ilerlenmeli.
 
 **Yeni dosyalar:**

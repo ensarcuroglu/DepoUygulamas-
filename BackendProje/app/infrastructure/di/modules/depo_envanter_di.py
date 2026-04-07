@@ -1,4 +1,4 @@
-﻿"""DI â€” Depo, Raf, Lot, Palet, Palet BazlÄ± Stok Ä°ÅŸlemleri."""
+"""DI - Depo, Raf, Lot, Palet, Palet Bazli Stok Islemleri, Yerlestirme Gorevi."""
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
@@ -12,6 +12,7 @@ from app.infrastructure.persistence.repositories import (
     SqlAlchemyPaletRepository,
     SqlAlchemyStokHareketiRepository,
     SqlAlchemyMalKabulIrsaliyeRepository,
+    SqlAlchemyYerlestirmeGoreviRepository,
 )
 from app.application.use_cases import (
     DepoListeleUseCase,
@@ -42,6 +43,16 @@ from app.application.use_cases import (
     PaletOlusturUseCase,
     PaletGuncelleUseCase,
     PaletSilUseCase,
+)
+from app.application.use_cases.yerlestirme_gorevi_use_cases import (
+    YerlestirmeGoreviListeleUseCase,
+    YerlestirmeGoreviGetirUseCase,
+    YerlestirmeGoreviOlusturUseCase,
+    SonrakiGorevisiniAlUseCase,
+    YerlestirmeGoreviBaslatUseCase,
+    YerlestirmeGoreviTamamlaUseCase,
+    YerlestirmeGoreviOverrideUseCase,
+    YerlestirmeGoreviIptalUseCase,
 )
 from app.core.services.palet_bazli_stok_domain_service import PaletBazliStokDomainService
 from app.infrastructure.services.irsaliye_palet_veri_kaynagi_service import IrsaliyePaletVeriKaynagiService
@@ -344,3 +355,66 @@ def get_palet_sorgulama_service(
         veri_kaynagi, palet_repo, lot_repo, urun_repo, depo_repo, raf_repo,
     )
 
+
+# ── Yerleştirme Görevi repository + use case factory'leri ──
+
+def get_yerlestirme_gorevi_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyYerlestirmeGoreviRepository(db)
+
+
+def get_yerlestirme_gorevi_listele_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+):
+    return YerlestirmeGoreviListeleUseCase(repo)
+
+
+def get_yerlestirme_gorevi_getir_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+):
+    return YerlestirmeGoreviGetirUseCase(repo)
+
+
+def get_yerlestirme_gorevi_olustur_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+    palet_repo=Depends(get_palet_repo),
+    raf_repo=Depends(get_raf_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return YerlestirmeGoreviOlusturUseCase(repo, palet_repo, raf_repo, log_repo)
+
+
+def get_sonraki_gorevini_al_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+):
+    return SonrakiGorevisiniAlUseCase(repo)
+
+
+def get_yerlestirme_gorevi_baslat_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+):
+    return YerlestirmeGoreviBaslatUseCase(repo)
+
+
+def get_yerlestirme_gorevi_tamamla_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+    palet_repo=Depends(get_palet_repo),
+    raf_repo=Depends(get_raf_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return YerlestirmeGoreviTamamlaUseCase(repo, palet_repo, raf_repo, log_repo)
+
+
+def get_yerlestirme_gorevi_override_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+    palet_repo=Depends(get_palet_repo),
+    raf_repo=Depends(get_raf_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return YerlestirmeGoreviOverrideUseCase(repo, palet_repo, raf_repo, log_repo)
+
+
+def get_yerlestirme_gorevi_iptal_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return YerlestirmeGoreviIptalUseCase(repo, log_repo)

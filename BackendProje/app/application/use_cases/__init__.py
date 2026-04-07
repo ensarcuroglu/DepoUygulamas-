@@ -141,6 +141,17 @@ from .mal_kabul_irsaliye_use_cases import (
     MalKabulIrsaliyeSilUseCase,
 )
 
+from .yerlestirme_gorevi_use_cases import (
+    YerlestirmeGoreviListeleUseCase,
+    YerlestirmeGoreviGetirUseCase,
+    YerlestirmeGoreviOlusturUseCase,
+    SonrakiGorevisiniAlUseCase,
+    YerlestirmeGoreviBaslatUseCase,
+    YerlestirmeGoreviTamamlaUseCase,
+    YerlestirmeGoreviOverrideUseCase,
+    YerlestirmeGoreviIptalUseCase,
+)
+
 __all__ = [
     # Ürün
     "UrunListeleUseCase", "UrunGetirUseCase", "UrunOlusturUseCase",
@@ -205,4 +216,9 @@ __all__ = [
     "MalKabulIrsaliyeListeleUseCase", "MalKabulIrsaliyeGetirUseCase",
     "MalKabulIrsaliyeOlusturUseCase", "MalKabulIrsaliyeGuncelleUseCase",
     "MalKabulIrsaliyeSilUseCase",
+    # Yerleştirme Görevi
+    "YerlestirmeGoreviListeleUseCase", "YerlestirmeGoreviGetirUseCase",
+    "YerlestirmeGoreviOlusturUseCase", "SonrakiGorevisiniAlUseCase",
+    "YerlestirmeGoreviBaslatUseCase", "YerlestirmeGoreviTamamlaUseCase",
+    "YerlestirmeGoreviOverrideUseCase", "YerlestirmeGoreviIptalUseCase",
 ]
