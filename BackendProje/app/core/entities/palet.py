@@ -40,7 +40,7 @@ class Palet:
 
     id: Optional[int] = None
     lot_id: int = 0
-    raf_id: Optional[int] = None
+    raf_id: int = 0  # migrate_putaway_system.py Adım 10 sonrası zorunlu
     palet_no: str = ""
     koli_adedi: int = 0
     palet_kg: Optional[float] = None

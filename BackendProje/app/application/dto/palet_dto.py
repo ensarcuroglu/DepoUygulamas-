@@ -16,7 +16,7 @@ from app.core.entities.palet import Palet
 
 class PaletOlusturRequestDTO(BaseModel):
     lot_id: int = Field(..., gt=0, description="LOT ID")
-    raf_id: Optional[int] = Field(None, gt=0, description="Raf ID")
+    raf_id: int = Field(..., gt=0, description="Raf ID")
     palet_no: str = Field(..., min_length=1, max_length=100)
     koli_adedi: int = Field(..., gt=0, description="Koli adedi pozitif olmalı")
     palet_kg: Optional[float] = Field(None, ge=0)
@@ -131,4 +131,3 @@ class PaletResponseDTO(BaseModel):
             lot=lot_dto,
             raf=raf_dto,
         )
-

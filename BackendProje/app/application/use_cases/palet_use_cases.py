@@ -86,11 +86,10 @@ class PaletOlusturUseCase:
         if not lot:
             raise KayitBulunamadiError("Lot", dto.lot_id)
 
-        # Raf varlık kontrolü (opsiyonel)
-        if dto.raf_id:
-            raf = self._raf_repo.getir_id_ile(dto.raf_id)
-            if not raf:
-                raise KayitBulunamadiError("Raf", dto.raf_id)
+        # Raf varlık kontrolü
+        raf = self._raf_repo.getir_id_ile(dto.raf_id)
+        if not raf:
+            raise KayitBulunamadiError("Raf", dto.raf_id)
 
         # Palet no çakışma kontrolü
         mevcut = self._palet_repo.getir_palet_no_ile(dto.palet_no)

@@ -341,6 +341,13 @@ class YerlestirmeGorevi(Base):
 ---
 
 ### 0.5 — DB Migration Script
+> **Durum (2026-04-07):** ✅ Tamamlandı.
+> **Uygulama Notları:**
+> - `migrate_putaway_system.py` tüm Faz 0 adımlarını kapsar ve tamamen idempotent; tekrar çalıştırılabilir.
+> - **Zon kodu stratejisi:** İlk depo (min id) `GNL`, `MKB`, ... gibi düz kodlar alır → mevcut `GNL-A-12-01-01` formatlı raf kodlarıyla uyumlu. Ek depolar `{depo_id}GNL` formatı kullanır (VARCHAR(10) sınırına uyar).
+> - **Multi-depo raf kodu sorunu:** Adım 7'deki raf kodu dönüşümü her depoya ait `Genel` zon kodunu dinamik olarak sorgular; sabit `GNL-` prefix kullanmaz.
+> - **Adım 10 güvenli:** NULL palet kalırsa NOT NULL değişikliği atlanır ve uyarı verir. Script yeniden çalıştırıldığında tamamlanır.
+> - **models.py + palet entity:** `Palet.raf_id` `nullable=False` olarak güncellendi; mapper `or 0` fallback ile migration öncesi geçişi destekler.
 > **Agent Notu:** Migration script idempotent yazılmalı; model şeması ve test DB (`create_all`) tutarlılığı korunmalı.
 
 **Yeni dosya:** `migrate_putaway_system.py`

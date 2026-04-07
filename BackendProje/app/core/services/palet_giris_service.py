@@ -72,6 +72,11 @@ class PaletGirisService:
         if dto.depo_id:
             self._depo_erisim_dogrula(kullanici, dto.depo_id, dto.depo_adi)
 
+        if not dto.raf_id:
+            raise GecersizIslemError(
+                "Palet girisi icin raf_id zorunludur. Kaynak sistemde raf atamasi yapilmadan kayit acilamaz."
+            )
+
         lot = self._lot_bul_veya_olustur(dto)
 
         palet = Palet(

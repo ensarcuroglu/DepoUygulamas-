@@ -204,7 +204,7 @@ class Palet(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     lot_id = Column(Integer, ForeignKey("lotlar.id"), nullable=False)
-    raf_id = Column(Integer, ForeignKey("raflar.id"), nullable=True)
+    raf_id = Column(Integer, ForeignKey("raflar.id"), nullable=False)  # Adım 10 sonrası NOT NULL
     palet_no = Column(String(20), unique=True, nullable=False)   # Palet barkod numarası
     koli_adedi = Column(Integer, nullable=False)                  # Palet üstündeki koli sayısı
     palet_kg = Column(Float, nullable=True)                       # Toplam ağırlık (kg)
