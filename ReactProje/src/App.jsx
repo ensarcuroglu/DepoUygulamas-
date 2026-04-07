@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthProvider';
 import PrivateRoute from './components/PrivateRoute';
 import RoleRoute from './components/RoleRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
+import TerminalLayout from './components/layout/TerminalLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import UrunlerPage from './pages/UrunlerPage';
@@ -29,6 +30,11 @@ import RaporSablonlarPage from './pages/RaporSablonlarPage';
 import RaporZamanliPage from './pages/RaporZamanliPage';
 import StokSayimPage from './pages/StokSayimPage';
 import MalKabulIrsaliyeleriPage from './pages/MalKabulIrsaliyeleriPage';
+import ZonlarPage from './pages/ZonlarPage';
+import YerlestirmeGorevleriPage from './pages/YerlestirmeGorevleriPage';
+import GorevListesiPage from './pages/terminal/GorevListesiPage';
+import YerlestirmePage from './pages/terminal/YerlestirmePage';
+import TerminalOzetPage from './pages/terminal/TerminalOzetPage';
 
 /**
  * Varsayılan yönlendirme: Depocu → stok-hareketleri, Admin → dashboard
@@ -95,12 +101,29 @@ function App() {
                 <Route path="/raporlar/zamanli" element={<RaporZamanliPage />} />
               </Route>
 
+              {/* Yerleştirme Görevleri (Admin + Lojistik) */}
+              <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
+                <Route path="/zonlar" element={<ZonlarPage />} />
+                <Route path="/yerlestirme-gorevleri" element={<YerlestirmeGorevleriPage />} />
+              </Route>
+
               {/* Herkesin erişebildiği korumalı alanlar */}
               <Route path="/stok-hareketleri" element={<StokHareketleriPage />} />
               <Route path="/sevkiyatlar" element={<SevkiyatlarPage />} />
               <Route path="/profil-ayarlari" element={<ProfilAyarlariPage />} />
               <Route path="/destek-masasi" element={<DestekMasasiPage />} />
 
+            </Route>
+          </Route>
+
+          {/* Mobil Terminal Routes (TerminalLayout — dark, saha UI) */}
+          <Route element={<PrivateRoute />}>
+            <Route element={<TerminalLayout />}>
+              <Route element={<RoleRoute allowedRoles={['admin', 'depocu', 'lojistik']} />}>
+                <Route path="/terminal/gorevler" element={<GorevListesiPage />} />
+                <Route path="/terminal/yerlestirme" element={<YerlestirmePage />} />
+                <Route path="/terminal/ozet" element={<TerminalOzetPage />} />
+              </Route>
             </Route>
           </Route>
 

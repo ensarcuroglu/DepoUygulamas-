@@ -362,4 +362,48 @@ export const deleteRaporSchedule = (id) => api.delete(`/raporlar/schedule/${id}`
 // ========================
 export const getIrsaliyeYazdirVerisi = (id) => api.get(`/irsaliyeler/${id}/yazdir`);
 
+// ========================
+// ZONLAR
+// ========================
+export const getZonlar = (params = {}) => api.get('/zonlar/', { params });
+export const getZon = (id) => api.get(`/zonlar/${id}`);
+export const createZon = (data) => api.post('/zonlar/', data);
+export const updateZon = (id, data) => api.put(`/zonlar/${id}`, data);
+export const deleteZon = (id) => api.delete(`/zonlar/${id}`);
+
+// ========================
+// YERLEŞTİRME GÖREVLERİ
+// ========================
+export const getYerlestirmeGorevleri = (params = {}) => api.get('/yerlestirme-gorevleri/', { params });
+export const getYerlestirmeGorevi = (id) => api.get(`/yerlestirme-gorevleri/${id}`);
+export const getBekleyenGorevOzet = () => api.get('/yerlestirme-gorevleri/bekleyen/ozet');
+export const siradakiGorevisiniAl = () => api.post('/yerlestirme-gorevleri/sonraki-gorevi-al');
+export const goreviBaslat = (id) => api.post(`/yerlestirme-gorevleri/${id}/baslat`);
+export const goreviTamamla = (id, data) => api.post(`/yerlestirme-gorevleri/${id}/tamamla`, data);
+export const goreviIptal = (id, data) => api.post(`/yerlestirme-gorevleri/${id}/iptal`, data);
+export const goreviBirak = (id) => api.post(`/yerlestirme-gorevleri/${id}/birak`);
+export const goreviOverride = (id, data) => api.post(`/yerlestirme-gorevleri/${id}/override`, data);
+export const karantinayaAl = (data) => api.post('/yerlestirme-gorevleri/karantinaya-al', data);
+export const karantinandanCikar = (data) => api.post('/yerlestirme-gorevleri/karantinadan-cikar', data);
+export const bilinmeyenKonumGorevleriOlustur = (depo_id) =>
+  api.post('/yerlestirme-gorevleri/bilinmeyen-konum-gorevleri-olustur', null, { params: { depo_id } });
+
+// ========================
+// MOBİL TERMİNAL
+// ========================
+export const terminalPaletScan = (data) => api.post('/terminal/scan/palet', data);
+export const terminalRafScan = (data) => api.post('/terminal/scan/raf', data);
+export const terminalYerlestir = (data) => api.post('/terminal/yerlestir', data);
+export const terminalGorevlerim = () => api.get('/terminal/gorevlerim');
+export const terminalOzet = () => api.get('/terminal/ozet');
+export const terminalAlternatifRaf = (data) => api.post('/terminal/alternatif-raf', data);
+
+// ========================
+// PUTAWAY RAPORLARI
+// ========================
+export const getYerlestirmePerformansRaporu = (params = {}) =>
+  api.get('/raporlar/yerlestirme-performans', { params });
+export const getBilinmeyenKonumRaporu = (depo_id) =>
+  api.get('/raporlar/bilinmeyen-konum', { params: { depo_id } });
+
 export default api;

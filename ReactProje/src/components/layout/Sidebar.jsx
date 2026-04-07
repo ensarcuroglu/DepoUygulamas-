@@ -63,6 +63,14 @@ const menuGroups = [
         ],
     },
     {
+        id: 'putaway',
+        label: 'Yerleştirme',
+        items: [
+            { path: '/zonlar', label: 'Zon Yönetimi', icon: Warehouse, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/yerlestirme-gorevleri', label: 'Görev Takibi', icon: ClipboardList, roles: ['admin', 'lojistik'], badge: null },
+        ],
+    },
+    {
         id: 'yonetim',
         label: 'Yönetim & Rapor',
         items: [

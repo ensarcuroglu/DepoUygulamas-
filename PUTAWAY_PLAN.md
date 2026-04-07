@@ -747,7 +747,16 @@ Kontrol noktası: palet_cikis() metodu içinde
 ---
 
 ## Faz 4 — Frontend: Mobil Terminal UI
+> **Durum (2026-04-07):** ✅ Tamamlandı.
 > **Agent Notu:** Terminal akışı ayrı route grubu ile eklenmeli; mevcut web panel route yapısı bozulmamalı.
+> **Uygulama Notları:**
+> - 4.1 PWA: `public/manifest.json`, `public/sw.js` (offline fallback), `index.html` güncellendi (PWA meta tags + SW kayıt).
+> - 4.2 Layout: `TerminalLayout.jsx` — dark industrial (`bg-slate-900`), alt nav (Görevler/Yerleştir/Özet), amber vurgu. Ayrı route grubuna kondu, DashboardLayout'u etkilemiyor.
+> - 4.3 Terminal Sayfaları: `GorevListesiPage` (filtre + FIFO al butonu + bekleyen özet), `YerlestirmePage` (4 adımlı wizard: görev al → palet scan → raf scan → sonuç + override modal + alternatif raflar), `TerminalOzetPage` (günlük istatistikler + son tamamlananlar).
+> - 4.5 Admin Sayfaları: `ZonlarPage` (CRUD grid, depo filtresi, zon tipi renkli badge), `YerlestirmeGorevleriPage` (özet kartları, filtre tabs, accordion satır, iptal modal, bilinmeyen konum görevi oluşturma).
+> - 4.6 Routing: `App.jsx`'e terminal route grubu + admin `/zonlar` + `/yerlestirme-gorevleri` eklendi. Sidebar'a "Yerleştirme" grubu eklendi.
+> - `src/hooks/useTerminalDepo.js` — terminal için localStorage'da seçili depo_id saklar; ilk kullanımda depo seçim ekranı çıkar.
+> - API: `api.js`'e tüm terminal + zon + görev + putaway rapor fonksiyonları eklendi.
 
 > **Amaç:** Saha operatörleri için scan-to-verify iş akışını sunan mobil-optimized PWA arayüzü.
 
