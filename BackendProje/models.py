@@ -148,6 +148,7 @@ class Urun(Base):
     fiyat = Column(Float, default=0.0)
     min_stok = Column(Integer, default=10)                       # Kritik stok seviyesi
     aciklama = Column(Text, default="")
+    depolama_tipi = Column(String(20), default="Kuru")           # DepolamaTipi: Kuru, Soguk, Tehlikeli
     aktif = Column(Boolean, default=True)
     olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
     guncelleme_tarihi = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

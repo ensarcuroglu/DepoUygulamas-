@@ -10,6 +10,7 @@ from datetime import datetime
 import re
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
+from app.core.entities.urun import DepolamaTipi
 
 EAN_REGEX = re.compile(r"^\d{8,14}$")
 # SKU/Barkod: en az 1 rakam içermeli, harf-rakam + . _ - karakterleri destekler.
@@ -35,6 +36,14 @@ class UrunOlusturRequestDTO(BaseModel):
     fiyat: float = Field(default=0.0, ge=0, description="Birim fiyat")
     min_stok: int = Field(default=10, ge=0, description="Kritik stok eşiği")
     aciklama: str = Field(default="", max_length=2000)
+    depolama_tipi: str = Field(default=DepolamaTipi.KURU, description="Depolama tipi: Kuru, Soguk, Tehlikeli")
+
+    @field_validator("depolama_tipi")
+    @classmethod
+    def gecerli_depolama_tipi(cls, v: str) -> str:
+        if not DepolamaTipi.gecerli_mi(v):
+            raise ValueError(f"Geçersiz depolama tipi: '{v}'. İzin verilen: {DepolamaTipi.tipler()}")
+        return v
 
     @field_validator("isim")
     @classmethod
@@ -106,7 +115,15 @@ class UrunGuncelleRequestDTO(BaseModel):
     fiyat: Optional[float] = Field(None, ge=0)
     min_stok: Optional[int] = Field(None, ge=0)
     aciklama: Optional[str] = Field(None, max_length=2000)
+    depolama_tipi: Optional[str] = Field(None, description="Depolama tipi: Kuru, Soguk, Tehlikeli")
     aktif: Optional[bool] = None
+
+    @field_validator("depolama_tipi")
+    @classmethod
+    def gecerli_depolama_tipi(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not DepolamaTipi.gecerli_mi(v):
+            raise ValueError(f"Geçersiz depolama tipi: '{v}'. İzin verilen: {DepolamaTipi.tipler()}")
+        return v
 
     @field_validator("isim")
     @classmethod
@@ -194,6 +211,7 @@ class UrunListResponseDTO(BaseModel):
     birim: str
     fiyat: float
     min_stok: int
+    depolama_tipi: str
     stok_miktari: int
     durum: str
     aktif: bool
@@ -215,6 +233,7 @@ class UrunListResponseDTO(BaseModel):
             birim=entity.birim,
             fiyat=entity.fiyat,
             min_stok=entity.min_stok,
+            depolama_tipi=entity.depolama_tipi,
             stok_miktari=entity.stok_miktari,
             durum=entity.durum,
             aktif=entity.aktif,
@@ -236,6 +255,7 @@ class UrunResponseDTO(BaseModel):
     fiyat: float
     min_stok: int
     aciklama: str
+    depolama_tipi: str
     stok_miktari: int
     durum: str
     aktif: bool
@@ -260,6 +280,7 @@ class UrunResponseDTO(BaseModel):
             fiyat=entity.fiyat,
             min_stok=entity.min_stok,
             aciklama=entity.aciklama,
+            depolama_tipi=entity.depolama_tipi,
             stok_miktari=entity.stok_miktari,
             durum=entity.durum,
             aktif=entity.aktif,

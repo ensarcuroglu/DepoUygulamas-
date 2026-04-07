@@ -139,6 +139,7 @@ class UrunOlusturUseCase:
             fiyat=dto.fiyat,
             min_stok=dto.min_stok,
             aciklama=dto.aciklama,
+            depolama_tipi=dto.depolama_tipi,
         )
 
         # 3. Kaydet

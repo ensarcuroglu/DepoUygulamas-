@@ -179,6 +179,8 @@ class KapasiteSonuc:
 ---
 
 ### 0.3 — Urun Entity'ye Depolama Tipi Ekle
+> **Durum (2026-04-07):** ✅ Tamamlandı.
+> **Uygulama Notu:** `DepolamaTipi` sınıfı `urun.py`'da tanımlandı. `zon_uygun_mu(zon_tipi)` metodu lazy import ile `ZonTipi`'yi kullanır (circular import önlemi). DTO'larda validator eklendi; güncelleme use case `setattr` loop'u üzerinden çalışır, ayrı bir değişiklik gerekmedi. Migration: `migrate_urun_depolama_tipi.py`.
 > **Agent Notu:** `depolama_tipi` varsayılanı `"Kuru"` korunmalı; legacy ürün kayıtlarıyla uyumluluk bozulmamalı.
 
 **Değişen dosyalar:**

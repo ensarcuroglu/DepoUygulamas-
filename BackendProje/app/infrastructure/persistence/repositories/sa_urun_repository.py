@@ -94,6 +94,7 @@ class SqlAlchemyUrunRepository(IUrunRepository):
         orm.fiyat = urun.fiyat
         orm.min_stok = urun.min_stok
         orm.aciklama = urun.aciklama
+        orm.depolama_tipi = urun.depolama_tipi
         orm.aktif = urun.aktif
         orm.guncelleme_tarihi = urun.guncelleme_tarihi
         self._db.commit()

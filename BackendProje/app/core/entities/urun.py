@@ -10,6 +10,22 @@ class StokDurum:
     YETERLI = "Yeterli"
 
 
+class DepolamaTipi:
+    KURU = "Kuru"
+    SOGUK = "Soguk"
+    TEHLIKELI = "Tehlikeli"
+
+    _TIPLER = {KURU, SOGUK, TEHLIKELI}
+
+    @classmethod
+    def gecerli_mi(cls, tip: str) -> bool:
+        return tip in cls._TIPLER
+
+    @classmethod
+    def tipler(cls) -> set:
+        return set(cls._TIPLER)
+
+
 @dataclass
 class Urun:
     """Ürün (product) domain entity.
@@ -31,6 +47,7 @@ class Urun:
     fiyat: float = 0.0
     min_stok: int = 10
     aciklama: str = ""
+    depolama_tipi: str = DepolamaTipi.KURU  # DepolamaTipi: Kuru, Soguk, Tehlikeli
     aktif: bool = True
     olusturma_tarihi: datetime = field(default_factory=datetime.utcnow)
     guncelleme_tarihi: datetime = field(default_factory=datetime.utcnow)
@@ -71,3 +88,8 @@ class Urun:
     def stok_cikis_yapilabilir_mi(self, miktar: int) -> bool:
         """Çıkış miktarının mevcut stoktan karşılanıp karşılanamayacağını kontrol eder."""
         return 0 < miktar <= self.stok_miktari
+
+    def zon_uygun_mu(self, zon_tipi: str) -> bool:
+        """Ürünün depolama tipinin verilen zon tipine uygun olup olmadığını kontrol eder."""
+        from app.core.entities.zon import ZonTipi  # circular import önlemek için lazy
+        return self.depolama_tipi in ZonTipi.izin_verilen_depolama_tipleri(zon_tipi)
