@@ -8,6 +8,7 @@ from tests.factories import (
     MalKabulIrsaliyeFactory,
     MalKabulKalemiFactory,
     DepoFactory,
+    RafFactory,
     UrunFactory,
     TedarikciFactory,
 )
@@ -25,6 +26,8 @@ def _make_irsaliye_with_kalem(db_session, palet_no="PLT-2026-00500", durum=Kalem
     irsaliye = MalKabulIrsaliyeFactory.create(
         depo=depo, tedarikci=tedarikci, durum=MalKabulDurum.ONAYLANDI,
     )
+    if "raf" not in kalem_kw and "raf_id" not in kalem_kw:
+        kalem_kw["raf"] = RafFactory.create(depo=depo)
     kalem = MalKabulKalemiFactory.create(
         irsaliye=irsaliye,
         palet_no=palet_no,
