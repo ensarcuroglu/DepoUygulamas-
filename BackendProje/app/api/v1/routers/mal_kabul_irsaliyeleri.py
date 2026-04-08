@@ -10,6 +10,7 @@ from app.infrastructure.di.container import (
     get_mal_kabul_irsaliye_olustur_uc,
     get_mal_kabul_irsaliye_guncelle_uc,
     get_mal_kabul_irsaliye_sil_uc,
+    get_irsaliye_onayla_ve_gorev_olustur_uc,
 )
 
 from app.application.dto import (
@@ -24,6 +25,7 @@ from app.application.use_cases import (
     MalKabulIrsaliyeOlusturUseCase,
     MalKabulIrsaliyeGuncelleUseCase,
     MalKabulIrsaliyeSilUseCase,
+    IrsaliyeOnaylaVeGorevOlusturUseCase,
 )
 
 
@@ -88,3 +90,12 @@ def mal_kabul_irsaliye_sil(
     """Taslak mal kabul irsaliyesini siler."""
     uc.execute(irsaliye_id, kullanici_id=current_user.id)
     return {"detail": "İrsaliye silindi"}
+
+@router.post("/{irsaliye_id}/onayla", response_model=MalKabulIrsaliyeResponseDTO)
+def mal_kabul_irsaliye_onayla(
+    irsaliye_id: int,
+    current_user: Kullanici = Depends(require_role("admin", "depocu")),
+    uc: IrsaliyeOnaylaVeGorevOlusturUseCase = Depends(get_irsaliye_onayla_ve_gorev_olustur_uc),
+):
+    """Taslak irsaliyeyi onaylar, paletleri oluşturur ve yerleştirme görevlerini atar."""
+    return uc.execute(irsaliye_id, kullanici_id=current_user.id)

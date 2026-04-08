@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import {
     getMalKabulIrsaliyeleri, createMalKabulIrsaliye, updateMalKabulIrsaliye,
-    deleteMalKabulIrsaliye, getTedarikciler, getDepolar, getUrunler, getRaflar
+    deleteMalKabulIrsaliye, getTedarikciler, getDepolar, getUrunler, getRaflar,
+    onaylaMalKabulIrsaliye 
 } from '../services/api';
 import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
@@ -179,6 +180,17 @@ export default function MalKabulIrsaliyeleriPage() {
             yukle();
         } catch (err) {
             toast.error(hataMetni(err, 'Durum güncellenemedi'));
+        }
+    };
+
+    // ===== ONAYLA =====
+    const handleOnayla = async (id) => {
+        try {
+            await onaylaMalKabulIrsaliye(id);
+            toast.success('İrsaliye onaylandı, paletler ve görevler oluşturuldu!');
+            yukle();
+        } catch (err) {
+            toast.error(hataMetni(err, 'İrsaliye onaylanamadı'));
         }
     };
 
@@ -409,7 +421,7 @@ export default function MalKabulIrsaliyeleriPage() {
                                             {irs.durum === 'Taslak' && (
                                                 <>
                                                     <button
-                                                        onClick={() => durumDegistir(irs.id, 'Onaylandi')}
+                                                        onClick={() => handleOnayla(irs.id)}
                                                         className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
                                                     >
                                                         <CheckCircle className="w-4 h-4" /> Onayla

@@ -303,6 +303,7 @@ export const getMalKabulIrsaliye = (id) => api.get(`/mal-kabul-irsaliyeleri/${id
 export const createMalKabulIrsaliye = (data) => api.post('/mal-kabul-irsaliyeleri/', data);
 export const updateMalKabulIrsaliye = (id, data) => api.put(`/mal-kabul-irsaliyeleri/${id}`, data);
 export const deleteMalKabulIrsaliye = (id) => api.delete(`/mal-kabul-irsaliyeleri/${id}`);
+export const onaylaMalKabulIrsaliye = (id) => api.post(`/mal-kabul-irsaliyeleri/${id}/onayla`);
 
 // ========================
 // SEVKİYAT PLANLAMA
