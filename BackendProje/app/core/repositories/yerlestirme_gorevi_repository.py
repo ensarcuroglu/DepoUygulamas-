@@ -22,11 +22,11 @@ class IYerlestirmeGoreviRepository(ABC):
         ...
 
     @abstractmethod
-    def olustur(self, gorev: YerlestirmeGorevi) -> YerlestirmeGorevi:
+    def olustur(self, gorev: YerlestirmeGorevi, auto_commit: bool = True) -> YerlestirmeGorevi:
         ...
 
     @abstractmethod
-    def guncelle(self, gorev: YerlestirmeGorevi) -> YerlestirmeGorevi:
+    def guncelle(self, gorev: YerlestirmeGorevi, auto_commit: bool = True) -> YerlestirmeGorevi:
         ...
 
     @abstractmethod

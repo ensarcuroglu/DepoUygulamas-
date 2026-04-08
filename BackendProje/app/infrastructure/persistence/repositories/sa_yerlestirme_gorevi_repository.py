@@ -41,18 +41,24 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
         orm = self._db.query(YerlestirmeGoreviORM).filter(YerlestirmeGoreviORM.id == gorev_id).first()
         return yerlestirme_gorevi_to_entity(orm) if orm else None
 
-    def olustur(self, gorev: YerlestirmeGorevi) -> YerlestirmeGorevi:
+    def olustur(self, gorev: YerlestirmeGorevi, auto_commit: bool = True) -> YerlestirmeGorevi:
         orm = yerlestirme_gorevi_to_orm(gorev)
         orm.id = None
         self._db.add(orm)
-        self._db.commit()
-        self._db.refresh(orm)
+        
+        if auto_commit:
+            self._db.commit()
+            self._db.refresh(orm)
+        else:
+            self._db.flush()
+            
         return yerlestirme_gorevi_to_entity(orm)
 
-    def guncelle(self, gorev: YerlestirmeGorevi) -> YerlestirmeGorevi:
+    def guncelle(self, gorev: YerlestirmeGorevi, auto_commit: bool = True) -> YerlestirmeGorevi:
         orm = self._db.query(YerlestirmeGoreviORM).filter(YerlestirmeGoreviORM.id == gorev.id).first()
         if not orm:
             return None
+            
         orm.tip = gorev.tip
         orm.kaynak_raf_id = gorev.kaynak_raf_id
         orm.onerilen_raf_id = gorev.onerilen_raf_id
@@ -65,8 +71,13 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
         orm.baslama_tarihi = gorev.baslama_tarihi
         orm.tamamlanma_tarihi = gorev.tamamlanma_tarihi
         orm.iptal_nedeni = gorev.iptal_nedeni
-        self._db.commit()
-        self._db.refresh(orm)
+        
+        if auto_commit:
+            self._db.commit()
+            self._db.refresh(orm)
+        else:
+            self._db.flush()
+            
         return yerlestirme_gorevi_to_entity(orm)
 
     def sonraki_gorevi_kilitle(self, kullanici_id: int) -> Optional[YerlestirmeGorevi]:

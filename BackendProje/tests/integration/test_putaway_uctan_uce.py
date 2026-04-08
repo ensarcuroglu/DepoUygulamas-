@@ -118,7 +118,7 @@ class TestGorevHavuzuIzolasyonu:
         """
         Senaryo:
           1. Depocu A görevi alır → Atandi
-          2. Depocu B sonraki-gorevi-al yapar → aynı görevi ALAMAZ (havuzda Bekliyor yok)
+          2. Depocu B siradaki-al yapar → aynı görevi ALAMAZ (havuzda Bekliyor yok)
         """
         depocu_a = KullaniciFactory.create(kullanici_adi="depocu_a", rol="depocu")
         token_a = create_access_token(data={"sub": depocu_a.kullanici_adi})
@@ -130,13 +130,11 @@ class TestGorevHavuzuIzolasyonu:
         YerlestirmeGoreviFactory.create(durum="Bekliyor")
 
         client.headers["Authorization"] = f"Bearer {token_a}"
-        # URL güncellendi: /siradaki-al -> /sonraki-gorevi-al
         res_a = client.post("/api/yerlestirme-gorevleri/siradaki-al")
         assert res_a.status_code == 200
         assert res_a.json()["durum"] == "Atandi"
 
         client.headers["Authorization"] = f"Bearer {token_b}"
-        # URL güncellendi: /siradaki-al -> /sonraki-gorevi-al
         res_b = client.post("/api/yerlestirme-gorevleri/siradaki-al")
         assert res_b.status_code == 200
         assert res_b.json() is None  # Havuzda bekleyen kalmadı
@@ -158,7 +156,6 @@ class TestGorevHavuzuIzolasyonu:
 
         # A alır
         client.headers["Authorization"] = f"Bearer {token_a}"
-        # URL güncellendi: /siradaki-al -> /sonraki-gorevi-al
         res_a = client.post("/api/yerlestirme-gorevleri/siradaki-al")
         assert res_a.status_code == 200
         assert res_a.json()["durum"] == "Atandi"
@@ -171,7 +168,6 @@ class TestGorevHavuzuIzolasyonu:
 
         # B alır
         client.headers["Authorization"] = f"Bearer {token_b}"
-        # URL güncellendi: /siradaki-al -> /sonraki-gorevi-al
         res_b = client.post("/api/yerlestirme-gorevleri/siradaki-al")
         assert res_b.status_code == 200
         assert res_b.json()["durum"] == "Atandi"
