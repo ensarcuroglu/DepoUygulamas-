@@ -152,7 +152,7 @@
   - `api.js`'deki `siradakiGorevisiniAl` fonksiyonunu `depo_id` parametresi kabul edecek şekilde güncelle.
 - **Etki:** Operatör sadece kendi deposundaki görevleri çeker.
 
-**Adım 5: Belge-palet eşleştirme zorunluluğu (K5)**
+**Adım 5: Belge-palet eşleştirme zorunluluğu (K5)** ✅ TAMAMLANDI
 - **Backend:**
   - `stok_islemleri` toplu giriş use-case/service'inde `irsaliye_no` parametresi geldiğinde, taranan paletlerin o irsaliye kalemlerinde tanımlı olup olmadığını kontrol et.
   - Eşleşmeyen paletleri reddet (hata dön).

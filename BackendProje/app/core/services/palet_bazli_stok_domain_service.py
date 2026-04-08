@@ -52,6 +52,7 @@ class PaletBazliStokDomainService:
             lot_repo=lot_repo,
             hareket_repo=hareket_repo,
             log_repo=log_repo,
+            raf_repo=raf_repo,
         )
         self._cikis = PaletCikisService(
             palet_repo=palet_repo,

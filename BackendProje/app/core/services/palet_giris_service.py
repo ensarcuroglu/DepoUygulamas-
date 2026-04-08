@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from app.core.repositories.lot_repository import ILotRepository
     from app.core.repositories.stok_hareketi_repository import IStokHareketiRepository
     from app.core.repositories.sistem_log_repository import ISistemLogRepository
+    from app.core.repositories.raf_repository import IRafRepository
     from app.core.services.palet_bazli_stok_domain_service import TopluPaletSonuc
 
 
@@ -36,12 +37,14 @@ class PaletGirisService:
         lot_repo: ILotRepository,
         hareket_repo: IStokHareketiRepository,
         log_repo: ISistemLogRepository,
+        raf_repo: "IRafRepository",
     ):
         self._veri_kaynagi = veri_kaynagi
         self._palet_repo = palet_repo
         self._lot_repo = lot_repo
         self._hareket_repo = hareket_repo
         self._log_repo = log_repo
+        self._raf_repo = raf_repo
 
     def palet_giris(
         self,
@@ -55,11 +58,12 @@ class PaletGirisService:
         1. Veri kaynağından palet bilgisini getirir
         2. Çift giriş kontrolü
         3. Depo yetki kontrolü
-        4. Lot bul/oluştur
-        5. Palet oluştur
-        6. StokHareketi kaydı
-        7. Kaynaktaki kalemi GirisYapildi olarak işaretle
-        8. SistemLog yaz
+        4. Raf kontrolü (Raf yoksa otomatik STAGING ataması yapılır)
+        5. Lot bul/oluştur
+        6. Palet oluştur
+        7. StokHareketi kaydı
+        8. Kaynaktaki kalemi GirisYapildi olarak işaretle
+        9. SistemLog yaz
         """
         dto = self._veri_kaynagi.palet_bilgisi_getir(palet_no)
 
@@ -72,26 +76,38 @@ class PaletGirisService:
         if dto.depo_id:
             self._depo_erisim_dogrula(kullanici, dto.depo_id, dto.depo_adi)
 
-        if not dto.raf_id:
-            raise GecersizIslemError(
-                "Palet girisi icin raf_id zorunludur. Kaynak sistemde raf atamasi yapilmadan kayit acilamaz."
-            )
+        # --- YENİ EKLENEN BLOK: Otomatik STAGING Raf Ataması ---
+        gercek_raf_id = dto.raf_id
+        if not gercek_raf_id:
+            if not dto.depo_id:
+                raise GecersizIslemError("Raf ataması yapılamadı: Paletin depo bilgisi (depo_id) eksik.")
+            
+            staging_raf = self._raf_repo.getir_staging_raf(dto.depo_id)
+            if not staging_raf:
+                raise GecersizIslemError(
+                    f"Depo {dto.depo_id} için MIGRATION_STAGING rafı bulunamadı. "
+                    "Lütfen sistem yöneticisi ile iletişime geçin."
+                )
+            gercek_raf_id = staging_raf.id
+        # --------------------------------------------------------
 
         lot = self._lot_bul_veya_olustur(dto)
 
+        # dto.raf_id yerine gercek_raf_id kullanıyoruz
         palet = Palet(
             lot_id=lot.id,
-            raf_id=dto.raf_id,
+            raf_id=gercek_raf_id,
             palet_no=dto.palet_no,
             koli_adedi=dto.miktar,
         )
         palet = self._palet_repo.olustur(palet, auto_commit=False)
 
+        # dto.raf_id yerine gercek_raf_id kullanıyoruz
         hareket = StokHareketi(
             urun_id=dto.urun_id,
             lot_id=lot.id,
             palet_id=palet.id,
-            raf_id=dto.raf_id,
+            raf_id=gercek_raf_id,
             hareket_tipi=HareketTipi.GIRIS,
             miktar=dto.miktar,
             irsaliye_no=irsaliye_no,
