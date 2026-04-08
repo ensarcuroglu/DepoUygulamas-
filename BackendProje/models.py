@@ -603,6 +603,7 @@ class YerlestirmeGorevi(Base):
     id = Column(Integer, primary_key=True, index=True)
     palet_id = Column(Integer, ForeignKey("paletler.id"), nullable=False)
     mal_kabul_irsaliye_id = Column(Integer, ForeignKey("mal_kabul_irsaliyeleri.id"), nullable=True)
+    depo_id = Column(Integer, ForeignKey("depolar.id"), nullable=True, index=True)
     tip = Column(String(20), default="Yerlestirme", nullable=False)           # GorevTipi
     kaynak_raf_id = Column(Integer, ForeignKey("raflar.id"), nullable=True)   # Transfer için
     onerilen_raf_id = Column(Integer, ForeignKey("raflar.id"), nullable=False)

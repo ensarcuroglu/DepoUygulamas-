@@ -80,12 +80,15 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
             
         return yerlestirme_gorevi_to_entity(orm)
 
-    def sonraki_gorevi_kilitle(self, kullanici_id: int) -> Optional[YerlestirmeGorevi]:
+    def sonraki_gorevi_kilitle(self, kullanici_id: int, depo_id: Optional[int] = None) -> Optional[YerlestirmeGorevi]:
         """Pull-based FIFO: öncelik ASC, olusturma_tarihi ASC — SELECT FOR UPDATE."""
+        q = self._db.query(YerlestirmeGoreviORM).filter(
+            YerlestirmeGoreviORM.durum == GorevDurum.BEKLIYOR
+        )
+        if depo_id is not None:
+            q = q.filter(YerlestirmeGoreviORM.depo_id == depo_id)
         orm = (
-            self._db.query(YerlestirmeGoreviORM)
-            .filter(YerlestirmeGoreviORM.durum == GorevDurum.BEKLIYOR)
-            .order_by(
+            q.order_by(
                 YerlestirmeGoreviORM.oncelik.asc(),
                 YerlestirmeGoreviORM.olusturma_tarihi.asc(),
             )

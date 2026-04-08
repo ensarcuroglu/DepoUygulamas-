@@ -129,7 +129,7 @@
 - **Interface:** `IYerlestirmeGoreviRepository.olustur()` imzası da güncellenmeli.
 - **Etki:** Use-case'deki `self._db.commit()` / `rollback()` artık tek transaction olarak çalışır.
 
-**Adım 3: Onay endpoint entegrasyonu (K1)**
+**Adım 3: Onay endpoint entegrasyonu (K1)** ✅ TAMAMLANDI
 - **Backend:**
   - `mal_kabul_irsaliyeleri.py` routerine `POST /{id}/onayla` endpoint ekle.
   - Bu endpoint `IrsaliyeOnaylaVeGorevOlusturUseCase`'i kullanır.

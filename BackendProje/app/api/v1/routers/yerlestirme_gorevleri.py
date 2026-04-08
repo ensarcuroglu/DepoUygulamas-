@@ -104,11 +104,12 @@ def gorev_olustur(
 @limiter.limit("60/minute")
 def sonraki_gorevi_al(
     request: Request,
+    depo_id: Optional[int] = Query(None, description="Depo ID filtresi — operatör yalnızca bu depodaki görevleri çeker"),
     current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
     uc: SonrakiGorevisiniAlUseCase = Depends(get_sonraki_gorevini_al_uc),
 ):
-    """Pull-based FIFO: Sıradaki görevi kilitleyerek çeker."""
-    gorev = uc.execute(kullanici_id=current_user.id)
+    """Pull-based FIFO: Sıradaki görevi kilitleyerek çeker. depo_id ile depo bazlı filtreleme yapılır."""
+    gorev = uc.execute(kullanici_id=current_user.id, depo_id=depo_id)
     if not gorev:
         return None
     return gorev

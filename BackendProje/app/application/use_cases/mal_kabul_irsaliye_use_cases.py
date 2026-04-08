@@ -381,6 +381,7 @@ class IrsaliyeOnaylaVeGorevOlusturUseCase:
                 gorev = YerlestirmeGorevi(
                     palet_id=palet.id,
                     mal_kabul_irsaliye_id=irsaliye.id,
+                    depo_id=irsaliye.depo_id,
                     tip=GorevTipi.YERLESTIRME,
                     onerilen_raf_id=onerilen_raf_id,
                     oncelik=5,

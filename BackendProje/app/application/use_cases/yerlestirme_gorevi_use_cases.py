@@ -130,8 +130,8 @@ class SonrakiGorevisiniAlUseCase:
     def __init__(self, repo: IYerlestirmeGoreviRepository):
         self._repo = repo
 
-    def execute(self, kullanici_id: int) -> Optional[YerlestirmeGoreviResponseDTO]:
-        gorev = self._repo.sonraki_gorevi_kilitle(kullanici_id)
+    def execute(self, kullanici_id: int, depo_id: Optional[int] = None) -> Optional[YerlestirmeGoreviResponseDTO]:
+        gorev = self._repo.sonraki_gorevi_kilitle(kullanici_id, depo_id=depo_id)
         if not gorev:
             return None
         return YerlestirmeGoreviResponseDTO.from_entity(gorev)

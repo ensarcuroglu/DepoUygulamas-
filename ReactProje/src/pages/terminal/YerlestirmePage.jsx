@@ -73,7 +73,7 @@ export default function YerlestirmePage() {
   // Görev al
   const goreviAl = async () => {
     await run(async () => {
-      const res = await siradakiGorevisiniAl();
+      const res = await siradakiGorevisiniAl(depoId);
       if (res.data) {
         setGorev(res.data);
       } else {

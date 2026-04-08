@@ -53,6 +53,7 @@ class YerlestirmeGorevi:
     id: Optional[int] = None
     palet_id: int = 0
     mal_kabul_irsaliye_id: Optional[int] = None
+    depo_id: Optional[int] = None
     tip: str = GorevTipi.YERLESTIRME
     kaynak_raf_id: Optional[int] = None        # Transfer görevlerinde: şu anki raf
     onerilen_raf_id: int = 0                   # Algoritmanın önerdiği hedef raf

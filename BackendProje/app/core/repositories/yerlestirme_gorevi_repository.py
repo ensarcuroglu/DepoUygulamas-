@@ -31,8 +31,9 @@ class IYerlestirmeGoreviRepository(ABC):
 
     @abstractmethod
     def sonraki_gorevi_kilitle(
-        self, kullanici_id: int
+        self, kullanici_id: int, depo_id: Optional[int] = None
     ) -> Optional[YerlestirmeGorevi]:
         """Pull-based FIFO: öncelik ASC, olusturma_tarihi ASC sırasıyla
-        ilk BEKLIYOR görevi SELECT FOR UPDATE ile kilitler ve ATANDI yapar."""
+        ilk BEKLIYOR görevi SELECT FOR UPDATE ile kilitler ve ATANDI yapar.
+        depo_id verilirse yalnızca o depoya ait görevler döner."""
         ...
