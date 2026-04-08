@@ -20,6 +20,7 @@ from app.infrastructure.di.container import (
     get_yerlestirme_gorevi_iptal_uc,
     get_yerlestirme_gorevi_birak_uc,
     get_yerlestirme_gorevi_bekleyen_ozet_uc,
+    get_zaman_asimi_birak_uc,
     get_karantinadan_cikar_uc,
     get_karantinaya_al_uc,
     get_bilinmeyen_konum_gorevleri_olustur_uc,
@@ -48,6 +49,7 @@ from app.application.use_cases.yerlestirme_gorevi_use_cases import (
     KarantinadanCikarUseCase,
     KarantinayaAlUseCase,
     BilinmeyenKonumGorevleriOlusturUseCase,
+    ZamanAsimiBirakUseCase,
 )
 
 router = APIRouter(prefix="/api/yerlestirme-gorevleri", tags=["Yerleştirme Görevleri"])
@@ -185,6 +187,18 @@ def bekleyen_gorev_ozet(
     ),
 ):
     """Bekleyen görev havuzu özeti: toplam sayı ve öncelik dağılımı."""
+    return uc.execute()
+
+
+@router.post("/zaman-asimi-isle", status_code=200)
+@limiter.limit("10/minute")
+def zaman_asimi_isle(
+    request: Request,
+    current_user: Kullanici = Depends(require_role("admin", "lojistik")),
+    uc: ZamanAsimiBirakUseCase = Depends(get_zaman_asimi_birak_uc),
+):
+    """Timeout'u geçmiş ATANDI görevleri Bekliyor'a geri alır.
+    PUTAWAY_TIMEOUT env değişkeni dakika cinsinden timeout'u belirler (varsayılan: 60)."""
     return uc.execute()
 
 

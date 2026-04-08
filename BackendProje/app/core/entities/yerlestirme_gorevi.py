@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.core.exceptions import GecersizDurumGecisiError
@@ -64,7 +64,8 @@ class YerlestirmeGorevi:
     override_kullanici_id: Optional[int] = None
     override_neden: Optional[str] = None
     olusturma_tarihi: datetime = field(default_factory=datetime.utcnow)
-    baslama_tarihi: Optional[datetime] = None
+    atanma_tarihi: Optional[datetime] = None    # Operatörün görevi havuzdan çektiği an (timeout için)
+    baslama_tarihi: Optional[datetime] = None   # Operatörün paleti fiziksel olarak aldığı an
     tamamlanma_tarihi: Optional[datetime] = None
     iptal_nedeni: Optional[str] = None
 
@@ -83,17 +84,25 @@ class YerlestirmeGorevi:
         """Operatör görevi havuzdan çeker (pull-based FIFO)."""
         self._durum_gecisi(GorevDurum.ATANDI)
         self.atanan_kullanici_id = kullanici_id
-        self.baslama_tarihi = datetime.utcnow()
+        self.atanma_tarihi = datetime.utcnow()
 
     def baslat(self) -> None:
         """Operatör paleti fiziksel olarak aldı."""
         self._durum_gecisi(GorevDurum.DEVAM_EDIYOR)
+        self.baslama_tarihi = datetime.utcnow()
 
     def bırak(self) -> None:
         """Operatör görevi havuza iade eder."""
         self._durum_gecisi(GorevDurum.BEKLIYOR)
         self.atanan_kullanici_id = None
-        self.baslama_tarihi = None
+        self.atanma_tarihi = None
+
+    def zaman_asimina_ugradi(self, timeout_dk: int) -> bool:
+        """Görev atanma süresini aştı mı? (timeout_dk dakika)"""
+        if self.durum != GorevDurum.ATANDI or self.atanma_tarihi is None:
+            return False
+        gecen = (datetime.utcnow() - self.atanma_tarihi).total_seconds() / 60
+        return gecen >= timeout_dk
 
     def tamamla(self, gerceklesen_raf_id: int) -> None:
         """Raf okutuldu, fiziksel yerleştirme onaylandı."""

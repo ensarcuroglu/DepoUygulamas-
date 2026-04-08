@@ -59,6 +59,7 @@ from app.application.use_cases.yerlestirme_gorevi_use_cases import (
     BilinmeyenKonumGorevleriOlusturUseCase,
     KarantinadanCikarUseCase,
     KarantinayaAlUseCase,
+    ZamanAsimiBirakUseCase,
 )
 from app.core.services.palet_bazli_stok_domain_service import PaletBazliStokDomainService
 from app.core.services.zon_uyumluluk_servisi import ZonUyumlulukServisi
@@ -439,6 +440,14 @@ def get_yerlestirme_gorevi_bekleyen_ozet_uc(
     repo=Depends(get_yerlestirme_gorevi_repo),
 ):
     return YerlestirmeGoreviYerlestirmeGoreviBekleyenOzetUseCase(repo)
+
+
+def get_zaman_asimi_birak_uc(
+    repo=Depends(get_yerlestirme_gorevi_repo),
+):
+    import os
+    timeout_dk = int(os.getenv("PUTAWAY_TIMEOUT", "60"))
+    return ZamanAsimiBirakUseCase(repo, timeout_dk=timeout_dk)
 
 
 # ── Faz 1 — Domain Servis factory'leri ──

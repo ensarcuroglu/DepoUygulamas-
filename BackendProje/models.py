@@ -615,6 +615,7 @@ class YerlestirmeGorevi(Base):
     override_kullanici_id = Column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
     override_neden = Column(Text, nullable=True)
     olusturma_tarihi = Column(DateTime, default=datetime.utcnow, index=True)
+    atanma_tarihi = Column(DateTime, nullable=True, index=True)   # Timeout kontrolü için
     baslama_tarihi = Column(DateTime, nullable=True)
     tamamlanma_tarihi = Column(DateTime, nullable=True)
     iptal_nedeni = Column(Text, nullable=True)

@@ -30,6 +30,11 @@ class IYerlestirmeGoreviRepository(ABC):
         ...
 
     @abstractmethod
+    def getir_zaman_asimi_gecmis(self, timeout_dk: int) -> List[YerlestirmeGorevi]:
+        """ATANDI durumundaki ve timeout_dk dakikayı geçmiş görevleri döner."""
+        ...
+
+    @abstractmethod
     def sonraki_gorevi_kilitle(
         self, kullanici_id: int, depo_id: Optional[int] = None
     ) -> Optional[YerlestirmeGorevi]:

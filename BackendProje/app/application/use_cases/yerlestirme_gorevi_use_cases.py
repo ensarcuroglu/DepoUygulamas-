@@ -137,6 +137,24 @@ class SonrakiGorevisiniAlUseCase:
         return YerlestirmeGoreviResponseDTO.from_entity(gorev)
 
 
+class ZamanAsimiBirakUseCase:
+    """ATANDI durumundaki ve timeout'u aşmış görevleri Bekliyor'a geri alır."""
+
+    def __init__(self, repo: IYerlestirmeGoreviRepository, timeout_dk: int = 60):
+        self._repo = repo
+        self._timeout_dk = timeout_dk
+
+    def execute(self) -> dict:
+        """Timeout geçmiş görevleri serbest bırakır. Serbest bırakılan görev sayısını döner."""
+        gorevler = self._repo.getir_zaman_asimi_gecmis(self._timeout_dk)
+        serbest_birakildi = 0
+        for gorev in gorevler:
+            gorev.bırak()
+            self._repo.guncelle(gorev)
+            serbest_birakildi += 1
+        return {"serbest_birakildi": serbest_birakildi, "timeout_dk": self._timeout_dk}
+
+
 class YerlestirmeGoreviBaslatUseCase:
     """Operatör paleti fiziksel olarak aldığında DEVAM_EDIYOR'a geçer."""
 

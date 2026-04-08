@@ -9,7 +9,7 @@ from app.infrastructure.persistence.mappers.yerlestirme_mapper import (
     yerlestirme_gorevi_to_orm,
 )
 from models import YerlestirmeGorevi as YerlestirmeGoreviORM
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
@@ -68,6 +68,7 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
         orm.atanan_kullanici_id = gorev.atanan_kullanici_id
         orm.override_kullanici_id = gorev.override_kullanici_id
         orm.override_neden = gorev.override_neden
+        orm.atanma_tarihi = gorev.atanma_tarihi
         orm.baslama_tarihi = gorev.baslama_tarihi
         orm.tamamlanma_tarihi = gorev.tamamlanma_tarihi
         orm.iptal_nedeni = gorev.iptal_nedeni
@@ -100,7 +101,20 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
 
         orm.durum = GorevDurum.ATANDI
         orm.atanan_kullanici_id = kullanici_id
-        orm.baslama_tarihi = datetime.utcnow()
+        orm.atanma_tarihi = datetime.utcnow()
         self._db.commit()
         self._db.refresh(orm)
         return yerlestirme_gorevi_to_entity(orm)
+
+    def getir_zaman_asimi_gecmis(self, timeout_dk: int) -> List[YerlestirmeGorevi]:
+        """ATANDI durumundaki ve timeout'u geçmiş görevleri döner."""
+        sinir = datetime.utcnow() - timedelta(minutes=timeout_dk)
+        ormlar = (
+            self._db.query(YerlestirmeGoreviORM)
+            .filter(
+                YerlestirmeGoreviORM.durum == GorevDurum.ATANDI,
+                YerlestirmeGoreviORM.atanma_tarihi <= sinir,
+            )
+            .all()
+        )
+        return [yerlestirme_gorevi_to_entity(o) for o in ormlar]
