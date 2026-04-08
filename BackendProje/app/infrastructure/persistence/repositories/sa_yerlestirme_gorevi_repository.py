@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.entities.yerlestirme_gorevi import YerlestirmeGorevi, GorevDurum
 from app.core.repositories.yerlestirme_gorevi_repository import IYerlestirmeGoreviRepository
@@ -8,8 +8,41 @@ from app.infrastructure.persistence.mappers.yerlestirme_mapper import (
     yerlestirme_gorevi_to_entity,
     yerlestirme_gorevi_to_orm,
 )
-from models import YerlestirmeGorevi as YerlestirmeGoreviORM
+from models import YerlestirmeGorevi as YerlestirmeGoreviORM, Palet, Lot, Urun, Raf, Zon
 from datetime import datetime, timedelta
+
+
+def _zenginlestir(orm: YerlestirmeGoreviORM, entity: YerlestirmeGorevi) -> YerlestirmeGorevi:
+    """ORM ilişkilerinden görüntüleme alanlarını entity'ye yazar."""
+    palet = getattr(orm, "palet", None)
+    if palet:
+        entity.palet_barkodu = palet.palet_no
+        entity.miktar = palet.koli_adedi
+        lot = getattr(palet, "lot", None)
+        if lot:
+            entity.lot_no = lot.lot_no
+            urun = getattr(lot, "urun", None)
+            if urun:
+                entity.urun_adi = urun.isim
+
+    onerilen_raf = getattr(orm, "onerilen_raf", None)
+    if onerilen_raf:
+        entity.onerilen_raf_kodu = onerilen_raf.kod
+        zon = getattr(onerilen_raf, "zon", None)
+        if zon:
+            entity.zone_adi = zon.isim
+
+    return entity
+
+
+def _joinli_query(db: Session):
+    return db.query(YerlestirmeGoreviORM).options(
+        joinedload(YerlestirmeGoreviORM.palet)
+        .joinedload(Palet.lot)
+        .joinedload(Lot.urun),
+        joinedload(YerlestirmeGoreviORM.onerilen_raf)
+        .joinedload(Raf.zon),
+    )
 
 
 class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
@@ -24,7 +57,7 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
         atanan_kullanici_id: Optional[int] = None,
         palet_id: Optional[int] = None,
     ) -> List[YerlestirmeGorevi]:
-        q = self._db.query(YerlestirmeGoreviORM)
+        q = _joinli_query(self._db)
         if durum:
             q = q.filter(YerlestirmeGoreviORM.durum == durum)
         if atanan_kullanici_id is not None:
@@ -35,11 +68,11 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
             YerlestirmeGoreviORM.oncelik.asc(),
             YerlestirmeGoreviORM.olusturma_tarihi.asc(),
         )
-        return [yerlestirme_gorevi_to_entity(o) for o in q.offset(skip).limit(limit).all()]
+        return [_zenginlestir(o, yerlestirme_gorevi_to_entity(o)) for o in q.offset(skip).limit(limit).all()]
 
     def getir_id_ile(self, gorev_id: int) -> Optional[YerlestirmeGorevi]:
-        orm = self._db.query(YerlestirmeGoreviORM).filter(YerlestirmeGoreviORM.id == gorev_id).first()
-        return yerlestirme_gorevi_to_entity(orm) if orm else None
+        orm = _joinli_query(self._db).filter(YerlestirmeGoreviORM.id == gorev_id).first()
+        return _zenginlestir(orm, yerlestirme_gorevi_to_entity(orm)) if orm else None
 
     def olustur(self, gorev: YerlestirmeGorevi, auto_commit: bool = True) -> YerlestirmeGorevi:
         orm = yerlestirme_gorevi_to_orm(gorev)
@@ -104,7 +137,10 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
         orm.atanma_tarihi = datetime.utcnow()
         self._db.commit()
         self._db.refresh(orm)
-        return yerlestirme_gorevi_to_entity(orm)
+        # Refresh sonrası ilişkileri yükle
+        self._db.expire(orm)
+        orm = _joinli_query(self._db).filter(YerlestirmeGoreviORM.id == orm.id).first()
+        return _zenginlestir(orm, yerlestirme_gorevi_to_entity(orm))
 
     def getir_zaman_asimi_gecmis(self, timeout_dk: int) -> List[YerlestirmeGorevi]:
         """ATANDI durumundaki ve timeout'u geçmiş görevleri döner."""

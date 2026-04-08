@@ -97,7 +97,7 @@ export default function GorevListesiPage() {
       {ozet && (
         <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-3 font-semibold">Havuz Durumu</p>
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="grid grid-cols-4 gap-2 text-center">
             <div>
               <p className="text-2xl font-black text-amber-400">{ozet.toplam_bekleyen}</p>
               <p className="text-xs text-slate-500 mt-0.5">Bekleyen</p>
@@ -105,6 +105,10 @@ export default function GorevListesiPage() {
             <div>
               <p className="text-2xl font-black text-red-400">{ozet.acil}</p>
               <p className="text-xs text-slate-500 mt-0.5">Acil</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-orange-400">{ozet.yuksek_oncelikli ?? 0}</p>
+              <p className="text-xs text-slate-500 mt-0.5">Yüksek</p>
             </div>
             <div>
               <p className="text-2xl font-black text-slate-400">{ozet.normal}</p>
@@ -190,11 +194,19 @@ export default function GorevListesiPage() {
                     : <span className="text-xs text-slate-600 shrink-0 mt-0.5">FIFO kuyruğu</span>
                   }
                 </div>
-                <p className="text-sm font-bold text-slate-200">Görev #{g.id}</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-sm font-bold text-slate-200">
+                    {g.urun_adi || `Görev #${g.id}`}
+                  </p>
+                  <span className="text-xs text-slate-600">#{g.id}</span>
+                </div>
                 <p className={`text-xs font-semibold mt-0.5 ${TIP_RENK[g.tip] || 'text-slate-400'}`}>{g.tip}</p>
-                <div className="flex gap-4 mt-2 text-xs text-slate-500">
-                  <span>Palet: {g.palet_id}</span>
-                  {g.onerilen_raf_id && <span>Hedef Raf: #{g.onerilen_raf_id}</span>}
+                <div className="flex gap-4 mt-2 text-xs text-slate-500 flex-wrap">
+                  <span className="font-mono">{g.palet_barkodu || `P#${g.palet_id}`}</span>
+                  {(g.onerilen_raf_kodu || g.onerilen_raf_id) && (
+                    <span className="font-mono">→ {g.onerilen_raf_kodu || `#${g.onerilen_raf_id}`}</span>
+                  )}
+                  {g.zone_adi && <span>{g.zone_adi}</span>}
                 </div>
               </button>
             );

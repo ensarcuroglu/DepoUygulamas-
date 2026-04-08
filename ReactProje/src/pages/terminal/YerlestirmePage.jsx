@@ -1,9 +1,9 @@
 /**
  * YerlestirmePage — 4 adımlı scan-to-verify yerleştirme akışı.
  *
- * Adım 1: Sıradaki Görevi Al / Görev Detayı
- * Adım 2: Paleti Tara (kamera veya manuel)
- * Adım 3: Rafa Yerleştir (kamera veya manuel)
+ * Adım 1: Sıradaki Görevi Al / Görev Detayı (operasyonel bilgilerle)
+ * Adım 2: Paleti Tara (gerçek barkod doğrulaması)
+ * Adım 3: Rafa Yerleştir (raf kodu gösterir, ID değil)
  * Adım 4: Sonuç (başarı veya hata + alternatifler)
  */
 import { useState, useEffect, useCallback } from 'react';
@@ -11,20 +11,22 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Package, Camera, CheckCircle, XCircle, ArrowRight,
   RefreshCw, ChevronLeft, Scan, CornerDownRight, AlertTriangle,
+  AlertCircle, MapPin,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAsync } from '../../hooks/useAsync';
 import { useTerminalDepo } from '../../hooks/useTerminalDepo';
-import { hataMetni } from '../../utils/hata';
 import ZXingBarcodeScanner from '../../components/common/ZXingBarcodeScanner';
 import {
   siradakiGorevisiniAl,
   goreviBaslat,
   goreviBirak,
+  goreviIptal,
   terminalYerlestir,
   getBekleyenGorevOzet,
   getDepolar,
   goreviOverride,
+  karantinayaAl,
 } from '../../services/api';
 
 const ADIM = { GOREV: 1, PALET: 2, RAF: 3, SONUC: 4 };
@@ -49,6 +51,9 @@ export default function YerlestirmePage() {
   const [overrideModal, setOverrideModal] = useState(false);
   const [overrideNeden, setOverrideNeden] = useState('');
   const [overrideRafId, setOverrideRafId] = useState(null);
+  const [sorunSheet, setSorunSheet] = useState(false);
+  const [sorunTip, setSorunTip] = useState(null); // 'karantina' | 'iptal'
+  const [sorunNeden, setSorunNeden] = useState('');
 
   // Depo seçimi yoksa depolar listesini yükle
   useEffect(() => {
@@ -67,8 +72,7 @@ export default function YerlestirmePage() {
 
   useEffect(() => {
     if (!gorev) void bekleyenYukle();
-    if (gorev && adim === ADIM.GOREV) setAdim(ADIM.GOREV);
-  }, [gorev, bekleyenYukle, adim]);
+  }, [gorev, bekleyenYukle]);
 
   // Görev al
   const goreviAl = async () => {
@@ -83,7 +87,6 @@ export default function YerlestirmePage() {
   };
 
   // Görevi başlat (paleti fiziksel olarak al).
-  // DevamEdiyor görevler zaten başlatılmış — doğrudan scan adımına geç.
   const goreviBaslatAction = async () => {
     if (gorev.durum === 'DevamEdiyor') {
       setAdim(ADIM.PALET);
@@ -107,14 +110,18 @@ export default function YerlestirmePage() {
     });
   };
 
-  // Palet doğrulama
+  // Palet doğrulama — gerçek barkod eşleşmesi
   const paletDogrula = (barkod) => {
     const b = barkod.trim();
     if (!b) return;
+    const beklenen = gorev?.palet_barkodu;
+    if (beklenen && b !== beklenen) {
+      toast.error(`Yanlış palet! Beklenen: ${beklenen}`);
+      return;
+    }
     setPaletBarkod(b);
-    // Görevin paletiyle eşleşme (opsiyonel — API'de de kontrol var)
     setAdim(ADIM.RAF);
-    toast.success('Palet tanındı!');
+    toast.success('Palet doğrulandı!');
   };
 
   // Yerleştir
@@ -152,6 +159,27 @@ export default function YerlestirmePage() {
       setSonuc({ basarili: true, durum: 'TAMAMLANDI', mesaj: 'Override ile yerleştirildi.', ...res.data });
       setAdim(ADIM.SONUC);
       setOverrideModal(false);
+    });
+  };
+
+  // Sorun bildir — gönder
+  const sorunGonder = async () => {
+    if (!sorunNeden.trim()) {
+      toast.error('Açıklama zorunludur.');
+      return;
+    }
+    await run(async () => {
+      if (sorunTip === 'karantina') {
+        await karantinayaAl({ palet_id: gorev.palet_id, neden: sorunNeden });
+        toast.success('Palet karantinaya alındı.');
+      } else {
+        await goreviIptal(gorev.id, { neden: sorunNeden });
+        toast('Görev iptal edildi.');
+      }
+      setSorunSheet(false);
+      setSorunNeden('');
+      setSorunTip(null);
+      sifirla();
     });
   };
 
@@ -209,7 +237,7 @@ export default function YerlestirmePage() {
           </button>
         </div>
 
-        {bekleyenSayisi !== null && (
+        {bekleyenSayisi !== null && !gorev && (
           <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700 text-center">
             <p className="text-3xl font-black text-amber-400">{bekleyenSayisi}</p>
             <p className="text-sm text-slate-500 mt-0.5">Havuzda Bekleyen Görev</p>
@@ -231,17 +259,33 @@ export default function YerlestirmePage() {
           </button>
         ) : (
           <div className="bg-slate-800 border border-slate-700 rounded-2xl p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <Package className="w-5 h-5 text-amber-400" />
-              <span className="text-xs uppercase tracking-widest text-amber-400 font-bold">Görev Atandı</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-amber-400" />
+                <span className="text-xs uppercase tracking-widest text-amber-400 font-bold">Görev #{gorev.id}</span>
+              </div>
+              <OncelikBadge oncelik={gorev.oncelik} />
             </div>
 
+            {/* Operasyonel bilgiler */}
             <div className="space-y-2">
-              <InfoRow label="Görev #" value={gorev.id} />
-              <InfoRow label="Tip" value={gorev.tip} />
-              <InfoRow label="Palet ID" value={gorev.palet_id} />
-              <InfoRow label="Hedef Raf #" value={gorev.onerilen_raf_id} />
-              <InfoRow label="Öncelik" value={gorev.oncelik === 1 ? '🔴 ACİL' : gorev.oncelik === 2 ? '🟠 Yüksek' : 'Normal'} />
+              {gorev.urun_adi && <InfoRow label="Ürün" value={gorev.urun_adi} />}
+              {gorev.palet_barkodu && <InfoRow label="Palet" value={gorev.palet_barkodu} mono />}
+              {gorev.lot_no && <InfoRow label="Lot No" value={gorev.lot_no} mono />}
+              {gorev.miktar != null && <InfoRow label="Miktar (koli)" value={gorev.miktar} />}
+              <div className="border-t border-slate-700 my-1" />
+              {gorev.onerilen_raf_kodu
+                ? <InfoRow label="Hedef Raf" value={gorev.onerilen_raf_kodu} mono />
+                : <InfoRow label="Hedef Raf #" value={gorev.onerilen_raf_id} />}
+              {gorev.zone_adi && (
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-xs text-slate-500 font-semibold shrink-0">Zon</span>
+                  <span className="flex items-center gap-1 text-sm font-bold text-slate-200">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                    {gorev.zone_adi}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-2">
@@ -274,8 +318,11 @@ export default function YerlestirmePage() {
       <div className="p-4 space-y-4 max-w-sm mx-auto pt-4">
         <AdimHeader adim={2} toplam={3} baslik="Paleti Tara" onGeri={() => setAdim(ADIM.GOREV)} />
 
-        <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
-          <p className="text-xs text-slate-500 mb-1">Görev #{gorev.id} — Palet ID: {gorev.palet_id}</p>
+        <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700 space-y-1.5">
+          {gorev.urun_adi && <InfoRow label="Ürün" value={gorev.urun_adi} />}
+          <InfoRow label="Beklenen Palet" value={gorev.palet_barkodu || `#${gorev.palet_id}`} mono />
+          {gorev.lot_no && <InfoRow label="Lot" value={gorev.lot_no} mono />}
+          {gorev.miktar != null && <InfoRow label="Miktar" value={`${gorev.miktar} koli`} />}
         </div>
 
         {/* Kamera Butonu */}
@@ -307,10 +354,30 @@ export default function YerlestirmePage() {
           </div>
         </div>
 
+        {/* Sorun Bildir */}
+        <button
+          onClick={() => setSorunSheet(true)}
+          className="w-full flex items-center justify-center gap-2 text-sm text-slate-500 hover:text-red-400 py-2 transition-colors"
+        >
+          <AlertCircle className="w-4 h-4" />
+          Sorun Bildir
+        </button>
+
         <ZXingBarcodeScanner
           isOpen={kameraAcik && kameraMod === 'palet'}
           onClose={() => setKameraAcik(false)}
           onScanSuccess={(code) => { setKameraAcik(false); paletDogrula(code); }}
+        />
+
+        <SorunSheet
+          open={sorunSheet}
+          onClose={() => { setSorunSheet(false); setSorunTip(null); setSorunNeden(''); }}
+          sorunTip={sorunTip}
+          setSorunTip={setSorunTip}
+          sorunNeden={sorunNeden}
+          setSorunNeden={setSorunNeden}
+          onGonder={sorunGonder}
+          loading={loading}
         />
       </div>
     );
@@ -324,7 +391,10 @@ export default function YerlestirmePage() {
 
         <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700 space-y-1.5">
           <InfoRow label="Palet" value={paletBarkod} mono />
-          <InfoRow label="Hedef Raf #" value={gorev.onerilen_raf_id} />
+          {gorev.onerilen_raf_kodu
+            ? <InfoRow label="Hedef Raf" value={gorev.onerilen_raf_kodu} mono />
+            : <InfoRow label="Hedef Raf #" value={gorev.onerilen_raf_id} />}
+          {gorev.zone_adi && <InfoRow label="Zon" value={gorev.zone_adi} />}
         </div>
 
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 flex items-start gap-2">
@@ -362,10 +432,30 @@ export default function YerlestirmePage() {
           </div>
         </div>
 
+        {/* Sorun Bildir */}
+        <button
+          onClick={() => setSorunSheet(true)}
+          className="w-full flex items-center justify-center gap-2 text-sm text-slate-500 hover:text-red-400 py-2 transition-colors"
+        >
+          <AlertCircle className="w-4 h-4" />
+          Sorun Bildir
+        </button>
+
         <ZXingBarcodeScanner
           isOpen={kameraAcik && kameraMod === 'raf'}
           onClose={() => setKameraAcik(false)}
           onScanSuccess={(code) => { setKameraAcik(false); yerlestir(code); }}
+        />
+
+        <SorunSheet
+          open={sorunSheet}
+          onClose={() => { setSorunSheet(false); setSorunTip(null); setSorunNeden(''); }}
+          sorunTip={sorunTip}
+          setSorunTip={setSorunTip}
+          sorunNeden={sorunNeden}
+          setSorunNeden={setSorunNeden}
+          onGonder={sorunGonder}
+          loading={loading}
         />
       </div>
     );
@@ -399,6 +489,7 @@ export default function YerlestirmePage() {
           <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700 space-y-2">
             {sonuc.palet_no && <InfoRow label="Palet" value={sonuc.palet_no} mono />}
             {sonuc.raf_kod && <InfoRow label="Yerleştirildi" value={sonuc.raf_kod} mono />}
+            {sonuc.zon && <InfoRow label="Zon" value={sonuc.zon} />}
             {sonuc.onerilen_raf_kod && sonuc.onerilen_raf_kod !== sonuc.raf_kod && (
               <div className="flex items-center gap-2 pt-1">
                 <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
@@ -476,7 +567,6 @@ export default function YerlestirmePage() {
                 Süpervizör Override
               </h3>
 
-              {/* Seçili raf göstergesi — yoksa uyarı */}
               {overrideRafId ? (
                 <div className="bg-slate-800 border border-slate-600 rounded-xl px-4 py-2.5 flex items-center justify-between">
                   <span className="text-xs text-slate-500 font-semibold">Hedef Raf</span>
@@ -555,6 +645,89 @@ function InfoRow({ label, value, mono }) {
       <span className={`text-sm font-bold text-slate-200 truncate text-right ${mono ? 'font-mono' : ''}`}>
         {value ?? '—'}
       </span>
+    </div>
+  );
+}
+
+function OncelikBadge({ oncelik }) {
+  if (oncelik === 1) return <span className="text-xs font-bold bg-red-500/20 text-red-300 px-2.5 py-1 rounded-full">ACİL</span>;
+  if (oncelik === 2) return <span className="text-xs font-bold bg-orange-500/20 text-orange-300 px-2.5 py-1 rounded-full">Yüksek</span>;
+  return null;
+}
+
+function SorunSheet({ open, onClose, sorunTip, setSorunTip, sorunNeden, setSorunNeden, onGonder, loading }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-end p-4" onClick={onClose}>
+      <div
+        className="bg-slate-900 border border-slate-700 rounded-2xl w-full p-6 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="font-black text-slate-100 flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-red-400" />
+          Sorun Bildir
+        </h3>
+
+        {/* Sorun tipi seçimi */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => setSorunTip('karantina')}
+            className={`rounded-xl p-4 border text-left transition-colors ${
+              sorunTip === 'karantina'
+                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
+            }`}
+          >
+            <p className="font-bold text-sm">Karantinaya Al</p>
+            <p className="text-xs mt-0.5 opacity-75">Hasarlı / şüpheli ürün</p>
+          </button>
+          <button
+            onClick={() => setSorunTip('iptal')}
+            className={`rounded-xl p-4 border text-left transition-colors ${
+              sorunTip === 'iptal'
+                ? 'bg-red-500/20 border-red-500/50 text-red-300'
+                : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
+            }`}
+          >
+            <p className="font-bold text-sm">Görevi İptal Et</p>
+            <p className="text-xs mt-0.5 opacity-75">Palet bulunamadı vb.</p>
+          </button>
+        </div>
+
+        {sorunTip && (
+          <>
+            <textarea
+              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-slate-100 text-sm placeholder-slate-600 focus:outline-none focus:border-red-500 transition-colors resize-none"
+              rows={3}
+              placeholder="Sorunu kısaca açıklayın..."
+              value={sorunNeden}
+              onChange={(e) => setSorunNeden(e.target.value)}
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="flex-1 bg-slate-700 text-slate-300 font-bold rounded-xl py-3"
+              >
+                Vazgeç
+              </button>
+              <button
+                onClick={onGonder}
+                disabled={loading || !sorunNeden.trim()}
+                className="flex-[2] bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-xl py-3 transition-colors"
+              >
+                {loading ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : 'Gönder'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {!sorunTip && (
+          <button onClick={onClose} className="w-full bg-slate-700 text-slate-300 font-bold rounded-xl py-3">
+            Vazgeç
+          </button>
+        )}
+      </div>
     </div>
   );
 }

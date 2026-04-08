@@ -69,6 +69,14 @@ class YerlestirmeGorevi:
     tamamlanma_tarihi: Optional[datetime] = None
     iptal_nedeni: Optional[str] = None
 
+    # ── Görüntüleme alanları (SA repository JOIN ile doldurur, iş mantığında kullanılmaz) ──
+    palet_barkodu: Optional[str] = None
+    urun_adi: Optional[str] = None
+    lot_no: Optional[str] = None
+    miktar: Optional[int] = None
+    onerilen_raf_kodu: Optional[str] = None
+    zone_adi: Optional[str] = None
+
     # ── İş Kuralları ──
 
     def _durum_gecisi(self, hedef: str) -> None:

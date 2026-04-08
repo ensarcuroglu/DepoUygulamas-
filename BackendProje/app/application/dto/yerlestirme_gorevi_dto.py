@@ -107,6 +107,13 @@ class YerlestirmeGoreviResponseDTO(BaseModel):
     tamamlanma_tarihi: Optional[datetime]
     iptal_nedeni: Optional[str]
     onerilen_raf_farkli: bool
+    # Görüntüleme alanları (JOIN ile zenginleştirilir)
+    palet_barkodu: Optional[str] = None
+    urun_adi: Optional[str] = None
+    lot_no: Optional[str] = None
+    miktar: Optional[int] = None
+    onerilen_raf_kodu: Optional[str] = None
+    zone_adi: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -130,4 +137,10 @@ class YerlestirmeGoreviResponseDTO(BaseModel):
             tamamlanma_tarihi=entity.tamamlanma_tarihi,
             iptal_nedeni=entity.iptal_nedeni,
             onerilen_raf_farkli=entity.onerilen_raf_farkli_mi(),
+            palet_barkodu=entity.palet_barkodu,
+            urun_adi=entity.urun_adi,
+            lot_no=entity.lot_no,
+            miktar=entity.miktar,
+            onerilen_raf_kodu=entity.onerilen_raf_kodu,
+            zone_adi=entity.zone_adi,
         )
