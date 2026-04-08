@@ -418,8 +418,8 @@ def calistir():
                 r = conn.execute(
                     text(
                         "INSERT INTO raflar "
-                        "(depo_id, zon_id, kod, bolge, kapasite, koridor, kat, goz, aktif, olusturma_tarihi) "
-                        "VALUES (:d, :z, :k, 'MIGRATION_STAGING', 9999, 'X', 0, 0, 1, NOW())"
+                        "(depo_id, zon_id, kod, bolge, kapasite, koridor, kat, goz, aktif, is_staging, olusturma_tarihi) "
+                        "VALUES (:d, :z, :k, 'MIGRATION_STAGING', 9999, 'X', 0, 0, 1, 1, NOW())"
                     ),
                     {"d": depo_id, "z": zon_id_staging, "k": staging_kod},
                 )

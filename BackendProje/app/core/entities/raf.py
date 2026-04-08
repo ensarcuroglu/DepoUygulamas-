@@ -26,6 +26,7 @@ class Raf:
     kat: int = 0                            # Kat numarası
     goz: int = 0                            # Göz numarası
     aktif: bool = True
+    is_staging: bool = False                 # MIGRATION_STAGING rafı explicit bayrağı
     olusturma_tarihi: datetime = field(default_factory=datetime.utcnow)
 
     # ── İş Kuralları ──

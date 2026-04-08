@@ -186,8 +186,8 @@ class TestSevkiyatKisitlamasi:
         Not: Bu kısıtlama PaletCikisService katmanında uygulanır. Test, palet çıkış
         endpoint'i üzerinden kontrol eder.
         """
-        # MIGRATION_STAGING rafı kodunu içeren bir raf oluştur
-        staging_raf = RafFactory.create(kod="STG-000-00-00-00", kapasite=100)
+        # MIGRATION_STAGING rafı is_staging=True bayrağıyla oluştur
+        staging_raf = RafFactory.create(kod="STG-000-00-00-00", kapasite=100, is_staging=True)
         urun = UrunFactory.create()
         lot = LotFactory.create(urun=urun)
         palet = PaletFactory.create(lot=lot, raf=staging_raf, aktif=True)

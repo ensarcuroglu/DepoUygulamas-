@@ -99,6 +99,7 @@ class Raf(Base):
     kat = Column(Integer, default=0)                                   # Faz 0.2
     goz = Column(Integer, default=0)                                   # Faz 0.2
     aktif = Column(Boolean, default=True)
+    is_staging = Column(Boolean, default=False, nullable=False)  # MIGRATION_STAGING explicit bayrağı
     olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
 
     # İlişkiler

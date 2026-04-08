@@ -79,6 +79,7 @@ def raf_to_entity(orm: RafORM) -> Raf:
         kat=orm.kat or 0,
         goz=orm.goz or 0,
         aktif=orm.aktif,
+        is_staging=bool(orm.is_staging),
         olusturma_tarihi=orm.olusturma_tarihi,
     )
 
@@ -96,6 +97,7 @@ def raf_to_orm(entity: Raf) -> RafORM:
         kat=entity.kat,
         goz=entity.goz,
         aktif=entity.aktif,
+        is_staging=entity.is_staging,
         olusturma_tarihi=entity.olusturma_tarihi,
     )
 

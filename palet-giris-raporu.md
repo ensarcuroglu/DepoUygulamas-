@@ -162,7 +162,7 @@
 
 ### Faz P1 — Yüksek Öncelikli İyileştirmeler
 
-**Adım 6: UI/Backend raf zorunluluğu tekleştirme (Y1)**
+**Adım 6: UI/Backend raf zorunluluğu tekleştirme (Y1)** ✅ TAMAMLANDI
 - **Karar:** Backend'de otomatik STAGING ataması yapılır (Dock-to-Stock akışı). UI'da raf opsiyonel kalır.
 - **Backend:**
   - `palet_giris_service.py:75-78`'deki `raf_id` zorunluluk kontrolünü kaldır.
@@ -172,7 +172,7 @@
   - `MalKabulIrsaliyeleriPage.jsx:596` — raf alanı opsiyonel olarak kalır, değişiklik gerekmez.
 - **Etki:** Kullanıcı doğal akışta bloklanmaz; yerleştirme tamamlanana kadar sevkiyat blokajı devam eder.
 
-**Adım 7: STAGING tespitini explicit bayrak ile yönet (Y2)**
+**Adım 7: STAGING tespitini explicit bayrak ile yönet (Y2)** ✅ TAMAMLANDI
 - `Raf` entity/modeline `is_staging: bool` alanı ekle.
 - `getir_staging_raf()` ve `_is_staging_raf()` metotlarını bu bayrağa göre çalıştır.
 - Migration: mevcut `%-X-00-00-00` kodlu rafları `is_staging=True` olarak işaretle.

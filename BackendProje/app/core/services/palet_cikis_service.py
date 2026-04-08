@@ -172,7 +172,7 @@ class PaletCikisService:
             return "Bu palette stok bulunmuyor."
 
         raf = self._raf_repo.getir_id_ile(palet.raf_id) if palet.raf_id else None
-        if raf and self._is_staging_raf(raf.kod):
+        if raf and raf.is_staging:
             return "Konumu belirsiz palet sevk edilemez. Önce yerleştirme yapılmalı."
 
         hedef_depo_id = raf.depo_id if raf else None
@@ -189,15 +189,10 @@ class PaletCikisService:
         if not raf_id:
             return
         raf = self._raf_repo.getir_id_ile(raf_id)
-        if raf and self._is_staging_raf(raf.kod):
+        if raf and raf.is_staging:
             raise GecersizIslemError(
                 "Konumu belirsiz palet sevk edilemez. Önce yerleştirme yapılmalı."
             )
-
-    @staticmethod
-    def _is_staging_raf(raf_kod: str) -> bool:
-        """MIGRATION_STAGING raflarını koddan tanır: '%-X-00-00-00' paterni."""
-        return raf_kod.endswith("-X-00-00-00")
 
     def _raf_depo_id_coz(self, raf_id: Optional[int]) -> Optional[int]:
         """Raf ID'sinden depo ID'sini çözümler."""

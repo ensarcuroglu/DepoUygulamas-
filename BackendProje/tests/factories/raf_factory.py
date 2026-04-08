@@ -13,3 +13,4 @@ class RafFactory(BaseFactory):
     bolge = "Zemin Kat"
     kapasite = 100
     aktif = True
+    is_staging = False
