@@ -120,7 +120,7 @@ class TestOnKosulHatalari:
         onaylanmis = _irsaliye(durum=MalKabulDurum.ONAYLANDI, kalem_sayisi=1)
         uc, _ = _use_case(irsaliye=onaylanmis)
 
-        with pytest.raises(GecersizIslemError, match="taslak"):
+        with pytest.raises(GecersizIslemError, match="Taslak"):
             uc.execute(irsaliye_id=1, kullanici_id=1)
 
     def test_kalemsiz_irsaliye_onaylanamaz(self):

@@ -124,6 +124,6 @@ class IrsaliyePaletVeriKaynagiService(IPaletVeriKaynagiService):
         
         # KONTROL 3: Tum kalemler girildi mi? (Adım 2)
         if irsaliye.tum_kalemler_girildi_mi():
-            irsaliye.tamamla()
+            irsaliye.kapat()
 
         self._mal_kabul_repo.guncelle(irsaliye, auto_commit=False)

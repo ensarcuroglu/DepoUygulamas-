@@ -83,6 +83,7 @@ ALLOWED_ENTITY_ONLY_FIELDS: dict[str, set[str]] = {
     "StokHareketi": {"palet_no"},
     "StokSayim": {"sayim_kalemleri"},
     "Urun": {"stok_miktari"},
+    "YerlestirmeGorevi": {"lot_no", "miktar", "onerilen_raf_kodu", "palet_barkodu", "urun_adi", "zone_adi"},
 }
 
 

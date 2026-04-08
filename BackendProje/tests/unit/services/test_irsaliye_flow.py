@@ -77,5 +77,5 @@ def test_son_palet_girilince_irsaliye_otomatik_tamamlanmali(service, mock_repos)
     service.palet_giris_onayla("P2")
 
     # Doğrulama: İrsaliye durumu TAMAMLANDI olmalı
-    assert irsaliye.durum == MalKabulDurum.TAMAMLANDI
+    assert irsaliye.durum == MalKabulDurum.KAPANDI
     mock_repos["mal_kabul"].guncelle.assert_called_once()
