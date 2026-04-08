@@ -30,12 +30,14 @@ class TestGecerliGecisler:
         g.ata(kullanici_id=42)
         assert g.durum == GorevDurum.ATANDI
         assert g.atanan_kullanici_id == 42
-        assert g.baslama_tarihi is not None
+        assert g.atanma_tarihi is not None
+        assert g.baslama_tarihi is None
 
     def test_atandi_devam_ediyor(self):
         g = _gorev(durum=GorevDurum.ATANDI, atanan_kullanici_id=1)
         g.baslat()
         assert g.durum == GorevDurum.DEVAM_EDIYOR
+        assert g.baslama_tarihi is not None
 
     def test_atandi_bekliyor_birak(self):
         g = _gorev(durum=GorevDurum.ATANDI, atanan_kullanici_id=7)
