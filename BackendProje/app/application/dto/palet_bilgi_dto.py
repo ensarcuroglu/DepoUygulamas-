@@ -29,6 +29,7 @@ class PaletBilgiDTO(BaseModel):
     raf_bilgi: Optional[str] = None  # "Depo-A / R-03-B"
     depo_id: int
     depo_adi: str
+    irsaliye_no: Optional[str] = None  # Paletin ait olduğu mal kabul irsaliye no
     durum: PaletDurum
     kaynak: PaletKaynak
     son_kullanma_tarihi: Optional[date] = None

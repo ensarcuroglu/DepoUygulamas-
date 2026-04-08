@@ -90,6 +90,7 @@ class IrsaliyePaletVeriKaynagiService(IPaletVeriKaynagiService):
             raf_bilgi=raf_bilgi,
             depo_id=irsaliye.depo_id,
             depo_adi=depo_adi,
+            irsaliye_no=irsaliye.irsaliye_no,
             durum="aktif",
             kaynak="irsaliye",
             son_kullanma_tarihi=kalem.son_kullanma_tarihi,

@@ -134,7 +134,7 @@ class PaletGirisService:
         sonuclar: list[TopluPaletSonuc] = []
 
         for palet_no in palet_no_listesi:
-            hata = self.giris_on_dogrula(palet_no, kullanici)
+            hata = self.giris_on_dogrula(palet_no, kullanici, irsaliye_no=irsaliye_no)
             sonuclar.append(
                 TopluPaletSonuc(palet_no=palet_no, basarili=hata is None, hata_mesaji=hata)
             )
@@ -152,7 +152,12 @@ class PaletGirisService:
         for palet_no in palet_no_listesi:
             self._veri_kaynagi.palet_giris_onayla(palet_no)
 
-    def giris_on_dogrula(self, palet_no: str, kullanici: Kullanici) -> Optional[str]:
+    def giris_on_dogrula(
+        self,
+        palet_no: str,
+        kullanici: Kullanici,
+        irsaliye_no: Optional[str] = None,
+    ) -> Optional[str]:
         """Tekil palet için giriş ön-doğrulama. Hata varsa mesaj döner, yoksa None."""
         try:
             dto = self._veri_kaynagi.palet_bilgisi_getir(palet_no)
@@ -167,6 +172,12 @@ class PaletGirisService:
 
         if dto.depo_id and not kullanici.depo_erisim_var(dto.depo_id):
             return f"Bu palet {dto.depo_adi} deposuna ait, yetkiniz bulunmuyor."
+
+        if irsaliye_no and dto.irsaliye_no and dto.irsaliye_no != irsaliye_no:
+            return (
+                f"Palet '{palet_no}' seçilen irsaliyeye ({irsaliye_no}) ait değil "
+                f"(ait olduğu irsaliye: {dto.irsaliye_no})."
+            )
 
         return None
 

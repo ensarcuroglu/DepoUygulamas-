@@ -139,7 +139,7 @@
   - `MalKabulIrsaliyeleriPage.jsx:412`'deki `durumDegistir(irs.id, 'Onaylandi')` çağrısını `onaylaMalKabulIrsaliye(irs.id)` ile değiştir.
 - **Etki:** Onay tetiklendiğinde otomatik palet + stok hareketi + yerleştirme görevi oluşturulur.
 
-**Adım 4: Depo bazlı görev çekme (K3)**
+**Adım 4: Depo bazlı görev çekme (K3)** ✅ TAMAMLANDI
 - **Karar:** `YerlestirmeGorevi` entity'sine `depo_id` alanı doğrudan eklenir (denormalize). JOIN yerine doğrudan filtreleme ile terminal performansı korunur; ileride depo bazlı yetkilendirmeyi de kolaylaştırır.
 - **Backend:**
   - `YerlestirmeGorevi` entity'sine `depo_id: int` alanı ekle.

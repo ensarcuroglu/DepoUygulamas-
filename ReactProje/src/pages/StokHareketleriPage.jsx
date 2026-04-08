@@ -214,6 +214,8 @@ export default function StokHareketleriPage() {
     }, [step, cameraScannerOpen]);
 
     // ===== PALET EKLEME (tarama listesine) =====
+    const secilenIrsaliyeNo = secilenMalKabul?.irsaliye_no;
+
     const handlePaletEkle = useCallback(async (no) => {
         const hedefNo = sanitizePaletNo(no || paletNo);
         if (!hedefNo) return;
@@ -259,6 +261,13 @@ export default function StokHareketleriPage() {
                 hata = 'Henüz depoya alınmamış — önce giriş yapılmalı';
             } else if (hareketTipi === 'cikis' && bilgi.durum !== 'aktif') {
                 hata = 'Bu palette stok bulunmuyor';
+            } else if (
+                hareketTipi === 'giris' &&
+                secilenIrsaliyeNo &&
+                bilgi.irsaliye_no &&
+                bilgi.irsaliye_no !== secilenIrsaliyeNo
+            ) {
+                hata = `Bu palet seçilen irsaliyeye ait değil (ait: ${bilgi.irsaliye_no})`;
             }
 
             setTaramaListesi(prev => prev.map(t =>
@@ -283,7 +292,7 @@ export default function StokHareketleriPage() {
             // Race condition koruması: in-flight'tan kaldır
             pendingRef.current.delete(hedefNo);
         }
-    }, [paletNo, taramaListesi, hareketTipi]);
+    }, [paletNo, taramaListesi, hareketTipi, secilenIrsaliyeNo]);
 
     // ===== PALET SİLME =====
     const handlePaletSil = (paletNoSil) => {
@@ -319,7 +328,7 @@ export default function StokHareketleriPage() {
                 if (hareketTipi === 'giris') {
                     const res = await stokIslemleriTopluGiris({
                         palet_no_listesi: gecerliPaletler.map(t => t.palet_no),
-                        irsaliye_no: secilenMalKabul?.irsaliye_no || undefined,
+                        irsaliye_no: secilenIrsaliyeNo || undefined,
                     });
                     const sonuc = res.data;
                     if (sonuc.basarisiz > 0) {
@@ -832,7 +841,7 @@ export default function StokHareketleriPage() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className={`text-sm font-black truncate ${hareketTipi === 'giris' ? 'text-emerald-800' : 'text-red-800'}`}>
-                                            {hareketTipi === 'giris' ? secilenMalKabul?.irsaliye_no : secilenSiparis?.siparis_no}
+                                            {hareketTipi === 'giris' ? secilenIrsaliyeNo : secilenSiparis?.siparis_no}
                                         </p>
                                         <p className={`text-xs font-semibold truncate ${hareketTipi === 'giris' ? 'text-emerald-600/70' : 'text-red-600/70'}`}>
                                             {hareketTipi === 'giris'
@@ -1069,7 +1078,7 @@ export default function StokHareketleriPage() {
                                             {hareketTipi === 'giris' ? 'İrsaliye:' : 'Sipariş:'}
                                         </span>
                                         <span className={`text-xs font-bold truncate ${hareketTipi === 'giris' ? 'text-emerald-900' : 'text-red-900'}`}>
-                                            {hareketTipi === 'giris' ? secilenMalKabul?.irsaliye_no : secilenSiparis?.siparis_no}
+                                            {hareketTipi === 'giris' ? secilenIrsaliyeNo : secilenSiparis?.siparis_no}
                                             {hareketTipi === 'cikis' && secilenSiparis?.musteri_adi && ` · ${secilenSiparis.musteri_adi}`}
                                         </span>
                                     </div>
