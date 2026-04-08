@@ -48,9 +48,9 @@ class IrsaliyePaletVeriKaynagiService(IPaletVeriKaynagiService):
         if not irsaliye:
             raise KayitBulunamadiError("Mal Kabul Irsaliyesi", kalem.mal_kabul_irsaliyesi_id)
 
-        # KONTROL GÜNCELLENDİ: Bilgi okumak için ONAYLANDI veya TAMAMLANDI olabilir.
+        # Bilgi okumak için ONAYLANDI veya KAPANDI olabilir.
         # Sadece TASLAK durumunda bilgi okunmasını engelliyoruz.
-        if irsaliye.durum not in [MalKabulDurum.ONAYLANDI, MalKabulDurum.TAMAMLANDI]:
+        if irsaliye.durum not in [MalKabulDurum.ONAYLANDI, MalKabulDurum.KAPANDI]:
             raise GecersizIslemError(
                 f"Taslak halindeki irsaliyelerden palet bilgisi okunamaz. Mevcut durum: {irsaliye.durum}"
             )

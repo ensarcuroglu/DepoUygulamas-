@@ -331,7 +331,7 @@ class IrsaliyeOnaylaVeGorevOlusturUseCase:
 
         if irsaliye.durum != MalKabulDurum.TASLAK:
             raise GecersizIslemError(
-                f"Sadece taslak irsaliyeler onaylanabilir. Mevcut durum: {irsaliye.durum}"
+                f"Sadece Taslak durumundaki irsaliyeler onaylanabilir. Mevcut durum: {irsaliye.durum}"
             )
         if not irsaliye.kalemler:
             raise GecersizIslemError("Kalemsiz irsaliye onaylanamaz.")
@@ -411,8 +411,10 @@ class IrsaliyeOnaylaVeGorevOlusturUseCase:
             self._db.rollback()
             raise
 
+        olusturulan_gorev_sayisi = len(irsaliye.kalemler)
         return MalKabulIrsaliyeResponseDTO.from_entity(
-            self._repo.getir_id_ile(irsaliye_id)
+            self._repo.getir_id_ile(irsaliye_id),
+            olusturulan_gorev_sayisi=olusturulan_gorev_sayisi,
         )
 
     def _lot_bul_veya_olustur(self, kalem: MalKabulKalemi) -> Lot:

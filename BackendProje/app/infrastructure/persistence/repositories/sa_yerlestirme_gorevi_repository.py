@@ -118,3 +118,12 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
             .all()
         )
         return [yerlestirme_gorevi_to_entity(o) for o in ormlar]
+
+    def getir_irsaliye_id_ile(self, mal_kabul_irsaliye_id: int) -> List[YerlestirmeGorevi]:
+        """Belirli bir mal kabul irsaliyesine ait tüm görevleri döner."""
+        ormlar = (
+            self._db.query(YerlestirmeGoreviORM)
+            .filter(YerlestirmeGoreviORM.mal_kabul_irsaliye_id == mal_kabul_irsaliye_id)
+            .all()
+        )
+        return [yerlestirme_gorevi_to_entity(o) for o in ormlar]

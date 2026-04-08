@@ -9,7 +9,9 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.core.entities.mal_kabul_irsaliye import MalKabulDurum, KalemDurum
 
-_IZINLI_DURUMLAR = {MalKabulDurum.ONAYLANDI, MalKabulDurum.TAMAMLANDI}
+# Kullanıcı yalnızca Onaylandi geçişini tetikleyebilir.
+# Kapandi sisteme özel (auto-close), API üzerinden ayarlanamaz.
+_IZINLI_DURUMLAR = {MalKabulDurum.ONAYLANDI}
 
 
 # ─────────────────────────────────────────
@@ -114,11 +116,17 @@ class MalKabulIrsaliyeResponseDTO(BaseModel):
     olusturma_tarihi: datetime
     guncelleme_tarihi: datetime
     kalemler: List[MalKabulKalemiResponseDTO] = []
+    # Yalnızca onay endpointinde dolar; listelemede None gelir.
+    olusturulan_gorev_sayisi: Optional[int] = None
 
     model_config = {"from_attributes": True}
 
     @classmethod
-    def from_entity(cls, entity) -> "MalKabulIrsaliyeResponseDTO":
+    def from_entity(
+        cls,
+        entity,
+        olusturulan_gorev_sayisi: Optional[int] = None,
+    ) -> "MalKabulIrsaliyeResponseDTO":
         return cls(
             id=entity.id,
             irsaliye_no=entity.irsaliye_no,
@@ -131,4 +139,5 @@ class MalKabulIrsaliyeResponseDTO(BaseModel):
             olusturma_tarihi=entity.olusturma_tarihi,
             guncelleme_tarihi=entity.guncelleme_tarihi,
             kalemler=[MalKabulKalemiResponseDTO.from_entity(k) for k in entity.kalemler],
+            olusturulan_gorev_sayisi=olusturulan_gorev_sayisi,
         )

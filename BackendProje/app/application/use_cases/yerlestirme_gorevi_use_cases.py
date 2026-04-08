@@ -12,10 +12,33 @@ from app.core.repositories.zon_repository import IZonRepository
 from app.core.repositories.urun_repository import IUrunRepository
 from app.core.repositories.lot_repository import ILotRepository
 from app.core.repositories.sistem_log_repository import ISistemLogRepository
-from app.core.entities.yerlestirme_gorevi import YerlestirmeGorevi, GorevTipi
+from app.core.repositories.mal_kabul_irsaliye_repository import IMalKabulIrsaliyeRepository
+from app.core.entities.yerlestirme_gorevi import YerlestirmeGorevi, GorevTipi, GorevDurum
+from app.core.entities.mal_kabul_irsaliye import MalKabulDurum
 from app.core.entities.sistem_log import SistemLog, IslemTipi
 from app.core.entities.zon import ZonTipi
 from app.core.exceptions import KayitBulunamadiError, GecersizIslemError
+
+# Görev tamamlandı sayılan durumlar (bu ikisi varsa irsaliye kapanır)
+_GOREV_BITTI_DURUMLARI = {GorevDurum.TAMAMLANDI, GorevDurum.IPTAL_EDILDI}
+
+
+def _irsaliye_otomatik_kapat(
+    gorev: YerlestirmeGorevi,
+    gorev_repo: IYerlestirmeGoreviRepository,
+    mal_kabul_repo: IMalKabulIrsaliyeRepository,
+) -> None:
+    """Son görev tamamlandığında irsaliyeyi otomatik kapatır."""
+    if not gorev.mal_kabul_irsaliye_id:
+        return
+    irsaliye_gorevleri = gorev_repo.getir_irsaliye_id_ile(gorev.mal_kabul_irsaliye_id)
+    if not irsaliye_gorevleri:
+        return
+    if all(g.durum in _GOREV_BITTI_DURUMLARI for g in irsaliye_gorevleri):
+        irsaliye = mal_kabul_repo.getir_id_ile(gorev.mal_kabul_irsaliye_id)
+        if irsaliye and irsaliye.durum == MalKabulDurum.ONAYLANDI:
+            irsaliye.kapat()
+            mal_kabul_repo.guncelle(irsaliye)
 from app.application.dto.yerlestirme_gorevi_dto import (
     YerlestirmeGoreviOlusturRequestDTO,
     YerlestirmeGoreviTamamlaRequestDTO,
@@ -181,11 +204,13 @@ class YerlestirmeGoreviTamamlaUseCase:
         palet_repo: IPaletRepository,
         raf_repo: IRafRepository,
         log_repo: ISistemLogRepository,
+        mal_kabul_repo: IMalKabulIrsaliyeRepository,
     ):
         self._repo = repo
         self._palet_repo = palet_repo
         self._raf_repo = raf_repo
         self._log_repo = log_repo
+        self._mal_kabul_repo = mal_kabul_repo
 
     def execute(
         self, gorev_id: int, dto: YerlestirmeGoreviTamamlaRequestDTO, kullanici_id: int
@@ -219,6 +244,9 @@ class YerlestirmeGoreviTamamlaUseCase:
                 yeni_veri={"gerceklesen_raf_id": dto.gerceklesen_raf_id},
             )
         )
+
+        _irsaliye_otomatik_kapat(gorev, self._repo, self._mal_kabul_repo)
+
         return YerlestirmeGoreviResponseDTO.from_entity(kaydedilen)
 
 
@@ -231,11 +259,13 @@ class YerlestirmeGoreviOverrideUseCase:
         palet_repo: IPaletRepository,
         raf_repo: IRafRepository,
         log_repo: ISistemLogRepository,
+        mal_kabul_repo: IMalKabulIrsaliyeRepository,
     ):
         self._repo = repo
         self._palet_repo = palet_repo
         self._raf_repo = raf_repo
         self._log_repo = log_repo
+        self._mal_kabul_repo = mal_kabul_repo
 
     def execute(
         self, gorev_id: int, dto: YerlestirmeGoreviOverrideRequestDTO, supervisor_id: int
@@ -267,6 +297,9 @@ class YerlestirmeGoreviOverrideUseCase:
                 yeni_veri={"gerceklesen_raf_id": dto.gerceklesen_raf_id, "neden": dto.neden},
             )
         )
+
+        _irsaliye_otomatik_kapat(gorev, self._repo, self._mal_kabul_repo)
+
         return YerlestirmeGoreviResponseDTO.from_entity(kaydedilen)
 
 
@@ -356,6 +389,7 @@ class YerlestirmeOnaylaUseCase:
         zon_uyumluluk: "ZonUyumlulukServisi",
         kapasite: "KapasiteDogrulamaServisi",
         log_repo: ISistemLogRepository,
+        mal_kabul_repo: IMalKabulIrsaliyeRepository,
     ):
         self._repo = repo
         self._palet_repo = palet_repo
@@ -366,6 +400,7 @@ class YerlestirmeOnaylaUseCase:
         self._zon_uyumluluk = zon_uyumluluk
         self._kapasite = kapasite
         self._log_repo = log_repo
+        self._mal_kabul_repo = mal_kabul_repo
 
     def execute(
         self, gorev_id: int, dto: YerlestirmeOnaylaRequestDTO, kullanici_id: int
@@ -430,6 +465,8 @@ class YerlestirmeOnaylaUseCase:
                 yeni_veri={"gerceklesen_raf_id": hedef_raf.id},
             )
         )
+
+        _irsaliye_otomatik_kapat(gorev, self._repo, self._mal_kabul_repo)
 
         return YerlestirmeOnaylaSonucDTO(
             basarili=True,

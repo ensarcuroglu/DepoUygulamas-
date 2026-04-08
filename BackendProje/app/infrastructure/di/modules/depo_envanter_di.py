@@ -410,8 +410,9 @@ def get_yerlestirme_gorevi_tamamla_uc(
     palet_repo=Depends(get_palet_repo),
     raf_repo=Depends(get_raf_repo),
     log_repo=Depends(get_log_repo),
+    mal_kabul_repo=Depends(get_mal_kabul_irsaliye_repo),
 ):
-    return YerlestirmeGoreviTamamlaUseCase(repo, palet_repo, raf_repo, log_repo)
+    return YerlestirmeGoreviTamamlaUseCase(repo, palet_repo, raf_repo, log_repo, mal_kabul_repo)
 
 
 def get_yerlestirme_gorevi_override_uc(
@@ -419,8 +420,9 @@ def get_yerlestirme_gorevi_override_uc(
     palet_repo=Depends(get_palet_repo),
     raf_repo=Depends(get_raf_repo),
     log_repo=Depends(get_log_repo),
+    mal_kabul_repo=Depends(get_mal_kabul_irsaliye_repo),
 ):
-    return YerlestirmeGoreviOverrideUseCase(repo, palet_repo, raf_repo, log_repo)
+    return YerlestirmeGoreviOverrideUseCase(repo, palet_repo, raf_repo, log_repo, mal_kabul_repo)
 
 
 def get_yerlestirme_gorevi_iptal_uc(
@@ -487,10 +489,11 @@ def get_yerlestirme_onayla_uc(
     zon_uyumluluk=Depends(get_zon_uyumluluk_servisi),
     kapasite=Depends(get_kapasite_dogrulama_servisi),
     log_repo=Depends(get_log_repo),
+    mal_kabul_repo=Depends(get_mal_kabul_irsaliye_repo),
 ):
     return YerlestirmeOnaylaUseCase(
         repo, palet_repo, raf_repo, lot_repo, urun_repo,
-        zon_repo, zon_uyumluluk, kapasite, log_repo,
+        zon_repo, zon_uyumluluk, kapasite, log_repo, mal_kabul_repo,
     )
 
 

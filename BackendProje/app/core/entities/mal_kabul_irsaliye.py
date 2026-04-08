@@ -7,12 +7,14 @@ from typing import Optional, List
 class MalKabulDurum:
     TASLAK = "Taslak"
     ONAYLANDI = "Onaylandi"
-    TAMAMLANDI = "Tamamlandi"
+    KAPANDI = "Kapandi"
 
+    # Kullanıcı yalnızca ONAYLANDI geçişini tetikleyebilir.
+    # KAPANDI sisteme özel: tüm yerleştirme görevleri bitince otomatik kapanır.
     _GECISLER = {
         TASLAK: {ONAYLANDI},
-        ONAYLANDI: {TAMAMLANDI},
-        TAMAMLANDI: set(),
+        ONAYLANDI: {KAPANDI},
+        KAPANDI: set(),
     }
 
     @classmethod
@@ -83,28 +85,25 @@ class MalKabulIrsaliye:
         self.durum = MalKabulDurum.ONAYLANDI
         self.guncelleme_tarihi = datetime.utcnow()
 
-    def tamamla(self) -> None:
-        """Tüm kalemler giriş yapıldıysa irsaliyeyi tamamlar."""
-        if not MalKabulDurum.gecis_gecerli_mi(self.durum, MalKabulDurum.TAMAMLANDI):
+    def kapat(self) -> None:
+        """Sistem tarafından çağrılır: tüm yerleştirme görevleri tamamlandığında irsaliyeyi kapatır."""
+        if not MalKabulDurum.gecis_gecerli_mi(self.durum, MalKabulDurum.KAPANDI):
             raise ValueError(
-                f"Geçersiz durum geçişi: {self.durum} → {MalKabulDurum.TAMAMLANDI}"
+                f"Geçersiz durum geçişi: {self.durum} → {MalKabulDurum.KAPANDI}"
             )
-        bekleyen = [k for k in self.kalemler if k.giris_bekliyor_mu()]
-        if bekleyen:
-            raise ValueError(
-                f"{len(bekleyen)} kalem henüz giriş yapılmamış. Tamamlamak için tüm kalemler girilmelidir."
-            )
-        self.durum = MalKabulDurum.TAMAMLANDI
+        self.durum = MalKabulDurum.KAPANDI
         self.guncelleme_tarihi = datetime.utcnow()
 
     def durum_degistir(self, yeni_durum: str) -> None:
-        """Genel durum geçiş yönlendiricisi."""
+        """Kullanıcı tetiklemeli geçiş — yalnızca Onaylandi izinlidir.
+        Kapandi geçişi sistem tarafından kapat() ile yapılır."""
         if yeni_durum == MalKabulDurum.ONAYLANDI:
             self.onayla()
-        elif yeni_durum == MalKabulDurum.TAMAMLANDI:
-            self.tamamla()
         else:
-            raise ValueError(f"Geçersiz hedef durum: {yeni_durum}")
+            raise ValueError(
+                f"Geçersiz veya kullanıcıya kapalı hedef durum: '{yeni_durum}'. "
+                "Onaylama için /onayla endpointini kullanın."
+            )
 
     def duzenlenebilir_mi(self) -> bool:
         """Sadece taslak irsaliyeler düzenlenebilir."""

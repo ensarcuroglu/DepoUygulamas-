@@ -42,3 +42,9 @@ class IYerlestirmeGoreviRepository(ABC):
         ilk BEKLIYOR görevi SELECT FOR UPDATE ile kilitler ve ATANDI yapar.
         depo_id verilirse yalnızca o depoya ait görevler döner."""
         ...
+
+    @abstractmethod
+    def getir_irsaliye_id_ile(self, mal_kabul_irsaliye_id: int) -> List[YerlestirmeGorevi]:
+        """Belirli bir mal kabul irsaliyesine ait tüm görevleri döner.
+        Auto-close kontrolü için kullanılır."""
+        ...

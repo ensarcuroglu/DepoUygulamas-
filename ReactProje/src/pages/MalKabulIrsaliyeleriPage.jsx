@@ -1,31 +1,34 @@
 import { useState, useEffect, useRef } from 'react';
 import {
     Plus, Search, Loader2, X, Truck, Package, CheckCircle, Clock,
-    ChevronDown, ChevronUp, Trash2, FileCheck, Calendar, MapPin, User
+    ChevronDown, ChevronUp, Trash2, FileCheck, Calendar, MapPin, User,
+    ArrowRight, Lock
 } from 'lucide-react';
 import {
-    getMalKabulIrsaliyeleri, createMalKabulIrsaliye, updateMalKabulIrsaliye,
+    getMalKabulIrsaliyeleri, createMalKabulIrsaliye,
     deleteMalKabulIrsaliye, getTedarikciler, getDepolar, getUrunler, getRaflar,
-    onaylaMalKabulIrsaliye 
+    onaylaMalKabulIrsaliye
 } from '../services/api';
 import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const durumRenkleri = {
     'Taslak': 'bg-slate-100 text-slate-700 border-slate-200',
     'Onaylandi': 'bg-blue-50 text-blue-700 border-blue-200',
-    'Tamamlandi': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    'Kapandi': 'bg-emerald-50 text-emerald-700 border-emerald-200',
 };
 
 const durumEtiketleri = {
     'Taslak': 'Taslak',
     'Onaylandi': 'Onaylandı',
-    'Tamamlandi': 'Tamamlandı',
+    'Kapandi': 'Kapandı',
 };
 
 export default function MalKabulIrsaliyeleriPage() {
     const { loading, run } = useAsync(true);
+    const navigate = useNavigate();
     const [irsaliyeler, setIrsaliyeler] = useState([]);
     const [tedarikciler, setTedarikciler] = useState([]);
     const [depolar, setDepolar] = useState([]);
@@ -36,6 +39,8 @@ export default function MalKabulIrsaliyeleriPage() {
     const [durumFiltre, setDurumFiltre] = useState('');
     const [yeniModal, setYeniModal] = useState(false);
     const [expandedId, setExpandedId] = useState(null);
+    // Onay sonrası özet banner: { irsaliye_no, palet_sayisi, gorev_sayisi }
+    const [onayOzet, setOnayOzet] = useState(null);
     const aramaMetniRef = useRef(aramaMetni);
 
     const [formData, setFormData] = useState({
@@ -172,22 +177,16 @@ export default function MalKabulIrsaliyeleriPage() {
         }
     };
 
-    // ===== DURUM DEĞİŞTİR =====
-    const durumDegistir = async (id, yeniDurum) => {
-        try {
-            await updateMalKabulIrsaliye(id, { durum: yeniDurum });
-            toast.success(`Durum güncellendi: ${durumEtiketleri[yeniDurum]}`);
-            yukle();
-        } catch (err) {
-            toast.error(hataMetni(err, 'Durum güncellenemedi'));
-        }
-    };
-
     // ===== ONAYLA =====
-    const handleOnayla = async (id) => {
+    const handleOnayla = async (irs) => {
         try {
-            await onaylaMalKabulIrsaliye(id);
-            toast.success('İrsaliye onaylandı, paletler ve görevler oluşturuldu!');
+            const res = await onaylaMalKabulIrsaliye(irs.id);
+            const veri = res?.data ?? {};
+            setOnayOzet({
+                irsaliye_no: veri.irsaliye_no ?? irs.irsaliye_no,
+                palet_sayisi: veri.kalemler?.length ?? irs.kalemler?.length ?? 0,
+                gorev_sayisi: veri.olusturulan_gorev_sayisi ?? veri.kalemler?.length ?? 0,
+            });
             yukle();
         } catch (err) {
             toast.error(hataMetni(err, 'İrsaliye onaylanamadı'));
@@ -230,6 +229,41 @@ export default function MalKabulIrsaliyeleriPage() {
                 </button>
             </div>
 
+            {/* ONAYLA SONRASI ÖZET BANNER */}
+            {onayOzet && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-blue-50 border border-blue-200 rounded-2xl p-4 sm:p-5">
+                    <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                            <CheckCircle className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                            <p className="font-bold text-blue-900 text-sm">
+                                {onayOzet.irsaliye_no} onaylandı
+                            </p>
+                            <p className="text-blue-700 text-sm mt-0.5">
+                                <span className="font-semibold">{onayOzet.palet_sayisi} palet</span> kabul edildi
+                                {' · '}
+                                <span className="font-semibold">{onayOzet.gorev_sayisi} yerleştirme görevi</span> oluşturuldu
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => navigate('/yerlestirme-gorevleri')}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap"
+                        >
+                            Yerleştirmeye Başla <ArrowRight className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setOnayOzet(null)}
+                            className="p-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* FİLTRELER */}
             <div className="flex flex-col sm:flex-row gap-3 bg-white p-3 rounded-2xl shadow-sm border border-slate-200/60">
                 <div className="relative flex-1">
@@ -252,7 +286,7 @@ export default function MalKabulIrsaliyeleriPage() {
                         <option value="">Tüm Durumlar</option>
                         <option value="Taslak">Taslak</option>
                         <option value="Onaylandi">Onaylandı</option>
-                        <option value="Tamamlandi">Tamamlandı</option>
+                        <option value="Kapandi">Kapandı</option>
                     </select>
                 </div>
             </div>
@@ -421,7 +455,7 @@ export default function MalKabulIrsaliyeleriPage() {
                                             {irs.durum === 'Taslak' && (
                                                 <>
                                                     <button
-                                                        onClick={() => handleOnayla(irs.id)}
+                                                        onClick={() => handleOnayla(irs)}
                                                         className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
                                                     >
                                                         <CheckCircle className="w-4 h-4" /> Onayla
@@ -435,12 +469,16 @@ export default function MalKabulIrsaliyeleriPage() {
                                                 </>
                                             )}
                                             {irs.durum === 'Onaylandi' && (
-                                                <button
-                                                    onClick={() => durumDegistir(irs.id, 'Tamamlandi')}
-                                                    className="w-full sm:w-auto flex justify-center items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
-                                                >
-                                                    <CheckCircle className="w-4 h-4" /> Tamamla
-                                                </button>
+                                                <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-sm font-semibold">
+                                                    <Clock className="w-4 h-4" />
+                                                    Yerleştirme devam ediyor
+                                                </div>
+                                            )}
+                                            {irs.durum === 'Kapandi' && (
+                                                <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm font-semibold">
+                                                    <Lock className="w-4 h-4" />
+                                                    Tüm paletler yerleştirildi
+                                                </div>
                                             )}
                                         </div>
                                     </div>

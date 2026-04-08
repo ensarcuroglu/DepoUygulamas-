@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useAuth } from '../contexts/AuthContext';
 import {
     ArrowDownToLine, ArrowUpFromLine, Barcode, Check, Loader2, Clock,
     Search, X, TrendingUp, TrendingDown, ArrowLeft, Box,
@@ -89,6 +90,9 @@ const scanFeedback = (type) => {
 };
 
 export default function StokHareketleriPage() {
+    const { user } = useAuth();
+    const isAdmin = user?.rol === 'admin';
+
     // ===== STATE =====
     const [step, setStep] = useState(1);
     const [hareketTipi, setHareketTipi] = useState('');
@@ -650,29 +654,31 @@ export default function StokHareketleriPage() {
                             <p className="text-center text-sm font-black text-slate-400 uppercase tracking-[0.2em]">
                                 İşlem Tipini Seçin
                             </p>
-                            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                                {/* GİRİŞ Butonu */}
-                                <button
-                                    onClick={() => { setHareketTipi('giris'); setStep(2); }}
-                                    className="flex flex-col items-center justify-center gap-4 py-10 sm:py-12 rounded-3xl
-                                        border-3 border-emerald-300 bg-gradient-to-b from-emerald-50 to-white
-                                        hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/20
-                                        active:scale-[0.96] transition-all duration-200 group"
-                                >
-                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-emerald-500
-                                        flex items-center justify-center shadow-xl shadow-emerald-500/30
-                                        group-hover:shadow-emerald-500/50 group-hover:scale-105 transition-all duration-300">
-                                        <ArrowDownToLine className="w-10 h-10 sm:w-12 sm:h-12 text-white" strokeWidth={2.5} />
-                                    </div>
-                                    <div className="text-center">
-                                        <span className="block text-2xl sm:text-3xl font-black text-emerald-800 tracking-tight">
-                                            GİRİŞ
-                                        </span>
-                                        <span className="block text-xs sm:text-sm font-bold text-emerald-600/60 mt-1">
-                                            Toplu Palet Kabul
-                                        </span>
-                                    </div>
-                                </button>
+                            <div className={`grid gap-3 sm:gap-4 ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                                {/* GİRİŞ Butonu — sadece admin */}
+                                {isAdmin && (
+                                    <button
+                                        onClick={() => { setHareketTipi('giris'); setStep(2); }}
+                                        className="flex flex-col items-center justify-center gap-4 py-10 sm:py-12 rounded-3xl
+                                            border-3 border-emerald-300 bg-gradient-to-b from-emerald-50 to-white
+                                            hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/20
+                                            active:scale-[0.96] transition-all duration-200 group"
+                                    >
+                                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-emerald-500
+                                            flex items-center justify-center shadow-xl shadow-emerald-500/30
+                                            group-hover:shadow-emerald-500/50 group-hover:scale-105 transition-all duration-300">
+                                            <ArrowDownToLine className="w-10 h-10 sm:w-12 sm:h-12 text-white" strokeWidth={2.5} />
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="block text-2xl sm:text-3xl font-black text-emerald-800 tracking-tight">
+                                                GİRİŞ
+                                            </span>
+                                            <span className="block text-xs sm:text-sm font-bold text-emerald-600/60 mt-1">
+                                                Toplu Palet Kabul
+                                            </span>
+                                        </div>
+                                    </button>
+                                )}
 
                                 {/* ÇIKIŞ Butonu */}
                                 <button
@@ -697,6 +703,11 @@ export default function StokHareketleriPage() {
                                     </div>
                                 </button>
                             </div>
+                            {!isAdmin && (
+                                <p className="text-center text-xs text-slate-400 font-medium">
+                                    Palet girişi için <span className="font-bold text-slate-600">Mal Kabul İrsaliyeleri</span> ekranını kullanın.
+                                </p>
+                            )}
                         </div>
                     )}
 

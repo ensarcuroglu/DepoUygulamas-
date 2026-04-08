@@ -177,7 +177,7 @@
 - `getir_staging_raf()` ve `_is_staging_raf()` metotlarını bu bayrağa göre çalıştır.
 - Migration: mevcut `%-X-00-00-00` kodlu rafları `is_staging=True` olarak işaretle.
 
-**Adım 8: Timeout/auto-release mekanizması (Y4)**
+**Adım 8: Timeout/auto-release mekanizması (Y4)** ✅ TAMAMLANDI
 - **Karar:** 60 dk varsayılan timeout, `PUTAWAY_TIMEOUT` ortam değişkeni ile konfigüre edilebilir.
 - `YerlestirmeGorevi` entity'sine `atanma_tarihi` alanı ekle (mevcut `baslama_tarihi`'nden farklı — `baslama_tarihi` paleti fiziksel olarak aldığı an).
 - Periyodik bir iş (cron/scheduled task veya API endpoint tetiklemeli) ile `Atandi` durumundaki ve `PUTAWAY_TIMEOUT` süresini aşmış görevleri `Bekliyor`'a çevir, `atanan_kullanici_id`'yi temizle.
