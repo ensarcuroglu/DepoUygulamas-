@@ -45,9 +45,30 @@ router = APIRouter(prefix="/api/terminal", tags=["Mobil Terminal"])
 AKTIF_GOREV_DURUMLARI = ("Atandi", "DevamEdiyor")
 
 
+def _terminal_depo_id(
+    current_user: Kullanici,
+    requested_depo_id: Optional[int] = None,
+) -> int:
+    if current_user.rol == "depocu":
+        if current_user.depo_id is None:
+            raise GecersizIslemError(
+                "Depocu kullanıcısına depo atanmamış. Lütfen yöneticiniz ile iletişime geçin."
+            )
+        return current_user.depo_id
+
+    if requested_depo_id is not None:
+        return requested_depo_id
+
+    if current_user.depo_id is not None:
+        return current_user.depo_id
+
+    raise GecersizIslemError("Bu işlem için depo bağlamı çözümlenemedi.")
+
+
 def _aktif_gorevleri_getir(
     uc: YerlestirmeGoreviListeleUseCase,
     kullanici_id: int,
+    depo_id: Optional[int] = None,
     limit: int = 10000,
 ) -> List[YerlestirmeGoreviResponseDTO]:
     gorevler: List[YerlestirmeGoreviResponseDTO] = []
@@ -56,6 +77,7 @@ def _aktif_gorevleri_getir(
         durum_gorevleri = uc.execute(
             durum=durum,
             atanan_kullanici_id=kullanici_id,
+            depo_id=depo_id,
             limit=limit,
         )
         for gorev in durum_gorevleri:
@@ -71,19 +93,19 @@ def _aktif_gorevleri_getir(
 
 class PaletScanRequestDTO(BaseModel):
     palet_barkod: str = Field(..., min_length=1, max_length=100)
-    depo_id: int = Field(..., gt=0)
+    depo_id: Optional[int] = Field(None, gt=0)
 
 
 class RafScanRequestDTO(BaseModel):
     raf_barkod: str = Field(..., min_length=1, max_length=100)
-    depo_id: int = Field(..., gt=0)
+    depo_id: Optional[int] = Field(None, gt=0)
 
 
 class YerlestirRequestDTO(BaseModel):
     gorev_id: int = Field(..., gt=0)
     palet_barkod: str = Field(..., min_length=1, max_length=100)
     raf_barkod: str = Field(..., min_length=1, max_length=100)
-    depo_id: int = Field(..., gt=0)
+    depo_id: Optional[int] = Field(None, gt=0)
 
 
 class AlternatifRafRequestDTO(BaseModel):
@@ -181,7 +203,8 @@ def raf_barkod_scan(
     palet_repo=Depends(get_palet_repo),
 ):
     """Raf barkodu okutulduğunda raf bilgisi + kapasite durumu döner."""
-    raf = raf_repo.getir_kod_ile(dto.raf_barkod, dto.depo_id)
+    depo_id = _terminal_depo_id(current_user, dto.depo_id)
+    raf = raf_repo.getir_kod_ile(dto.raf_barkod, depo_id)
     if not raf:
         raise KayitBulunamadiError("Raf", dto.raf_barkod)
 
@@ -234,6 +257,10 @@ def yerlestir(
     gorev = gorev_repo.getir_id_ile(dto.gorev_id)
     if not gorev:
         raise KayitBulunamadiError("YerlestirmeGorevi", dto.gorev_id)
+    if current_user.rol == "depocu":
+        depo_id = _terminal_depo_id(current_user, dto.depo_id)
+        if gorev.depo_id is not None and gorev.depo_id != depo_id:
+            raise GecersizIslemError("Bu görev farklı bir depoya ait.")
     palet = palet_repo.getir_id_ile(gorev.palet_id)
     if not palet or palet.palet_no != dto.palet_barkod:
         raise GecersizIslemError(
@@ -243,7 +270,6 @@ def yerlestir(
 
     onayla_dto = YerlestirmeOnaylaRequestDTO(
         okutulan_raf_kodu=dto.raf_barkod,
-        depo_id=dto.depo_id,
     )
     return uc.execute(dto.gorev_id, onayla_dto, kullanici_id=current_user.id)
 
@@ -256,7 +282,11 @@ def gorevlerim(
     uc: YerlestirmeGoreviListeleUseCase = Depends(get_yerlestirme_gorevi_listele_uc),
 ):
     """Oturum açmış operatöre atanmış aktif görevler."""
-    return _aktif_gorevleri_getir(uc=uc, kullanici_id=current_user.id)
+    return _aktif_gorevleri_getir(
+        uc=uc,
+        kullanici_id=current_user.id,
+        depo_id=_terminal_depo_id(current_user) if current_user.rol == "depocu" else None,
+    )
 
 
 @router.get("/ozet", response_model=TerminalOzetResponseDTO)
@@ -267,12 +297,13 @@ def terminal_ozet(
     uc: YerlestirmeGoreviListeleUseCase = Depends(get_yerlestirme_gorevi_listele_uc),
 ):
     """Operatörün günlük istatistik özeti."""
-    bekleyen = uc.execute(durum="Bekliyor", limit=10000)
-    aktif_atanan = _aktif_gorevleri_getir(uc=uc, kullanici_id=current_user.id)
+    depo_id = _terminal_depo_id(current_user) if current_user.rol == "depocu" else None
+    bekleyen = uc.execute(durum="Bekliyor", limit=10000, depo_id=depo_id)
+    aktif_atanan = _aktif_gorevleri_getir(uc=uc, kullanici_id=current_user.id, depo_id=depo_id)
 
     # Bugün tamamlananlar — atanan kullanıcının TAMAMLANDI görevleri
     bugun_tamamlanan = sum(
-        1 for g in uc.execute(durum="Tamamlandi", limit=10000)
+        1 for g in uc.execute(durum="Tamamlandi", limit=10000, depo_id=depo_id)
         if g.atanan_kullanici_id == current_user.id
         and g.tamamlanma_tarihi
         and g.tamamlanma_tarihi.date() == datetime.now(timezone.utc).date()

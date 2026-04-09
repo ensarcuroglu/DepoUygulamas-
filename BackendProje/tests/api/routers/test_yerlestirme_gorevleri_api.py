@@ -14,7 +14,7 @@ Kapsam:
 
 import pytest
 
-from tests.factories import YerlestirmeGoreviFactory, PaletFactory, RafFactory, KullaniciFactory
+from tests.factories import YerlestirmeGoreviFactory, KullaniciFactory
 from app.core.auth import create_access_token
 
 pytestmark = pytest.mark.api
@@ -50,10 +50,18 @@ class TestYerlestirmeGorevleriListele:
         response = client.get("/api/yerlestirme-gorevleri/")
         assert response.status_code == 401
 
-    def test_depocu_listede_gorebilir(self, depocu_client, db_session):
+    def test_depocu_listede_sadece_kendi_deposunu_gorur(self, depocu_client, depocu_user, db_session):
+        user, _ = depocu_user
+
+        YerlestirmeGoreviFactory.create(durum="Bekliyor", depo_id=user.depo_id)
         YerlestirmeGoreviFactory.create(durum="Bekliyor")
+
         response = depocu_client.get("/api/yerlestirme-gorevleri/")
+
         assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["depo_id"] == user.depo_id
 
 
 class TestYerlestirmeGorevDetay:
@@ -97,7 +105,9 @@ class TestSiradakiGoreviAl:
         assert response.json() is None
 
     def test_bekleyen_gorev_varsa_atandi(self, depocu_client, depocu_user, db_session):
-        YerlestirmeGoreviFactory.create(durum="Bekliyor", oncelik=5)
+        user, _ = depocu_user
+        YerlestirmeGoreviFactory.create(durum="Bekliyor", oncelik=5, depo_id=user.depo_id)
+        YerlestirmeGoreviFactory.create(durum="Bekliyor", oncelik=1)
 
         response = depocu_client.post("/api/yerlestirme-gorevleri/siradaki-al")
 
@@ -105,18 +115,29 @@ class TestSiradakiGoreviAl:
         data = response.json()
         assert data is not None
         assert data["durum"] == "Atandi"
-        user, _ = depocu_user
         assert data["atanan_kullanici_id"] == user.id
+        assert data["depo_id"] == user.depo_id
 
-    def test_oncelik_sirasi_korunur(self, depocu_client, db_session):
+    def test_oncelik_sirasi_korunur(self, depocu_client, depocu_user, db_session):
         """Önce acil (oncelik=1) görevi almalı."""
-        YerlestirmeGoreviFactory.create(durum="Bekliyor", oncelik=5)
-        YerlestirmeGoreviFactory.create(durum="Bekliyor", oncelik=1)
+        user, _ = depocu_user
+        YerlestirmeGoreviFactory.create(durum="Bekliyor", oncelik=5, depo_id=user.depo_id)
+        YerlestirmeGoreviFactory.create(durum="Bekliyor", oncelik=1, depo_id=user.depo_id)
 
         response = depocu_client.post("/api/yerlestirme-gorevleri/siradaki-al")
 
         assert response.status_code == 200
         assert response.json()["oncelik"] == 1
+
+    def test_depocu_depo_atamasi_yoksa_400(self, client, db_session):
+        kullanici = KullaniciFactory.create(kullanici_adi="deposuz_depocu", rol="depocu", depo_id=None)
+        token = create_access_token(data={"sub": kullanici.kullanici_adi})
+        client.headers["Authorization"] = f"Bearer {token}"
+
+        response = client.post("/api/yerlestirme-gorevleri/siradaki-al")
+
+        assert response.status_code == 400
+        assert "depo" in response.json()["error"].lower()
 
     def test_admin_de_alabilir(self, admin_client, db_session):
         YerlestirmeGoreviFactory.create(durum="Bekliyor")

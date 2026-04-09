@@ -118,11 +118,13 @@ def admin_user(db_session):
 @pytest.fixture
 def depocu_user(db_session):
     """Depocu kullanıcı ve token."""
-    from tests.factories import KullaniciFactory
+    from tests.factories import KullaniciFactory, DepoFactory
+    depo = DepoFactory.create()
     user = KullaniciFactory.create(
         kullanici_adi="test_depocu",
         ad_soyad="Test Depocu",
         rol="depocu",
+        depo_id=depo.id,
     )
     token = create_access_token(data={"sub": user.kullanici_adi})
     return user, token

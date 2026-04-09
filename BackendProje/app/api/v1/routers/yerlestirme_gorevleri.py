@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from typing import List, Optional
 
 from app.core.auth import require_role
+from app.core.exceptions import GecersizIslemError, YetkisizIslemError
 from models import Kullanici
 from limiter import limiter
 
@@ -55,6 +56,27 @@ from app.application.use_cases.yerlestirme_gorevi_use_cases import (
 router = APIRouter(prefix="/api/yerlestirme-gorevleri", tags=["Yerleştirme Görevleri"])
 
 
+def _depocu_depo_id(current_user: Kullanici) -> Optional[int]:
+    if current_user.rol != "depocu":
+        return None
+    if current_user.depo_id is None:
+        raise GecersizIslemError(
+            "Depocu kullanıcısına depo atanmamış. Lütfen yöneticiniz ile iletişime geçin."
+        )
+    return current_user.depo_id
+
+
+def _gorev_depo_yetkisini_dogrula(
+    gorev: YerlestirmeGoreviResponseDTO,
+    current_user: Kullanici,
+) -> None:
+    depocu_depo_id = _depocu_depo_id(current_user)
+    if depocu_depo_id is None:
+        return
+    if gorev.depo_id is not None and gorev.depo_id != depocu_depo_id:
+        raise YetkisizIslemError("Bu görev farklı bir depoya ait, erişim yetkiniz bulunmuyor.")
+
+
 @router.get("/", response_model=List[YerlestirmeGoreviResponseDTO])
 @limiter.limit("100/minute")
 def gorevleri_listele(
@@ -66,7 +88,13 @@ def gorevleri_listele(
     current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
     uc: YerlestirmeGoreviListeleUseCase = Depends(get_yerlestirme_gorevi_listele_uc),
 ):
-    return uc.execute(skip=skip, limit=limit, durum=durum, palet_id=palet_id)
+    return uc.execute(
+        skip=skip,
+        limit=limit,
+        durum=durum,
+        palet_id=palet_id,
+        depo_id=_depocu_depo_id(current_user),
+    )
 
 
 @router.get("/benim", response_model=List[YerlestirmeGoreviResponseDTO])
@@ -77,7 +105,10 @@ def benim_gorevlerim(
     uc: YerlestirmeGoreviListeleUseCase = Depends(get_yerlestirme_gorevi_listele_uc),
 ):
     """Oturum açmış kullanıcıya atanmış görevler."""
-    return uc.execute(atanan_kullanici_id=current_user.id)
+    return uc.execute(
+        atanan_kullanici_id=current_user.id,
+        depo_id=_depocu_depo_id(current_user),
+    )
 
 
 @router.get("/{gorev_id}", response_model=YerlestirmeGoreviResponseDTO)
@@ -88,7 +119,9 @@ def gorev_detay(
     current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
     uc: YerlestirmeGoreviGetirUseCase = Depends(get_yerlestirme_gorevi_getir_uc),
 ):
-    return uc.execute(gorev_id)
+    gorev = uc.execute(gorev_id)
+    _gorev_depo_yetkisini_dogrula(gorev, current_user)
+    return gorev
 
 
 @router.post("/", response_model=YerlestirmeGoreviResponseDTO, status_code=201)
@@ -106,12 +139,19 @@ def gorev_olustur(
 @limiter.limit("60/minute")
 def sonraki_gorevi_al(
     request: Request,
-    depo_id: Optional[int] = Query(None, description="Depo ID filtresi — operatör yalnızca bu depodaki görevleri çeker"),
+    depo_id: Optional[int] = Query(
+        None,
+        description="Admin/lojistik için opsiyonel depo filtresi. Depocu için sunucu tarafında atanmış depo kullanılır.",
+    ),
     current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
     uc: SonrakiGorevisiniAlUseCase = Depends(get_sonraki_gorevini_al_uc),
 ):
-    """Pull-based FIFO: Sıradaki görevi kilitleyerek çeker. depo_id ile depo bazlı filtreleme yapılır."""
-    gorev = uc.execute(kullanici_id=current_user.id, depo_id=depo_id)
+    """Pull-based FIFO: Sıradaki görevi kilitleyerek çeker."""
+    hedef_depo_id = _depocu_depo_id(current_user)
+    if hedef_depo_id is None:
+        hedef_depo_id = depo_id
+
+    gorev = uc.execute(kullanici_id=current_user.id, depo_id=hedef_depo_id)
     if not gorev:
         return None
     return gorev
@@ -187,7 +227,7 @@ def bekleyen_gorev_ozet(
     ),
 ):
     """Bekleyen görev havuzu özeti: toplam sayı ve öncelik dağılımı."""
-    return uc.execute()
+    return uc.execute(depo_id=_depocu_depo_id(current_user))
 
 
 @router.post("/zaman-asimi-isle", status_code=200)

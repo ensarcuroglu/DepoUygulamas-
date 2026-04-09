@@ -120,14 +120,25 @@ class TestGorevHavuzuIzolasyonu:
           1. Depocu A görevi alır → Atandi
           2. Depocu B siradaki-al yapar → aynı görevi ALAMAZ (havuzda Bekliyor yok)
         """
-        depocu_a = KullaniciFactory.create(kullanici_adi="depocu_a", rol="depocu")
+        depo = DepoFactory.create()
+        raf = RafFactory.create(depo=depo)
+
+        depocu_a = KullaniciFactory.create(
+            kullanici_adi="depocu_a",
+            rol="depocu",
+            depo_id=depo.id,
+        )
         token_a = create_access_token(data={"sub": depocu_a.kullanici_adi})
 
-        depocu_b = KullaniciFactory.create(kullanici_adi="depocu_b", rol="depocu")
+        depocu_b = KullaniciFactory.create(
+            kullanici_adi="depocu_b",
+            rol="depocu",
+            depo_id=depo.id,
+        )
         token_b = create_access_token(data={"sub": depocu_b.kullanici_adi})
 
         # Sadece 1 bekleyen görev var
-        YerlestirmeGoreviFactory.create(durum="Bekliyor")
+        YerlestirmeGoreviFactory.create(durum="Bekliyor", onerilen_raf=raf, depo_id=depo.id)
 
         client.headers["Authorization"] = f"Bearer {token_a}"
         res_a = client.post("/api/yerlestirme-gorevleri/siradaki-al")
@@ -146,13 +157,24 @@ class TestGorevHavuzuIzolasyonu:
           2. Depocu A bırakır → Bekliyor
           3. Depocu B alır → Atandi
         """
-        depocu_a = KullaniciFactory.create(kullanici_adi="depocu_a2", rol="depocu")
+        depo = DepoFactory.create()
+        raf = RafFactory.create(depo=depo)
+
+        depocu_a = KullaniciFactory.create(
+            kullanici_adi="depocu_a2",
+            rol="depocu",
+            depo_id=depo.id,
+        )
         token_a = create_access_token(data={"sub": depocu_a.kullanici_adi})
 
-        depocu_b = KullaniciFactory.create(kullanici_adi="depocu_b2", rol="depocu")
+        depocu_b = KullaniciFactory.create(
+            kullanici_adi="depocu_b2",
+            rol="depocu",
+            depo_id=depo.id,
+        )
         token_b = create_access_token(data={"sub": depocu_b.kullanici_adi})
 
-        YerlestirmeGoreviFactory.create(durum="Bekliyor")
+        YerlestirmeGoreviFactory.create(durum="Bekliyor", onerilen_raf=raf, depo_id=depo.id)
 
         # A alır
         client.headers["Authorization"] = f"Bearer {token_a}"

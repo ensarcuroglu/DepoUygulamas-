@@ -84,6 +84,7 @@ def login(request: Request, login_request: LoginRequest, db: Session = Depends(g
             "kullanici_adi": user.kullanici_adi,
             "ad_soyad": user.ad_soyad,
             "rol": user.rol,
+            "depo_id": user.depo_id,
             "telefon": user.telefon,
             "email": user.email,
             "departman": user.departman,
@@ -174,7 +175,8 @@ def register(
         email=kullanici.email,
         departman=kullanici.departman,
         sicil_no=kullanici.sicil_no,
-        kart_numarasi=kullanici.kart_numarasi
+        kart_numarasi=kullanici.kart_numarasi,
+        depo_id=kullanici.depo_id,
     )
     db.add(new_user)
     db.flush()

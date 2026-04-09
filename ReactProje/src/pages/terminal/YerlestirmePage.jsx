@@ -1,4 +1,4 @@
-/**
+﻿/**
  * YerlestirmePage — 4 adımlı scan-to-verify yerleştirme akışı.
  *
  * Adım 1: Sıradaki Görevi Al / Görev Detayı (operasyonel bilgilerle)
@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAsync } from '../../hooks/useAsync';
-import { useTerminalDepo } from '../../hooks/useTerminalDepo';
 import { useAuth } from '../../contexts/AuthContext';
 import ZXingBarcodeScanner from '../../components/common/ZXingBarcodeScanner';
 import {
@@ -25,7 +24,6 @@ import {
   goreviIptal,
   terminalYerlestir,
   getBekleyenGorevOzet,
-  getDepolar,
   goreviOverride,
   karantinayaAl,
 } from '../../services/api';
@@ -36,7 +34,6 @@ export default function YerlestirmePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { loading, run } = useAsync();
-  const { depoId, setDepoId } = useTerminalDepo();
   const { user } = useAuth();
   const overrideYetkisiVar = user?.rol === 'admin' || user?.rol === 'lojistik';
 
@@ -50,7 +47,6 @@ export default function YerlestirmePage() {
   const [kameraMod, setKameraMod] = useState('palet'); // 'palet' | 'raf'
   const [manuelPalet, setManuelPalet] = useState('');
   const [manuelRaf, setManuelRaf] = useState('');
-  const [depolar, setDepolar] = useState([]);
   const [overrideModal, setOverrideModal] = useState(false);
   const [overrideNeden, setOverrideNeden] = useState('');
   // overrideRafSec: null | { id, kod, bos_slot, skor }
@@ -58,13 +54,6 @@ export default function YerlestirmePage() {
   const [sorunSheet, setSorunSheet] = useState(false);
   const [sorunTip, setSorunTip] = useState(null); // 'karantina' | 'iptal'
   const [sorunNeden, setSorunNeden] = useState('');
-
-  // Depo seçimi yoksa depolar listesini yükle
-  useEffect(() => {
-    if (!depoId) {
-      getDepolar().then((r) => setDepolar(r.data)).catch(() => {});
-    }
-  }, [depoId]);
 
   const bekleyenYukle = async () => {
     try {
@@ -101,11 +90,11 @@ export default function YerlestirmePage() {
   // Görev al
   const goreviAl = async () => {
     await run(async () => {
-      const res = await siradakiGorevisiniAl(depoId);
+      const res = await siradakiGorevisiniAl();
       if (res.data) {
         setGorev(res.data);
       } else {
-        toast('Havuzda bekleyen görev yok.', { icon: '📭' });
+        toast('Havuzda bekleyen görev yok.', { icon: '📦' });
       }
     });
   };
@@ -158,7 +147,6 @@ export default function YerlestirmePage() {
         gorev_id: gorev.id,
         palet_barkod: paletBarkod,
         raf_barkod: r,
-        depo_id: depoId,
       });
       setSonuc(res.data);
       setAdim(ADIM.SONUC);
@@ -222,57 +210,12 @@ export default function YerlestirmePage() {
     void bekleyenYukle();
   };
 
-  // ─── Depo Seçim Ekranı ───────────────────────────────────────
-  if (!depoId) {
-    return (
-      <div className="p-4 space-y-6 max-w-sm mx-auto pt-12 relative overflow-hidden">
-        <div className="text-center mb-8 relative">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-amber-500/10 rounded-full blur-[40px] pointer-events-none" />
-          <div className="relative bg-slate-900/50 p-5 rounded-[2rem] inline-block mb-4 border border-white/5 shadow-xl shadow-black/20 backdrop-blur-md">
-            <Package className="w-10 h-10 text-amber-400" strokeWidth={1.5} />
-          </div>
-          <h2 className="text-2xl font-black text-white tracking-tight drop-shadow-md">Depo Seç</h2>
-          <p className="text-[13px] text-slate-400 mt-2 font-medium">Terminal oturumu için çalışacağınız depoyu seçin.</p>
-        </div>
-        {depolar.length === 0 ? (
-          <div className="flex justify-center pt-4">
-            <RefreshCw className="w-6 h-6 animate-spin text-amber-400/50" />
-          </div>
-        ) : (
-          <div className="space-y-3 relative z-10">
-            {depolar.map((d) => (
-              <button
-                key={d.id}
-                onClick={() => setDepoId(d.id)}
-                className="w-full bg-slate-900/60 hover:bg-slate-800/80 border border-slate-700/50 rounded-3xl p-5 text-left transition-all duration-300 active:scale-[0.98] group relative overflow-hidden backdrop-blur-md shadow-lg shadow-black/10"
-              >
-                <div className="absolute top-0 left-0 bottom-0 w-1 bg-amber-500/0 group-hover:bg-amber-500/100 transition-colors" />
-                <p className="font-bold text-slate-100 text-[15px] group-hover:text-amber-400 transition-colors">{d.isim}</p>
-                {d.adres && <p className="text-xs text-slate-500 mt-1 font-medium">{d.adres}</p>}
-                
-                <div className="absolute right-5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ArrowRight className="w-5 h-5 text-amber-400" />
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   // ─── Adım 1: Görev ───────────────────────────────────────────
   if (adim === ADIM.GOREV) {
     return (
       <div className="p-4 space-y-5 max-w-sm mx-auto pt-4 relative">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-black text-white tracking-tight">Yerleştirme</h1>
-          <button
-            onClick={() => setDepoId(null)}
-            className="text-[11px] font-bold text-slate-400 bg-slate-800/50 hover:text-amber-400 px-3 py-1.5 rounded-lg border border-white/5 transition-colors active:scale-95"
-          >
-            DEPOT DEĞİŞTİR
-          </button>
         </div>
 
         {bekleyenSayisi !== null && !gorev && (
@@ -305,7 +248,7 @@ export default function YerlestirmePage() {
           <div className="relative mt-2">
             <div className="bg-slate-900/80 border border-slate-700/80 rounded-3xl overflow-hidden backdrop-blur-md shadow-2xl shadow-black/20">
               <div className="absolute left-0 top-0 bottom-0 w-[5px] bg-amber-500 shadow-[2px_0_15px_rgba(245,158,11,0.4)]" />
-              
+
               <div className="p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -323,9 +266,9 @@ export default function YerlestirmePage() {
                   {gorev.palet_barkodu && <InfoRow label="Palet" value={gorev.palet_barkodu} mono />}
                   {gorev.lot_no && <InfoRow label="Lot No" value={gorev.lot_no} mono />}
                   {gorev.miktar != null && <InfoRow label="Miktar" value={`${gorev.miktar} koli`} />}
-                  
+
                   <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent my-3" />
-                  
+
                   {gorev.onerilen_raf_kodu
                     ? <InfoRow label="Hedef Raf" value={gorev.onerilen_raf_kodu} mono highlight />
                     : <InfoRow label="Hedef Raf #" value={gorev.onerilen_raf_id} highlight />}
@@ -340,7 +283,7 @@ export default function YerlestirmePage() {
                   )}
                 </div>
               </div>
-              
+
               <div className="flex gap-2 p-3 bg-slate-950/50 border-t border-slate-800/50">
                 <button
                   onClick={goreviBirakAction}
@@ -367,7 +310,7 @@ export default function YerlestirmePage() {
     );
   }
 
-  // ─── Adım 2: Palet Scan ───────────────────────────────────────
+  // ─── Adım 2: Palet Scan ───────────────────────────────────────────
   if (adim === ADIM.PALET) {
     return (
       <div className="p-4 space-y-5 max-w-sm mx-auto pt-2">
@@ -411,7 +354,7 @@ export default function YerlestirmePage() {
               onClick={() => paletDogrula(manuelPalet)}
               className="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black w-14 rounded-2xl flex items-center justify-center transition-all shadow-[0_4px_15px_rgba(245,158,11,0.2)]"
             >
-              <CornerDownRight className="w-5 h-5" strokeWidth={2.5}/>
+              <CornerDownRight className="w-5 h-5" strokeWidth={2.5} />
             </button>
           </div>
         </div>
@@ -447,7 +390,7 @@ export default function YerlestirmePage() {
     );
   }
 
-  // ─── Adım 3: Raf Scan ─────────────────────────────────────────
+  // ─── Adım 3: Raf Scan ───────────────────────────────────────────
   if (adim === ADIM.RAF) {
     return (
       <div className="p-4 space-y-5 max-w-sm mx-auto pt-2">
@@ -500,7 +443,7 @@ export default function YerlestirmePage() {
               disabled={loading}
               className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 active:scale-95 text-slate-950 font-black w-14 rounded-2xl flex items-center justify-center transition-all shadow-[0_4px_15px_rgba(245,158,11,0.2)]"
             >
-              {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CornerDownRight className="w-5 h-5" strokeWidth={2.5}/>}
+              {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CornerDownRight className="w-5 h-5" strokeWidth={2.5} />}
             </button>
           </div>
         </div>
@@ -543,15 +486,13 @@ export default function YerlestirmePage() {
     return (
       <div className="p-4 space-y-5 max-w-sm mx-auto pt-6">
         {/* Sonuç Başlığı */}
-        <div className={`rounded-3xl p-8 text-center border relative overflow-hidden backdrop-blur-md shadow-2xl ${
-          basarili
+        <div className={`rounded-3xl p-8 text-center border relative overflow-hidden backdrop-blur-md shadow-2xl ${basarili
             ? 'bg-gradient-to-b from-green-500/10 to-transparent border-green-500/30 shadow-green-500/5'
             : 'bg-gradient-to-b from-red-500/10 to-transparent border-red-500/30 shadow-red-500/5'
-        }`}>
-          <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 blur-[40px] rounded-full pointer-events-none ${
-            basarili ? 'bg-green-500/20' : 'bg-red-500/20'
-          }`} />
-          
+          }`}>
+          <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 blur-[40px] rounded-full pointer-events-none ${basarili ? 'bg-green-500/20' : 'bg-red-500/20'
+            }`} />
+
           <div className="relative z-10">
             {basarili ? (
               <div className="bg-green-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/30">
@@ -601,7 +542,7 @@ export default function YerlestirmePage() {
                   <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Alternatif Raflar</p>
                   <div className="h-px bg-slate-800 flex-1"></div>
                 </div>
-                
+
                 {sonuc.hata_neden && (
                   <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2.5 flex items-start gap-2.5 shadow-inner">
                     <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -623,7 +564,7 @@ export default function YerlestirmePage() {
                       <div className="flex justify-between items-center">
                         <p className="font-mono text-[15px] font-bold text-slate-100 group-hover:text-amber-400 transition-colors pl-1">{alt.raf_kod}</p>
                         <div className="bg-white/5 p-1 rounded-full group-hover:bg-white/10 transition-colors">
-                           <ArrowRight className="w-4 h-4 text-slate-400" />
+                          <ArrowRight className="w-4 h-4 text-slate-400" />
                         </div>
                       </div>
                       <div className="flex gap-4 text-[11px] font-medium text-slate-500 mt-2 pl-1 bg-slate-950/30 py-1.5 px-2 rounded-lg inline-flex">
@@ -639,13 +580,13 @@ export default function YerlestirmePage() {
 
             {sonuc.override_gerekli && overrideYetkisiVar && (
               <div className="pt-2">
-                  <button
-                    onClick={() => setOverrideModal(true)}
-                    className="relative w-full overflow-hidden bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/30 text-orange-400 font-bold rounded-2xl py-4 hover:border-orange-500/50 active:scale-[0.98] transition-all flex items-center justify-center gap-2 backdrop-blur-md"
-                  >
-                    <ShieldAlert className="w-5 h-5 relative z-10" />
-                    <span className="relative z-10 tracking-wide text-sm font-black">SÜPERVİZÖR OVERRIDE</span>
-                  </button>
+                <button
+                  onClick={() => setOverrideModal(true)}
+                  className="relative w-full overflow-hidden bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/30 text-orange-400 font-bold rounded-2xl py-4 hover:border-orange-500/50 active:scale-[0.98] transition-all flex items-center justify-center gap-2 backdrop-blur-md"
+                >
+                  <ShieldAlert className="w-5 h-5 relative z-10" />
+                  <span className="relative z-10 tracking-wide text-sm font-black">SÜPERVİZÖR OVERRIDE</span>
+                </button>
               </div>
             )}
             {sonuc.override_gerekli && !overrideYetkisiVar && (
@@ -683,7 +624,7 @@ export default function YerlestirmePage() {
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all">
             <div className="bg-slate-900 border-t sm:border border-slate-800 sm:rounded-3xl rounded-t-3xl w-full max-w-sm p-6 space-y-5 shadow-2xl shadow-black animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 to-amber-500"></div>
-              
+
               <h3 className="font-black text-xl text-white flex items-center gap-2 tracking-tight">
                 <ShieldAlert className="w-6 h-6 text-orange-500" strokeWidth={2.5} />
                 Override
@@ -691,7 +632,7 @@ export default function YerlestirmePage() {
 
               {overrideRafSec ? (
                 <div className="bg-slate-950/50 border border-orange-500/20 rounded-2xl p-4 space-y-2 relative overflow-hidden">
-                   <div className="absolute top-0 right-0 bottom-0 w-16 bg-gradient-to-l from-orange-500/5 to-transparent"></div>
+                  <div className="absolute top-0 right-0 bottom-0 w-16 bg-gradient-to-l from-orange-500/5 to-transparent"></div>
                   <div className="flex items-center justify-between relative z-10">
                     <span className="text-[11px] uppercase tracking-widest text-slate-500 font-bold">Seçilen Raf</span>
                     <span className="text-[15px] font-mono font-black text-orange-400">{overrideRafSec.kod || overrideRafSec.raf_kod}</span>
@@ -731,7 +672,7 @@ export default function YerlestirmePage() {
                   disabled={loading || !overrideRafSec || !overrideNeden.trim()}
                   className="flex-[2] bg-orange-500 hover:bg-orange-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-2xl py-3.5 transition-all active:scale-[0.98] relative overflow-hidden"
                 >
-                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/20 to-transparent pointer-events-none"></div>
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/20 to-transparent pointer-events-none"></div>
                   {loading ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : 'Onayla ve Tamamla'}
                 </button>
               </div>
@@ -745,7 +686,7 @@ export default function YerlestirmePage() {
   return null;
 }
 
-// ─── Yardımcı Bileşenler ──────────────────────────────────────
+// ─── Yardımcı Bileşenler ───────────────────────────────────────────
 
 function AdimHeader({ adim, toplam, baslik, onGeri }) {
   return (
@@ -761,9 +702,8 @@ function AdimHeader({ adim, toplam, baslik, onGeri }) {
         {Array.from({ length: toplam }).map((_, i) => (
           <div
             key={i}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              i < adim ? 'bg-amber-400 w-5 shadow-[0_0_8px_rgba(245,158,11,0.6)]' : 'bg-slate-700/50 w-2'
-            }`}
+            className={`h-1.5 rounded-full transition-all duration-300 ${i < adim ? 'bg-amber-400 w-5 shadow-[0_0_8px_rgba(245,158,11,0.6)]' : 'bg-slate-700/50 w-2'
+              }`}
           />
         ))}
       </div>
@@ -785,7 +725,7 @@ function InfoRow({ label, value, mono, strong, highlight }) {
 function OncelikBadge({ oncelik }) {
   if (oncelik === 1) return (
     <span className="text-[10px] uppercase tracking-wider font-black bg-red-500/20 border border-red-500/30 text-red-400 px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-inner">
-       <AlertCircle className="w-3 h-3" /> ACİL
+      <AlertCircle className="w-3 h-3" /> ACİL
     </span>
   );
   if (oncelik === 2) return (
@@ -806,7 +746,7 @@ function SorunSheet({ open, onClose, sorunTip, setSorunTip, sorunNeden, setSorun
       >
         <div className="absolute top-0 left-0 right-0 h-1 bg-red-500/50"></div>
         <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-slate-800 rounded-full sm:hidden"></div>
-        
+
         <h3 className="font-black text-xl text-white flex items-center gap-2 tracking-tight mt-2 sm:mt-0">
           <div className="bg-red-500/20 p-1.5 rounded-lg border border-red-500/30">
             <AlertCircle className="w-5 h-5 text-red-500" />
@@ -818,11 +758,10 @@ function SorunSheet({ open, onClose, sorunTip, setSorunTip, sorunNeden, setSorun
         <div className="space-y-3">
           <button
             onClick={() => setSorunTip('karantina')}
-            className={`w-full relative overflow-hidden rounded-2xl p-4 border text-left transition-all active:scale-[0.98] ${
-              sorunTip === 'karantina'
+            className={`w-full relative overflow-hidden rounded-2xl p-4 border text-left transition-all active:scale-[0.98] ${sorunTip === 'karantina'
                 ? 'bg-red-500/10 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.15)] ring-1 ring-red-500/30'
                 : 'bg-slate-950/50 border-slate-800 hover:border-red-500/30 hover:bg-slate-900/80 hover:shadow-lg'
-            }`}
+              }`}
           >
             {sorunTip === 'karantina' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500" />}
             <p className={`font-black text-sm flex items-center gap-2 ${sorunTip === 'karantina' ? 'text-red-400' : 'text-slate-300'}`}>
@@ -833,13 +772,12 @@ function SorunSheet({ open, onClose, sorunTip, setSorunTip, sorunNeden, setSorun
           </button>
           <button
             onClick={() => setSorunTip('iptal')}
-            className={`w-full relative overflow-hidden rounded-2xl p-4 border text-left transition-all active:scale-[0.98] ${
-              sorunTip === 'iptal'
+            className={`w-full relative overflow-hidden rounded-2xl p-4 border text-left transition-all active:scale-[0.98] ${sorunTip === 'iptal'
                 ? 'bg-amber-500/10 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/30'
                 : 'bg-slate-950/50 border-slate-800 hover:border-amber-500/30 hover:bg-slate-900/80 hover:shadow-lg'
-            }`}
+              }`}
           >
-             {sorunTip === 'iptal' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />}
+            {sorunTip === 'iptal' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />}
             <p className={`font-black text-sm flex items-center gap-2 ${sorunTip === 'iptal' ? 'text-amber-400' : 'text-slate-300'}`}>
               <XCircle className="w-4 h-4" />
               Görevi İptal Et
@@ -868,13 +806,12 @@ function SorunSheet({ open, onClose, sorunTip, setSorunTip, sorunNeden, setSorun
               <button
                 onClick={onGonder}
                 disabled={loading || !sorunNeden.trim()}
-                className={`flex-[2] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-2xl py-3.5 transition-all active:scale-[0.98] relative overflow-hidden ${
-                  sorunTip === 'karantina'
+                className={`flex-[2] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-2xl py-3.5 transition-all active:scale-[0.98] relative overflow-hidden ${sorunTip === 'karantina'
                     ? 'bg-gradient-to-br from-red-500 to-red-600 shadow-[0_5px_15px_-3px_rgba(239,68,68,0.3)]'
                     : 'bg-gradient-to-br from-amber-500 to-amber-600 shadow-[0_5px_15px_-3px_rgba(245,158,11,0.3)]'
-                }`}
+                  }`}
               >
-                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/20 to-transparent pointer-events-none"></div>
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/20 to-transparent pointer-events-none"></div>
                 {loading ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" />
                   : <span className="drop-shadow-sm">{sorunTip === 'karantina' ? 'Karantinaya Al' : 'İptal İşlemini Onayla'}</span>}
               </button>
@@ -884,9 +821,9 @@ function SorunSheet({ open, onClose, sorunTip, setSorunTip, sorunNeden, setSorun
 
         {!sorunTip && (
           <div className="pt-2">
-             <button onClick={onClose} className="w-full bg-slate-800/80 hover:bg-slate-700 active:scale-[0.98] text-slate-300 font-bold rounded-2xl py-3.5 transition-all">
-               İptal Et ve Geri Dön
-             </button>
+            <button onClick={onClose} className="w-full bg-slate-800/80 hover:bg-slate-700 active:scale-[0.98] text-slate-300 font-bold rounded-2xl py-3.5 transition-all">
+              İptal Et ve Geri Dön
+            </button>
           </div>
         )}
       </div>

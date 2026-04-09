@@ -390,8 +390,10 @@ export const deleteZon = (id) => api.delete(`/zonlar/${id}`);
 export const getYerlestirmeGorevleri = (params = {}) => api.get('/yerlestirme-gorevleri/', { params });
 export const getYerlestirmeGorevi = (id) => api.get(`/yerlestirme-gorevleri/${id}`);
 export const getBekleyenGorevOzet = () => api.get('/yerlestirme-gorevleri/bekleyen/ozet');
-export const siradakiGorevisiniAl = (depoId) =>
-  api.post('/yerlestirme-gorevleri/siradaki-al', null, { params: depoId ? { depo_id: depoId } : {} });
+export const siradakiGorevisiniAl = (params = {}) => {
+  const resolvedParams = typeof params === 'number' ? { depo_id: params } : params;
+  return api.post('/yerlestirme-gorevleri/siradaki-al', null, { params: resolvedParams });
+};
 export const goreviBaslat = (id) => api.post(`/yerlestirme-gorevleri/${id}/baslat`);
 export const goreviTamamla = (id, data) => api.post(`/yerlestirme-gorevleri/${id}/tamamla`, data);
 export const goreviIptal = (id, data) => api.post(`/yerlestirme-gorevleri/${id}/iptal`, data);

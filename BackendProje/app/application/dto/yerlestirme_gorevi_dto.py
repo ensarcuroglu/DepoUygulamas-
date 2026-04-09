@@ -46,7 +46,6 @@ class YerlestirmeGoreviIptalRequestDTO(BaseModel):
 class YerlestirmeOnaylaRequestDTO(BaseModel):
     """Scan-to-verify: operatör raf barkodunu okuttuğunda gönderilir."""
     okutulan_raf_kodu: str = Field(..., min_length=1, max_length=50, description="Raf barkodu")
-    depo_id: int = Field(..., gt=0, description="İşlemin yapıldığı depo")
 
 
 class KarantinadanCikarRequestDTO(BaseModel):
@@ -93,6 +92,7 @@ class YerlestirmeGoreviResponseDTO(BaseModel):
     id: int
     palet_id: int
     mal_kabul_irsaliye_id: Optional[int]
+    depo_id: Optional[int]
     tip: str
     kaynak_raf_id: Optional[int]
     onerilen_raf_id: int
@@ -123,6 +123,7 @@ class YerlestirmeGoreviResponseDTO(BaseModel):
             id=entity.id,
             palet_id=entity.palet_id,
             mal_kabul_irsaliye_id=entity.mal_kabul_irsaliye_id,
+            depo_id=entity.depo_id,
             tip=entity.tip,
             kaynak_raf_id=entity.kaynak_raf_id,
             onerilen_raf_id=entity.onerilen_raf_id,

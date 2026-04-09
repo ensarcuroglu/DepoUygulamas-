@@ -64,6 +64,26 @@ def _irsaliye_otomatik_kapat(
             irsaliye.kapanma_ozeti = _kapanma_ozeti_olustur(irsaliye, irsaliye_gorevleri)
             irsaliye.kapat()
             mal_kabul_repo.guncelle(irsaliye)
+
+
+def _gorev_depo_id_belirle(gorev: YerlestirmeGorevi, raf_repo: IRafRepository) -> Optional[int]:
+    """Görevin depo bağlamını doğrudan görevden, yoksa ilişkili raflardan çözer."""
+    if gorev.depo_id is not None:
+        return gorev.depo_id
+
+    if gorev.onerilen_raf_id:
+        onerilen_raf = raf_repo.getir_id_ile(gorev.onerilen_raf_id)
+        if onerilen_raf and onerilen_raf.depo_id is not None:
+            return onerilen_raf.depo_id
+
+    if gorev.kaynak_raf_id:
+        kaynak_raf = raf_repo.getir_id_ile(gorev.kaynak_raf_id)
+        if kaynak_raf and kaynak_raf.depo_id is not None:
+            return kaynak_raf.depo_id
+
+    return None
+
+
 from app.application.dto.yerlestirme_gorevi_dto import (
     YerlestirmeGoreviOlusturRequestDTO,
     YerlestirmeGoreviTamamlaRequestDTO,
@@ -95,10 +115,12 @@ class YerlestirmeGoreviListeleUseCase:
         durum: Optional[str] = None,
         atanan_kullanici_id: Optional[int] = None,
         palet_id: Optional[int] = None,
+        depo_id: Optional[int] = None,
     ) -> List[YerlestirmeGoreviResponseDTO]:
         gorevler = self._repo.getir_hepsi(
             skip=skip, limit=limit, durum=durum,
             atanan_kullanici_id=atanan_kullanici_id, palet_id=palet_id,
+            depo_id=depo_id,
         )
         return [YerlestirmeGoreviResponseDTO.from_entity(g) for g in gorevler]
 
@@ -153,6 +175,7 @@ class YerlestirmeGoreviOlusturUseCase:
         gorev = YerlestirmeGorevi(
             palet_id=dto.palet_id,
             mal_kabul_irsaliye_id=dto.mal_kabul_irsaliye_id,
+            depo_id=raf.depo_id,
             tip=dto.tip,
             kaynak_raf_id=dto.kaynak_raf_id,
             onerilen_raf_id=dto.onerilen_raf_id,
@@ -351,8 +374,8 @@ class YerlestirmeGoreviYerlestirmeGoreviBekleyenOzetUseCase:
     def __init__(self, repo: IYerlestirmeGoreviRepository):
         self._repo = repo
 
-    def execute(self) -> dict:
-        bekleyenler = self._repo.getir_hepsi(durum="Bekliyor", limit=10000)
+    def execute(self, depo_id: Optional[int] = None) -> dict:
+        bekleyenler = self._repo.getir_hepsi(durum="Bekliyor", limit=10000, depo_id=depo_id)
         toplam = len(bekleyenler)
         acil = sum(1 for g in bekleyenler if g.oncelik == 1)
         yuksek = sum(1 for g in bekleyenler if g.oncelik == 2)
@@ -437,7 +460,13 @@ class YerlestirmeOnaylaUseCase:
         if gorev.atanan_kullanici_id != kullanici_id:
             raise GecersizIslemError("Bu görev size atanmamış.")
 
-        hedef_raf = self._raf_repo.getir_kod_ile(dto.okutulan_raf_kodu, dto.depo_id)
+        gorev_depo_id = _gorev_depo_id_belirle(gorev, self._raf_repo)
+        if gorev_depo_id is None:
+            raise GecersizIslemError(
+                "Görev için depo bağlamı bulunamadı. Lütfen yöneticiniz ile iletişime geçin."
+            )
+
+        hedef_raf = self._raf_repo.getir_kod_ile(dto.okutulan_raf_kodu, gorev_depo_id)
         if not hedef_raf:
             raise KayitBulunamadiError("Raf", dto.okutulan_raf_kodu)
 
@@ -592,6 +621,7 @@ class BilinmeyenKonumGorevleriOlusturUseCase:
 
             gorev = YerlestirmeGorevi(
                 palet_id=palet.id,
+                depo_id=depo_id,
                 tip=GorevTipi.BELIRSIZ_KONUM,
                 onerilen_raf_id=oneri.onerilen_raf.id,
                 oncelik=1,
@@ -681,6 +711,7 @@ class KarantinadanCikarUseCase:
 
         gorev = YerlestirmeGorevi(
             palet_id=palet.id,
+            depo_id=kaynak_zon.depo_id,
             tip=GorevTipi.TRANSFER,
             kaynak_raf_id=palet.raf_id,
             onerilen_raf_id=oneri.onerilen_raf.id,
@@ -752,6 +783,7 @@ class KarantinayaAlUseCase:
 
         gorev = YerlestirmeGorevi(
             palet_id=palet.id,
+            depo_id=depo_id,
             tip=GorevTipi.TRANSFER,
             kaynak_raf_id=palet.raf_id,
             onerilen_raf_id=karantina_raf.id,

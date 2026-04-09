@@ -58,6 +58,7 @@ class TokenUserInfoDTO(BaseModel):
     kullanici_adi: str
     ad_soyad: str
     rol: str
+    depo_id: Optional[int] = None
     telefon: Optional[str] = None
     email: Optional[str] = None
     departman: Optional[str] = None
@@ -70,5 +71,4 @@ class TokenResponseDTO(BaseModel):
     refresh_token: str
     token_type: str
     user: TokenUserInfoDTO
-
 

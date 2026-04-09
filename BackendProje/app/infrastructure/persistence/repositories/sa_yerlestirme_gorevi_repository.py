@@ -56,6 +56,7 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
         durum: Optional[str] = None,
         atanan_kullanici_id: Optional[int] = None,
         palet_id: Optional[int] = None,
+        depo_id: Optional[int] = None,
     ) -> List[YerlestirmeGorevi]:
         q = _joinli_query(self._db)
         if durum:
@@ -64,6 +65,8 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
             q = q.filter(YerlestirmeGoreviORM.atanan_kullanici_id == atanan_kullanici_id)
         if palet_id is not None:
             q = q.filter(YerlestirmeGoreviORM.palet_id == palet_id)
+        if depo_id is not None:
+            q = q.filter(YerlestirmeGoreviORM.depo_id == depo_id)
         q = q.order_by(
             YerlestirmeGoreviORM.oncelik.asc(),
             YerlestirmeGoreviORM.olusturma_tarihi.asc(),
@@ -96,6 +99,7 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
         orm.kaynak_raf_id = gorev.kaynak_raf_id
         orm.onerilen_raf_id = gorev.onerilen_raf_id
         orm.gerceklesen_raf_id = gorev.gerceklesen_raf_id
+        orm.depo_id = gorev.depo_id
         orm.durum = gorev.durum
         orm.oncelik = gorev.oncelik
         orm.atanan_kullanici_id = gorev.atanan_kullanici_id

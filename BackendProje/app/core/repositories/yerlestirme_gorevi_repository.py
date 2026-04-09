@@ -14,6 +14,7 @@ class IYerlestirmeGoreviRepository(ABC):
         durum: Optional[str] = None,
         atanan_kullanici_id: Optional[int] = None,
         palet_id: Optional[int] = None,
+        depo_id: Optional[int] = None,
     ) -> List[YerlestirmeGorevi]:
         ...
 
