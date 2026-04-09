@@ -27,6 +27,8 @@ import {
     ClipboardCheck,
     ChevronDown,
     TrendingUp,
+    Smartphone,
+    Scan,
 } from 'lucide-react';
 
 /* ───────────────────────────────────────────
@@ -71,6 +73,15 @@ const menuGroups = [
         items: [
             { path: '/zonlar', label: 'Zon Yönetimi', icon: Warehouse, roles: ['admin', 'lojistik'], badge: null },
             { path: '/yerlestirme-gorevleri', label: 'Görev Takibi', icon: ClipboardList, roles: ['admin', 'lojistik'], badge: null },
+        ],
+    },
+    {
+        id: 'terminal',
+        label: 'Saha Terminali',
+        items: [
+            { path: '/terminal/gorevler', label: 'Görev Listesi', icon: ClipboardCheck, roles: ['admin', 'depocu', 'lojistik'], badge: null },
+            { path: '/terminal/yerlestirme', label: 'Yerleştirme', icon: Scan, roles: ['admin', 'depocu', 'lojistik'], badge: null },
+            { path: '/terminal/ozet', label: 'Performans Özeti', icon: TrendingUp, roles: ['admin', 'depocu', 'lojistik'], badge: null },
         ],
     },
     {

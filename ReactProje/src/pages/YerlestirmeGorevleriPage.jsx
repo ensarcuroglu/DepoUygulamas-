@@ -2,10 +2,11 @@
  * YerlestirmeGorevleriPage — Admin / Lojistik görev takip sayfası.
  */
 import { useState, useEffect, useCallback, Fragment } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Package, RefreshCw, X, ChevronDown, AlertTriangle, 
   CheckCircle, Clock, XCircle, Search, MapPin, Inbox,
-  MoreVertical, Play, UserPlus, Undo2, ArrowRight, Eye
+  MoreVertical, UserPlus, Undo2, ArrowRight, Scan, Smartphone
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAsync } from '../hooks/useAsync';
@@ -14,7 +15,6 @@ import {
   getYerlestirmeGorevleri,
   getBekleyenGorevOzet,
   goreviIptal,
-  goreviBaslat,
   goreviBirak,
   siradakiGorevisiniAl,
   karantinayaAl,
@@ -55,6 +55,7 @@ const FILTRE_SEÇENEKLERI = [
 ];
 
 export default function YerlestirmeGorevleriPage() {
+  const navigate = useNavigate();
   const { loading, run } = useAsync(true);
   const [gorevler, setGorevler] = useState([]);
   const [ozet, setOzet] = useState(null);
@@ -148,17 +149,8 @@ export default function YerlestirmeGorevleriPage() {
     }
   };
 
-  const gorevBaslatAction = async (gorevId) => {
-    setAksiyonYukleniyor(gorevId);
-    try {
-      await goreviBaslat(gorevId);
-      toast.success('Görev başlatıldı');
-      void yukle();
-    } catch (err) {
-      toast.error(hataMetni(err, 'Görev başlatılamadı'));
-    } finally {
-      setAksiyonYukleniyor(null);
-    }
+  const sahadaBaslat = (gorev) => {
+    navigate('/terminal/yerlestirme', { state: { gorev } });
   };
 
   const gorevBirakAction = async (gorevId) => {
@@ -381,12 +373,11 @@ export default function YerlestirmeGorevleriPage() {
                           {g.durum === 'Atandi' && (
                             <div className="flex gap-2 w-full lg:w-auto">
                               <button
-                                onClick={() => gorevBaslatAction(g.id)}
-                                disabled={aksiyonYukleniyor === g.id}
-                                className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 py-2.5 lg:py-2 px-4 rounded-xl font-bold text-xs transition-all shadow-sm shadow-emerald-600/20 disabled:opacity-50"
+                                onClick={() => sahadaBaslat(g)}
+                                className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 py-2.5 lg:py-2 px-4 rounded-xl font-bold text-xs transition-all shadow-sm shadow-emerald-600/20"
                               >
-                                {aksiyonYukleniyor === g.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-                                Başlat
+                                <Scan className="w-3.5 h-3.5" />
+                                Sahaya Git
                               </button>
                               <button
                                 onClick={() => gorevBirakAction(g.id)}
@@ -406,10 +397,13 @@ export default function YerlestirmeGorevleriPage() {
                           )}
                           {g.durum === 'DevamEdiyor' && (
                             <div className="flex gap-2 w-full lg:w-auto">
-                              <div className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 text-indigo-700 bg-indigo-50 py-2 px-3 rounded-xl font-bold text-xs border border-indigo-200">
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                İşlemde
-                              </div>
+                              <button
+                                onClick={() => sahadaBaslat(g)}
+                                className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 py-2.5 lg:py-2 px-4 rounded-xl font-bold text-xs transition-all shadow-sm shadow-indigo-600/20"
+                              >
+                                <Smartphone className="w-3.5 h-3.5" />
+                                Terminalde Devam Et
+                              </button>
                               <button
                                 onClick={() => setIptalModal(g.id)}
                                 className="flex items-center justify-center gap-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 py-2.5 lg:py-2 px-3 rounded-xl font-bold text-xs transition-colors border border-rose-100"
