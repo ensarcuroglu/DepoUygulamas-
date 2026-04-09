@@ -5,6 +5,8 @@ import PrivateRoute from './components/PrivateRoute';
 import RoleRoute from './components/RoleRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
 import TerminalLayout from './components/layout/TerminalLayout';
+import DepocuLayout from './components/layout/DepocuLayout';
+import DepocuAnaSayfasi from './pages/depocu/DepocuAnaSayfasi';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import UrunlerPage from './pages/UrunlerPage';
@@ -39,15 +41,17 @@ import YerlestirmePage from './pages/terminal/YerlestirmePage';
 import TerminalOzetPage from './pages/terminal/TerminalOzetPage';
 
 /**
- * Varsayılan yönlendirme: Depocu → stok-hareketleri, Admin → dashboard
+ * Varsayılan yönlendirme: Depocu → /depocu, Lojistik → /stok-hareketleri, Admin → /dashboard
  */
 function DefaultRedirect() {
   const { user } = useAuth();
-  const target = (user?.rol === 'depocu' || user?.rol === 'lojistik') 
-    ? '/stok-hareketleri' 
-    : (user?.rol === 'goruntuleyen') 
-      ? '/profil-ayarlari' 
-      : '/dashboard';
+  const target = user?.rol === 'depocu'
+    ? '/depocu'
+    : user?.rol === 'lojistik'
+      ? '/stok-hareketleri'
+      : user?.rol === 'goruntuleyen'
+        ? '/profil-ayarlari'
+        : '/dashboard';
   return <Navigate to={target} replace />;
 }
 
@@ -58,6 +62,25 @@ function App() {
         <Routes>
           {/* Herkese açık: Giriş sayfası */}
           <Route path="/login" element={<LoginPage />} />
+
+          {/* ── Depocu Arayüzü (/depocu/*) ─────────────────────────────────
+               Sidebar yok, bottom tab nav, görev odaklı.
+               Tam izolasyon: admin/lojistik arayüzünden bağımsız URL namespace.
+          ─────────────────────────────────────────────────────────────── */}
+          <Route element={<PrivateRoute />}>
+            <Route element={<RoleRoute allowedRoles={['depocu']} />}>
+              <Route element={<DepocuLayout />}>
+                <Route path="/depocu" element={<DepocuAnaSayfasi />} />
+                <Route path="/depocu/mal-kabul" element={<MalKabulIrsaliyeleriPage />} />
+                <Route path="/depocu/stok" element={<StokHareketleriPage />} />
+                <Route path="/depocu/stok-sayim" element={<StokSayimPage />} />
+                <Route path="/depocu/sevkiyat" element={<SevkiyatlarPage />} />
+                <Route path="/depocu/irsaliyeler" element={<IrsaliyelerPage />} />
+                <Route path="/depocu/destek" element={<DestekMasasiPage />} />
+                <Route path="/depocu/profil" element={<ProfilAyarlariPage />} />
+              </Route>
+            </Route>
+          </Route>
 
           {/* Korumalı alanlar: Giriş gerektiren tüm sayfalar */}
           <Route element={<PrivateRoute />}>
@@ -84,8 +107,8 @@ function App() {
                 <Route path="/sevkiyat-planlama" element={<SevkiyatPlanlamaPage />} />
               </Route>
 
-              {/* İrsaliye Yönetimi (Admin + Lojistik + Depocu) */}
-              <Route element={<RoleRoute allowedRoles={['admin', 'lojistik', 'depocu']} />}>
+              {/* İrsaliye Yönetimi (Admin + Lojistik) — Depocu /depocu/* namespace'ini kullanır */}
+              <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
                 <Route path="/irsaliyeler" element={<IrsaliyelerPage />} />
                 <Route path="/mal-kabul-irsaliyeleri" element={<MalKabulIrsaliyeleriPage />} />
               </Route>
@@ -96,8 +119,8 @@ function App() {
                 <Route path="/kpi-dashboard" element={<KpiDashboardPage />} />
               </Route>
 
-              {/* Stok Sayımı (Admin + Depocu) */}
-              <Route element={<RoleRoute allowedRoles={['admin', 'depocu']} />}>
+              {/* Stok Sayımı (Admin) — Depocu /depocu/stok-sayim'ı kullanır */}
+              <Route element={<RoleRoute allowedRoles={['admin']} />}>
                 <Route path="/stok-sayim" element={<StokSayimPage />} />
               </Route>
 

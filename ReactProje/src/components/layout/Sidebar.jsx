@@ -50,19 +50,19 @@ const menuGroups = [
             { path: '/kategoriler', label: 'Kategori Ağacı', icon: FolderOpen, roles: ['admin'], badge: null },
             { path: '/lotlar', label: 'LOT Takibi', icon: Layers, roles: ['admin'], badge: null },
             { path: '/paletler', label: 'Palet Yönetimi', icon: Container, roles: ['admin'], badge: null },
-            { path: '/stok-hareketleri', label: 'Stok İşlemleri', icon: ArrowLeftRight, roles: ['admin', 'depocu', 'lojistik'], badge: null },
-            { path: '/stok-sayim', label: 'Stok Sayımı', icon: ClipboardCheck, roles: ['admin', 'depocu'], badge: null },
+            { path: '/stok-hareketleri', label: 'Stok İşlemleri', icon: ArrowLeftRight, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/stok-sayim', label: 'Stok Sayımı', icon: ClipboardCheck, roles: ['admin'], badge: null },
         ],
     },
     {
         id: 'lojistik',
         label: 'Lojistik & Sevkiyat',
         items: [
-            { path: '/sevkiyatlar', label: 'Sevkiyatlar (Çıkış)', icon: ArrowUpFromLine, roles: ['admin', 'depocu', 'lojistik'], badge: null },
+            { path: '/sevkiyatlar', label: 'Sevkiyatlar (Çıkış)', icon: ArrowUpFromLine, roles: ['admin', 'lojistik'], badge: null },
             { path: '/siparisler', label: 'Siparişler', icon: ClipboardList, roles: ['admin', 'lojistik'], badge: null },
             { path: '/sevkiyat-planlama', label: 'Sevkiyat Planlama', icon: Route, roles: ['admin', 'lojistik'], badge: null },
-            { path: '/irsaliyeler', label: 'İrsaliyeler', icon: FileText, roles: ['admin', 'lojistik', 'depocu'], badge: null },
-            { path: '/mal-kabul-irsaliyeleri', label: 'Mal Kabul', icon: ClipboardCheck, roles: ['admin', 'lojistik', 'depocu'], badge: null },
+            { path: '/irsaliyeler', label: 'İrsaliyeler', icon: FileText, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/mal-kabul-irsaliyeleri', label: 'Mal Kabul', icon: ClipboardCheck, roles: ['admin', 'lojistik'], badge: null },
             { path: '/inbound-dashboard', label: 'Inbound Panel', icon: BarChart3, roles: ['admin', 'lojistik'], badge: null },
             { path: '/kpi-dashboard', label: 'KPI Paneli', icon: TrendingUp, roles: ['admin', 'lojistik'], badge: null },
         ],
@@ -79,9 +79,9 @@ const menuGroups = [
         id: 'terminal',
         label: 'Saha Terminali',
         items: [
-            { path: '/terminal/gorevler', label: 'Görev Listesi', icon: ClipboardCheck, roles: ['admin', 'depocu', 'lojistik'], badge: null },
-            { path: '/terminal/yerlestirme', label: 'Yerleştirme', icon: Scan, roles: ['admin', 'depocu', 'lojistik'], badge: null },
-            { path: '/terminal/ozet', label: 'Performans Özeti', icon: TrendingUp, roles: ['admin', 'depocu', 'lojistik'], badge: null },
+            { path: '/terminal/gorevler', label: 'Görev Listesi', icon: ClipboardCheck, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/terminal/yerlestirme', label: 'Yerleştirme', icon: Scan, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/terminal/ozet', label: 'Performans Özeti', icon: TrendingUp, roles: ['admin', 'lojistik'], badge: null },
         ],
     },
     {
@@ -99,7 +99,7 @@ const menuGroups = [
 
 const bottomItems = [
     { path: '/sistem-loglari', label: 'Sistem Logları', icon: ShieldAlert, roles: ['admin'], badge: null },
-    { path: '/destek-masasi', label: 'Destek Masası', icon: HelpCircle, roles: ['admin', 'depocu', 'lojistik'], badge: null },
+    { path: '/destek-masasi', label: 'Destek Masası', icon: HelpCircle, roles: ['admin', 'lojistik'], badge: null },
     { path: '/ayarlar', label: 'Sistem Tercihleri', icon: Settings, roles: ['admin'], badge: null },
 ];
 

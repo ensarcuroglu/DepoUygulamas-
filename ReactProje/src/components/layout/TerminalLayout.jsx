@@ -5,7 +5,7 @@
  * büyük dokunmatik hedefler, minimal dikkat dağıtıcı.
  */
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { ClipboardList, Package, BarChart2, LogOut } from 'lucide-react';
+import { ClipboardList, Package, BarChart2, LogOut, ChevronLeft } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -45,9 +45,22 @@ export default function TerminalLayout() {
 
       {/* Minimal üst başlık */}
       <header className="bg-slate-950 border-b border-slate-800 px-4 py-3 flex items-center justify-between safe-area-top">
-        <div>
-          <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold">Saha Terminali</p>
-          <p className="text-sm font-bold text-slate-200 leading-tight">{user?.ad_soyad || user?.kullanici_adi || 'Operatör'}</p>
+        <div className="flex items-center gap-2">
+          {/* Panele Dön — yalnızca depocu rolünde görünür */}
+          {user?.rol === 'depocu' && (
+            <button
+              onClick={() => navigate('/depocu')}
+              className="flex items-center gap-1 text-slate-400 hover:text-amber-400 active:text-amber-500 transition-colors py-2 px-2 rounded-lg mr-1"
+              aria-label="Depocu Paneline Dön"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              <span className="text-xs font-semibold hidden sm:inline">Panel</span>
+            </button>
+          )}
+          <div>
+            <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold">Saha Terminali</p>
+            <p className="text-sm font-bold text-slate-200 leading-tight">{user?.ad_soyad || user?.kullanici_adi || 'Operatör'}</p>
+          </div>
         </div>
         <button
           onClick={handleLogout}

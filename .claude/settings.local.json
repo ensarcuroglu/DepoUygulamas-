@@ -43,7 +43,8 @@
       "Bash(2)",
       "Bash(python -m pytest tests/api/routers/ -m api -x --tb=short -q)",
       "Bash(ls:*)",
-      "Bash(python -c ':*)"
+      "Bash(python -c ':*)",
+      "Bash(npm run:*)"
     ]
   }
 }
