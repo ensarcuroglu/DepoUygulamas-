@@ -1,0 +1,192 @@
+# Depocu UX Test İzlenimleri — Analiz & Uygulama Planı
+
+## Kullanıcı Test Özeti
+
+Bir depocu perspektifinden mal kabul → yerleştirme iş akışı test edildi. İki kritik UX kopukluğu tespit edildi:
+
+| # | Sorun | Ekran | Şiddet |
+|---|-------|-------|--------|
+| 1 | İrsaliye onaylandıktan sonra detay panelinde sadece "Yerleştirme devam ediyor…" yazıyor, **aksiyon butonu yok** | `MalKabulIrsaliyeleriPage.jsx` — irsaliye detay alt aksiyonları | 🟡 Orta |
+| 2 | Görev Takibi ekranında görevleri ilerletecek **hiçbir aksiyon butonu yok** (Başlat, Üstlen, Detay). Sadece "İptal" var | `YerlestirmeGorevleriPage.jsx` — görev satır aksiyonları | 🔴 Kritik |
+
+---
+
+## Kök Neden Analizi
+
+### Sorun 1: İrsaliye Onay Sonrası "Yerleştirmeye Git" Butonu Eksik
+
+**Mevcut Durum:**
+- İrsaliye **onay banner**'ında (satır 256-289) bir `Yerleştirmeye Başla` butonu zaten var → `navigate('/yerlestirme-gorevleri')` çalışıyor ✅
+- Ancak **irsaliye detay panelindeki alt aksiyon bölgesinde** (satır 723-728) "Onaylandi" durumundaki irsaliye için sadece pasif bir bilgi kartı var:
+
+```jsx
+// Satır 723-728 — MalKabulIrsaliyeleriPage.jsx
+{irs.durum === 'Onaylandi' && (
+    <div className="...">
+        <Loader2 className="w-5 h-5 animate-spin" />
+        Yerleştirme devam ediyor...
+    </div>
+)}
+```
+
+Bu, kullanıcının yerleştirme görevlerine gidemeyeceği bir **çıkmaz ekran** oluşturuyor. Onay banner'ı kapatıldıktan sonra veya listeye geri dönüp irsaliyeyi tekrar açtığında, aksiyon butonu yok.
+
+**Tespit:** Banner geçici (kapatılabilir), ama irsaliye detayında kalıcı bir navigasyon butonu eksik.
+
+---
+
+### Sorun 2: Görev Takibi Ekranında Aksiyon Butonları Eksik
+
+**Mevcut Durum:**
+
+Backend API'de **tüm aksiyon endpoint'leri mevcut ve çalışıyor:**
+
+| Endpoint | Açıklama | API Fonksiyonu (api.js) |
+|----------|----------|------------------------|
+| `POST /siradaki-al` | FIFO ile sıradaki görevi al | `siradakiGorevisiniAl()` |
+| `POST /{id}/baslat` | Görevi başlat (Atandı → DevamEdiyor) | `goreviBaslat(id)` |
+| `POST /{id}/tamamla` | Görevi tamamla | `goreviTamamla(id, data)` |
+| `POST /{id}/birak` | Görevi bırak (havuza iade) | `goreviBirak(id)` |
+| `POST /{id}/iptal` | Görevi iptal et | `goreviIptal(id, data)` |
+| `POST /{id}/override` | Kural ihlali ile tamamla | `goreviOverride(id, data)` |
+
+Ancak **frontend'de `YerlestirmeGorevleriPage.jsx` sadece 2 aksiyonu expose ediyor:**
+1. ❌ İptal (modal ile)
+2. ❌ Karantina (modal ile)
+
+**Eksik olan aksiyon butonları:**
+- ✅ **Üstlen / Görevi Al:** `Bekliyor` → `Atandı` (backend: `siradakiGorevisiniAl`)
+- ✅ **Başlat:** `Atandı` → `DevamEdiyor` (backend: `goreviBaslat`)
+- ✅ **Bırak:** `Atandı` → `Bekliyor` (backend: `goreviBirak`)
+- ✅ **Detay Görüntüle:** Genişletilmiş panel var ama görevin tam bilgileri (ürün, barkod, raf kodu, zon) gösterilmiyor
+
+> [!IMPORTANT]
+> İlginç bir bulgu: Terminal (mobil) tarafında `GorevListesiPage.jsx` ve `YerlestirmePage.jsx` ekranlarında "Sıradaki Görevi Al", "Başlat", "Tamamla" butonları **zaten var ve çalışıyor**. Problem tamamen **admin/lojistik web panelindeki `YerlestirmeGorevleriPage.jsx`** sayfasına özgü.
+
+---
+
+## Proposed Changes
+
+### Değişiklik 1: İrsaliye Detayına "Yerleştirmeye Git" Butonu
+
+#### [MODIFY] [MalKabulIrsaliyeleriPage.jsx](file:///d:/Ensar%20Dosya/DepoUygulaması/ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx)
+
+**Satır 723-728** arasındaki pasif "Yerleştirme devam ediyor..." bilgi kartını, tıklanabilir bir navigasyon butonuna dönüştür:
+
+```diff
+ {irs.durum === 'Onaylandi' && (
+-    <div className="w-full flex items-center justify-center gap-2 h-12 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-sm font-bold">
+-        <Loader2 className="w-5 h-5 animate-spin" />
+-        Yerleştirme devam ediyor...
+-    </div>
++    <div className="w-full flex flex-col sm:flex-row items-stretch gap-3">
++        <div className="flex-1 flex items-center justify-center gap-2 h-12 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-sm font-bold">
++            <Loader2 className="w-5 h-5 animate-spin" />
++            Yerleştirme devam ediyor...
++        </div>
++        <button
++            onClick={() => navigate('/yerlestirme-gorevleri')}
++            className="flex items-center justify-center gap-2 h-12 px-6 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
++        >
++            <ArrowRight className="w-4 h-4" />
++            Yerleştirmeye Git
++        </button>
++    </div>
+ )}
+```
+
+**Sonuç:** Durum bilgisi + aksiyon butonu yan yana gösterilir. Kullanıcı doğrudan görev takip ekranına gidebilir.
+
+---
+
+### Değişiklik 2: Görev Takibi Ekranına Aksiyon Butonları Eklenmesi
+
+#### [MODIFY] [YerlestirmeGorevleriPage.jsx](file:///d:/Ensar%20Dosya/DepoUygulaması/ReactProje/src/pages/YerlestirmeGorevleriPage.jsx)
+
+Bu değişiklik birden fazla bölümü kapsar:
+
+##### 2a. API Import'ları Güncelle (Satır 13-21)
+
+Eksik API fonksiyonlarını import et:
+
+```diff
+ import {
+   getYerlestirmeGorevleri,
+   getBekleyenGorevOzet,
+   goreviIptal,
++  goreviBaslat,
++  goreviBirak,
++  siradakiGorevisiniAl,
+   karantinayaAl,
+   karantinandanCikar,
+   bilinmeyenKonumGorevleriOlustur,
+   getDepolar,
+ } from '../services/api';
+```
+
+##### 2b. Aksiyon Handler'ları Ekle (İptal handler'ından sonra)
+
+Her görev durumu için uygun aksiyon handler fonksiyonları ekle:
+
+| Handler | Tetikleyici | Durum Geçişi |
+|---------|-------------|--------------|
+| `gorevUstlen(gorevId)` | "Üstlen" butonu | Bekliyor → Atandı |
+| `gorevBaslatAction(gorevId)` | "Başlat" butonu | Atandı → DevamEdiyor |
+| `gorevBirakAction(gorevId)` | "Bırak" butonu | Atandı → Bekliyor |
+
+##### 2c. Görev Satır Aksiyonları — Durum Bazlı Buton Grubu (Satır 316-328)
+
+Mevcut sadece "İptal" butonunu içeren aksiyon bölgesini, **duruma göre değişen çoklu buton grubu** ile değiştir:
+
+| Görev Durumu | Gösterilecek Butonlar |
+|---|---|
+| `Bekliyor` | **Üstlen** (birincil) · İptal |
+| `Atandı` | **Başlat** (birincil) · Bırak · İptal |
+| `DevamEdiyor` | İptal |
+| `Tamamlandı` | — (salt okunur) |
+| `İptal Edildi` | — (salt okunur) |
+
+##### 2d. Genişletilmiş Detay Panelini Zenginleştir (Satır 332-361)
+
+Mevcut `DetayKarti` yapısına ek bilgiler ekle:
+- Palet barkodu
+- Ürün adı
+- Lot no
+- Miktar
+- Önerilen raf kodu (sadece ID değil)
+- Zon bilgisi
+
+> [!NOTE]
+> Bu alanlar backend Response DTO'sunda (`palet_barkodu`, `urun_adi`, `lot_no`, `miktar`, `onerilen_raf_kodu`, `zone_adi`) zaten mevcut. Sadece frontend'de gösterilmiyor.
+
+---
+
+## Özet: Dosya Değişiklik Matrisi
+
+| Dosya | Değişiklik Tipi | Satır Aralığı | Açıklama |
+|-------|----------------|---------------|----------|
+| `MalKabulIrsaliyeleriPage.jsx` | Modify | ~723-728 | Pasif bilgi kartı → aksiyon butonu |
+| `YerlestirmeGorevleriPage.jsx` | Modify | ~13-21 | API import'ları ekleme |
+| `YerlestirmeGorevleriPage.jsx` | Modify | ~90-130 | Aksiyon handler fonksiyonları ekleme |
+| `YerlestirmeGorevleriPage.jsx` | Modify | ~316-328 | Durum bazlı buton grubu |
+| `YerlestirmeGorevleriPage.jsx` | Modify | ~332-361 | Detay paneli zenginleştirme |
+
+> [!WARNING]
+> Backend tarafında **hiçbir değişiklik gerekmemektedir.** Tüm API endpoint'leri ve domain entity iş kuralları zaten implementedir. Bu plan tamamen frontend UX düzeltmesidir.
+
+---
+
+## Verification Plan
+
+### Otomatik
+- Mevcut backend testlerinin hala geçtiğini doğrula: `pytest BackendProje/tests/`
+- Frontend build kontrolü: `npm run build` hatasız tamamlanmalı
+
+### Manuel / Browser Testi
+1. Yeni irsaliye oluştur → onayla → detay panelinde "Yerleştirmeye Git" butonunu gör ve tıkla
+2. Görev Takibi ekranında:
+   - "Bekliyor" görevde "Üstlen" butonuna tıkla → durum "Atandı" olsun
+   - "Atandı" görevde "Başlat" butonuna tıkla → durum "DevamEdiyor" olsun
+   - "Atandı" görevde "Bırak" butonuna tıkla → durum "Bekliyor"a geri dönsün
+   - Detay panelinde ürün adı, barkod, raf kodu bilgilerini gör
+3. Mobil responsive görünüm test

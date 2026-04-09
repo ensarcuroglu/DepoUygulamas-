@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, Fragment } from 'react';
 import { 
   Package, RefreshCw, X, ChevronDown, AlertTriangle, 
   CheckCircle, Clock, XCircle, Search, MapPin, Inbox,
-  MoreVertical
+  MoreVertical, Play, UserPlus, Undo2, ArrowRight, Eye
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAsync } from '../hooks/useAsync';
@@ -14,6 +14,9 @@ import {
   getYerlestirmeGorevleri,
   getBekleyenGorevOzet,
   goreviIptal,
+  goreviBaslat,
+  goreviBirak,
+  siradakiGorevisiniAl,
   karantinayaAl,
   karantinandanCikar,
   bilinmeyenKonumGorevleriOlustur,
@@ -64,6 +67,7 @@ export default function YerlestirmeGorevleriPage() {
   const [karantinaNeden, setKarantinaNeden] = useState('');
   const [bilinmeyenYukleniyor, setBilinmeyenYukleniyor] = useState(false);
   const [acikSatirId, setAcikSatirId] = useState(null);
+  const [aksiyonYukleniyor, setAksiyonYukleniyor] = useState(null);
 
   const yukle = useCallback(async () => {
     try {
@@ -126,6 +130,47 @@ export default function YerlestirmeGorevleriPage() {
       toast.error(hataMetni(err, 'İşlem başarısız'));
     } finally {
       setBilinmeyenYukleniyor(false);
+    }
+  };
+
+  // ── Görev Aksiyon Handler'ları ──
+
+  const gorevUstlen = async (gorevId) => {
+    setAksiyonYukleniyor(gorevId);
+    try {
+      await siradakiGorevisiniAl();
+      toast.success('Görev üstlenildi');
+      void yukle();
+    } catch (err) {
+      toast.error(hataMetni(err, 'Görev üstlenilemedi'));
+    } finally {
+      setAksiyonYukleniyor(null);
+    }
+  };
+
+  const gorevBaslatAction = async (gorevId) => {
+    setAksiyonYukleniyor(gorevId);
+    try {
+      await goreviBaslat(gorevId);
+      toast.success('Görev başlatıldı');
+      void yukle();
+    } catch (err) {
+      toast.error(hataMetni(err, 'Görev başlatılamadı'));
+    } finally {
+      setAksiyonYukleniyor(null);
+    }
+  };
+
+  const gorevBirakAction = async (gorevId) => {
+    setAksiyonYukleniyor(gorevId);
+    try {
+      await goreviBirak(gorevId);
+      toast.success('Görev havuza iade edildi');
+      void yukle();
+    } catch (err) {
+      toast.error(hataMetni(err, 'Görev bırakılamadı'));
+    } finally {
+      setAksiyonYukleniyor(null);
     }
   };
 
@@ -230,7 +275,7 @@ export default function YerlestirmeGorevleriPage() {
             <div className="flex flex-col gap-3 lg:bg-white lg:border lg:border-slate-200 lg:rounded-2xl lg:shadow-sm overflow-hidden">
               
               {/* Masaüstü Başlıklar (Mobilde Gizli) */}
-              <div className="hidden lg:grid grid-cols-[auto_1fr_1.5fr_1fr_1fr_1fr_1fr_auto] gap-4 p-4 bg-slate-50/80 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider items-center">
+              <div className="hidden lg:grid grid-cols-[auto_1fr_1.5fr_1fr_1fr_1fr_1fr_minmax(180px,auto)] gap-4 p-4 bg-slate-50/80 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider items-center">
                 <div className="w-8"></div>
                 <div>Görev ID</div>
                 <div>Durum</div>
@@ -238,7 +283,7 @@ export default function YerlestirmeGorevleriPage() {
                 <div>Palet ID</div>
                 <div>Öncelik</div>
                 <div>Oluşturma</div>
-                <div className="w-20 text-center">İşlem</div>
+                <div className="text-center">İşlem</div>
               </div>
 
               {/* Satırlar / Kartlar */}
@@ -255,7 +300,7 @@ export default function YerlestirmeGorevleriPage() {
                       {/* Ana Satır İçeriği */}
                       <div 
                         onClick={() => setAcikSatirId(isExpanded ? null : g.id)}
-                        className="p-4 lg:p-4 lg:grid lg:grid-cols-[auto_1fr_1.5fr_1fr_1fr_1fr_1fr_auto] gap-4 items-center cursor-pointer select-none"
+                        className="p-4 lg:p-4 lg:grid lg:grid-cols-[auto_1fr_1.5fr_1fr_1fr_1fr_1fr_minmax(180px,auto)] gap-4 items-center cursor-pointer select-none"
                       >
                         {/* 1. Mobil Header & Toggle */}
                         <div className="flex justify-between items-center lg:block mb-3 lg:mb-0">
@@ -312,18 +357,73 @@ export default function YerlestirmeGorevleriPage() {
                           </span>
                         </div>
 
-                        {/* 7. Aksiyon (Mobilde tam genişlik buton, Desktop'ta ikon/metin) */}
-                        <div className="mt-4 lg:mt-0 lg:w-20 lg:text-center border-t border-slate-100 pt-3 lg:border-t-0 lg:pt-0" onClick={(e) => e.stopPropagation()}>
-                          {isCancelable ? (
-                            <button
-                              onClick={() => setIptalModal(g.id)}
-                              className="w-full lg:w-auto flex items-center justify-center gap-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 lg:bg-transparent lg:hover:bg-rose-50 py-2 lg:py-1.5 lg:px-3 rounded-xl font-bold text-xs transition-colors"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                              İptal
-                            </button>
-                          ) : (
-                            <span className="text-slate-300 text-xs font-medium hidden lg:block">—</span>
+                        {/* 7. Aksiyon Butonları — Durum bazlı */}
+                        <div className="mt-4 lg:mt-0 lg:w-auto border-t border-slate-100 pt-3 lg:border-t-0 lg:pt-0" onClick={(e) => e.stopPropagation()}>
+                          {g.durum === 'Bekliyor' && (
+                            <div className="flex gap-2 w-full lg:w-auto">
+                              <button
+                                onClick={() => gorevUstlen(g.id)}
+                                disabled={aksiyonYukleniyor === g.id}
+                                className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 py-2.5 lg:py-2 px-4 rounded-xl font-bold text-xs transition-all shadow-sm shadow-indigo-600/20 disabled:opacity-50"
+                              >
+                                {aksiyonYukleniyor === g.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+                                Üstlen
+                              </button>
+                              <button
+                                onClick={() => setIptalModal(g.id)}
+                                className="flex items-center justify-center gap-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 py-2.5 lg:py-2 px-3 rounded-xl font-bold text-xs transition-colors border border-rose-100"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                <span className="lg:hidden">İptal</span>
+                              </button>
+                            </div>
+                          )}
+                          {g.durum === 'Atandi' && (
+                            <div className="flex gap-2 w-full lg:w-auto">
+                              <button
+                                onClick={() => gorevBaslatAction(g.id)}
+                                disabled={aksiyonYukleniyor === g.id}
+                                className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 py-2.5 lg:py-2 px-4 rounded-xl font-bold text-xs transition-all shadow-sm shadow-emerald-600/20 disabled:opacity-50"
+                              >
+                                {aksiyonYukleniyor === g.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                                Başlat
+                              </button>
+                              <button
+                                onClick={() => gorevBirakAction(g.id)}
+                                disabled={aksiyonYukleniyor === g.id}
+                                className="flex items-center justify-center gap-1.5 text-amber-700 bg-amber-50 hover:bg-amber-100 py-2.5 lg:py-2 px-3 rounded-xl font-bold text-xs transition-colors border border-amber-200 disabled:opacity-50"
+                              >
+                                <Undo2 className="w-3.5 h-3.5" />
+                                Bırak
+                              </button>
+                              <button
+                                onClick={() => setIptalModal(g.id)}
+                                className="flex items-center justify-center gap-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 py-2.5 lg:py-2 px-3 rounded-xl font-bold text-xs transition-colors border border-rose-100"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                          {g.durum === 'DevamEdiyor' && (
+                            <div className="flex gap-2 w-full lg:w-auto">
+                              <div className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 text-indigo-700 bg-indigo-50 py-2 px-3 rounded-xl font-bold text-xs border border-indigo-200">
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                İşlemde
+                              </div>
+                              <button
+                                onClick={() => setIptalModal(g.id)}
+                                className="flex items-center justify-center gap-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 py-2.5 lg:py-2 px-3 rounded-xl font-bold text-xs transition-colors border border-rose-100"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                <span className="lg:hidden">İptal</span>
+                              </button>
+                            </div>
+                          )}
+                          {(g.durum === 'Tamamlandi' || g.durum === 'IptalEdildi') && (
+                            <div className="flex items-center justify-center gap-1.5 text-slate-400 bg-slate-50 py-2 px-3 rounded-xl font-medium text-xs border border-slate-100">
+                              {g.durum === 'Tamamlandi' ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                              {g.durum === 'Tamamlandi' ? 'Tamamlandı' : 'İptal Edildi'}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -331,9 +431,52 @@ export default function YerlestirmeGorevleriPage() {
                       {/* Genişletilmiş Detay Paneli */}
                       {isExpanded && (
                         <div className="bg-slate-50 border-t border-slate-100 p-4 lg:p-6 animate-in slide-in-from-top-2 duration-200">
+
+                          {/* Palet & Ürün Bilgileri */}
+                          {(g.urun_adi || g.palet_barkodu || g.lot_no || g.miktar) && (
+                            <div className="mb-6 bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm">
+                              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                <Package className="w-3.5 h-3.5" /> Palet & Ürün Bilgisi
+                              </h4>
+                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                {g.urun_adi && (
+                                  <div className="col-span-2 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Ürün</span>
+                                    <span className="text-sm font-bold text-slate-800">{g.urun_adi}</span>
+                                  </div>
+                                )}
+                                {g.palet_barkodu && (
+                                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Barkod</span>
+                                    <span className="text-sm font-mono font-bold text-blue-700">{g.palet_barkodu}</span>
+                                  </div>
+                                )}
+                                {g.miktar != null && (
+                                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Miktar</span>
+                                    <span className="text-sm font-black text-slate-800">{g.miktar}</span>
+                                  </div>
+                                )}
+                                {g.lot_no && (
+                                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Lot No</span>
+                                    <span className="text-sm font-semibold text-slate-700">{g.lot_no}</span>
+                                  </div>
+                                )}
+                                {g.zone_adi && (
+                                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Zon</span>
+                                    <span className="text-sm font-semibold text-slate-700">{g.zone_adi}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Görev Detayları */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <DetayKarti label="Önerilen Raf" value={g.onerilen_raf_id} />
-                            <DetayKarti label="Gerçekleşen Raf" value={g.gerceklesen_raf_id} highlight={g.gerceklesen_raf_id !== g.onerilen_raf_id} />
+                            <DetayKarti label="Önerilen Raf" value={g.onerilen_raf_kodu || g.onerilen_raf_id} />
+                            <DetayKarti label="Gerçekleşen Raf" value={g.gerceklesen_raf_id} highlight={g.gerceklesen_raf_id != null && g.gerceklesen_raf_id !== g.onerilen_raf_id} />
                             <DetayKarti label="Atanan Kullanıcı" value={g.atanan_kullanici_id} />
                             <DetayKarti label="Override Durumu" value={g.override_kullanici_id ? `Evet (${g.override_kullanici_id})` : 'Hayır'} isWarning={!!g.override_kullanici_id} />
                             

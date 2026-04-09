@@ -721,9 +721,17 @@ export default function MalKabulIrsaliyeleriPage() {
                                                     </>
                                                 )}
                                                 {irs.durum === 'Onaylandi' && (
-                                                    <div className="w-full flex items-center justify-center gap-2 h-12 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-sm font-bold">
-                                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                                        Yerleştirme devam ediyor...
+                                                    <div className="w-full flex flex-col sm:flex-row items-stretch gap-3">
+                                                        <div className="flex-1 flex items-center justify-center gap-2 h-12 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-sm font-bold">
+                                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                                            Yerleştirme devam ediyor...
+                                                        </div>
+                                                        <button
+                                                            onClick={() => navigate('/yerlestirme-gorevleri')}
+                                                            className="flex items-center justify-center gap-2 h-12 px-6 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm shadow-blue-600/20"
+                                                        >
+                                                            Yerleştirmeye Git <ArrowRight className="w-4 h-4" />
+                                                        </button>
                                                     </div>
                                                 )}
                                                 {irs.durum === 'Kapandi' && (
