@@ -132,6 +132,7 @@ def mal_kabul_irsaliye_to_entity(
         olusturma_tarihi=orm.olusturma_tarihi,
         guncelleme_tarihi=orm.guncelleme_tarihi,
         kalemler=kalemler,
+        kapanma_ozeti=orm.kapanma_ozeti,
     )
 
 
@@ -147,6 +148,7 @@ def mal_kabul_irsaliye_to_orm(entity: MalKabulIrsaliye) -> MalKabulIrsaliyeORM:
         tarih=entity.tarih,
         olusturma_tarihi=entity.olusturma_tarihi,
         guncelleme_tarihi=entity.guncelleme_tarihi,
+        kapanma_ozeti=entity.kapanma_ozeti,
     )
     for kalem_entity in entity.kalemler:
         orm.kalemler.append(mal_kabul_kalemi_to_orm(kalem_entity))

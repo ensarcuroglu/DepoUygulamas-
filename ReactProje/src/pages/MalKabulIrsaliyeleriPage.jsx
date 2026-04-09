@@ -376,6 +376,68 @@ export default function MalKabulIrsaliyeleriPage() {
                             {expandedId === irs.id && (
                                 <div className="border-t border-slate-100 bg-slate-50/50">
                                     <div className="p-4 sm:p-5">
+                                        {/* Operasyon İlerleme Çubuğu */}
+                                        {irs.durum !== 'Taslak' && irs.toplam_kalem > 0 && (
+                                            <div className="mb-6 bg-white border border-slate-200 rounded-xl p-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Yerleştirme İlerlemesi</span>
+                                                    <span className="text-sm font-bold text-slate-700">
+                                                        {irs.yerlestirilen}/{irs.toplam_kalem}
+                                                        <span className="text-slate-400 font-normal ml-1">
+                                                            ({irs.toplam_kalem > 0 ? Math.round((irs.yerlestirilen / irs.toplam_kalem) * 100) : 0}%)
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 rounded-full h-2.5">
+                                                    <div
+                                                        className={`h-2.5 rounded-full transition-all duration-500 ${
+                                                            irs.yerlestirilen === irs.toplam_kalem ? 'bg-green-500' : 'bg-blue-500'
+                                                        }`}
+                                                        style={{ width: `${irs.toplam_kalem > 0 ? (irs.yerlestirilen / irs.toplam_kalem) * 100 : 0}%` }}
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+                                                        {irs.yerlestirilen} yerleştirildi
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                                                        {irs.bekleyen} bekliyor
+                                                    </span>
+                                                    {irs.istisna_sayisi > 0 && (
+                                                        <span className="flex items-center gap-1 text-red-500">
+                                                            <AlertTriangle className="w-3 h-3" />
+                                                            {irs.istisna_sayisi} istisna
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {/* Kapanma Özeti */}
+                                                {irs.durum === 'Kapandi' && irs.kapanma_ozeti && (
+                                                    <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-3 text-xs">
+                                                        <span className="bg-green-50 text-green-700 px-2 py-1 rounded-md font-medium">
+                                                            {irs.kapanma_ozeti.yerlestirilen} yerleştirildi
+                                                        </span>
+                                                        {irs.kapanma_ozeti.iptal_edilen > 0 && (
+                                                            <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md font-medium">
+                                                                {irs.kapanma_ozeti.iptal_edilen} iptal
+                                                            </span>
+                                                        )}
+                                                        {irs.kapanma_ozeti.istisna_sayisi > 0 && (
+                                                            <span className="bg-amber-50 text-amber-700 px-2 py-1 rounded-md font-medium">
+                                                                {irs.kapanma_ozeti.istisna_sayisi} istisna
+                                                            </span>
+                                                        )}
+                                                        {irs.kapanma_ozeti.ort_yerlestirme_sure_dk && (
+                                                            <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-medium">
+                                                                Ort. {irs.kapanma_ozeti.ort_yerlestirme_sure_dk} dk
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
                                         {/* Meta bilgi */}
                                         <div className="flex flex-wrap gap-4 mb-6">
                                             {irs.tir_plaka && (

@@ -32,6 +32,7 @@ from app.application.use_cases import (
     MalKabulIrsaliyeSilUseCase,
     IrsaliyeOnaylaVeGorevOlusturUseCase,
     MalKabulKalemiIstisnaBildirUseCase,
+    InboundDashboardUseCase,
 )
 from app.core.services.stok_cikis_domain_service import StokCikisDomainService
 
@@ -251,3 +252,9 @@ def get_mal_kabul_kalemi_istisna_bildir_uc(
     log_repo=Depends(get_log_repo),
 ):
     return MalKabulKalemiIstisnaBildirUseCase(repo, log_repo)
+
+
+def get_inbound_dashboard_uc(
+    repo=Depends(get_mal_kabul_irsaliye_repo),
+):
+    return InboundDashboardUseCase(repo)

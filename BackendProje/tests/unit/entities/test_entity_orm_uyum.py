@@ -77,7 +77,12 @@ MAPPER_PAIRS = _collect_mapper_pairs()
 
 # ORM'de olmayip entity'de bulunmasi bilincli olan alanlar (relation/computed)
 ALLOWED_ENTITY_ONLY_FIELDS: dict[str, set[str]] = {
-    "MalKabulIrsaliye": {"kalemler"},
+    "MalKabulIrsaliye": {
+        "kalemler",
+        "yerlestirme_gorev_toplam",
+        "yerlestirme_gorev_tamamlanan",
+        "yerlestirme_gorev_iptal",
+    },
     "Palet": {"lot", "raf"},
     "Siparis": {"kalemler"},
     "StokHareketi": {"palet_no"},
@@ -171,4 +176,3 @@ def test_mapper_roundtrip_ortak_alanlari_korur(pair: MapperPair):
         assert getattr(orm_back, field_name) == getattr(entity, field_name), (
             f"{pair.name}: to_orm '{field_name}' alanini dogru tasimadi."
         )
-

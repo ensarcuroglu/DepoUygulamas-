@@ -500,3 +500,35 @@ class MalKabulKalemiIstisnaBildirUseCase:
         return MalKabulIrsaliyeResponseDTO.from_entity(
             self._repo.getir_id_ile(irsaliye_id)
         )
+
+
+class InboundDashboardUseCase:
+    """Inbound kontrol paneli istatistiklerini döner."""
+
+    def __init__(self, repo: IMalKabulIrsaliyeRepository):
+        self._repo = repo
+
+    def execute(self):
+        from app.application.dto.mal_kabul_irsaliye_dto import (
+            InboundDashboardResponseDTO,
+            InboundIrsaliyeOzetDTO,
+        )
+        data = self._repo.inbound_dashboard_istatistik()
+        return InboundDashboardResponseDTO(
+            irsaliye_toplam=data["irsaliye_toplam"],
+            irsaliye_taslak=data["irsaliye_taslak"],
+            irsaliye_onaylandi=data["irsaliye_onaylandi"],
+            irsaliye_kapandi=data["irsaliye_kapandi"],
+            gorev_toplam=data["gorev_toplam"],
+            gorev_bekleyen=data["gorev_bekleyen"],
+            gorev_devam_eden=data["gorev_devam_eden"],
+            gorev_tamamlanan=data["gorev_tamamlanan"],
+            gorev_iptal=data["gorev_iptal"],
+            ort_yerlestirme_sure_dk=data["ort_yerlestirme_sure_dk"],
+            istisna_sayisi=data["istisna_sayisi"],
+            override_sayisi=data["override_sayisi"],
+            bugunun_irsaliyeleri=[
+                InboundIrsaliyeOzetDTO(**irs)
+                for irs in data["bugunun_irsaliyeleri"]
+            ],
+        )

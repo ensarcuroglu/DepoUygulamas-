@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, date
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 
 class IstisnaKalemTip:
@@ -107,6 +107,12 @@ class MalKabulIrsaliye:
     guncelleme_tarihi: datetime = field(default_factory=datetime.utcnow)
 
     kalemler: List[MalKabulKalemi] = field(default_factory=list)
+    kapanma_ozeti: Optional[Dict[str, Any]] = None
+
+    # View-model amaçlı, repository tarafından doldurulan geçici ilerleme alanları
+    yerlestirme_gorev_toplam: int = 0
+    yerlestirme_gorev_tamamlanan: int = 0
+    yerlestirme_gorev_iptal: int = 0
 
     # ── İş Kuralları ──
 

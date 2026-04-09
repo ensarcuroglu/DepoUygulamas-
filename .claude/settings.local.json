@@ -42,7 +42,8 @@
       "Bash(find app:*)",
       "Bash(2)",
       "Bash(python -m pytest tests/api/routers/ -m api -x --tb=short -q)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(python -c ':*)"
     ]
   }
 }

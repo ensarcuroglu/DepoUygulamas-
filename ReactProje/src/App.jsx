@@ -30,6 +30,7 @@ import RaporSablonlarPage from './pages/RaporSablonlarPage';
 import RaporZamanliPage from './pages/RaporZamanliPage';
 import StokSayimPage from './pages/StokSayimPage';
 import MalKabulIrsaliyeleriPage from './pages/MalKabulIrsaliyeleriPage';
+import InboundDashboardPage from './pages/InboundDashboardPage';
 import ZonlarPage from './pages/ZonlarPage';
 import YerlestirmeGorevleriPage from './pages/YerlestirmeGorevleriPage';
 import GorevListesiPage from './pages/terminal/GorevListesiPage';
@@ -86,6 +87,11 @@ function App() {
               <Route element={<RoleRoute allowedRoles={['admin', 'lojistik', 'depocu']} />}>
                 <Route path="/irsaliyeler" element={<IrsaliyelerPage />} />
                 <Route path="/mal-kabul-irsaliyeleri" element={<MalKabulIrsaliyeleriPage />} />
+              </Route>
+
+              {/* Inbound Dashboard (Admin + Lojistik) */}
+              <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
+                <Route path="/inbound-dashboard" element={<InboundDashboardPage />} />
               </Route>
 
               {/* Stok Sayımı (Admin + Depocu) */}

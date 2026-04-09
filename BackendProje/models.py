@@ -431,10 +431,11 @@ class MalKabulIrsaliye(Base):
     depo_id = Column(Integer, ForeignKey("depolar.id"), nullable=False)
     tir_plaka = Column(String(20), nullable=True)
     sofor_adi = Column(String(100), nullable=True)
-    durum = Column(String(20), default="Taslak")  # Taslak, Onaylandi, Tamamlandi
+    durum = Column(String(20), default="Taslak")  # Taslak, Onaylandi, Kapandi
     tarih = Column(Date, nullable=False)
     olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
     guncelleme_tarihi = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    kapanma_ozeti = Column(JSON, nullable=True)  # Otomatik kapanışta snapshot
 
     # İlişkiler
     tedarikci = relationship("Tedarikci")

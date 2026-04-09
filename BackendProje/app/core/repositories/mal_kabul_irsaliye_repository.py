@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from app.core.entities.mal_kabul_irsaliye import MalKabulIrsaliye, MalKabulKalemi
 
@@ -45,4 +45,9 @@ class IMalKabulIrsaliyeRepository(ABC):
     @abstractmethod
     def kalem_guncelle(self, kalem_id: int, **kwargs) -> None:
         """Kalem satırındaki belirtilen alanları günceller."""
+        ...
+
+    @abstractmethod
+    def inbound_dashboard_istatistik(self) -> Dict[str, Any]:
+        """Inbound kontrol paneli için bugünkü irsaliye, palet ve görev istatistiklerini döner."""
         ...

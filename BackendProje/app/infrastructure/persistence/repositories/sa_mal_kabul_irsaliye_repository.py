@@ -1,9 +1,10 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import or_
+from sqlalchemy import or_, func, case, literal_column
 
 from app.core.entities.mal_kabul_irsaliye import MalKabulIrsaliye, MalKabulKalemi
+from app.core.entities.yerlestirme_gorevi import GorevDurum
 from app.core.repositories.mal_kabul_irsaliye_repository import IMalKabulIrsaliyeRepository
 from app.core.exceptions import KayitBulunamadiError
 from app.infrastructure.persistence.mappers import (
@@ -15,13 +16,61 @@ from app.infrastructure.persistence.mappers import (
 from models import (
     MalKabulIrsaliye as MalKabulIrsaliyeORM,
     MalKabulKalemi as MalKabulKalemiORM,
+    YerlestirmeGorevi as YerlestirmeGoreviORM,
 )
+
+
+def _timestampdiff_seconds(start_column, end_column):
+    return func.timestampdiff(
+        literal_column("SECOND"),
+        start_column,
+        end_column,
+    )
 
 
 class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
 
     def __init__(self, db: Session):
         self._db = db
+
+    def _yerlestirme_gorev_istatistiklerini_yukle(
+        self,
+        irsaliyeler: List[MalKabulIrsaliye],
+    ) -> List[MalKabulIrsaliye]:
+        if not irsaliyeler:
+            return irsaliyeler
+
+        irsaliye_idleri = [irs.id for irs in irsaliyeler if irs.id is not None]
+        if not irsaliye_idleri:
+            return irsaliyeler
+
+        for irsaliye in irsaliyeler:
+            irsaliye.yerlestirme_gorev_toplam = 0
+            irsaliye.yerlestirme_gorev_tamamlanan = 0
+            irsaliye.yerlestirme_gorev_iptal = 0
+
+        rows = (
+            self._db.query(
+                YerlestirmeGoreviORM.mal_kabul_irsaliye_id.label("irsaliye_id"),
+                func.count(YerlestirmeGoreviORM.id).label("toplam"),
+                func.count(case((YerlestirmeGoreviORM.durum == GorevDurum.TAMAMLANDI, 1))).label("tamamlanan"),
+                func.count(case((YerlestirmeGoreviORM.durum == GorevDurum.IPTAL_EDILDI, 1))).label("iptal"),
+            )
+            .filter(YerlestirmeGoreviORM.mal_kabul_irsaliye_id.in_(irsaliye_idleri))
+            .group_by(YerlestirmeGoreviORM.mal_kabul_irsaliye_id)
+            .all()
+        )
+        istatistikler = {row.irsaliye_id: row for row in rows}
+
+        for irsaliye in irsaliyeler:
+            row = istatistikler.get(irsaliye.id)
+            if not row:
+                continue
+            irsaliye.yerlestirme_gorev_toplam = int(row.toplam or 0)
+            irsaliye.yerlestirme_gorev_tamamlanan = int(row.tamamlanan or 0)
+            irsaliye.yerlestirme_gorev_iptal = int(row.iptal or 0)
+
+        return irsaliyeler
 
     def _base_query(self, detay_getir: bool = True):
         # Temel ilişkiler her zaman yüklensin (Header bilgileri)
@@ -72,14 +121,20 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
         orm_list = query.order_by(
             MalKabulIrsaliyeORM.olusturma_tarihi.desc()
         ).offset(skip).limit(limit).all()
-        return [mal_kabul_irsaliye_to_entity(o) for o in orm_list]
+        return self._yerlestirme_gorev_istatistiklerini_yukle(
+            [mal_kabul_irsaliye_to_entity(o) for o in orm_list]
+        )
 
     def getir_id_ile(self, irsaliye_id: int) -> Optional[MalKabulIrsaliye]:
         # Tekil detay sorgusu olduğu için kalemleri YÜKLE
         orm = self._base_query(detay_getir=True).filter(
             MalKabulIrsaliyeORM.id == irsaliye_id
         ).first()
-        return mal_kabul_irsaliye_to_entity(orm) if orm else None
+        if not orm:
+            return None
+        entity = mal_kabul_irsaliye_to_entity(orm)
+        self._yerlestirme_gorev_istatistiklerini_yukle([entity])
+        return entity
 
     def olustur(self, irsaliye: MalKabulIrsaliye, auto_commit: bool = False) -> MalKabulIrsaliye:
         orm = mal_kabul_irsaliye_to_orm(irsaliye)
@@ -112,6 +167,7 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
         orm.durum = irsaliye.durum
         orm.tarih = irsaliye.tarih
         orm.guncelleme_tarihi = irsaliye.guncelleme_tarihi
+        orm.kapanma_ozeti = irsaliye.kapanma_ozeti
 
         # Kalemler — senkronize et
         orm_kalem_map = {k.id: k for k in orm.kalemler if k.id}
@@ -198,3 +254,105 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
             joinedload(MalKabulKalemiORM.irsaliye).joinedload(MalKabulIrsaliyeORM.depo),
         ).filter(MalKabulKalemiORM.palet_no == palet_no).first()
         return mal_kabul_kalemi_to_entity(orm) if orm else None
+
+    def inbound_dashboard_istatistik(self) -> Dict[str, Any]:
+        bugun = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # 1) Bugünkü irsaliye durum dağılımı
+        irsaliye_stats = self._db.query(
+            func.count(MalKabulIrsaliyeORM.id),
+            func.count(case((MalKabulIrsaliyeORM.durum == "Taslak", 1))),
+            func.count(case((MalKabulIrsaliyeORM.durum == "Onaylandi", 1))),
+            func.count(case((MalKabulIrsaliyeORM.durum == "Kapandi", 1))),
+        ).filter(MalKabulIrsaliyeORM.olusturma_tarihi >= bugun).one()
+
+        # 2) Bugünkü görev durum dağılımı
+        gorev_stats = self._db.query(
+            func.count(YerlestirmeGoreviORM.id),
+            func.count(case((YerlestirmeGoreviORM.durum == "Bekliyor", 1))),
+            func.count(case((YerlestirmeGoreviORM.durum.in_(["Atandi", "DevamEdiyor"]), 1))),
+            func.count(case((YerlestirmeGoreviORM.durum == "Tamamlandi", 1))),
+            func.count(case((YerlestirmeGoreviORM.durum == "IptalEdildi", 1))),
+        ).filter(YerlestirmeGoreviORM.olusturma_tarihi >= bugun).one()
+
+        # 3) Ortalama yerleştirme süresi (bugün tamamlanan görevler) — MySQL TIMESTAMPDIFF
+        ort_sure = self._db.query(
+            func.avg(
+                _timestampdiff_seconds(
+                    YerlestirmeGoreviORM.baslama_tarihi,
+                    YerlestirmeGoreviORM.tamamlanma_tarihi,
+                )
+            )
+        ).filter(
+            YerlestirmeGoreviORM.durum == GorevDurum.TAMAMLANDI,
+            YerlestirmeGoreviORM.tamamlanma_tarihi >= bugun,
+            YerlestirmeGoreviORM.baslama_tarihi.isnot(None),
+        ).scalar()
+        # Saniyeyi dakikaya çevir
+        ort_sure_dk = round(float(ort_sure) / 60.0, 1) if ort_sure else None
+
+        # 4) Bugünkü istisna sayısı
+        istisna_sayisi = self._db.query(
+            func.count(MalKabulKalemiORM.id)
+        ).join(
+            MalKabulIrsaliyeORM,
+            MalKabulKalemiORM.mal_kabul_irsaliyesi_id == MalKabulIrsaliyeORM.id,
+        ).filter(
+            MalKabulIrsaliyeORM.olusturma_tarihi >= bugun,
+            MalKabulKalemiORM.istisna_tip.isnot(None),
+        ).scalar()
+
+        # 5) Override sayısı (bugün)
+        override_sayisi = self._db.query(
+            func.count(YerlestirmeGoreviORM.id)
+        ).filter(
+            YerlestirmeGoreviORM.tamamlanma_tarihi >= bugun,
+            YerlestirmeGoreviORM.override_kullanici_id.isnot(None),
+        ).scalar()
+
+        # 6) Bugünkü irsaliye listesi (özet)
+        bugunun_irsaliyeleri = self._db.query(
+            MalKabulIrsaliyeORM.id,
+            MalKabulIrsaliyeORM.irsaliye_no,
+            MalKabulIrsaliyeORM.tir_plaka,
+            MalKabulIrsaliyeORM.durum,
+            MalKabulIrsaliyeORM.olusturma_tarihi,
+            func.count(MalKabulKalemiORM.id).label("kalem_sayisi"),
+        ).outerjoin(
+            MalKabulKalemiORM,
+            MalKabulKalemiORM.mal_kabul_irsaliyesi_id == MalKabulIrsaliyeORM.id,
+        ).filter(
+            MalKabulIrsaliyeORM.olusturma_tarihi >= bugun,
+        ).group_by(
+            MalKabulIrsaliyeORM.id,
+        ).order_by(
+            MalKabulIrsaliyeORM.olusturma_tarihi.desc(),
+        ).all()
+
+        irsaliye_listesi = [
+            {
+                "id": row[0],
+                "irsaliye_no": row[1],
+                "tir_plaka": row[2],
+                "durum": row[3],
+                "olusturma_tarihi": row[4].isoformat() if row[4] else None,
+                "kalem_sayisi": row[5],
+            }
+            for row in bugunun_irsaliyeleri
+        ]
+
+        return {
+            "irsaliye_toplam": irsaliye_stats[0],
+            "irsaliye_taslak": irsaliye_stats[1],
+            "irsaliye_onaylandi": irsaliye_stats[2],
+            "irsaliye_kapandi": irsaliye_stats[3],
+            "gorev_toplam": gorev_stats[0],
+            "gorev_bekleyen": gorev_stats[1],
+            "gorev_devam_eden": gorev_stats[2],
+            "gorev_tamamlanan": gorev_stats[3],
+            "gorev_iptal": gorev_stats[4],
+            "ort_yerlestirme_sure_dk": ort_sure_dk,
+            "istisna_sayisi": istisna_sayisi or 0,
+            "override_sayisi": override_sayisi or 0,
+            "bugunun_irsaliyeleri": irsaliye_listesi,
+        }

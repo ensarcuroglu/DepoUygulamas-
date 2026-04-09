@@ -60,6 +60,7 @@ const menuGroups = [
             { path: '/sevkiyat-planlama', label: 'Sevkiyat Planlama', icon: Route, roles: ['admin', 'lojistik'], badge: null },
             { path: '/irsaliyeler', label: 'İrsaliyeler', icon: FileText, roles: ['admin', 'lojistik', 'depocu'], badge: null },
             { path: '/mal-kabul-irsaliyeleri', label: 'Mal Kabul', icon: ClipboardCheck, roles: ['admin', 'lojistik', 'depocu'], badge: null },
+            { path: '/inbound-dashboard', label: 'Inbound Panel', icon: BarChart3, roles: ['admin', 'lojistik'], badge: null },
         ],
     },
     {

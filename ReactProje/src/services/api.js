@@ -306,6 +306,7 @@ export const deleteMalKabulIrsaliye = (id) => api.delete(`/mal-kabul-irsaliyeler
 export const onaylaMalKabulIrsaliye = (id) => api.post(`/mal-kabul-irsaliyeleri/${id}/onayla`);
 export const malKabulKalemiIstisnaGuncelle = (irsaliyeId, kalemId, data) =>
   api.put(`/mal-kabul-irsaliyeleri/${irsaliyeId}/kalemler/${kalemId}/istisna`, data);
+export const getInboundDashboard = () => api.get('/mal-kabul-irsaliyeleri/inbound-dashboard');
 
 // ========================
 // SEVKİYAT PLANLAMA

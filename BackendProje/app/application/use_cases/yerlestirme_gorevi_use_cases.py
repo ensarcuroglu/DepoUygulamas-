@@ -23,12 +23,36 @@ from app.core.exceptions import KayitBulunamadiError, GecersizIslemError
 _GOREV_BITTI_DURUMLARI = {GorevDurum.TAMAMLANDI, GorevDurum.IPTAL_EDILDI}
 
 
+def _kapanma_ozeti_olustur(irsaliye, gorevler) -> dict:
+    """Kapanış anında snapshot özeti üretir."""
+    toplam = len(irsaliye.kalemler)
+    tamamlanan = sum(1 for g in gorevler if g.durum == GorevDurum.TAMAMLANDI)
+    iptal = sum(1 for g in gorevler if g.durum == GorevDurum.IPTAL_EDILDI)
+    istisna = irsaliye.istisna_sayisi()
+
+    # Ortalama yerleştirme süresi (saniye)
+    sureler = []
+    for g in gorevler:
+        if g.durum == GorevDurum.TAMAMLANDI and g.baslama_tarihi and g.tamamlanma_tarihi:
+            delta = (g.tamamlanma_tarihi - g.baslama_tarihi).total_seconds()
+            sureler.append(delta)
+    ort_sure_dk = round(sum(sureler) / len(sureler) / 60.0, 1) if sureler else None
+
+    return {
+        "toplam_kalem": toplam,
+        "yerlestirilen": tamamlanan,
+        "iptal_edilen": iptal,
+        "istisna_sayisi": istisna,
+        "ort_yerlestirme_sure_dk": ort_sure_dk,
+    }
+
+
 def _irsaliye_otomatik_kapat(
     gorev: YerlestirmeGorevi,
     gorev_repo: IYerlestirmeGoreviRepository,
     mal_kabul_repo: IMalKabulIrsaliyeRepository,
 ) -> None:
-    """Son görev tamamlandığında irsaliyeyi otomatik kapatır."""
+    """Son görev tamamlandığında irsaliyeyi otomatik kapatır ve kapanma_ozeti oluşturur."""
     if not gorev.mal_kabul_irsaliye_id:
         return
     irsaliye_gorevleri = gorev_repo.getir_irsaliye_id_ile(gorev.mal_kabul_irsaliye_id)
@@ -37,6 +61,7 @@ def _irsaliye_otomatik_kapat(
     if all(g.durum in _GOREV_BITTI_DURUMLARI for g in irsaliye_gorevleri):
         irsaliye = mal_kabul_repo.getir_id_ile(gorev.mal_kabul_irsaliye_id)
         if irsaliye and irsaliye.durum == MalKabulDurum.ONAYLANDI:
+            irsaliye.kapanma_ozeti = _kapanma_ozeti_olustur(irsaliye, irsaliye_gorevleri)
             irsaliye.kapat()
             mal_kabul_repo.guncelle(irsaliye)
 from app.application.dto.yerlestirme_gorevi_dto import (

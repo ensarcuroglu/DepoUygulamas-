@@ -141,6 +141,7 @@ from .mal_kabul_irsaliye_use_cases import (
     MalKabulIrsaliyeSilUseCase,
     IrsaliyeOnaylaVeGorevOlusturUseCase,
     MalKabulKalemiIstisnaBildirUseCase,
+    InboundDashboardUseCase,
 )
 
 from .yerlestirme_gorevi_use_cases import (
@@ -223,6 +224,7 @@ __all__ = [
     "MalKabulIrsaliyeOlusturUseCase", "MalKabulIrsaliyeGuncelleUseCase",
     "MalKabulIrsaliyeSilUseCase", "IrsaliyeOnaylaVeGorevOlusturUseCase",
     "MalKabulKalemiIstisnaBildirUseCase",
+    "InboundDashboardUseCase",
     # Yerleştirme Görevi
     "YerlestirmeGoreviListeleUseCase", "YerlestirmeGoreviGetirUseCase",
     "YerlestirmeGoreviOlusturUseCase", "SonrakiGorevisiniAlUseCase",

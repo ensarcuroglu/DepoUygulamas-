@@ -4,10 +4,10 @@ Mal Kabul İrsaliyesi veri transfer nesneleri (DTO).
 
 from __future__ import annotations
 from datetime import datetime, date
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, field_validator
 
-from app.core.entities.mal_kabul_irsaliye import MalKabulDurum, KalemDurum, IstisnaKalemTip
+from app.core.entities.mal_kabul_irsaliye import MalKabulDurum, IstisnaKalemTip
 
 # Kullanıcı yalnızca Onaylandi geçişini tetikleyebilir.
 # Kapandi sisteme özel (auto-close), API üzerinden ayarlanamaz.
@@ -140,6 +140,12 @@ class MalKabulIrsaliyeResponseDTO(BaseModel):
     # Yalnızca onay endpointinde dolar; listelemede None gelir.
     olusturulan_gorev_sayisi: Optional[int] = None
     istisna_sayisi: int = 0
+    kapanma_ozeti: Optional[Dict[str, Any]] = None
+
+    # Operasyon ilerleme — kalem durumlarından hesaplanır
+    toplam_kalem: int = 0
+    yerlestirilen: int = 0
+    bekleyen: int = 0
 
     model_config = {"from_attributes": True}
 
@@ -149,6 +155,9 @@ class MalKabulIrsaliyeResponseDTO(BaseModel):
         entity,
         olusturulan_gorev_sayisi: Optional[int] = None,
     ) -> "MalKabulIrsaliyeResponseDTO":
+        kalemler_dto = [MalKabulKalemiResponseDTO.from_entity(k) for k in entity.kalemler]
+        toplam, yerlestirilen, bekleyen = cls._ilerleme_hesapla(entity)
+
         return cls(
             id=entity.id,
             irsaliye_no=entity.irsaliye_no,
@@ -160,7 +169,70 @@ class MalKabulIrsaliyeResponseDTO(BaseModel):
             tarih=entity.tarih,
             olusturma_tarihi=entity.olusturma_tarihi,
             guncelleme_tarihi=entity.guncelleme_tarihi,
-            kalemler=[MalKabulKalemiResponseDTO.from_entity(k) for k in entity.kalemler],
+            kalemler=kalemler_dto,
             olusturulan_gorev_sayisi=olusturulan_gorev_sayisi,
             istisna_sayisi=entity.istisna_sayisi(),
+            kapanma_ozeti=entity.kapanma_ozeti,
+            toplam_kalem=toplam,
+            yerlestirilen=yerlestirilen,
+            bekleyen=bekleyen,
         )
+
+    @staticmethod
+    def _ilerleme_hesapla(entity) -> tuple[int, int, int]:
+        kapanma_ozeti = entity.kapanma_ozeti or {}
+        if kapanma_ozeti:
+            toplam = int(kapanma_ozeti.get("toplam_kalem") or len(entity.kalemler))
+            yerlestirilen = int(kapanma_ozeti.get("yerlestirilen") or 0)
+            iptal = int(kapanma_ozeti.get("iptal_edilen") or 0)
+        elif entity.durum == MalKabulDurum.TASLAK:
+            toplam = len(entity.kalemler)
+            yerlestirilen = 0
+            iptal = 0
+        else:
+            toplam = int(getattr(entity, "yerlestirme_gorev_toplam", 0) or len(entity.kalemler))
+            yerlestirilen = int(getattr(entity, "yerlestirme_gorev_tamamlanan", 0) or 0)
+            iptal = int(getattr(entity, "yerlestirme_gorev_iptal", 0) or 0)
+
+        bekleyen = max(toplam - yerlestirilen - iptal, 0)
+        return toplam, yerlestirilen, bekleyen
+
+
+# ─────────────────────────────────────────
+# INBOUND DASHBOARD DTO
+# ─────────────────────────────────────────
+
+class InboundIrsaliyeOzetDTO(BaseModel):
+    id: int
+    irsaliye_no: str
+    tir_plaka: Optional[str] = None
+    durum: str
+    olusturma_tarihi: Optional[str] = None
+    kalem_sayisi: int = 0
+
+
+class InboundDashboardResponseDTO(BaseModel):
+    """Inbound kontrol paneli — bugünkü operasyon özeti."""
+
+    # İrsaliye dağılımı
+    irsaliye_toplam: int = 0
+    irsaliye_taslak: int = 0
+    irsaliye_onaylandi: int = 0
+    irsaliye_kapandi: int = 0
+
+    # Görev dağılımı
+    gorev_toplam: int = 0
+    gorev_bekleyen: int = 0
+    gorev_devam_eden: int = 0
+    gorev_tamamlanan: int = 0
+    gorev_iptal: int = 0
+
+    # Performans
+    ort_yerlestirme_sure_dk: Optional[float] = None
+
+    # İstisnalar
+    istisna_sayisi: int = 0
+    override_sayisi: int = 0
+
+    # Bugünkü irsaliye listesi
+    bugunun_irsaliyeleri: List[InboundIrsaliyeOzetDTO] = []

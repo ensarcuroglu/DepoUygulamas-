@@ -12,6 +12,7 @@ from app.infrastructure.di.container import (
     get_mal_kabul_irsaliye_sil_uc,
     get_irsaliye_onayla_ve_gorev_olustur_uc,
     get_mal_kabul_kalemi_istisna_bildir_uc,
+    get_inbound_dashboard_uc,
 )
 
 from app.application.dto import (
@@ -19,6 +20,7 @@ from app.application.dto import (
     MalKabulIrsaliyeGuncelleRequestDTO,
     MalKabulIrsaliyeResponseDTO,
     MalKabulKalemiIstisnaRequestDTO,
+    InboundDashboardResponseDTO,
 )
 
 from app.application.use_cases import (
@@ -29,6 +31,7 @@ from app.application.use_cases import (
     MalKabulIrsaliyeSilUseCase,
     IrsaliyeOnaylaVeGorevOlusturUseCase,
     MalKabulKalemiIstisnaBildirUseCase,
+    InboundDashboardUseCase,
 )
 
 
@@ -51,6 +54,15 @@ def mal_kabul_irsaliyeleri_listele(
         skip=skip, limit=limit, durum=durum, arama=arama,
         depo_id=depo_id, tedarikci_id=tedarikci_id,
     )
+
+
+@router.get("/inbound-dashboard", response_model=InboundDashboardResponseDTO)
+def inbound_dashboard(
+    current_user: Kullanici = Depends(require_role("admin", "lojistik")),
+    uc: InboundDashboardUseCase = Depends(get_inbound_dashboard_uc),
+):
+    """Inbound kontrol paneli — bugünkü operasyon özeti."""
+    return uc.execute()
 
 
 @router.get("/{irsaliye_id}", response_model=MalKabulIrsaliyeResponseDTO)
