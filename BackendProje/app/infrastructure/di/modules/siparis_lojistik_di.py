@@ -33,6 +33,7 @@ from app.application.use_cases import (
     IrsaliyeOnaylaVeGorevOlusturUseCase,
     MalKabulKalemiIstisnaBildirUseCase,
     InboundDashboardUseCase,
+    InboundKpiUseCase,
 )
 from app.core.services.stok_cikis_domain_service import StokCikisDomainService
 
@@ -258,3 +259,9 @@ def get_inbound_dashboard_uc(
     repo=Depends(get_mal_kabul_irsaliye_repo),
 ):
     return InboundDashboardUseCase(repo)
+
+
+def get_inbound_kpi_uc(
+    db: Session = Depends(get_db),
+):
+    return InboundKpiUseCase(db)

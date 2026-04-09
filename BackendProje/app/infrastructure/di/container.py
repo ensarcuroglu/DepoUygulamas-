@@ -166,6 +166,7 @@ from app.infrastructure.di.modules.siparis_lojistik_di import (  # noqa: F401
     get_irsaliye_onayla_ve_gorev_olustur_uc,
     get_mal_kabul_kalemi_istisna_bildir_uc,
     get_inbound_dashboard_uc,
+    get_inbound_kpi_uc,
 )
 
 from app.infrastructure.di.modules.rapor_dashboard_di import (  # noqa: F401

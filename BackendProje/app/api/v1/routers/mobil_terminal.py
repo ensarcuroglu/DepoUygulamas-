@@ -11,8 +11,10 @@ from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
 
 from app.core.auth import require_role
+from app.core.entities.sistem_log import SistemLog, OlayTipi
 from app.core.exceptions import GecersizIslemError, KayitBulunamadiError
 from app.infrastructure.di.container import (
+    get_log_repo,
     get_kapasite_dogrulama_servisi,
     get_lot_repo,
     get_palet_barkod_ile_getir_uc,
@@ -308,3 +310,38 @@ def alternatif_raf_oner(
             skor=round(kapasite_svc.doluluk_orani(raf) * 100, 1),
         ))
     return sonuc
+
+
+# ─────────────────────────────────────────
+# PALET HATA LOGLAMA (KPI veri kaynağı)
+# ─────────────────────────────────────────
+
+class PaletHataLogRequestDTO(BaseModel):
+    palet_barkod: str = Field(..., min_length=1, max_length=100)
+    beklenen_palet_barkod: Optional[str] = Field(None, max_length=100)
+    gorev_id: Optional[int] = None
+
+
+@router.post("/log-palet-hata", status_code=204)
+@limiter.limit("120/minute")
+def palet_hata_logla(
+    request: Request,
+    dto: PaletHataLogRequestDTO,
+    current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
+    log_repo=Depends(get_log_repo),
+):
+    """Terminal: palet barkod eşleşmeme durumunu KPI için loglar."""
+    detay = f"Palet hata: okutulan={dto.palet_barkod}"
+    if dto.beklenen_palet_barkod:
+        detay += f" | beklenen={dto.beklenen_palet_barkod}"
+    if dto.gorev_id:
+        detay += f" | gorev_id={dto.gorev_id}"
+
+    log_repo.olustur(
+        SistemLog.olustur(
+            kullanici_id=current_user.id,
+            islem_tipi=OlayTipi.PALET_OKUTMA_HATASI,
+            modul="Terminal",
+            detay=detay,
+        )
+    )

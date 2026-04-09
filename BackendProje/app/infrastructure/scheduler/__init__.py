@@ -10,12 +10,13 @@ Kullanım (main.py lifespan):
 
 import logging
 from app.infrastructure.scheduler.rapor_scheduler import zamanlama_kontrol
+from app.infrastructure.scheduler.staging_uyari_job import staging_uyari_kontrol
 
 logger = logging.getLogger(__name__)
 
 
 class RaporScheduler:
-    """APScheduler wrapper — zamanlı rapor tetikleyici."""
+    """APScheduler wrapper — zamanlı rapor ve staging uyarı tetikleyici."""
 
     def __init__(self) -> None:
         self._scheduler = None
@@ -27,9 +28,17 @@ class RaporScheduler:
             from apscheduler.triggers.cron import CronTrigger
 
             self._scheduler = BackgroundScheduler(timezone="Europe/Istanbul")
+            # Zamanlı raporlar — her dakika
             self._scheduler.add_job(zamanlama_kontrol, CronTrigger(minute="*"))
+            # Staging uyarısı — her gün sabah 07:00
+            self._scheduler.add_job(
+                staging_uyari_kontrol,
+                CronTrigger(hour=7, minute=0),
+                id="staging_uyari",
+                replace_existing=True,
+            )
         except ImportError:
-            logger.warning("apscheduler kurulu değil — zamanlı raporlar devre dışı")
+            logger.warning("apscheduler kurulu değil — zamanlı görevler devre dışı")
 
     @property
     def aktif(self) -> bool:

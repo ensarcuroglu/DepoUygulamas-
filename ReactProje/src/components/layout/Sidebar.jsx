@@ -26,6 +26,7 @@ import {
     BarChart3,
     ClipboardCheck,
     ChevronDown,
+    TrendingUp,
 } from 'lucide-react';
 
 /* ───────────────────────────────────────────
@@ -61,6 +62,7 @@ const menuGroups = [
             { path: '/irsaliyeler', label: 'İrsaliyeler', icon: FileText, roles: ['admin', 'lojistik', 'depocu'], badge: null },
             { path: '/mal-kabul-irsaliyeleri', label: 'Mal Kabul', icon: ClipboardCheck, roles: ['admin', 'lojistik', 'depocu'], badge: null },
             { path: '/inbound-dashboard', label: 'Inbound Panel', icon: BarChart3, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/kpi-dashboard', label: 'KPI Paneli', icon: TrendingUp, roles: ['admin', 'lojistik'], badge: null },
         ],
     },
     {

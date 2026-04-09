@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Package, TrendingUp, Clock, AlertTriangle,
   ShieldAlert, FileText, RefreshCw, CheckCircle,
-  Loader2, Truck, ChevronRight
+  Loader2, Truck, ChevronRight, PackageX
 } from 'lucide-react';
-import { getInboundDashboard } from '../services/api';
+import { getInboundDashboard, getInboundKpi } from '../services/api';
 import { useAsync } from '../hooks/useAsync';
 
 const DURUM_RENK = {
@@ -16,11 +16,25 @@ const DURUM_RENK = {
 export default function InboundDashboardPage() {
   const { loading, run } = useAsync(true);
   const [data, setData] = useState(null);
+  const [stagingPalet, setStagingPalet] = useState(0);
 
   const yukle = useCallback(async () => {
     await run(async () => {
-      const res = await getInboundDashboard();
-      setData(res.data);
+      const [dashRes, kpiRes] = await Promise.allSettled([
+        getInboundDashboard(),
+        getInboundKpi(undefined, undefined, 24),
+      ]);
+
+      if (dashRes.status === 'rejected') {
+        throw dashRes.reason;
+      }
+      setData(dashRes.value.data);
+
+      if (kpiRes.status === 'fulfilled') {
+        setStagingPalet(kpiRes.value.data?.staging_esik_palet_sayisi ?? 0);
+      } else {
+        setStagingPalet(0);
+      }
     });
   }, [run]);
 
@@ -66,6 +80,23 @@ export default function InboundDashboardPage() {
           {loading ? 'Yenileniyor...' : 'Verileri Yenile'}
         </button>
       </div>
+
+      {/* Staging Uyarı Bandı */}
+      {stagingPalet > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-center gap-4">
+          <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center flex-shrink-0">
+            <PackageX className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-amber-900">
+              Staging Uyarısı — {stagingPalet} palet 24+ saat bekliyor
+            </p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Bu paletler için yerleştirme görevi tamamlanmamış. KPI Paneli'nden detay görüntüleyebilirsiniz.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Özet Kartları (Grid) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">

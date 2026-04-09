@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from typing import Optional, List
+from datetime import datetime, date
 
 from app.core.auth import require_role
 from models import Kullanici
@@ -13,6 +14,7 @@ from app.infrastructure.di.container import (
     get_irsaliye_onayla_ve_gorev_olustur_uc,
     get_mal_kabul_kalemi_istisna_bildir_uc,
     get_inbound_dashboard_uc,
+    get_inbound_kpi_uc,
 )
 
 from app.application.dto import (
@@ -21,6 +23,7 @@ from app.application.dto import (
     MalKabulIrsaliyeResponseDTO,
     MalKabulKalemiIstisnaRequestDTO,
     InboundDashboardResponseDTO,
+    InboundKpiResponseDTO,
 )
 
 from app.application.use_cases import (
@@ -32,6 +35,7 @@ from app.application.use_cases import (
     IrsaliyeOnaylaVeGorevOlusturUseCase,
     MalKabulKalemiIstisnaBildirUseCase,
     InboundDashboardUseCase,
+    InboundKpiUseCase,
 )
 
 
@@ -63,6 +67,49 @@ def inbound_dashboard(
 ):
     """Inbound kontrol paneli — bugünkü operasyon özeti."""
     return uc.execute()
+
+
+@router.get("/kpi", response_model=InboundKpiResponseDTO)
+def inbound_kpi(
+    tarih_baslangic: Optional[date] = Query(
+        None,
+        description="ISO format (YYYY-MM-DD). Varsayılan: bugün 00:00",
+    ),
+    tarih_bitis: Optional[date] = Query(
+        None,
+        description="ISO format (YYYY-MM-DD). Varsayılan: bugün 23:59",
+    ),
+    staging_esik_saat: int = Query(
+        default=24,
+        ge=1,
+        le=720,
+        description="Staging uyarı eşiği (saat). Varsayılan: 24",
+    ),
+    current_user: Kullanici = Depends(require_role("admin", "lojistik")),
+    uc: InboundKpiUseCase = Depends(get_inbound_kpi_uc),
+):
+    """Inbound operasyon KPI metrikleri — tarih aralığı ve staging eşiğine göre."""
+    bugun = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+
+    if tarih_baslangic:
+        bas = datetime.combine(tarih_baslangic, datetime.min.time()).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+    else:
+        bas = bugun
+
+    if tarih_bitis:
+        bitis = datetime.combine(tarih_bitis, datetime.max.time()).replace(
+            hour=23, minute=59, second=59, microsecond=0
+        )
+    else:
+        bitis = bugun.replace(hour=23, minute=59, second=59)
+
+    return uc.execute(
+        tarih_baslangic=bas,
+        tarih_bitis=bitis,
+        staging_esik_saat=staging_esik_saat,
+    )
 
 
 @router.get("/{irsaliye_id}", response_model=MalKabulIrsaliyeResponseDTO)

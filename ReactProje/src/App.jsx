@@ -31,6 +31,7 @@ import RaporZamanliPage from './pages/RaporZamanliPage';
 import StokSayimPage from './pages/StokSayimPage';
 import MalKabulIrsaliyeleriPage from './pages/MalKabulIrsaliyeleriPage';
 import InboundDashboardPage from './pages/InboundDashboardPage';
+import KpiDashboardPage from './pages/KpiDashboardPage';
 import ZonlarPage from './pages/ZonlarPage';
 import YerlestirmeGorevleriPage from './pages/YerlestirmeGorevleriPage';
 import GorevListesiPage from './pages/terminal/GorevListesiPage';
@@ -89,9 +90,10 @@ function App() {
                 <Route path="/mal-kabul-irsaliyeleri" element={<MalKabulIrsaliyeleriPage />} />
               </Route>
 
-              {/* Inbound Dashboard (Admin + Lojistik) */}
+              {/* Inbound Dashboard + KPI (Admin + Lojistik) */}
               <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
                 <Route path="/inbound-dashboard" element={<InboundDashboardPage />} />
+                <Route path="/kpi-dashboard" element={<KpiDashboardPage />} />
               </Route>
 
               {/* Stok Sayımı (Admin + Depocu) */}

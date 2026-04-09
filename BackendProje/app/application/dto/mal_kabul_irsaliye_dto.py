@@ -199,6 +199,46 @@ class MalKabulIrsaliyeResponseDTO(BaseModel):
 
 
 # ─────────────────────────────────────────
+# INBOUND KPI DTO
+# ─────────────────────────────────────────
+
+class OperatorVerimDTO(BaseModel):
+    kullanici_id: int
+    kullanici_adi: Optional[str] = None
+    toplam_yerlestirme: int
+    saatlik_yerlestirme: float
+
+
+class InboundKpiResponseDTO(BaseModel):
+    """Inbound operasyon KPI metrikleri."""
+
+    tarih_baslangic: str
+    tarih_bitis: str
+    staging_esik_saat: int
+
+    # Zaman metrikleri (dakika)
+    arac_kabul_ilk_palet_sure_dk: Optional[float] = None
+    ilk_palet_son_yerlestirme_sure_dk: Optional[float] = None
+
+    # Operatör verimliliği
+    operator_verimliligi: List[OperatorVerimDTO] = []
+
+    # Tarama hataları
+    yanlis_palet_okutma_sayisi: int = 0
+
+    # Override
+    override_sayisi: int = 0
+    override_orani: Optional[float] = None  # %
+
+    # Karantina
+    karantina_sayisi: int = 0
+    karantina_orani: Optional[float] = None  # %
+
+    # Staging uyarısı
+    staging_esik_palet_sayisi: int = 0
+
+
+# ─────────────────────────────────────────
 # INBOUND DASHBOARD DTO
 # ─────────────────────────────────────────
 

@@ -307,6 +307,15 @@ export const onaylaMalKabulIrsaliye = (id) => api.post(`/mal-kabul-irsaliyeleri/
 export const malKabulKalemiIstisnaGuncelle = (irsaliyeId, kalemId, data) =>
   api.put(`/mal-kabul-irsaliyeleri/${irsaliyeId}/kalemler/${kalemId}/istisna`, data);
 export const getInboundDashboard = () => api.get('/mal-kabul-irsaliyeleri/inbound-dashboard');
+export const getInboundKpi = (tarihBas, tarihBitis, stagingEsikSaat = 24) =>
+  api.get('/mal-kabul-irsaliyeleri/kpi', {
+    params: {
+      ...(tarihBas && { tarih_baslangic: tarihBas }),
+      ...(tarihBitis && { tarih_bitis: tarihBitis }),
+      staging_esik_saat: stagingEsikSaat,
+    },
+  });
+export const terminalLogPaletHata = (data) => api.post('/terminal/log-palet-hata', data);
 
 // ========================
 // SEVKİYAT PLANLAMA
