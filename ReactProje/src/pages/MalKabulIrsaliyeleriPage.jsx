@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import {
     Plus, Search, Loader2, X, Truck, Package, CheckCircle, Clock,
     ChevronDown, ChevronUp, Trash2, FileCheck, Calendar, MapPin, User,
-    ArrowRight, Lock
+    ArrowRight, Lock, AlertTriangle
 } from 'lucide-react';
 import {
     getMalKabulIrsaliyeleri, createMalKabulIrsaliye,
     deleteMalKabulIrsaliye, getTedarikciler, getDepolar, getUrunler, getRaflar,
-    onaylaMalKabulIrsaliye
+    onaylaMalKabulIrsaliye, malKabulKalemiIstisnaGuncelle
 } from '../services/api';
 import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
@@ -42,6 +42,9 @@ export default function MalKabulIrsaliyeleriPage() {
     // Onay sonrası özet banner: { irsaliye_no, palet_sayisi, gorev_sayisi }
     const [onayOzet, setOnayOzet] = useState(null);
     const aramaMetniRef = useRef(aramaMetni);
+    // İstisna bildirim: hangi kalem açık { irsaliyeId, kalemId }
+    const [istisnaAcikKalem, setIstisnaAcikKalem] = useState(null);
+    const [istisnaForm, setIstisnaForm] = useState({ istisna_tip: '', istisna_aciklama: '', gerceklesen_miktar: '' });
 
     const [formData, setFormData] = useState({
         tedarikci_id: '',
@@ -193,6 +196,27 @@ export default function MalKabulIrsaliyeleriPage() {
         }
     };
 
+    // ===== İSTİSNA BİLDİR =====
+    const handleIstisnaBildir = async (irsaliyeId, kalemId) => {
+        if (!istisnaForm.istisna_tip) {
+            toast.error('İstisna tipi seçilmesi zorunludur');
+            return;
+        }
+        try {
+            await malKabulKalemiIstisnaGuncelle(irsaliyeId, kalemId, {
+                istisna_tip: istisnaForm.istisna_tip,
+                istisna_aciklama: istisnaForm.istisna_aciklama || null,
+                gerceklesen_miktar: istisnaForm.gerceklesen_miktar ? Number(istisnaForm.gerceklesen_miktar) : null,
+            });
+            toast.success('Fark/hasar kaydedildi');
+            setIstisnaAcikKalem(null);
+            setIstisnaForm({ istisna_tip: '', istisna_aciklama: '', gerceklesen_miktar: '' });
+            yukle();
+        } catch (err) {
+            toast.error(hataMetni(err, 'İstisna kaydedilemedi'));
+        }
+    };
+
     // ===== SİL =====
     const handleSil = async (id) => {
         if (!window.confirm('Bu irsaliyeyi silmek istediğinize emin misiniz?')) return;
@@ -336,6 +360,12 @@ export default function MalKabulIrsaliyeleriPage() {
                                     <div className="text-sm font-semibold text-slate-700 bg-slate-50 px-3 py-1.5 rounded-lg">
                                         {irs.kalemler?.length || 0} <span className="text-slate-500 font-normal">Palet</span>
                                     </div>
+                                    {irs.istisna_sayisi > 0 && (
+                                        <div className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-xs font-bold">
+                                            <AlertTriangle className="w-3.5 h-3.5" />
+                                            {irs.istisna_sayisi} fark
+                                        </div>
+                                    )}
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${expandedId === irs.id ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-600'}`}>
                                         {expandedId === irs.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                                     </div>
@@ -379,71 +409,207 @@ export default function MalKabulIrsaliyeleriPage() {
                                                                 <th className="px-4 py-3">Raf</th>
                                                                 <th className="px-4 py-3">SKT</th>
                                                                 <th className="px-4 py-3">Durum</th>
+                                                                <th className="px-4 py-3">Fark</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody className="divide-y divide-slate-100">
-                                                            {irs.kalemler.map(kalem => (
-                                                                <tr key={kalem.id} className="hover:bg-slate-50/50 transition-colors">
-                                                                    <td className="px-4 py-3 font-mono text-xs font-bold text-blue-700">{kalem.palet_no}</td>
-                                                                    <td className="px-4 py-3 font-medium text-slate-700">{urunAdi(kalem.urun_id)}</td>
-                                                                    <td className="px-4 py-3 text-slate-500">{kalem.lot_no || '-'}</td>
-                                                                    <td className="px-4 py-3 text-right font-bold text-slate-700">{kalem.miktar}</td>
-                                                                    <td className="px-4 py-3 text-slate-500">{kalem.raf_id ? rafKodu(kalem.raf_id) : '-'}</td>
-                                                                    <td className="px-4 py-3 text-slate-500">{kalem.son_kullanma_tarihi || '-'}</td>
-                                                                    <td className="px-4 py-3">
-                                                                        {kalem.durum === 'GirisYapildi' ? (
-                                                                            <span className="inline-flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md text-xs font-bold">
-                                                                                <CheckCircle className="w-3.5 h-3.5" /> Giriş Yapıldı
-                                                                            </span>
-                                                                        ) : (
-                                                                            <span className="inline-flex items-center gap-1.5 text-amber-700 bg-amber-50 px-2 py-1 rounded-md text-xs font-bold">
-                                                                                <Clock className="w-3.5 h-3.5" /> Bekliyor
-                                                                            </span>
+                                                            {irs.kalemler.map(kalem => {
+                                                                const istisnaAcik = istisnaAcikKalem?.irsaliyeId === irs.id && istisnaAcikKalem?.kalemId === kalem.id;
+                                                                return (
+                                                                    <>
+                                                                        <tr key={kalem.id} className="hover:bg-slate-50/50 transition-colors">
+                                                                            <td className="px-4 py-3 font-mono text-xs font-bold text-blue-700">{kalem.palet_no}</td>
+                                                                            <td className="px-4 py-3 font-medium text-slate-700">{urunAdi(kalem.urun_id)}</td>
+                                                                            <td className="px-4 py-3 text-slate-500">{kalem.lot_no || '-'}</td>
+                                                                            <td className="px-4 py-3 text-right font-bold text-slate-700">{kalem.miktar}</td>
+                                                                            <td className="px-4 py-3 text-slate-500">{kalem.raf_id ? rafKodu(kalem.raf_id) : '-'}</td>
+                                                                            <td className="px-4 py-3 text-slate-500">{kalem.son_kullanma_tarihi || '-'}</td>
+                                                                            <td className="px-4 py-3">
+                                                                                {kalem.durum === 'GirisYapildi' ? (
+                                                                                    <span className="inline-flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md text-xs font-bold">
+                                                                                        <CheckCircle className="w-3.5 h-3.5" /> Giriş Yapıldı
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span className="inline-flex items-center gap-1.5 text-amber-700 bg-amber-50 px-2 py-1 rounded-md text-xs font-bold">
+                                                                                        <Clock className="w-3.5 h-3.5" /> Bekliyor
+                                                                                    </span>
+                                                                                )}
+                                                                            </td>
+                                                                            <td className="px-4 py-3">
+                                                                                {kalem.istisna_tip ? (
+                                                                                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-md text-xs font-bold">
+                                                                                        <AlertTriangle className="w-3 h-3" /> {kalem.istisna_tip}
+                                                                                    </span>
+                                                                                ) : irs.durum !== 'Kapandi' ? (
+                                                                                    <button
+                                                                                        onClick={() => {
+                                                                                            setIstisnaAcikKalem({ irsaliyeId: irs.id, kalemId: kalem.id });
+                                                                                            setIstisnaForm({ istisna_tip: '', istisna_aciklama: '', gerceklesen_miktar: '' });
+                                                                                        }}
+                                                                                        className="flex items-center gap-1 px-2.5 py-1 text-amber-600 border border-amber-200 bg-amber-50 hover:bg-amber-100 rounded-md text-xs font-semibold transition-colors"
+                                                                                    >
+                                                                                        <AlertTriangle className="w-3 h-3" /> Fark Bildir
+                                                                                    </button>
+                                                                                ) : <span className="text-slate-300 text-xs">—</span>}
+                                                                            </td>
+                                                                        </tr>
+                                                                        {istisnaAcik && (
+                                                                            <tr key={`istisna-${kalem.id}`}>
+                                                                                <td colSpan={8} className="px-4 py-3 bg-amber-50/60 border-b border-amber-100">
+                                                                                    <div className="flex flex-wrap gap-3 items-end">
+                                                                                        <div>
+                                                                                            <label className="block text-xs font-semibold text-slate-600 mb-1">İstisna Tipi *</label>
+                                                                                            <select
+                                                                                                value={istisnaForm.istisna_tip}
+                                                                                                onChange={e => setIstisnaForm(f => ({ ...f, istisna_tip: e.target.value }))}
+                                                                                                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                                                                            >
+                                                                                                <option value="">Seçin...</option>
+                                                                                                <option value="Eksik">Eksik</option>
+                                                                                                <option value="Fazla">Fazla</option>
+                                                                                                <option value="Hasarlı">Hasarlı</option>
+                                                                                                <option value="YanlışÜrün">Yanlış Ürün</option>
+                                                                                                <option value="OkunamamazBarkod">Okunamaz Barkod</option>
+                                                                                                <option value="Diğer">Diğer</option>
+                                                                                            </select>
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <label className="block text-xs font-semibold text-slate-600 mb-1">Gerçekleşen Miktar</label>
+                                                                                            <input
+                                                                                                type="number"
+                                                                                                min="0"
+                                                                                                placeholder="Opsiyonel"
+                                                                                                value={istisnaForm.gerceklesen_miktar}
+                                                                                                onChange={e => setIstisnaForm(f => ({ ...f, gerceklesen_miktar: e.target.value }))}
+                                                                                                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white w-32 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                                                                            />
+                                                                                        </div>
+                                                                                        <div className="flex-1 min-w-48">
+                                                                                            <label className="block text-xs font-semibold text-slate-600 mb-1">Açıklama</label>
+                                                                                            <input
+                                                                                                type="text"
+                                                                                                placeholder="Opsiyonel"
+                                                                                                value={istisnaForm.istisna_aciklama}
+                                                                                                onChange={e => setIstisnaForm(f => ({ ...f, istisna_aciklama: e.target.value }))}
+                                                                                                className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                                                                            />
+                                                                                        </div>
+                                                                                        <div className="flex gap-2">
+                                                                                            <button
+                                                                                                onClick={() => handleIstisnaBildir(irs.id, kalem.id)}
+                                                                                                className="px-3 py-1.5 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 transition-colors"
+                                                                                            >
+                                                                                                Kaydet
+                                                                                            </button>
+                                                                                            <button
+                                                                                                onClick={() => setIstisnaAcikKalem(null)}
+                                                                                                className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-colors"
+                                                                                            >
+                                                                                                İptal
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
                                                                         )}
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
+                                                                    </>
+                                                                );
+                                                            })}
                                                         </tbody>
                                                     </table>
                                                 </div>
 
                                                 {/* Mobile Kart Görünümü */}
                                                 <div className="md:hidden space-y-3">
-                                                    {irs.kalemler.map((kalem, idx) => (
-                                                        <div key={kalem.id || idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3">
-                                                            <div className="flex justify-between items-start">
-                                                                <div>
-                                                                    <span className="inline-block px-2 py-1 bg-blue-50 text-blue-700 font-mono text-xs font-bold rounded mb-1">
-                                                                        {kalem.palet_no}
-                                                                    </span>
-                                                                    <h4 className="font-bold text-slate-800">{urunAdi(kalem.urun_id)}</h4>
+                                                    {irs.kalemler.map((kalem, idx) => {
+                                                        const istisnaAcikMobil = istisnaAcikKalem?.irsaliyeId === irs.id && istisnaAcikKalem?.kalemId === kalem.id;
+                                                        return (
+                                                            <div key={kalem.id || idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3">
+                                                                <div className="flex justify-between items-start">
+                                                                    <div>
+                                                                        <span className="inline-block px-2 py-1 bg-blue-50 text-blue-700 font-mono text-xs font-bold rounded mb-1">
+                                                                            {kalem.palet_no}
+                                                                        </span>
+                                                                        <h4 className="font-bold text-slate-800">{urunAdi(kalem.urun_id)}</h4>
+                                                                    </div>
+                                                                    {kalem.durum === 'GirisYapildi' ? (
+                                                                        <CheckCircle className="w-5 h-5 text-emerald-500" />
+                                                                    ) : (
+                                                                        <Clock className="w-5 h-5 text-amber-500" />
+                                                                    )}
                                                                 </div>
-                                                                {kalem.durum === 'GirisYapildi' ? (
-                                                                    <CheckCircle className="w-5 h-5 text-emerald-500" />
-                                                                ) : (
-                                                                    <Clock className="w-5 h-5 text-amber-500" />
+                                                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                                                    <div className="bg-slate-50 p-2 rounded-lg">
+                                                                        <div className="text-xs text-slate-400 mb-0.5">Miktar</div>
+                                                                        <div className="font-bold text-slate-700">{kalem.miktar}</div>
+                                                                    </div>
+                                                                    <div className="bg-slate-50 p-2 rounded-lg">
+                                                                        <div className="text-xs text-slate-400 mb-0.5">Lot No</div>
+                                                                        <div className="font-medium text-slate-700">{kalem.lot_no || '-'}</div>
+                                                                    </div>
+                                                                    <div className="bg-slate-50 p-2 rounded-lg">
+                                                                        <div className="text-xs text-slate-400 mb-0.5">Raf</div>
+                                                                        <div className="font-medium text-slate-700">{kalem.raf_id ? rafKodu(kalem.raf_id) : '-'}</div>
+                                                                    </div>
+                                                                    <div className="bg-slate-50 p-2 rounded-lg">
+                                                                        <div className="text-xs text-slate-400 mb-0.5">SKT</div>
+                                                                        <div className="font-medium text-slate-700">{kalem.son_kullanma_tarihi || '-'}</div>
+                                                                    </div>
+                                                                </div>
+                                                                {kalem.istisna_tip ? (
+                                                                    <div className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-bold">
+                                                                        <AlertTriangle className="w-3.5 h-3.5" /> {kalem.istisna_tip}
+                                                                        {kalem.istisna_aciklama && <span className="font-normal text-amber-600 ml-1">— {kalem.istisna_aciklama}</span>}
+                                                                    </div>
+                                                                ) : irs.durum !== 'Kapandi' && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setIstisnaAcikKalem({ irsaliyeId: irs.id, kalemId: kalem.id });
+                                                                            setIstisnaForm({ istisna_tip: '', istisna_aciklama: '', gerceklesen_miktar: '' });
+                                                                        }}
+                                                                        className="flex items-center justify-center gap-1.5 py-2 px-3 border border-amber-200 bg-amber-50 text-amber-600 rounded-lg text-xs font-semibold w-full hover:bg-amber-100 transition-colors"
+                                                                    >
+                                                                        <AlertTriangle className="w-3.5 h-3.5" /> Fark Bildir
+                                                                    </button>
+                                                                )}
+                                                                {istisnaAcikMobil && (
+                                                                    <div className="flex flex-col gap-2 bg-amber-50/80 border border-amber-100 rounded-xl p-3">
+                                                                        <select
+                                                                            value={istisnaForm.istisna_tip}
+                                                                            onChange={e => setIstisnaForm(f => ({ ...f, istisna_tip: e.target.value }))}
+                                                                            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                                                        >
+                                                                            <option value="">İstisna tipi seçin *</option>
+                                                                            <option value="Eksik">Eksik</option>
+                                                                            <option value="Fazla">Fazla</option>
+                                                                            <option value="Hasarlı">Hasarlı</option>
+                                                                            <option value="YanlışÜrün">Yanlış Ürün</option>
+                                                                            <option value="OkunamamazBarkod">Okunamaz Barkod</option>
+                                                                            <option value="Diğer">Diğer</option>
+                                                                        </select>
+                                                                        <input
+                                                                            type="number" min="0"
+                                                                            placeholder="Gerçekleşen miktar (opsiyonel)"
+                                                                            value={istisnaForm.gerceklesen_miktar}
+                                                                            onChange={e => setIstisnaForm(f => ({ ...f, gerceklesen_miktar: e.target.value }))}
+                                                                            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                                                        />
+                                                                        <input
+                                                                            type="text"
+                                                                            placeholder="Açıklama (opsiyonel)"
+                                                                            value={istisnaForm.istisna_aciklama}
+                                                                            onChange={e => setIstisnaForm(f => ({ ...f, istisna_aciklama: e.target.value }))}
+                                                                            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                                                        />
+                                                                        <div className="flex gap-2">
+                                                                            <button onClick={() => handleIstisnaBildir(irs.id, kalem.id)} className="flex-1 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600">Kaydet</button>
+                                                                            <button onClick={() => setIstisnaAcikKalem(null)} className="flex-1 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold rounded-lg hover:bg-slate-50">İptal</button>
+                                                                        </div>
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                            <div className="grid grid-cols-2 gap-2 text-sm">
-                                                                <div className="bg-slate-50 p-2 rounded-lg">
-                                                                    <div className="text-xs text-slate-400 mb-0.5">Miktar</div>
-                                                                    <div className="font-bold text-slate-700">{kalem.miktar}</div>
-                                                                </div>
-                                                                <div className="bg-slate-50 p-2 rounded-lg">
-                                                                    <div className="text-xs text-slate-400 mb-0.5">Lot No</div>
-                                                                    <div className="font-medium text-slate-700">{kalem.lot_no || '-'}</div>
-                                                                </div>
-                                                                <div className="bg-slate-50 p-2 rounded-lg">
-                                                                    <div className="text-xs text-slate-400 mb-0.5">Raf</div>
-                                                                    <div className="font-medium text-slate-700">{kalem.raf_id ? rafKodu(kalem.raf_id) : '-'}</div>
-                                                                </div>
-                                                                <div className="bg-slate-50 p-2 rounded-lg">
-                                                                    <div className="text-xs text-slate-400 mb-0.5">SKT</div>
-                                                                    <div className="font-medium text-slate-700">{kalem.son_kullanma_tarihi || '-'}</div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </>
                                         ) : (

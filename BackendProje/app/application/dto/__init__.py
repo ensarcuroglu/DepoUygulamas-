@@ -98,6 +98,7 @@ from .mal_kabul_irsaliye_dto import (
     MalKabulIrsaliyeOlusturRequestDTO,
     MalKabulIrsaliyeGuncelleRequestDTO,
     MalKabulIrsaliyeResponseDTO,
+    MalKabulKalemiIstisnaRequestDTO,
 )
 
 __all__ = [
@@ -146,5 +147,5 @@ __all__ = [
     # Mal Kabul İrsaliyesi
     "MalKabulKalemiOlusturDTO", "MalKabulKalemiResponseDTO",
     "MalKabulIrsaliyeOlusturRequestDTO", "MalKabulIrsaliyeGuncelleRequestDTO",
-    "MalKabulIrsaliyeResponseDTO",
+    "MalKabulIrsaliyeResponseDTO", "MalKabulKalemiIstisnaRequestDTO",
 ]

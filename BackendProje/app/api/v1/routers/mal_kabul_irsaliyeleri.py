@@ -11,12 +11,14 @@ from app.infrastructure.di.container import (
     get_mal_kabul_irsaliye_guncelle_uc,
     get_mal_kabul_irsaliye_sil_uc,
     get_irsaliye_onayla_ve_gorev_olustur_uc,
+    get_mal_kabul_kalemi_istisna_bildir_uc,
 )
 
 from app.application.dto import (
     MalKabulIrsaliyeOlusturRequestDTO,
     MalKabulIrsaliyeGuncelleRequestDTO,
     MalKabulIrsaliyeResponseDTO,
+    MalKabulKalemiIstisnaRequestDTO,
 )
 
 from app.application.use_cases import (
@@ -26,6 +28,7 @@ from app.application.use_cases import (
     MalKabulIrsaliyeGuncelleUseCase,
     MalKabulIrsaliyeSilUseCase,
     IrsaliyeOnaylaVeGorevOlusturUseCase,
+    MalKabulKalemiIstisnaBildirUseCase,
 )
 
 
@@ -99,3 +102,15 @@ def mal_kabul_irsaliye_onayla(
 ):
     """Taslak irsaliyeyi onaylar, paletleri oluşturur ve yerleştirme görevlerini atar."""
     return uc.execute(irsaliye_id, kullanici_id=current_user.id)
+
+
+@router.put("/{irsaliye_id}/kalemler/{kalem_id}/istisna", response_model=MalKabulIrsaliyeResponseDTO)
+def mal_kabul_kalemi_istisna_bildir(
+    irsaliye_id: int,
+    kalem_id: int,
+    istisna: MalKabulKalemiIstisnaRequestDTO,
+    current_user: Kullanici = Depends(require_role("admin", "depocu")),
+    uc: MalKabulKalemiIstisnaBildirUseCase = Depends(get_mal_kabul_kalemi_istisna_bildir_uc),
+):
+    """Mal kabul kalemi için fark/hasar/istisna kaydeder."""
+    return uc.execute(irsaliye_id, kalem_id, istisna, kullanici_id=current_user.id)

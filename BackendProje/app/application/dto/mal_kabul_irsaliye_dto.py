@@ -7,7 +7,7 @@ from datetime import datetime, date
 from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator
 
-from app.core.entities.mal_kabul_irsaliye import MalKabulDurum, KalemDurum
+from app.core.entities.mal_kabul_irsaliye import MalKabulDurum, KalemDurum, IstisnaKalemTip
 
 # Kullanıcı yalnızca Onaylandi geçişini tetikleyebilir.
 # Kapandi sisteme özel (auto-close), API üzerinden ayarlanamaz.
@@ -44,6 +44,9 @@ class MalKabulKalemiResponseDTO(BaseModel):
     uretim_tarihi: Optional[date] = None
     son_kullanma_tarihi: Optional[date] = None
     olusturma_tarihi: datetime
+    istisna_tip: Optional[str] = None
+    istisna_aciklama: Optional[str] = None
+    gerceklesen_miktar: Optional[int] = None
 
     model_config = {"from_attributes": True}
 
@@ -61,7 +64,25 @@ class MalKabulKalemiResponseDTO(BaseModel):
             uretim_tarihi=entity.uretim_tarihi,
             son_kullanma_tarihi=entity.son_kullanma_tarihi,
             olusturma_tarihi=entity.olusturma_tarihi,
+            istisna_tip=entity.istisna_tip,
+            istisna_aciklama=entity.istisna_aciklama,
+            gerceklesen_miktar=entity.gerceklesen_miktar,
         )
+
+
+class MalKabulKalemiIstisnaRequestDTO(BaseModel):
+    """Kalem istisna/fark bildirim isteği."""
+
+    istisna_tip: str = Field(..., description=f"Geçerli tipler: {list(IstisnaKalemTip._TIPLER)}")
+    istisna_aciklama: Optional[str] = Field(None, max_length=500)
+    gerceklesen_miktar: Optional[int] = Field(None, ge=0)
+
+    @field_validator("istisna_tip")
+    @classmethod
+    def gecerli_istisna_tip(cls, v: str) -> str:
+        if not IstisnaKalemTip.gecerli_mi(v):
+            raise ValueError(f"Geçersiz istisna tipi: '{v}'")
+        return v
 
 
 # ─────────────────────────────────────────
@@ -118,6 +139,7 @@ class MalKabulIrsaliyeResponseDTO(BaseModel):
     kalemler: List[MalKabulKalemiResponseDTO] = []
     # Yalnızca onay endpointinde dolar; listelemede None gelir.
     olusturulan_gorev_sayisi: Optional[int] = None
+    istisna_sayisi: int = 0
 
     model_config = {"from_attributes": True}
 
@@ -140,4 +162,5 @@ class MalKabulIrsaliyeResponseDTO(BaseModel):
             guncelleme_tarihi=entity.guncelleme_tarihi,
             kalemler=[MalKabulKalemiResponseDTO.from_entity(k) for k in entity.kalemler],
             olusturulan_gorev_sayisi=olusturulan_gorev_sayisi,
+            istisna_sayisi=entity.istisna_sayisi(),
         )

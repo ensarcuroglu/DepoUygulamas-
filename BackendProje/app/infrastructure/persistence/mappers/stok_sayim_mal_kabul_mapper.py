@@ -89,6 +89,9 @@ def mal_kabul_kalemi_to_entity(orm: MalKabulKalemiORM) -> MalKabulKalemi:
         uretim_tarihi=orm.uretim_tarihi,
         son_kullanma_tarihi=orm.son_kullanma_tarihi,
         olusturma_tarihi=orm.olusturma_tarihi,
+        istisna_tip=orm.istisna_tip,
+        istisna_aciklama=orm.istisna_aciklama,
+        gerceklesen_miktar=orm.gerceklesen_miktar,
     )
 
 
@@ -105,6 +108,9 @@ def mal_kabul_kalemi_to_orm(entity: MalKabulKalemi) -> MalKabulKalemiORM:
         uretim_tarihi=entity.uretim_tarihi,
         son_kullanma_tarihi=entity.son_kullanma_tarihi,
         olusturma_tarihi=entity.olusturma_tarihi,
+        istisna_tip=entity.istisna_tip,
+        istisna_aciklama=entity.istisna_aciklama,
+        gerceklesen_miktar=entity.gerceklesen_miktar,
     )
 
 

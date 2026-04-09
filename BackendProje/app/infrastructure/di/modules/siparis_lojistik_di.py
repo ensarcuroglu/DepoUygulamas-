@@ -31,6 +31,7 @@ from app.application.use_cases import (
     MalKabulIrsaliyeGuncelleUseCase,
     MalKabulIrsaliyeSilUseCase,
     IrsaliyeOnaylaVeGorevOlusturUseCase,
+    MalKabulKalemiIstisnaBildirUseCase,
 )
 from app.core.services.stok_cikis_domain_service import StokCikisDomainService
 
@@ -243,3 +244,10 @@ def get_irsaliye_onayla_ve_gorev_olustur_uc(
         repo, urun_repo, lot_repo, palet_repo, hareket_repo,
         gorev_repo, raf_repo, algoritma, log_repo, db,
     )
+
+
+def get_mal_kabul_kalemi_istisna_bildir_uc(
+    repo=Depends(get_mal_kabul_irsaliye_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return MalKabulKalemiIstisnaBildirUseCase(repo, log_repo)

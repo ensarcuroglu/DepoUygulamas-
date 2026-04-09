@@ -41,3 +41,8 @@ class IMalKabulIrsaliyeRepository(ABC):
     def getir_kalem_palet_no_ile(self, palet_no: str) -> Optional[MalKabulKalemi]:
         """Palet numarasına göre kalem bulur (Faz 1b'de kullanılacak)."""
         ...
+
+    @abstractmethod
+    def kalem_guncelle(self, kalem_id: int, **kwargs) -> None:
+        """Kalem satırındaki belirtilen alanları günceller."""
+        ...

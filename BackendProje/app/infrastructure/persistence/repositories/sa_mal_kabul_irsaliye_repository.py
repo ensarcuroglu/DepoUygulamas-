@@ -1,6 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
-from sqlalchemy.orm import Session, joinedload, noload, selectinload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_
 
 from app.core.entities.mal_kabul_irsaliye import MalKabulIrsaliye, MalKabulKalemi
@@ -38,9 +38,9 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
                 selectinload(MalKabulIrsaliyeORM.kalemler).joinedload(MalKabulKalemiORM.raf),
             )
         else:
-            # Liste sorgularında N+1 problemini ve gereksiz RAM kullanımını önlemek için
-            # kalemler ilişkisinin yüklenmesini engelliyoruz.
-            query = query.options(noload(MalKabulIrsaliyeORM.kalemler))
+            # Liste ekranı kalem satırlarını expand ediyor ve istisna sayaçlarını
+            # gösteriyor. Bu nedenle kalemler yüklenir; alt ilişkiler yine alınmaz.
+            query = query.options(selectinload(MalKabulIrsaliyeORM.kalemler))
             
         return query
 
@@ -180,6 +180,16 @@ class SqlAlchemyMalKabulIrsaliyeRepository(IMalKabulIrsaliyeRepository):
             yeni_no = 1
 
         return f"{prefix}{yeni_no:05d}"
+
+    def kalem_guncelle(self, kalem_id: int, **kwargs) -> None:
+        orm = self._db.query(MalKabulKalemiORM).filter(
+            MalKabulKalemiORM.id == kalem_id
+        ).first()
+        if not orm:
+            raise KayitBulunamadiError("Mal Kabul Kalemi", kalem_id)
+        for alan, deger in kwargs.items():
+            setattr(orm, alan, deger)
+        self._db.commit()
 
     def getir_kalem_palet_no_ile(self, palet_no: str) -> Optional[MalKabulKalemi]:
         orm = self._db.query(MalKabulKalemiORM).options(

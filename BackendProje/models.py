@@ -460,6 +460,9 @@ class MalKabulKalemi(Base):
     uretim_tarihi = Column(Date, nullable=True)
     son_kullanma_tarihi = Column(Date, nullable=True)
     olusturma_tarihi = Column(DateTime, default=datetime.utcnow)
+    istisna_tip = Column(String(50), nullable=True)
+    istisna_aciklama = Column(Text, nullable=True)
+    gerceklesen_miktar = Column(Integer, nullable=True)
 
     # İlişkiler
     irsaliye = relationship("MalKabulIrsaliye", back_populates="kalemler")

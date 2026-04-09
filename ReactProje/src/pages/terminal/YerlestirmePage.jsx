@@ -6,16 +6,17 @@
  * Adım 3: Rafa Yerleştir (raf kodu gösterir, ID değil)
  * Adım 4: Sonuç (başarı veya hata + alternatifler)
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Package, Camera, CheckCircle, XCircle, ArrowRight,
   RefreshCw, ChevronLeft, Scan, CornerDownRight, AlertTriangle,
-  AlertCircle, MapPin,
+  AlertCircle, MapPin, ShieldAlert,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAsync } from '../../hooks/useAsync';
 import { useTerminalDepo } from '../../hooks/useTerminalDepo';
+import { useAuth } from '../../contexts/AuthContext';
 import ZXingBarcodeScanner from '../../components/common/ZXingBarcodeScanner';
 import {
   siradakiGorevisiniAl,
@@ -36,12 +37,14 @@ export default function YerlestirmePage() {
   const location = useLocation();
   const { loading, run } = useAsync();
   const { depoId, setDepoId } = useTerminalDepo();
+  const { user } = useAuth();
+  const overrideYetkisiVar = user?.rol === 'admin' || user?.rol === 'lojistik';
 
   const [adim, setAdim] = useState(ADIM.GOREV);
   const [gorev, setGorev] = useState(location.state?.gorev || null);
   const [bekleyenSayisi, setBekleyenSayisi] = useState(null);
   const [paletBarkod, setPaletBarkod] = useState('');
-  const [rafBarkod, setRafBarkod] = useState('');
+  const [, setRafBarkod] = useState('');
   const [sonuc, setSonuc] = useState(null);
   const [kameraAcik, setKameraAcik] = useState(false);
   const [kameraMod, setKameraMod] = useState('palet'); // 'palet' | 'raf'
@@ -50,7 +53,8 @@ export default function YerlestirmePage() {
   const [depolar, setDepolar] = useState([]);
   const [overrideModal, setOverrideModal] = useState(false);
   const [overrideNeden, setOverrideNeden] = useState('');
-  const [overrideRafId, setOverrideRafId] = useState(null);
+  // overrideRafSec: null | { id, kod, bos_slot, skor }
+  const [overrideRafSec, setOverrideRafSec] = useState(null);
   const [sorunSheet, setSorunSheet] = useState(false);
   const [sorunTip, setSorunTip] = useState(null); // 'karantina' | 'iptal'
   const [sorunNeden, setSorunNeden] = useState('');
@@ -62,17 +66,37 @@ export default function YerlestirmePage() {
     }
   }, [depoId]);
 
-  // Önceki sayfadan gorev gelmediyse bekleyen sayısını yükle
-  const bekleyenYukle = useCallback(async () => {
+  const bekleyenYukle = async () => {
     try {
       const res = await getBekleyenGorevOzet();
       setBekleyenSayisi(res.data.toplam_bekleyen);
-    } catch { /* sessiz */ }
-  }, []);
+    } catch {
+      // sessiz
+    }
+  };
 
   useEffect(() => {
-    if (!gorev) void bekleyenYukle();
-  }, [gorev, bekleyenYukle]);
+    if (gorev) return undefined;
+
+    let iptal = false;
+
+    const bekleyenYukle = async () => {
+      try {
+        const res = await getBekleyenGorevOzet();
+        if (!iptal) {
+          setBekleyenSayisi(res.data.toplam_bekleyen);
+        }
+      } catch {
+        // sessiz
+      }
+    };
+
+    void bekleyenYukle();
+
+    return () => {
+      iptal = true;
+    };
+  }, [gorev]);
 
   // Görev al
   const goreviAl = async () => {
@@ -143,7 +167,7 @@ export default function YerlestirmePage() {
 
   // Override
   const overrideYap = async () => {
-    if (!overrideRafId) {
+    if (!overrideRafSec) {
       toast.error('Lütfen önce bir alternatif raf seçin.');
       return;
     }
@@ -153,12 +177,13 @@ export default function YerlestirmePage() {
     }
     await run(async () => {
       const res = await goreviOverride(gorev.id, {
-        gerceklesen_raf_id: overrideRafId,
+        gerceklesen_raf_id: overrideRafSec.id,
         neden: overrideNeden,
       });
       setSonuc({ basarili: true, durum: 'TAMAMLANDI', mesaj: 'Override ile yerleştirildi.', ...res.data });
       setAdim(ADIM.SONUC);
       setOverrideModal(false);
+      setOverrideNeden('');
     });
   };
 
@@ -171,7 +196,7 @@ export default function YerlestirmePage() {
     await run(async () => {
       if (sorunTip === 'karantina') {
         await karantinayaAl({ palet_id: gorev.palet_id, neden: sorunNeden });
-        toast.success('Palet karantinaya alındı.');
+        toast.success('Palet karantina zonuna yönlendirildi. Transfer görevi oluşturuldu.');
       } else {
         await goreviIptal(gorev.id, { neden: sorunNeden });
         toast('Görev iptal edildi.');
@@ -190,6 +215,9 @@ export default function YerlestirmePage() {
     setSonuc(null);
     setManuelPalet('');
     setManuelRaf('');
+    setOverrideModal(false);
+    setOverrideNeden('');
+    setOverrideRafSec(null);
     setAdim(ADIM.GOREV);
     void bekleyenYukle();
   };
@@ -336,7 +364,7 @@ export default function YerlestirmePage() {
 
         {/* Manuel Giriş */}
         <div className="space-y-2">
-          <p className="text-xs text-slate-500 text-center">— veya manuel giriş —</p>
+          <p className="text-xs text-slate-500 text-center">Barkod okunamıyor? Manuel gir</p>
           <div className="flex gap-2">
             <input
               className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-4 py-4 text-slate-100 text-base font-mono placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-colors"
@@ -413,7 +441,7 @@ export default function YerlestirmePage() {
 
         {/* Manuel Giriş */}
         <div className="space-y-2">
-          <p className="text-xs text-slate-500 text-center">— veya manuel giriş —</p>
+          <p className="text-xs text-slate-500 text-center">Barkod okunamıyor? Manuel gir</p>
           <div className="flex gap-2">
             <input
               className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-4 py-4 text-slate-100 text-base font-mono placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-colors"
@@ -510,11 +538,17 @@ export default function YerlestirmePage() {
             {sonuc.alternatifler?.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Alternatif Raflar</p>
+                {sonuc.hata_neden && (
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 flex items-start gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-300">{sonuc.hata_neden}</p>
+                  </div>
+                )}
                 {sonuc.alternatifler.map((alt) => (
                   <button
                     key={alt.raf_id}
                     onClick={() => {
-                      setOverrideRafId(alt.raf_id);
+                      setOverrideRafSec(alt);
                       setRafBarkod(alt.raf_kod);
                       setOverrideModal(true);
                     }}
@@ -530,13 +564,21 @@ export default function YerlestirmePage() {
               </div>
             )}
 
-            {sonuc.override_gerekli && (
+            {sonuc.override_gerekli && overrideYetkisiVar && (
               <button
                 onClick={() => setOverrideModal(true)}
-                className="w-full bg-orange-500/20 border border-orange-500/30 text-orange-300 font-bold rounded-xl py-4 hover:bg-orange-500/30 transition-colors"
+                className="w-full bg-orange-500/20 border border-orange-500/30 text-orange-300 font-bold rounded-xl py-4 hover:bg-orange-500/30 transition-colors flex items-center justify-center gap-2"
               >
+                <ShieldAlert className="w-5 h-5" />
                 Süpervizör Override
               </button>
+            )}
+            {sonuc.override_gerekli && !overrideYetkisiVar && (
+              <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 text-center">
+                <ShieldAlert className="w-6 h-6 text-slate-500 mx-auto mb-2" />
+                <p className="text-sm text-slate-400">Bu işlem için yetkiniz yok.</p>
+                <p className="text-xs text-slate-500 mt-1">Süpervizör veya admin çağırın.</p>
+              </div>
             )}
           </div>
         )}
@@ -567,10 +609,16 @@ export default function YerlestirmePage() {
                 Süpervizör Override
               </h3>
 
-              {overrideRafId ? (
-                <div className="bg-slate-800 border border-slate-600 rounded-xl px-4 py-2.5 flex items-center justify-between">
-                  <span className="text-xs text-slate-500 font-semibold">Hedef Raf</span>
-                  <span className="text-sm font-mono font-bold text-slate-200">{rafBarkod || `#${overrideRafId}`}</span>
+              {overrideRafSec ? (
+                <div className="bg-slate-800 border border-amber-500/30 rounded-xl p-4 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500 font-semibold">Seçilen Raf</span>
+                    <span className="text-sm font-mono font-bold text-amber-300">{overrideRafSec.kod || overrideRafSec.raf_kod}</span>
+                  </div>
+                  <div className="flex gap-4 text-xs text-slate-500">
+                    {overrideRafSec.bos_slot != null && <span>{overrideRafSec.bos_slot} boş slot</span>}
+                    {overrideRafSec.skor != null && <span>Skor: {overrideRafSec.skor}</span>}
+                  </div>
                 </div>
               ) : (
                 <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-2.5 flex items-center gap-2">
@@ -596,7 +644,7 @@ export default function YerlestirmePage() {
                 </button>
                 <button
                   onClick={overrideYap}
-                  disabled={loading || !overrideRafId}
+                  disabled={loading || !overrideRafSec}
                   className="flex-[2] bg-orange-500 hover:bg-orange-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-xl py-3 transition-colors"
                 >
                   {loading ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : 'Onayla'}
@@ -669,28 +717,34 @@ function SorunSheet({ open, onClose, sorunTip, setSorunTip, sorunNeden, setSorun
         </h3>
 
         {/* Sorun tipi seçimi */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           <button
             onClick={() => setSorunTip('karantina')}
-            className={`rounded-xl p-4 border text-left transition-colors ${
+            className={`w-full rounded-xl p-4 border text-left transition-colors ${
               sorunTip === 'karantina'
-                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
+                ? 'bg-red-500/20 border-red-500/50 text-red-300'
+                : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-red-500/30'
             }`}
           >
-            <p className="font-bold text-sm">Karantinaya Al</p>
-            <p className="text-xs mt-0.5 opacity-75">Hasarlı / şüpheli ürün</p>
+            <p className="font-bold text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Karantinaya Al
+            </p>
+            <p className="text-xs mt-1 opacity-75">Hasarlı, şüpheli veya uygunsuz ürün. Palet karantina zonuna transfer edilir.</p>
           </button>
           <button
             onClick={() => setSorunTip('iptal')}
-            className={`rounded-xl p-4 border text-left transition-colors ${
+            className={`w-full rounded-xl p-4 border text-left transition-colors ${
               sorunTip === 'iptal'
-                ? 'bg-red-500/20 border-red-500/50 text-red-300'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
+                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-amber-500/30'
             }`}
           >
-            <p className="font-bold text-sm">Görevi İptal Et</p>
-            <p className="text-xs mt-0.5 opacity-75">Palet bulunamadı vb.</p>
+            <p className="font-bold text-sm flex items-center gap-2">
+              <XCircle className="w-4 h-4" />
+              Görevi İptal Et
+            </p>
+            <p className="text-xs mt-1 opacity-75">Palet bulunamadı, yanlış etiket vb. Görev havuza iade edilir.</p>
           </button>
         </div>
 
@@ -714,9 +768,14 @@ function SorunSheet({ open, onClose, sorunTip, setSorunTip, sorunNeden, setSorun
               <button
                 onClick={onGonder}
                 disabled={loading || !sorunNeden.trim()}
-                className="flex-[2] bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-xl py-3 transition-colors"
+                className={`flex-[2] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-xl py-3 transition-colors ${
+                  sorunTip === 'karantina'
+                    ? 'bg-red-600 hover:bg-red-500'
+                    : 'bg-amber-600 hover:bg-amber-500'
+                }`}
               >
-                {loading ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : 'Gönder'}
+                {loading ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" />
+                  : sorunTip === 'karantina' ? 'Karantinaya Al' : 'Görevi İptal Et'}
               </button>
             </div>
           </>

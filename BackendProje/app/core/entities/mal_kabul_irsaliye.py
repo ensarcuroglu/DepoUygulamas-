@@ -4,6 +4,21 @@ from datetime import datetime, date
 from typing import Optional, List
 
 
+class IstisnaKalemTip:
+    EKSIK = "Eksik"
+    FAZLA = "Fazla"
+    HASARLI = "Hasarlı"
+    YANLIS_URUN = "YanlışÜrün"
+    OKUNAMAZ_BARKOD = "OkunamamazBarkod"
+    DIGER = "Diğer"
+
+    _TIPLER = {EKSIK, FAZLA, HASARLI, YANLIS_URUN, OKUNAMAZ_BARKOD, DIGER}
+
+    @classmethod
+    def gecerli_mi(cls, tip: str) -> bool:
+        return tip in cls._TIPLER
+
+
 class MalKabulDurum:
     TASLAK = "Taslak"
     ONAYLANDI = "Onaylandi"
@@ -42,6 +57,9 @@ class MalKabulKalemi:
     uretim_tarihi: Optional[date] = None
     son_kullanma_tarihi: Optional[date] = None
     olusturma_tarihi: datetime = field(default_factory=datetime.utcnow)
+    istisna_tip: Optional[str] = None
+    istisna_aciklama: Optional[str] = None
+    gerceklesen_miktar: Optional[int] = None
 
     # ── İş Kuralları ──
 
@@ -53,6 +71,24 @@ class MalKabulKalemi:
 
     def giris_bekliyor_mu(self) -> bool:
         return self.durum == KalemDurum.BEKLIYOR
+
+    def istisna_bildir(
+        self,
+        tip: str,
+        aciklama: Optional[str] = None,
+        gerceklesen_miktar: Optional[int] = None,
+    ) -> None:
+        if not IstisnaKalemTip.gecerli_mi(tip):
+            raise ValueError(
+                f"Geçersiz istisna tipi: '{tip}'. "
+                f"Geçerli tipler: {IstisnaKalemTip._TIPLER}"
+            )
+        self.istisna_tip = tip
+        self.istisna_aciklama = aciklama
+        self.gerceklesen_miktar = gerceklesen_miktar
+
+    def istisna_var_mi(self) -> bool:
+        return self.istisna_tip is not None
 
 
 @dataclass
@@ -123,3 +159,9 @@ class MalKabulIrsaliye:
 
     def bekleyen_kalem_sayisi(self) -> int:
         return sum(1 for k in self.kalemler if k.giris_bekliyor_mu())
+
+    def istisna_sayisi(self) -> int:
+        return sum(1 for k in self.kalemler if k.istisna_var_mi())
+
+    def istisna_var_mi(self) -> bool:
+        return any(k.istisna_var_mi() for k in self.kalemler)

@@ -36,6 +36,7 @@ from app.application.dto.mal_kabul_irsaliye_dto import (
     MalKabulIrsaliyeGuncelleRequestDTO,
     MalKabulIrsaliyeResponseDTO,
     MalKabulKalemiOlusturDTO,
+    MalKabulKalemiIstisnaRequestDTO,
 )
 
 if TYPE_CHECKING:
@@ -429,3 +430,73 @@ class IrsaliyeOnaylaVeGorevOlusturUseCase:
             son_kullanma_tarihi=kalem.son_kullanma_tarihi,
         )
         return self._lot_repo.olustur(lot, auto_commit=False)
+
+
+# ─────────────────────────────────────────────────────────────────
+# KALEM İSTİSNA BİLDİR
+# ─────────────────────────────────────────────────────────────────
+
+class MalKabulKalemiIstisnaBildirUseCase:
+    """
+    Mal kabul kalemi için fark/hasar/istisna kaydeder.
+
+    Kural: İrsaliye TASLAK veya ONAYLANDI ise bildirilebilir.
+    KAPANDI durumunda hata verir.
+    """
+
+    def __init__(
+        self,
+        repo: IMalKabulIrsaliyeRepository,
+        log_repo: ISistemLogRepository,
+    ):
+        self._repo = repo
+        self._log_repo = log_repo
+
+    def execute(
+        self,
+        irsaliye_id: int,
+        kalem_id: int,
+        dto: MalKabulKalemiIstisnaRequestDTO,
+        kullanici_id: int,
+    ) -> MalKabulIrsaliyeResponseDTO:
+        irsaliye = self._repo.getir_id_ile(irsaliye_id)
+        if not irsaliye:
+            raise KayitBulunamadiError("Mal Kabul İrsaliyesi", irsaliye_id)
+
+        if irsaliye.durum == MalKabulDurum.KAPANDI:
+            raise GecersizIslemError(
+                "Kapanmış irsaliyeler için istisna bildirilemez."
+            )
+
+        kalem = next((k for k in irsaliye.kalemler if k.id == kalem_id), None)
+        if not kalem:
+            raise KayitBulunamadiError("Mal Kabul Kalemi", kalem_id)
+
+        kalem.istisna_bildir(
+            tip=dto.istisna_tip,
+            aciklama=dto.istisna_aciklama,
+            gerceklesen_miktar=dto.gerceklesen_miktar,
+        )
+
+        self._repo.kalem_guncelle(
+            kalem_id=kalem_id,
+            istisna_tip=kalem.istisna_tip,
+            istisna_aciklama=kalem.istisna_aciklama,
+            gerceklesen_miktar=kalem.gerceklesen_miktar,
+        )
+
+        self._log_repo.olustur(
+            SistemLog.olustur(
+                kullanici_id=kullanici_id,
+                islem_tipi=IslemTipi.UPDATE,
+                modul="Mal Kabul İrsaliyesi",
+                detay=(
+                    f"Kalem istisna: {dto.istisna_tip} | "
+                    f"İrsaliye: {irsaliye.irsaliye_no} | Kalem: {kalem_id}"
+                ),
+            )
+        )
+
+        return MalKabulIrsaliyeResponseDTO.from_entity(
+            self._repo.getir_id_ile(irsaliye_id)
+        )
