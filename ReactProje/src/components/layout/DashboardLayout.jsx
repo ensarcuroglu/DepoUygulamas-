@@ -33,7 +33,7 @@ export default function DashboardLayout() {
     const contentMargin = isMobile ? '0px' : (sidebarCollapsed ? '80px' : '290px');
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC]">
+        <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950">
             <Toaster
                 position="top-right"
                 toastOptions={{

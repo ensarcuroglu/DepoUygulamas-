@@ -11,6 +11,21 @@
     <meta name="theme-color" content="#0f172a" />
     <link rel="manifest" href="/manifest.json" />
     <title>Depo Yönetim Sistemi</title>
+    <!-- FOUC Önleme: React yüklenmeden önce tema/mod attribute'larını uygula -->
+    <script>
+      (function() {
+        try {
+          var tema = localStorage.getItem('depo_tema') || 'kurumsal';
+          var mod  = localStorage.getItem('depo_mod')  || 'acik';
+          var resolved = mod;
+          if (mod === 'sistem') {
+            resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'koyu' : 'acik';
+          }
+          document.documentElement.setAttribute('data-theme', tema);
+          document.documentElement.setAttribute('data-mode', resolved);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
