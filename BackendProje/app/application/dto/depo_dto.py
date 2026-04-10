@@ -57,6 +57,9 @@ class DepoResponseDTO(BaseModel):
 
     @classmethod
     def from_entity(cls, entity: Depo) -> "DepoResponseDTO":
+        if entity.id is None:
+            raise ValueError("DepoResponseDTO oluşturulamadı: entity.id boş olamaz.")
+
         return cls(
             id=entity.id,
             isim=entity.isim,

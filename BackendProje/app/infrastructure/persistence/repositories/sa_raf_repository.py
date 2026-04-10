@@ -35,13 +35,13 @@ class SqlAlchemyRafRepository(IRafRepository):
 
     def olustur(self, raf: Raf) -> Raf:
         orm = raf_to_orm(raf)
-        orm.id = None
+        orm.id = None  # type: ignore[assignment]
         self._db.add(orm)
         self._db.commit()
         self._db.refresh(orm)
         return raf_to_entity(orm)
 
-    def guncelle(self, raf: Raf) -> Raf:
+    def guncelle(self, raf: Raf) -> "Optional[Raf]":
         orm = self._db.query(RafORM).filter(RafORM.id == raf.id).first()
         if not orm:
             return None

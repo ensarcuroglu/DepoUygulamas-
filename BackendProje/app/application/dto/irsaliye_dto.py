@@ -42,7 +42,10 @@ class IrsaliyeOlusturRequestDTO(BaseModel):
     @field_validator("belge_turu")
     @classmethod
     def gecerli_belge_turu(cls, v: str) -> str:
-        return _dogrula_belge_turu(v)
+        sonuc = _dogrula_belge_turu(v)
+        if sonuc is None:
+            raise ValueError("Belge türü boş olamaz.")
+        return sonuc
 
 
 class IrsaliyeGuncelleRequestDTO(BaseModel):

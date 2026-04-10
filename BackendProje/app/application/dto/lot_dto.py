@@ -51,6 +51,10 @@ class LotResponseDTO(BaseModel):
 
     @classmethod
     def from_entity(cls, entity: Lot) -> "LotResponseDTO":
+        
+        if entity.id is None:
+            raise ValueError("LotResponseDTO oluşturulamadı: entity.id boş olamaz.")
+        
         return cls(
             id=entity.id,
             urun_id=entity.urun_id,

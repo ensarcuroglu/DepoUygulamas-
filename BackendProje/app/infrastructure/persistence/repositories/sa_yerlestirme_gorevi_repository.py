@@ -79,7 +79,7 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
 
     def olustur(self, gorev: YerlestirmeGorevi, auto_commit: bool = True) -> YerlestirmeGorevi:
         orm = yerlestirme_gorevi_to_orm(gorev)
-        orm.id = None
+        orm.id = None  # type: ignore[assignment]
         self._db.add(orm)
         
         if auto_commit:
@@ -90,7 +90,7 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
             
         return yerlestirme_gorevi_to_entity(orm)
 
-    def guncelle(self, gorev: YerlestirmeGorevi, auto_commit: bool = True) -> YerlestirmeGorevi:
+    def guncelle(self, gorev: YerlestirmeGorevi, auto_commit: bool = True) -> "Optional[YerlestirmeGorevi]":
         orm = self._db.query(YerlestirmeGoreviORM).filter(YerlestirmeGoreviORM.id == gorev.id).first()
         if not orm:
             return None

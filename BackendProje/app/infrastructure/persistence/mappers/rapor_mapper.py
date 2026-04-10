@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from typing import List, Optional
 from models import (
     RaporSablonu as RaporSablonuORM,
     RaporLogu as RaporLoguORM,
@@ -71,7 +73,7 @@ def rapor_schedule_to_entity(orm: RaporScheduleORM) -> RaporSchedule:
         sablon_adi=orm.sablon_adi,
         periyod=orm.periyod,
         saat=orm.saat,
-        alici_emailler=orm.alici_emailler,
+        alici_emailler=_to_str_list(orm.alici_emailler),
         format=orm.format,
         is_aktif=orm.is_aktif,
         son_calistirilma=orm.son_calistirilma,

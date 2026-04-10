@@ -33,7 +33,7 @@ class SqlAlchemyStokHareketiRepository(IStokHareketiRepository):
 
     def olustur(self, hareket: StokHareketi, auto_commit: bool = True) -> StokHareketi:
         orm = stok_hareketi_to_orm(hareket)
-        orm.id = None
+        orm.id = None  # type: ignore[assignment]
         self._db.add(orm)
         if auto_commit:
             self._db.commit()

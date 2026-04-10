@@ -41,7 +41,7 @@ class SqlAlchemyLotRepository(ILotRepository):
 
     def olustur(self, lot: Lot, auto_commit: bool = True) -> Lot:
         orm = lot_to_orm(lot)
-        orm.id = None
+        orm.id = None  # type: ignore[assignment]
         self._db.add(orm)
         if auto_commit:
             self._db.commit()
@@ -50,7 +50,7 @@ class SqlAlchemyLotRepository(ILotRepository):
         self._db.refresh(orm)
         return lot_to_entity(orm)
 
-    def guncelle(self, lot: Lot, auto_commit: bool = True) -> Lot:
+    def guncelle(self, lot: Lot, auto_commit: bool = True) -> "Optional[Lot]":
         orm = self._db.query(LotORM).filter(LotORM.id == lot.id).first()
         if not orm:
             return None

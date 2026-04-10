@@ -37,13 +37,13 @@ class SqlAlchemyDestekTalebiRepository(IDestekTalebiRepository):
 
     def olustur(self, talep: DestekTalebi) -> DestekTalebi:
         orm = destek_talebi_to_orm(talep)
-        orm.id = None
+        orm.id = None  # type: ignore[assignment]
         self._db.add(orm)
         self._db.commit()
         self._db.refresh(orm)
         return destek_talebi_to_entity(orm)
 
-    def guncelle(self, talep: DestekTalebi) -> DestekTalebi:
+    def guncelle(self, talep: DestekTalebi) -> "Optional[DestekTalebi]":
         orm = self._db.query(DestekTalebiORM).filter(DestekTalebiORM.id == talep.id).first()
         if not orm:
             return None

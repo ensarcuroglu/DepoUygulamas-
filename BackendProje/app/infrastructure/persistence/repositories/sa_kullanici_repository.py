@@ -28,13 +28,13 @@ class SqlAlchemyKullaniciRepository(IKullaniciRepository):
 
     def olustur(self, kullanici: Kullanici) -> Kullanici:
         orm = kullanici_to_orm(kullanici)
-        orm.id = None
+        orm.id = None  # type: ignore[assignment]
         self._db.add(orm)
         self._db.commit()
         self._db.refresh(orm)
         return kullanici_to_entity(orm)
 
-    def guncelle(self, kullanici: Kullanici) -> Kullanici:
+    def guncelle(self, kullanici: Kullanici) -> "Optional[Kullanici]":
         orm = self._db.query(KullaniciORM).filter(KullaniciORM.id == kullanici.id).first()
         if not orm:
             return None

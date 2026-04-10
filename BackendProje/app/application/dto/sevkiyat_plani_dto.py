@@ -44,7 +44,10 @@ class SevkiyatPlaniOlusturRequestDTO(BaseModel):
     @field_validator("durum")
     @classmethod
     def gecerli_durum(cls, v: str) -> str:
-        return _dogrula_durum(v)
+        sonuc = _dogrula_durum(v)
+        if sonuc is None:
+            raise ValueError("Durum boş olamaz.")
+        return sonuc
 
 
 class SevkiyatPlaniGuncelleRequestDTO(BaseModel):

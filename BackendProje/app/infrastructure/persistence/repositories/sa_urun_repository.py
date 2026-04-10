@@ -72,13 +72,13 @@ class SqlAlchemyUrunRepository(IUrunRepository):
 
     def olustur(self, urun: Urun) -> Urun:
         orm = urun_to_orm(urun)
-        orm.id = None
+        orm.id = None  # type: ignore[assignment]
         self._db.add(orm)
         self._db.commit()
         self._db.refresh(orm)
         return urun_to_entity(orm)
 
-    def guncelle(self, urun: Urun) -> Urun:
+    def guncelle(self, urun: Urun) -> "Optional[Urun]":
         orm = self._db.query(UrunORM).filter(UrunORM.id == urun.id).first()
         if not orm:
             return None

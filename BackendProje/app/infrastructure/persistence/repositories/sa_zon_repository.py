@@ -39,13 +39,13 @@ class SqlAlchemyZonRepository(IZonRepository):
 
     def olustur(self, zon: Zon) -> Zon:
         orm = zon_to_orm(zon)
-        orm.id = None
+        orm.id = None  # type: ignore[assignment]
         self._db.add(orm)
         self._db.commit()
         self._db.refresh(orm)
         return zon_to_entity(orm)
 
-    def guncelle(self, zon: Zon) -> Zon:
+    def guncelle(self, zon: Zon) -> "Optional[Zon]":
         orm = self._db.query(ZonORM).filter(ZonORM.id == zon.id).first()
         if not orm:
             return None

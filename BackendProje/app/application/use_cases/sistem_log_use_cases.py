@@ -36,7 +36,7 @@ class SistemLogOlusturUseCase:
             kullanici_id=kullanici_id,
             islem_tipi=dto.islem_tipi,
             modul=dto.modul,
-            detay=dto.detay,
+            detay=dto.detay or "",
             eski_veri=dto.eski_veri,
             yeni_veri=dto.yeni_veri,
         )

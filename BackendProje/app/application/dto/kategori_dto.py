@@ -57,6 +57,9 @@ class KategoriResponseDTO(BaseModel):
 
     @classmethod
     def from_entity(cls, entity: Kategori) -> "KategoriResponseDTO":
+        if entity.id is None:
+            raise ValueError("KategoriResponseDTO oluşturulamadı: entity.id boş olamaz.")
+
         return cls(
             id=entity.id,
             isim=entity.isim,

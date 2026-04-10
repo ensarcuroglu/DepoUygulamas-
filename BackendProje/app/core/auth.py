@@ -174,8 +174,17 @@ def get_current_user(
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        kullanici_adi: str = payload.get("sub")
-        token_type: str = payload.get("type")
+        kullanici_adi_raw = payload.get("sub")
+        token_type_raw = payload.get("type")
+
+        if not isinstance(kullanici_adi_raw, str):
+            raise credentials_exception
+
+        if not isinstance(token_type_raw, str):
+            raise credentials_exception
+
+        kullanici_adi = kullanici_adi_raw
+        token_type = token_type_raw
 
         if kullanici_adi is None:
             raise credentials_exception

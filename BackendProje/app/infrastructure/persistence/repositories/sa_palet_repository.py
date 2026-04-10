@@ -60,7 +60,7 @@ class SqlAlchemyPaletRepository(IPaletRepository):
 
     def olustur(self, palet: Palet, auto_commit: bool = True) -> Palet:
         orm = palet_to_orm(palet)
-        orm.id = None
+        orm.id = None  # type: ignore[assignment]
         self._db.add(orm)
         if auto_commit:
             self._db.commit()
@@ -69,7 +69,7 @@ class SqlAlchemyPaletRepository(IPaletRepository):
         self._db.refresh(orm)
         return palet_to_entity(orm)
 
-    def guncelle(self, palet: Palet, auto_commit: bool = True) -> Palet:
+    def guncelle(self, palet: Palet, auto_commit: bool = True) -> "Optional[Palet]":
         orm = self._db.query(PaletORM).filter(PaletORM.id == palet.id).first()
         if not orm:
             return None

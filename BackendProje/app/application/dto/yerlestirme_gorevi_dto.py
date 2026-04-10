@@ -119,6 +119,10 @@ class YerlestirmeGoreviResponseDTO(BaseModel):
 
     @classmethod
     def from_entity(cls, entity: YerlestirmeGorevi) -> "YerlestirmeGoreviResponseDTO":
+
+        if entity.id is None:
+            raise ValueError("YerlestirmeGoreviResponseDTO   oluşturulamadı: entity.id boş olamaz.")
+
         return cls(
             id=entity.id,
             palet_id=entity.palet_id,

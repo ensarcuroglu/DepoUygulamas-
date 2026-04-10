@@ -90,6 +90,10 @@ class PaletResponseDTO(BaseModel):
 
     @classmethod
     def from_entity(cls, entity: Palet) -> "PaletResponseDTO":
+
+        if entity.id is None:
+            raise ValueError("PaletResponseDTO oluşturulamadı: entity.id boş olamaz.")
+        
         lot_dto = None
         if entity.lot:
             urun_dto = None

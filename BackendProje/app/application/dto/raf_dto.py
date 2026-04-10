@@ -75,6 +75,10 @@ class RafResponseDTO(BaseModel):
 
     @classmethod
     def from_entity(cls, entity: Raf) -> "RafResponseDTO":
+
+        if entity.id is None:
+            raise ValueError("RafResponseDTO oluşturulamadı: entity.id boş olamaz.")
+
         return cls(
             id=entity.id,
             depo_id=entity.depo_id,

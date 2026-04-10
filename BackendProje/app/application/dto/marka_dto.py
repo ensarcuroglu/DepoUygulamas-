@@ -54,6 +54,10 @@ class MarkaResponseDTO(BaseModel):
 
     @classmethod
     def from_entity(cls, entity: Marka) -> "MarkaResponseDTO":
+
+        if entity.id is None:
+            raise ValueError("MarkaResponseDTO oluşturulamadı: entity.id boş olamaz.")
+
         return cls(
             id=entity.id,
             isim=entity.isim,

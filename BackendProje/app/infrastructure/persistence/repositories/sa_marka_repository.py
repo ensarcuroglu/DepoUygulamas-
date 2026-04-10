@@ -25,13 +25,13 @@ class SqlAlchemyMarkaRepository(IMarkaRepository):
 
     def olustur(self, marka: Marka) -> Marka:
         orm = marka_to_orm(marka)
-        orm.id = None  # Yeni kayıt
+        orm.id = None  # type: ignore[assignment]  # Yeni kayıt
         self._db.add(orm)
         self._db.commit()
         self._db.refresh(orm)
         return marka_to_entity(orm)
 
-    def guncelle(self, marka: Marka) -> Marka:
+    def guncelle(self, marka: Marka) -> "Optional[Marka]":
         orm = self._db.query(MarkaORM).filter(MarkaORM.id == marka.id).first()
         if not orm:
             return None

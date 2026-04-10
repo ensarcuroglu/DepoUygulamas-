@@ -24,13 +24,13 @@ class SqlAlchemyKategoriRepository(IKategoriRepository):
 
     def olustur(self, kategori: Kategori) -> Kategori:
         orm = kategori_to_orm(kategori)
-        orm.id = None
+        orm.id = None  # type: ignore[assignment]
         self._db.add(orm)
         self._db.commit()
         self._db.refresh(orm)
         return kategori_to_entity(orm)
 
-    def guncelle(self, kategori: Kategori) -> Kategori:
+    def guncelle(self, kategori: Kategori) -> "Optional[Kategori]":
         orm = self._db.query(KategoriORM).filter(KategoriORM.id == kategori.id).first()
         if not orm:
             return None

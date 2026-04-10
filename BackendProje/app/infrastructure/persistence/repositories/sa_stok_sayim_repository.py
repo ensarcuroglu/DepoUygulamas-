@@ -39,13 +39,13 @@ class SqlAlchemyStokSayimRepository(IStokSayimRepository):
 
     def olustur(self, sayim: StokSayim) -> StokSayim:
         orm = stok_sayim_to_orm(sayim)
-        orm.id = None
+        orm.id = None  # type: ignore[assignment]
         self._db.add(orm)
         self._db.commit()
         self._db.refresh(orm)
         return stok_sayim_to_entity(orm)
 
-    def guncelle(self, sayim: StokSayim) -> StokSayim:
+    def guncelle(self, sayim: StokSayim) -> "Optional[StokSayim]":
         orm = self._db.query(StokSayimORM).filter(StokSayimORM.id == sayim.id).first()
         if not orm:
             return None
@@ -54,7 +54,7 @@ class SqlAlchemyStokSayimRepository(IStokSayimRepository):
         orm.baslangic_tarihi = sayim.baslangic_tarihi
         orm.bitis_tarihi = sayim.bitis_tarihi
         orm.referans_stok_json = sayim.referans_stok_json
-        orm.kontrol_eden_user_id = sayim.kontrol_eden_user_id
+        orm.kontrol_eden_user_id = sayim.kontrol_eden_user_id  # type: ignore[assignment]
         orm.onaylayan_user_id = sayim.onaylayan_user_id
         orm.durum = sayim.durum
         orm.aktif = sayim.aktif
@@ -64,19 +64,19 @@ class SqlAlchemyStokSayimRepository(IStokSayimRepository):
 
     def kalem_ekle(self, kalem: StokSayimKalemi) -> StokSayimKalemi:
         orm = stok_sayim_kalemi_to_orm(kalem)
-        orm.id = None
+        orm.id = None  # type: ignore[assignment]
         self._db.add(orm)
         self._db.commit()
         self._db.refresh(orm)
         return stok_sayim_kalemi_to_entity(orm)
 
-    def kalem_guncelle(self, kalem: StokSayimKalemi) -> StokSayimKalemi:
+    def kalem_guncelle(self, kalem: StokSayimKalemi) -> "Optional[StokSayimKalemi]":
         orm = self._db.query(StokSayimKalemiORM).filter(
             StokSayimKalemiORM.id == kalem.id
         ).first()
         if not orm:
             return None
-        orm.sayim_id = kalem.sayim_id
+        orm.sayim_id = kalem.sayim_id  # type: ignore[assignment]
         orm.urun_id = kalem.urun_id
         orm.sayilan_miktar = kalem.sayilan_miktar
         orm.notlar = kalem.notlar

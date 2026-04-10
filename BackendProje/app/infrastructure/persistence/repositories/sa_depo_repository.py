@@ -24,13 +24,13 @@ class SqlAlchemyDepoRepository(IDepoRepository):
 
     def olustur(self, depo: Depo) -> Depo:
         orm = depo_to_orm(depo)
-        orm.id = None
+        orm.id = None  # type: ignore[assignment]
         self._db.add(orm)
         self._db.commit()
         self._db.refresh(orm)
         return depo_to_entity(orm)
 
-    def guncelle(self, depo: Depo) -> Depo:
+    def guncelle(self, depo: Depo) -> "Optional[Depo]":
         orm = self._db.query(DepoORM).filter(DepoORM.id == depo.id).first()
         if not orm:
             return None
