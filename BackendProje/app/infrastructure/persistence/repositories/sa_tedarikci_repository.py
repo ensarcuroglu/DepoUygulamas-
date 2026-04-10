@@ -15,7 +15,7 @@ class SqlAlchemyTedarikciRepository(ITedarikciRepository):
     def getir_hepsi(self, skip: int = 0, limit: int = 100, sadece_aktif: bool = True) -> List[Tedarikci]:
         query = self._db.query(TedarikciORM)
         if sadece_aktif:
-            query = query.filter(TedarikciORM.aktif == True)
+            query = query.filter(TedarikciORM.aktif)
         return [tedarikci_to_entity(o) for o in query.offset(skip).limit(limit).all()]
 
     def getir_id_ile(self, tedarikci_id: int) -> Optional[Tedarikci]:

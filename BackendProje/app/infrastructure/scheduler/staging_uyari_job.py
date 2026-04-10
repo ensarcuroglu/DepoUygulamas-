@@ -37,8 +37,8 @@ def staging_uyari_kontrol() -> None:
             )
             .join(RafORM, RafORM.id == PaletORM.raf_id)
             .filter(
-                RafORM.is_staging == True,
-                PaletORM.aktif == True,
+                RafORM.is_staging,
+                PaletORM.aktif,
                 PaletORM.olusturma_tarihi <= esik_tarih,
             )
             .all()

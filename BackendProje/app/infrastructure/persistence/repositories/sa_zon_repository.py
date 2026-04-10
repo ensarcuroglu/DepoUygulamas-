@@ -22,7 +22,7 @@ class SqlAlchemyZonRepository(IZonRepository):
     ) -> List[Zon]:
         query = self._db.query(ZonORM)
         if sadece_aktif:
-            query = query.filter(ZonORM.aktif == True)
+            query = query.filter(ZonORM.aktif)
         if depo_id is not None:
             query = query.filter(ZonORM.depo_id == depo_id)
         if tip:

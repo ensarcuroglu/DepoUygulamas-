@@ -22,7 +22,7 @@ class SqlAlchemyRafRepository(IRafRepository):
     ) -> List[Raf]:
         query = self._db.query(RafORM)
         if sadece_aktif:
-            query = query.filter(RafORM.aktif == True)
+            query = query.filter(RafORM.aktif)
         if depo_id:
             query = query.filter(RafORM.depo_id == depo_id)
         if zon_id:

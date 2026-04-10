@@ -104,9 +104,9 @@ class SqlAlchemyStokSayimRepository(IStokSayimRepository):
                 UrunORM.id,
                 func.coalesce(func.sum(PaletORM.koli_adedi), 0),
             )
-            .outerjoin(LotORM, (LotORM.urun_id == UrunORM.id) & (LotORM.aktif == True))
-            .outerjoin(PaletORM, (PaletORM.lot_id == LotORM.id) & (PaletORM.aktif == True))
-            .filter(UrunORM.aktif == True)
+            .outerjoin(LotORM, (LotORM.urun_id == UrunORM.id) & (LotORM.aktif))
+            .outerjoin(PaletORM, (PaletORM.lot_id == LotORM.id) & (PaletORM.aktif))
+            .filter(UrunORM.aktif)
             .group_by(UrunORM.id)
             .all()
         )

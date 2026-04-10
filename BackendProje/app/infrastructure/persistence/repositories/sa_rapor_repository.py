@@ -37,7 +37,7 @@ class SqlAlchemyRaporSablonuRepository(IRaporSablonuRepository):
     ) -> List[RaporSablonu]:
         query = self._db.query(RaporSablonuORM)
         if is_aktif:
-            query = query.filter(RaporSablonuORM.is_aktif == True)
+            query = query.filter(RaporSablonuORM.is_aktif)
         if tur:
             query = query.filter(RaporSablonuORM.tur == tur)
         orm_list = query.order_by(RaporSablonuORM.ad).offset(skip).limit(limit).all()
@@ -127,7 +127,7 @@ class SqlAlchemyRaporScheduleRepository(IRaporScheduleRepository):
             joinedload(RaporScheduleORM.sablon),
         )
         if is_aktif:
-            query = query.filter(RaporScheduleORM.is_aktif == True)
+            query = query.filter(RaporScheduleORM.is_aktif)
         orm_list = query.order_by(
             RaporScheduleORM.sablon_adi
         ).offset(skip).limit(limit).all()
@@ -190,7 +190,7 @@ class SqlAlchemyRaporVeriRepository(IRaporVeriRepository):
             Urun.min_stok,
             Marka.isim.label("marka"),
             Kategori.isim.label("kategori"),
-        ).outerjoin(Marka).outerjoin(Kategori).filter(Urun.aktif == True)
+        ).outerjoin(Marka).outerjoin(Kategori).filter(Urun.aktif)
         if urun_id:
             query = query.filter(Urun.id == urun_id)
         return query.all()
@@ -207,7 +207,7 @@ class SqlAlchemyRaporVeriRepository(IRaporVeriRepository):
             Siparis.top_miktar,
             Siparis.top_tutar,
             func.count(SiparisKalemi.id).label("kalem_sayisi"),
-        ).outerjoin(SiparisKalemi).filter(Siparis.aktif == True)
+        ).outerjoin(SiparisKalemi).filter(Siparis.aktif)
         if baslang_tarihi:
             query = query.filter(Siparis.olusturma_tarihi >= baslang_tarihi)
         if bitis_tarihi:
@@ -240,7 +240,7 @@ class SqlAlchemyRaporVeriRepository(IRaporVeriRepository):
             Marka.isim.label("marka"),
             Kategori.isim.label("kategori"),
         ).outerjoin(Marka).outerjoin(Kategori).filter(
-            Urun.aktif == True,
+            Urun.aktif,
             Urun.stok_miktari <= Urun.min_stok,
         ).order_by(Urun.stok_miktari.asc()).all()
         return [dict(r._mapping) for r in rows]
@@ -254,10 +254,10 @@ class SqlAlchemyRaporVeriRepository(IRaporVeriRepository):
             Urun.isim.label("urun_isim"),
             func.sum(Palet.koli_adedi).label("toplam_stok"),
         ).join(Urun).outerjoin(
-            Palet, (Palet.lot_id == Lot.id) & (Palet.aktif == True),
+            Palet, (Palet.lot_id == Lot.id) & (Palet.aktif),
         ).filter(
-            Lot.aktif == True,
-            Lot.son_kullanma_tarihi != None,
+            Lot.aktif,
+            Lot.son_kullanma_tarihi is not None,
             Lot.son_kullanma_tarihi <= sinir_tarihi,
             Lot.son_kullanma_tarihi >= datetime.utcnow().date(),
         ).group_by(
@@ -272,7 +272,7 @@ class SqlAlchemyRaporVeriRepository(IRaporVeriRepository):
             func.sum(SiparisKalemi.toplam).label("toplam_deger"),
             func.sum(SiparisKalemi.miktar).label("toplam_miktar"),
         ).join(Urun).join(Siparis).filter(
-            Siparis.aktif == True,
+            Siparis.aktif,
             Siparis.durum != "Iptal",
         ).group_by(SiparisKalemi.urun_id, Urun.isim).order_by(
             func.sum(SiparisKalemi.toplam).desc(),
@@ -310,7 +310,7 @@ class SqlAlchemyRaporVeriRepository(IRaporVeriRepository):
         palet_sayilari = self._db.query(
             Palet.raf_id,
             func.count(Palet.id).label("dolu"),
-        ).filter(Palet.aktif == True).group_by(Palet.raf_id).subquery()
+        ).filter(Palet.aktif).group_by(Palet.raf_id).subquery()
 
         sonuclar_raw = self._db.query(
             Raf.id,
@@ -319,7 +319,7 @@ class SqlAlchemyRaporVeriRepository(IRaporVeriRepository):
             func.coalesce(palet_sayilari.c.dolu, 0).label("dolu"),
         ).outerjoin(
             palet_sayilari, Raf.id == palet_sayilari.c.raf_id,
-        ).filter(Raf.aktif == True).all()
+        ).filter(Raf.aktif).all()
 
         return [
             {

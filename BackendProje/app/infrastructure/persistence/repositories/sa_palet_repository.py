@@ -25,7 +25,7 @@ class SqlAlchemyPaletRepository(IPaletRepository):
             joinedload(PaletORM.raf),
         )
         if sadece_aktif:
-            query = query.filter(PaletORM.aktif == True)
+            query = query.filter(PaletORM.aktif)
         if lot_id:
             query = query.filter(PaletORM.lot_id == lot_id)
         if raf_id:
@@ -105,8 +105,8 @@ class SqlAlchemyPaletRepository(IPaletRepository):
         """FIFO sıralamalı temel sorgu (kilitsiz)."""
         return self._db.query(PaletORM).join(LotORM).filter(
             LotORM.urun_id == urun_id,
-            LotORM.aktif == True,
-            PaletORM.aktif == True,
+            LotORM.aktif,
+            PaletORM.aktif,
             PaletORM.koli_adedi > 0,
         ).order_by(
             case((LotORM.son_kullanma_tarihi.is_(None), 1), else_=0),

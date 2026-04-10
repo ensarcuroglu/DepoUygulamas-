@@ -322,8 +322,8 @@ class TestFifoCikisYarisi:
                 .join(LotORM)
                 .filter(
                     LotORM.urun_id == urun_id,
-                    LotORM.aktif == True,
-                    PaletORM.aktif == True,
+                    LotORM.aktif,
+                    PaletORM.aktif,
                     PaletORM.koli_adedi > 0,
                 )
                 .with_for_update()
@@ -390,8 +390,8 @@ class TestFifoCikisYarisi:
                 .join(LotORM)
                 .filter(
                     LotORM.urun_id == urun_id,
-                    LotORM.aktif == True,
-                    PaletORM.aktif == True,
+                    LotORM.aktif,
+                    PaletORM.aktif,
                     PaletORM.koli_adedi > 0,
                 )
                 .with_for_update()
@@ -450,9 +450,9 @@ class TestFifoCikisYarisi:
         lot2 = _olustur_lot(db_session, urun.id, "LOT-SIRA-2", skt=date(2027, 6, 1))
         lot3 = _olustur_lot(db_session, urun.id, "LOT-SIRA-3", skt=date(2028, 1, 1))
 
-        p1 = _olustur_palet(db_session, lot1.id, raf.id, "PLT-SIRA-1", koli_adedi=5)
-        p2 = _olustur_palet(db_session, lot2.id, raf.id, "PLT-SIRA-2", koli_adedi=5)
-        p3 = _olustur_palet(db_session, lot3.id, raf.id, "PLT-SIRA-3", koli_adedi=5)
+        _olustur_palet(db_session, lot1.id, raf.id, "PLT-SIRA-1", koli_adedi=5)
+        _olustur_palet(db_session, lot2.id, raf.id, "PLT-SIRA-2", koli_adedi=5)
+        _olustur_palet(db_session, lot3.id, raf.id, "PLT-SIRA-3", koli_adedi=5)
         db_session.commit()
 
         urun_id = urun.id
@@ -466,8 +466,8 @@ class TestFifoCikisYarisi:
                 .join(LotORM)
                 .filter(
                     LotORM.urun_id == urun_id,
-                    LotORM.aktif == True,
-                    PaletORM.aktif == True,
+                    LotORM.aktif,
+                    PaletORM.aktif,
                     PaletORM.koli_adedi > 0,
                 )
                 .order_by(
@@ -502,7 +502,7 @@ class TestFifoCikisYarisi:
 
             # SKT 2027-01: tamamen tüketilmiş (5 koli → 0)
             assert p1_db.koli_adedi == 0, f"PLT-SIRA-1 tamamen tüketilmeliydi: {p1_db.koli_adedi}"
-            assert p1_db.aktif == False
+            assert not p1_db.aktif
 
             # SKT 2027-06: kısmen tüketilmiş (5 - 2 = 3)
             assert p2_db.koli_adedi == 3, f"PLT-SIRA-2 kısmen tüketilmeliydi: {p2_db.koli_adedi}"
@@ -573,7 +573,7 @@ class TestPaletCikisEszamanlilik:
         try:
             p = kontrol.query(PaletORM).filter(PaletORM.id == palet_id).first()
             assert p.koli_adedi == 0, f"Palet koli_adedi 0 olmalıydı: {p.koli_adedi}"
-            assert p.aktif == False, "Palet artık aktif olmamalıydı"
+            assert not p.aktif, "Palet artık aktif olmamalıydı"
         finally:
             kontrol.close()
 
@@ -645,7 +645,7 @@ class TestDeadlockDayanakliligi:
         t_b.join(timeout=30)
 
         basarili = [s for s in sonuclar if s and s[0] == "basarili"]
-        hatali = [s for s in sonuclar if s and s[0] == "hata"]
+        [s for s in sonuclar if s and s[0] == "hata"]
 
         # Deadlock: MySQL en az 1 tarafı rollback eder
         # Veya kilit sırası şanslıysa ikisi de başarılı olabilir

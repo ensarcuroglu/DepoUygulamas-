@@ -19,7 +19,7 @@ class SqlAlchemyLotRepository(ILotRepository):
     ) -> List[Lot]:
         query = self._db.query(LotORM).options(joinedload(LotORM.urun))
         if sadece_aktif:
-            query = query.filter(LotORM.aktif == True)
+            query = query.filter(LotORM.aktif)
         if urun_id:
             query = query.filter(LotORM.urun_id == urun_id)
         orm_list = query.order_by(LotORM.olusturma_tarihi.desc()).offset(skip).limit(limit).all()
@@ -81,8 +81,8 @@ class SqlAlchemyLotRepository(ILotRepository):
         orm_list = self._db.query(LotORM).options(
             joinedload(LotORM.urun),
         ).filter(
-            LotORM.aktif == True,
-            LotORM.son_kullanma_tarihi != None,
+            LotORM.aktif,
+            LotORM.son_kullanma_tarihi is not None,
             LotORM.son_kullanma_tarihi <= sinir_tarih,
         ).order_by(LotORM.son_kullanma_tarihi.asc()).all()
         return [lot_to_entity(o) for o in orm_list]

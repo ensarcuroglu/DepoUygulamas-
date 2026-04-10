@@ -67,7 +67,7 @@ class TestPaletBilgisiGetir:
     def test_basarili_getir(self, adapter, db_session):
         depo = DepoFactory.create(isim="Ana Depo")
         urun = UrunFactory.create(isim="Makarna 500g", barkod="8690000000001")
-        raf = RafFactory.create(depo=depo, kod="R-01-A")
+        RafFactory.create(depo=depo, kod="R-01-A")
 
         _make_test_kalem(
             db_session, "PLT-2026-00100",

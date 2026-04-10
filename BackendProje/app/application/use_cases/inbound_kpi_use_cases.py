@@ -234,8 +234,8 @@ class InboundKpiUseCase:
             self._db.query(func.count(PaletORM.id))
             .join(RafORM, RafORM.id == PaletORM.raf_id)
             .filter(
-                RafORM.is_staging == True,
-                PaletORM.aktif == True,
+                RafORM.is_staging,
+                PaletORM.aktif,
                 PaletORM.olusturma_tarihi <= staging_esik_tarih,
             )
             .scalar()

@@ -23,7 +23,7 @@ def zamanlama_kontrol() -> None:
     db = SessionLocal()
     try:
         simdi = datetime.utcnow()
-        schedules = db.query(RaporSchedule).filter(RaporSchedule.is_aktif == True).all()
+        schedules = db.query(RaporSchedule).filter(RaporSchedule.is_aktif).all()
         for schedule in schedules:
             saat_str = schedule.saat or "09:00"
             try:

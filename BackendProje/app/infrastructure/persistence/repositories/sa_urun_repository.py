@@ -26,7 +26,7 @@ class SqlAlchemyUrunRepository(IUrunRepository):
         )
 
         if sadece_aktif:
-            query = query.filter(UrunORM.aktif == True)
+            query = query.filter(UrunORM.aktif)
 
         if search:
             query = query.filter(
@@ -67,7 +67,7 @@ class SqlAlchemyUrunRepository(IUrunRepository):
         orm = self._db.query(UrunORM).options(
             joinedload(UrunORM.marka),
             joinedload(UrunORM.kategori),
-        ).filter(UrunORM.ean == ean, UrunORM.aktif == True).first()
+        ).filter(UrunORM.ean == ean, UrunORM.aktif).first()
         return urun_to_entity(orm) if orm else None
 
     def olustur(self, urun: Urun) -> Urun:
@@ -116,7 +116,7 @@ class SqlAlchemyUrunRepository(IUrunRepository):
             joinedload(UrunORM.marka),
             joinedload(UrunORM.kategori),
         ).filter(
-            UrunORM.aktif == True,
+            UrunORM.aktif,
             UrunORM.stok_miktari <= UrunORM.min_stok,
         ).all()
         return [urun_to_entity(o) for o in orm_list]

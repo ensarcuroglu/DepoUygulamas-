@@ -15,7 +15,7 @@ class SqlAlchemyMarkaRepository(IMarkaRepository):
     def getir_hepsi(self, skip: int = 0, limit: int = 100, sadece_aktif: bool = True) -> List[Marka]:
         query = self._db.query(MarkaORM)
         if sadece_aktif:
-            query = query.filter(MarkaORM.aktif == True)
+            query = query.filter(MarkaORM.aktif)
         orm_list = query.offset(skip).limit(limit).all()
         return [marka_to_entity(o) for o in orm_list]
 

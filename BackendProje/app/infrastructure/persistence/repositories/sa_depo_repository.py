@@ -15,7 +15,7 @@ class SqlAlchemyDepoRepository(IDepoRepository):
     def getir_hepsi(self, skip: int = 0, limit: int = 100, sadece_aktif: bool = True) -> List[Depo]:
         query = self._db.query(DepoORM)
         if sadece_aktif:
-            query = query.filter(DepoORM.aktif == True)
+            query = query.filter(DepoORM.aktif)
         return [depo_to_entity(o) for o in query.offset(skip).limit(limit).all()]
 
     def getir_id_ile(self, depo_id: int) -> Optional[Depo]:

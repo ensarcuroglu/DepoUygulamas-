@@ -18,7 +18,7 @@ class SqlAlchemyDashboardRepository(IDashboardRepository):
             func.count(Urun.id),
             func.count(case((Urun.stok_miktari <= Urun.min_stok, 1))),
             func.coalesce(func.sum(Urun.stok_miktari * Urun.fiyat), 0.0),
-        ).filter(Urun.aktif == True).one()
+        ).filter(Urun.aktif).one()
 
         bugun = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         yedi_gun_once = bugun - timedelta(days=6)

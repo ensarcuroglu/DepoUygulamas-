@@ -15,7 +15,7 @@ class SqlAlchemyKategoriRepository(IKategoriRepository):
     def getir_hepsi(self, skip: int = 0, limit: int = 100, sadece_aktif: bool = True) -> List[Kategori]:
         query = self._db.query(KategoriORM)
         if sadece_aktif:
-            query = query.filter(KategoriORM.aktif == True)
+            query = query.filter(KategoriORM.aktif)
         return [kategori_to_entity(o) for o in query.offset(skip).limit(limit).all()]
 
     def getir_id_ile(self, kategori_id: int) -> Optional[Kategori]:
