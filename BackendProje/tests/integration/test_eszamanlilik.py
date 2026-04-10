@@ -10,16 +10,14 @@ Gerçek MySQL üzerinde threading + ayrı SQLAlchemy session ile:
 Gereksinim: MySQL 8.0+ (InnoDB), depo_db_test veritabanı.
 """
 
-import os
 import threading
 import time
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
 import pytest
-from sqlalchemy import create_engine, text, func
+from sqlalchemy import text, func
 from sqlalchemy.orm import sessionmaker, Session
 
-from database import Base
 from models import (
     Palet as PaletORM,
     Lot as LotORM,
@@ -29,8 +27,6 @@ from models import (
     Marka as MarkaORM,
     Kategori as KategoriORM,
     Kullanici as KullaniciORM,
-    StokHareketi as StokHareketiORM,
-    SistemLog as SistemLogORM,
 )
 
 pytestmark = [pytest.mark.integration, pytest.mark.concurrency]

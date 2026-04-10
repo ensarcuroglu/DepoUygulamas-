@@ -7,7 +7,7 @@ Tüm endpoint'ler depocu rolü gerektirir.
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from app.core.auth import require_role
@@ -21,7 +21,6 @@ from app.infrastructure.di.container import (
     get_palet_repo,
     get_raf_repo,
     get_urun_repo,
-    get_yerlestirme_algoritmasi,
     get_yerlestirme_gorevi_listele_uc,
     get_yerlestirme_gorevi_repo,
     get_yerlestirme_onayla_uc,

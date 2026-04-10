@@ -14,7 +14,7 @@ Kapsam:
 
 import pytest
 from datetime import date, datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from app.core.entities.palet import Palet
 from app.core.entities.raf import Raf

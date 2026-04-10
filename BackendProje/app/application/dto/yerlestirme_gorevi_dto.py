@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator
 
-from app.core.entities.yerlestirme_gorevi import GorevTipi, GorevDurum, YerlestirmeGorevi
+from app.core.entities.yerlestirme_gorevi import GorevTipi, YerlestirmeGorevi
 
 
 # ─────────────────────────────────────────

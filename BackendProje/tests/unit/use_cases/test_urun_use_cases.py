@@ -12,7 +12,7 @@ from app.application.use_cases.urun_use_cases import (
     UrunListeleUseCase,
     UrunSilUseCase,
 )
-from app.application.dto.urun_dto import UrunOlusturRequestDTO, UrunResponseDTO
+from app.application.dto.urun_dto import UrunOlusturRequestDTO
 from app.core.exceptions import KayitBulunamadiError, CakismaHatasi
 
 pytestmark = pytest.mark.unit

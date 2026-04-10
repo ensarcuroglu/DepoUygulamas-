@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session, joinedload, load_only
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.entities.stok_hareketi import StokHareketi
 from app.core.repositories.stok_hareketi_repository import IStokHareketiRepository

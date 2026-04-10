@@ -15,8 +15,6 @@ from typing import Any, Optional
 
 from app.application.dto.palet_bilgi_dto import PaletBilgiDTO
 from app.core.exceptions import (
-    KayitBulunamadiError,
-    GecersizIslemError,
     ErpBaglantiHatasi,
     ErpVeriDogrulamaHatasi,
 )

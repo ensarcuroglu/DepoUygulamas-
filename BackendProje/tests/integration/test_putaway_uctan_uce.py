@@ -15,7 +15,6 @@ from tests.factories import (
     YerlestirmeGoreviFactory,
     PaletFactory,
     RafFactory,
-    ZonFactory,
     KullaniciFactory,
     DepoFactory,
     LotFactory,   # Eklendi

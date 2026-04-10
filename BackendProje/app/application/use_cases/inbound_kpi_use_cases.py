@@ -6,7 +6,6 @@ Tarih aralığı ve staging eşiğine göre operasyon performans metriklerini he
 
 from __future__ import annotations
 from datetime import datetime, timedelta
-from typing import Optional
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case, literal_column, or_

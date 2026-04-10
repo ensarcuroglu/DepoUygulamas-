@@ -3,7 +3,7 @@ Unit testler: ERP adapter'lari — Mock, Strict Mapping, Config-driven secim.
 """
 
 import pytest
-from datetime import date, timedelta
+from datetime import date
 from unittest.mock import patch
 
 from app.infrastructure.services.mock_erp_palet_veri_kaynagi_service import (

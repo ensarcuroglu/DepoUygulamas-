@@ -16,7 +16,6 @@ from app.core.entities.sistem_log import SistemLog, IslemTipi
 from app.core.exceptions import (
     KayitBulunamadiError,
     CakismaHatasi,
-    GecersizIslemError,
 )
 from app.application.dto.urun_dto import (
     UrunOlusturRequestDTO,

@@ -12,7 +12,7 @@ Kapsam:
 """
 
 import pytest
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock
 from datetime import datetime, date
 
 from app.application.use_cases.mal_kabul_irsaliye_use_cases import IrsaliyeOnaylaVeGorevOlusturUseCase
@@ -21,7 +21,6 @@ from app.core.entities.lot import Lot
 from app.core.entities.palet import Palet
 from app.core.entities.raf import Raf
 from app.core.entities.urun import Urun
-from app.core.entities.yerlestirme_gorevi import GorevDurum
 from app.core.exceptions import GecersizIslemError
 
 pytestmark = pytest.mark.unit

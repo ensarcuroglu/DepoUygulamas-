@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import MagicMock
-from datetime import date
 
 # Proje yapına göre import yollarını kontrol et
 from app.core.entities.mal_kabul_irsaliye import (

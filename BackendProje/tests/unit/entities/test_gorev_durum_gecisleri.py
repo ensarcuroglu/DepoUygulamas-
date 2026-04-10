@@ -9,7 +9,6 @@ Kapsam:
 """
 
 import pytest
-from datetime import datetime
 
 from app.core.entities.yerlestirme_gorevi import GorevDurum, YerlestirmeGorevi
 from app.core.exceptions import GecersizDurumGecisiError

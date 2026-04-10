@@ -27,8 +27,6 @@ ilk deponun mevcut raf kodları (GNL-A-12-01-01 formatı) tutarlı kalır.
 """
 
 import os
-import re
-from datetime import datetime
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from dotenv import load_dotenv

@@ -54,7 +54,7 @@ try:
                 print(f"  Atlandı (muhtemelen zaten var): {e}")
 
         # Legacy kod dönüşümü
-        print(f"  Legacy raf kodu dönüşümü...")
+        print("  Legacy raf kodu dönüşümü...")
         result = conn.execute(text(legacy_migration_sql))
         print(f"  {result.rowcount} raf kodu güncellendi (4-parça → 5-parça).")
 

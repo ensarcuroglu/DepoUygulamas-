@@ -180,7 +180,7 @@ def seed():
         )
         db.add_all([admin, depocu])
         db.flush()
-        print(f"  ✅ 2 kullanıcı eklendi (admin / depocu1)")
+        print("  ✅ 2 kullanıcı eklendi (admin / depocu1)")
 
         # ==================
         # LOTLAR ve PALETLER

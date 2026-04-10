@@ -159,7 +159,7 @@ class TestRegisterEndpoint:
         assert response.status_code == 400
 
 from datetime import datetime, timedelta
-from app.core.auth import create_refresh_token, hash_token # Gerekli yardımcıları içe aktar
+from app.core.auth import hash_token # Gerekli yardımcıları içe aktar
 
 class TestRefreshEndpoint:
     """POST /api/auth/refresh testleri."""

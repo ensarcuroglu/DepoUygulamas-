@@ -3,12 +3,12 @@ from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 
-from app.core.entities.siparis import Siparis, SiparisKalemi
+from app.core.entities.siparis import Siparis
 from app.core.repositories.siparis_repository import ISiparisRepository
 from app.infrastructure.persistence.mappers import (
     siparis_to_entity, siparis_kalemi_to_orm,
 )
-from models import Siparis as SiparisORM, SiparisKalemi as SiparisKalemiORM
+from models import Siparis as SiparisORM
 
 
 class SqlAlchemySiparisRepository(ISiparisRepository):

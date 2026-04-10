@@ -1,6 +1,6 @@
 import sys
 import logging
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from database import engine
 
 logging.basicConfig(level=logging.INFO)

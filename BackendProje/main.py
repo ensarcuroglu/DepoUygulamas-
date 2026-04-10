@@ -7,8 +7,6 @@ from slowapi.middleware import SlowAPIMiddleware
 from fastapi.responses import JSONResponse
 from fastapi import Request
 
-from database import engine
-from models import Base
 from limiter import limiter
 from app.infrastructure.scheduler import RaporScheduler
 

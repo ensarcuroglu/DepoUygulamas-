@@ -4,7 +4,6 @@ API testler: Stok Islemleri (Palet Bazli) endpoint'leri.
 
 import pytest
 from tests.factories import (
-    KullaniciFactory,
     MalKabulIrsaliyeFactory,
     MalKabulKalemiFactory,
     DepoFactory,

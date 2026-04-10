@@ -1,4 +1,3 @@
-import pytest
 
 from app.core.entities.palet import Palet
 from app.core.entities.kullanici import Kullanici

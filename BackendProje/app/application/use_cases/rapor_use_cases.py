@@ -7,7 +7,7 @@ Export ve Schedule tetikleme use case'leri.
 
 from __future__ import annotations
 from datetime import date, datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 import csv
 import io
 

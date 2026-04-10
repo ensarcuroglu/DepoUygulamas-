@@ -8,7 +8,7 @@ from app.infrastructure.persistence.mappers.yerlestirme_mapper import (
     yerlestirme_gorevi_to_entity,
     yerlestirme_gorevi_to_orm,
 )
-from models import YerlestirmeGorevi as YerlestirmeGoreviORM, Palet, Lot, Urun, Raf, Zon
+from models import YerlestirmeGorevi as YerlestirmeGoreviORM, Palet, Lot, Raf
 from datetime import datetime, timedelta
 
 

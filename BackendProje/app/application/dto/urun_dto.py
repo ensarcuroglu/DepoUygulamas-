@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime
 import re
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 from app.core.entities.urun import DepolamaTipi
 
 EAN_REGEX = re.compile(r"^\d{8,14}$")
