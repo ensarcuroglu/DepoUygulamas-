@@ -88,10 +88,10 @@ export default function TerminalLayout() {
       <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
         <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-2xl border-t border-white/10" />
         <div className="relative flex px-2 py-2 max-w-md mx-auto">
-          {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+          {NAV_ITEMS.map((item) => (
             <NavLink
-              key={to}
-              to={to}
+              key={item.to}
+              to={item.to}
               className={({ isActive }) =>
                 `flex-1 relative flex flex-col items-center justify-center py-2 gap-1 rounded-2xl transition-all duration-300 active:scale-95 ${
                   isActive
@@ -102,8 +102,8 @@ export default function TerminalLayout() {
             >
               {({ isActive }) => (
                 <>
-                  <Icon className={`w-5 h-5 md:w-6 md:h-6 transition-transform duration-300 ${isActive ? 'scale-110' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
-                  <span className="text-[10px] font-bold tracking-wide">{label}</span>
+                  <item.icon className={`w-5 h-5 md:w-6 md:h-6 transition-transform duration-300 ${isActive ? 'scale-110' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="text-[10px] font-bold tracking-wide">{item.label}</span>
                   {isActive && (
                     <span className="absolute -top-1 w-8 h-1 bg-amber-400 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
                   )}

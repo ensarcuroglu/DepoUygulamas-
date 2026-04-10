@@ -28,7 +28,14 @@ export default function TerminalOzetPage() {
     }
   }, [run]);
 
-  useEffect(() => { void yukle(); }, [yukle]);
+  // ÇÖZÜM: Asenkron wrapper kullanarak senkron state güncelleme uyarısını çözüyoruz
+  useEffect(() => {
+    const baslangicYuklemesi = async () => {
+      await yukle();
+    };
+    
+    baslangicYuklemesi();
+  }, [yukle]);
 
   const bugun = new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -44,7 +51,8 @@ export default function TerminalOzetPage() {
           </div>
         </div>
         <button
-          onClick={yukle}
+          // ÇÖZÜM: Event objesinin asenkron fonksiyona gitmesini önlemek için sarmaladık
+          onClick={() => yukle()}
           disabled={loading}
           className="p-2 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition-colors disabled:opacity-40"
         >

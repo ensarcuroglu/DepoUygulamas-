@@ -50,7 +50,12 @@ export default function ZonlarPage() {
     }
   }, [run, seciliDepoId]);
 
-  useEffect(() => { void yukle(); }, [yukle]);
+  useEffect(() => {
+    const baslangicYuklemesi = async () => {
+      await yukle();
+    };
+    baslangicYuklemesi();
+  }, [yukle]);
 
   const modalAc = (zon = null) => {
     setDuzenleZon(zon);
@@ -122,7 +127,7 @@ export default function ZonlarPage() {
           </div>
           
           <button
-            onClick={yukle}
+            onClick={() => yukle()}
             disabled={loading}
             className="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all disabled:opacity-50 active:scale-95"
             aria-label="Yenile"

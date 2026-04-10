@@ -282,7 +282,6 @@ export default function YerlestirmeGorevleriPage() {
               <div className="flex flex-col gap-3 lg:gap-0 lg:divide-y lg:divide-slate-100">
                 {gorevler.map((g) => {
                   const isExpanded = acikSatirId === g.id;
-                  const isCancelable = ['Bekliyor', 'Atandi', 'DevamEdiyor'].includes(g.durum);
 
                   return (
                     <div 
