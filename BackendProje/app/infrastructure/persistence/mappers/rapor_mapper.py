@@ -3,13 +3,45 @@
 from __future__ import annotations
 
 import json
-from typing import List, Optional
 from models import (
     RaporSablonu as RaporSablonuORM,
     RaporLogu as RaporLoguORM,
     RaporSchedule as RaporScheduleORM,
 )
 from app.core.entities.rapor import RaporSablonu, RaporLogu, RaporSchedule
+
+
+def _to_str_list(value: object) -> list[str]:
+    """Farklı kaynaklardan gelen alıcı email verisini güvenli şekilde list[str]'e normalize eder."""
+    if value is None:
+        return []
+
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if item is not None and str(item).strip()]
+
+    if isinstance(value, tuple):
+        return [str(item).strip() for item in value if item is not None and str(item).strip()]
+
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return []
+
+        # JSON string olarak saklanmış olabilir: '["a@x.com", "b@x.com"]'
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            parsed = None
+
+        if isinstance(parsed, list):
+            return [str(item).strip() for item in parsed if item is not None and str(item).strip()]
+
+        # Tek email plain string olarak gelmiş olabilir
+        return [raw]
+
+    raise TypeError(
+        f"alici_emailler beklenmeyen tip aldı: {type(value).__name__}"
+    )
 
 
 def rapor_sablonu_to_entity(orm: RaporSablonuORM) -> RaporSablonu:
