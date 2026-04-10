@@ -154,3 +154,9 @@ def ana_sayfa():
 
 # LİNT HATALARI KODU 
 # npm run lint 2>&1 | tee lint-hatalari.log
+
+# RUFF HATALARI KODU
+# ruff check . > ruff-check-ciktisi.log
+
+# PYRIGHT HATALARI KODU
+# pyright > pyright-hatalari.log

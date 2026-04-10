@@ -1,0 +1,11 @@
+[tool.pyright]
+include = ["app"]
+exclude = [
+    "**/__pycache__",
+    ".venv",
+    "**/node_modules",
+    "**/.*"
+]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "basic"
