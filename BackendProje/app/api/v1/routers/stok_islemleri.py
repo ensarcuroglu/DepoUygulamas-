@@ -4,13 +4,11 @@ Stok Islemleri API Router — Palet Bazli Giris/Cikis/Sorgulama (tekli + toplu).
 Yeni palet bazli akis icin endpoint'ler.
 Mevcut /api/stok-hareketleri/ endpoint'leri dokunulmaz — bu router ayri calisir.
 """
-
+import logging
 from fastapi import APIRouter, Depends, Request, Header
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-import logging
-logger = logging.getLogger(__name__)
 
 from app.core.exceptions import CakismaHatasi
 
@@ -37,6 +35,7 @@ from app.application.dto.stok_hareketi_dto import StokHareketiResponseDTO
 from app.core.services.palet_bazli_stok_domain_service import PaletBazliStokDomainService
 from app.infrastructure.services.palet_sorgulama_service import PaletSorgulamaService
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/stok-islemleri", tags=["Stok Islemleri (Palet Bazli)"])
 
 

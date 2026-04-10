@@ -4,6 +4,8 @@ Login, register, me, logout endpoint'lerini test eder.
 """
 
 import pytest
+from datetime import datetime, timedelta
+from app.core.auth import hash_token # Gerekli yardımcıları içe aktar
 from tests.factories import KullaniciFactory, DepoFactory
 from tests.conftest import TEST_PASSWORD
 
@@ -158,8 +160,6 @@ class TestRegisterEndpoint:
 
         assert response.status_code == 400
 
-from datetime import datetime, timedelta
-from app.core.auth import hash_token # Gerekli yardımcıları içe aktar
 
 class TestRefreshEndpoint:
     """POST /api/auth/refresh testleri."""

@@ -84,7 +84,7 @@ def _gorev_depo_id_belirle(gorev: YerlestirmeGorevi, raf_repo: IRafRepository) -
     return None
 
 
-from app.application.dto.yerlestirme_gorevi_dto import (
+from app.application.dto.yerlestirme_gorevi_dto import (    # noqa: E402
     YerlestirmeGoreviOlusturRequestDTO,
     YerlestirmeGoreviTamamlaRequestDTO,
     YerlestirmeGoreviOverrideRequestDTO,

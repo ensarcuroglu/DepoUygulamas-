@@ -634,8 +634,8 @@ class YerlestirmeGorevi(Base):
     override_kullanici = relationship("Kullanici", foreign_keys=[override_kullanici_id])
 
 
-from sqlalchemy import select, func
-from sqlalchemy.orm import column_property
+from sqlalchemy import select, func # noqa: E402
+from sqlalchemy.orm import column_property  # noqa: E402
 
 # N+1 Problemini çözmek için column_property ile veritabanı seviyesinde toplama yapıyoruz.
 Urun.stok_miktari = column_property(

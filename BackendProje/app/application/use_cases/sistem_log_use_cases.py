@@ -22,7 +22,7 @@ class SistemLogListeleUseCase:
     def execute(self, skip: int = 0, limit: int = 100) -> List[SistemLogResponseDTO]:
         limit = min(limit, 1000)
         loglar = self._log_repo.getir_hepsi(skip=skip, limit=limit)
-        return [SistemLogResponseDTO.from_entity(l) for l in loglar]
+        return [SistemLogResponseDTO.from_entity(log) for log in loglar]
 
 
 class SistemLogOlusturUseCase:

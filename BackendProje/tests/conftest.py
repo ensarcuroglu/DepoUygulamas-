@@ -17,10 +17,10 @@ _env_test_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env.
 if os.path.exists(_env_test_path):
     load_dotenv(_env_test_path, override=True)
 
-from database import Base, get_db
-from app.core.auth import create_access_token
-from limiter import limiter
-from main import app
+from database import Base, get_db # noqa: E402
+from app.core.auth import create_access_token # noqa: E402
+from limiter import limiter # noqa: E402
+from main import app # noqa: E402
 
 # Bcrypt hash'i bir kez hesapla — test başına ~400ms tasarruf
 TEST_PASSWORD = "Test1234"

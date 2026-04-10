@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── YENİ Clean Architecture Router'ları ──
-from app.api.v1.routers import (
+from app.api.v1.routers import ( # noqa: E402
     urunler_router as v1_urunler_router,
     stok_hareketleri_router as v1_stok_hareketleri_router,
     siparisler_router as v1_siparisler_router,

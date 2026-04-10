@@ -25,7 +25,7 @@ class LotListeleUseCase:
         self, skip: int = 0, limit: int = 50, urun_id: int | None = None
     ) -> List[LotResponseDTO]:
         lotlar = self._lot_repo.getir_hepsi(skip=skip, limit=limit, urun_id=urun_id)
-        return [LotResponseDTO.from_entity(l) for l in lotlar]
+        return [LotResponseDTO.from_entity(lot) for lot in lotlar]
 
 
 class LotGetirUseCase:
@@ -46,7 +46,7 @@ class LotSktYaklasanUseCase:
     def execute(self, gun: int = 30) -> List[LotResponseDTO]:
         gun = min(gun, 365)
         lotlar = self._lot_repo.getir_skt_yaklasan(gun=gun)
-        return [LotResponseDTO.from_entity(l) for l in lotlar]
+        return [LotResponseDTO.from_entity(lot) for lot in lotlar]
 
 
 class LotOlusturUseCase:
