@@ -25,6 +25,7 @@ from app.core.auth import (
     REFRESH_TOKEN_EXPIRE_DAYS,
     ALGORITHM,
 )
+from app.core.constants import AuthConstants  # EKLENDİ
 from app.application.dto.auth_dto import (
     LoginRequestDTO as LoginRequest,
     TokenResponseDTO as TokenResponse,
@@ -58,7 +59,7 @@ def login(request: Request, login_request: LoginRequest, db: Session = Depends(g
 
     access_token = create_access_token(data={"sub": user.kullanici_adi})
     
-    # YENİ KOD: Refresh token'ı user.id parametresi ile oluşturuyoruz
+    # Refresh token'ı user.id parametresi ile oluşturuyoruz
     refresh_token = create_refresh_token(user.id)
 
     # Token formatı "{id}:{raw_token}" olduğu için sadece raw_token kısmını ayırıp hash'liyoruz
@@ -78,7 +79,7 @@ def login(request: Request, login_request: LoginRequest, db: Session = Depends(g
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "bearer",
+        "token_type": AuthConstants.BEARER_TOKEN_TYPE,  # DEĞİŞTİRİLDİ
         "user": {
             "id": user.id,
             "kullanici_adi": user.kullanici_adi,
@@ -106,7 +107,7 @@ def refresh_token(request: RefreshRequest, db: Session = Depends(get_db)):
 
     return {
         "access_token": new_access_token,
-        "token_type": "bearer",
+        "token_type": AuthConstants.BEARER_TOKEN_TYPE,  # DEĞİŞTİRİLDİ
     }
 
 
@@ -223,5 +224,5 @@ def get_auth_config():
         "access_token_expire_minutes": ACCESS_TOKEN_EXPIRE_MINUTES,
         "refresh_token_expire_days": REFRESH_TOKEN_EXPIRE_DAYS,
         "algorithm": ALGORITHM,
-        "password_hash": "bcrypt",
+        "password_hash": AuthConstants.BCRYPT_ALGORITHM,  # DEĞİŞTİRİLDİ
     }

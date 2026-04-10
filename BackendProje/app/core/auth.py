@@ -18,6 +18,7 @@ import secrets
 
 from database import get_db
 from models import Kullanici
+from app.core.constants import AuthConstants  # EKLENDİ
 
 # ========================
 # YAPILANDIRMA
@@ -47,7 +48,8 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7      # 7 gün
 # ŞİFRE HASHLEME
 # ========================
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# DEĞİŞTİRİLDİ: "bcrypt" stringi yerine sabit kullanıldı
+pwd_context = CryptContext(schemes=[AuthConstants.BCRYPT_ALGORITHM], deprecated="auto")
 
 
 def _truncate_password(password: str) -> str:
@@ -86,7 +88,6 @@ def verify_token(token: str, hashed: str) -> bool:
 # ACCESS TOKEN
 # ========================
 
-# Eski OAuth2PasswordBearer kaldırıldı, yerine HTTPBearer eklendi
 security = HTTPBearer()
 
 
@@ -94,7 +95,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     """JWT access token oluşturur (kısa ömürlü, 30 dk)."""
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire, "type": "access"})
+    # DEĞİŞTİRİLDİ: "access" stringi yerine sabit kullanıldı
+    to_encode.update({"exp": expire, "type": AuthConstants.ACCESS_TOKEN_TYPE})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -163,7 +165,6 @@ def get_current_user(
     Her korumalı endpoint'te kullanılacak dependency.
     Token'dan kullanıcı adını çözer ve DB'den kullanıcıyı döner.
     """
-    # Swagger'dan gelen temiz token
     token = auth.credentials 
     
     credentials_exception = HTTPException(
@@ -189,8 +190,8 @@ def get_current_user(
         if kullanici_adi is None:
             raise credentials_exception
 
-        # Refresh token Access token'ı yerine kullanılıyor mu? Kontrol et
-        if token_type == "refresh":
+        # DEĞİŞTİRİLDİ: "refresh" stringi yerine sabit kullanıldı
+        if token_type == AuthConstants.REFRESH_TOKEN_TYPE:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
