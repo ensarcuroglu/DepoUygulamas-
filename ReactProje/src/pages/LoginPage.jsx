@@ -75,23 +75,23 @@ export default function LoginPage() {
                     animation: grid-pan 3s linear infinite;
                 }
                 .glass-card {
-                    background: rgba(255, 255, 255, 0.85);
+                    background: color-mix(in srgb, var(--color-surface, #ffffff) 85%, transparent);
                     backdrop-filter: blur(20px);
                     -webkit-backdrop-filter: blur(20px);
-                    border: 1px solid rgba(255, 255, 255, 1);
+                    border: 1px solid var(--color-border, rgba(255,255,255,1));
                     box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.02);
                 }
                 input:-webkit-autofill,
-                input:-webkit-autofill:hover, 
-                input:-webkit-autofill:focus, 
-                input:-webkit-autofill:active{
-                    -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
-                    -webkit-text-fill-color: #0f172a !important;
+                input:-webkit-autofill:hover,
+                input:-webkit-autofill:focus,
+                input:-webkit-autofill:active {
+                    -webkit-box-shadow: 0 0 0 30px var(--color-surface, #ffffff) inset !important;
+                    -webkit-text-fill-color: var(--color-text-primary, #0f172a) !important;
                     transition: background-color 5000s ease-in-out 0s;
                 }
             `}} />
 
-            <div className="min-h-screen bg-[#F4F7FA] flex relative overflow-hidden font-sans selection:bg-blue-500/30">
+            <div className="min-h-screen flex relative overflow-hidden font-sans selection:bg-blue-500/30" style={{ backgroundColor: 'var(--color-surface-secondary, #F4F7FA)' }}>
 
                 {/* --- Arka Plan Teknolojik Efektleri (Açık Tema) --- */}
                 <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">

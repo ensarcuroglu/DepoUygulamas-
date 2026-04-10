@@ -4,7 +4,7 @@
 @import "tailwindcss";
 
 /* Tailwind v4: dark: prefix → [data-mode="koyu"] attribute'una bağla */
-@variant dark (&:where([data-mode="koyu"] *));
+@custom-variant dark (&:is([data-mode="koyu"] *));
 
 /* ============================
    DEPO YÖNETİM SİSTEMİ
@@ -200,6 +200,150 @@ html[data-mode="koyu"] {
   transition-property: color, background-color, border-color, box-shadow;
   transition-duration: 200ms;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ====================================================
+   DARK MOD — Global Tailwind Sınıf Override'ları
+   [data-mode="koyu"] specificity: (0,1,1) >
+   Tailwind'in (0,0,1) — !important gerekmez.
+   Tüm 32 sayfa dosyasını tek blokla kapsar.
+   ==================================================== */
+
+/* ── Arka Planlar ── */
+[data-mode="koyu"] .bg-white           { background-color: #1e293b; }
+[data-mode="koyu"] .bg-white\/5        { background-color: rgba(30,41,59,0.05); }
+[data-mode="koyu"] .bg-white\/10       { background-color: rgba(30,41,59,0.10); }
+[data-mode="koyu"] .bg-white\/20       { background-color: rgba(30,41,59,0.20); }
+[data-mode="koyu"] .bg-white\/50       { background-color: rgba(30,41,59,0.50); }
+[data-mode="koyu"] .bg-white\/60       { background-color: rgba(30,41,59,0.60); }
+[data-mode="koyu"] .bg-white\/75       { background-color: rgba(15,23,42,0.80); }
+[data-mode="koyu"] .bg-white\/80       { background-color: rgba(15,23,42,0.85); }
+[data-mode="koyu"] .bg-white\/90       { background-color: rgba(15,23,42,0.92); }
+[data-mode="koyu"] .bg-white\/95       { background-color: rgba(15,23,42,0.95); }
+[data-mode="koyu"] .bg-slate-50        { background-color: #0f172a; }
+[data-mode="koyu"] .bg-slate-50\/30    { background-color: rgba(15,23,42,0.30); }
+[data-mode="koyu"] .bg-slate-50\/50    { background-color: rgba(15,23,42,0.50); }
+[data-mode="koyu"] .bg-slate-100       { background-color: #1e293b; }
+[data-mode="koyu"] .bg-slate-100\/50   { background-color: rgba(30,41,59,0.50); }
+[data-mode="koyu"] .bg-slate-100\/60   { background-color: rgba(30,41,59,0.60); }
+[data-mode="koyu"] .bg-slate-100\/70   { background-color: rgba(30,41,59,0.70); }
+[data-mode="koyu"] .bg-slate-100\/80   { background-color: rgba(30,41,59,0.80); }
+[data-mode="koyu"] .bg-slate-200       { background-color: #334155; }
+[data-mode="koyu"] .bg-slate-200\/50   { background-color: rgba(51,65,85,0.50); }
+
+/* ── Hover Arka Planlar ── */
+[data-mode="koyu"] .hover\:bg-white:hover        { background-color: #334155; }
+[data-mode="koyu"] .hover\:bg-slate-50:hover     { background-color: #1e293b; }
+[data-mode="koyu"] .hover\:bg-slate-50\/80:hover { background-color: rgba(30,41,59,0.80); }
+[data-mode="koyu"] .hover\:bg-slate-100:hover    { background-color: #334155; }
+[data-mode="koyu"] .hover\:bg-slate-200:hover    { background-color: #475569; }
+
+/* ── Focus Arka Planlar ── */
+[data-mode="koyu"] .focus\:bg-white:focus     { background-color: #1e293b; }
+[data-mode="koyu"] .focus\:bg-slate-50:focus  { background-color: #0f172a; }
+
+/* ── Metin Renkleri ── */
+[data-mode="koyu"] .text-slate-900 { color: #f1f5f9; }
+[data-mode="koyu"] .text-slate-800 { color: #e2e8f0; }
+[data-mode="koyu"] .text-slate-700 { color: #cbd5e1; }
+[data-mode="koyu"] .text-slate-600 { color: #94a3b8; }
+[data-mode="koyu"] .text-slate-500 { color: #94a3b8; }
+
+/* ── Hover Metin Renkleri ── */
+[data-mode="koyu"] .hover\:text-slate-900:hover { color: #f1f5f9; }
+[data-mode="koyu"] .hover\:text-slate-800:hover { color: #e2e8f0; }
+[data-mode="koyu"] .hover\:text-slate-700:hover { color: #cbd5e1; }
+[data-mode="koyu"] .hover\:text-slate-600:hover { color: #94a3b8; }
+
+/* ── Group-Hover Metin Renkleri ── */
+[data-mode="koyu"] .group:hover .group-hover\:text-slate-900 { color: #f1f5f9; }
+[data-mode="koyu"] .group:hover .group-hover\:text-slate-800 { color: #e2e8f0; }
+[data-mode="koyu"] .group:hover .group-hover\:text-slate-700 { color: #cbd5e1; }
+
+/* ── Border Renkleri ── */
+[data-mode="koyu"] .border-slate-50          { border-color: #0f172a; }
+[data-mode="koyu"] .border-slate-100         { border-color: #1e293b; }
+[data-mode="koyu"] .border-slate-100\/80     { border-color: rgba(30,41,59,0.80); }
+[data-mode="koyu"] .border-slate-200         { border-color: #334155; }
+[data-mode="koyu"] .border-slate-200\/60     { border-color: rgba(51,65,85,0.60); }
+[data-mode="koyu"] .border-slate-200\/80     { border-color: rgba(51,65,85,0.80); }
+[data-mode="koyu"] .border-slate-300         { border-color: #475569; }
+
+/* ── Hover Border Renkleri ── */
+[data-mode="koyu"] .hover\:border-slate-200:hover { border-color: #475569; }
+[data-mode="koyu"] .hover\:border-slate-300:hover { border-color: #64748b; }
+
+/* ── Divide (Tablo / Liste Ayırıcıları) ── */
+[data-mode="koyu"] .divide-slate-50  > :not([hidden]) ~ :not([hidden]) { border-color: #0f172a; }
+[data-mode="koyu"] .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1e293b; }
+[data-mode="koyu"] .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: #334155; }
+
+/* ── Placeholder ── */
+[data-mode="koyu"] .placeholder-slate-300::placeholder { color: #475569; }
+[data-mode="koyu"] .placeholder-slate-400::placeholder { color: #64748b; }
+[data-mode="koyu"] .placeholder-slate-500::placeholder { color: #64748b; }
+
+/* ── Input / Select / Textarea — class içermeyenlere genel kural ── */
+[data-mode="koyu"] input,
+[data-mode="koyu"] select,
+[data-mode="koyu"] textarea {
+  color-scheme: dark;
+}
+
+/* ── Webkit Autofill — dark modda sarı arkaplan önleme ── */
+[data-mode="koyu"] input:-webkit-autofill,
+[data-mode="koyu"] input:-webkit-autofill:hover,
+[data-mode="koyu"] input:-webkit-autofill:focus,
+[data-mode="koyu"] input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #1e293b inset !important;
+  -webkit-text-fill-color: #f1f5f9 !important;
+}
+
+/* ── Shadow Ring (Focus Halkaları) ── */
+[data-mode="koyu"] .ring-slate-200   { --tw-ring-color: #334155; }
+[data-mode="koyu"] .ring-slate-100   { --tw-ring-color: #1e293b; }
+
+/* ── CSS-in-JS ile inject edilen bileşen sınıfları ── */
+
+/* DashboardPage */
+[data-mode="koyu"] .dsh-glass {
+  background: rgba(15, 23, 42, 0.72) !important;
+}
+[data-mode="koyu"] .dsh-skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%) !important;
+  background-size: 200% 100% !important;
+}
+[data-mode="koyu"] .dsh-btn-refresh {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+[data-mode="koyu"] .dsh-chart-tooltip {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border-color: rgba(51, 65, 85, 0.8) !important;
+}
+[data-mode="koyu"] .dsh-scroll::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+/* LoginPage */
+[data-mode="koyu"] .glass-card {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border-color: rgba(51, 65, 85, 0.6) !important;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6) !important;
+}
+
+/* ── Scrollbar — Dark Mod ── */
+[data-mode="koyu"] ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+[data-mode="koyu"] ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* ── Skeleton — Dark Mod ── */
+[data-mode="koyu"] .skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
 }
 
 /* Tailwind Preflight zaten margin/padding/box-sizing reset içerir.

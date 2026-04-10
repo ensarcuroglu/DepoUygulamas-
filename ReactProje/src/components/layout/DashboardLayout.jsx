@@ -3,12 +3,15 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { Toaster } from 'react-hot-toast';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function DashboardLayout() {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const location = useLocation();
+    const { resolvedMod } = useTheme();
+    const isDark = resolvedMod === 'koyu';
 
     // Sayfa gecisinde scroll'u sifirla
     useEffect(() => {
@@ -33,7 +36,7 @@ export default function DashboardLayout() {
     const contentMargin = isMobile ? '0px' : (sidebarCollapsed ? '80px' : '290px');
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
             <Toaster
                 position="top-right"
                 toastOptions={{
@@ -43,8 +46,12 @@ export default function DashboardLayout() {
                         fontSize: '13px',
                         fontWeight: 500,
                         padding: '12px 16px',
-                        border: '1px solid #E2E8F0',
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)',
+                        background: isDark ? '#1e293b' : '#ffffff',
+                        color: isDark ? '#f1f5f9' : '#0f172a',
+                        border: isDark ? '1px solid #334155' : '1px solid #E2E8F0',
+                        boxShadow: isDark
+                            ? '0 10px 15px -3px rgba(0,0,0,0.4)'
+                            : '0 10px 15px -3px rgba(0,0,0,0.05)',
                     },
                     success: {
                         iconTheme: { primary: '#10b981', secondary: '#fff' },

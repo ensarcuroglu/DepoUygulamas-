@@ -78,7 +78,7 @@ function injectStyles() {
 
         /* ── Skeleton ── */
         .dsh-skeleton {
-            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background: linear-gradient(90deg, var(--color-surface-tertiary, #f1f5f9) 25%, var(--color-border, #e2e8f0) 50%, var(--color-surface-tertiary, #f1f5f9) 75%);
             background-size: 200% 100%;
             animation: dsh-shimmer 1.5s ease-in-out infinite;
         }
@@ -102,7 +102,7 @@ function injectStyles() {
 
         /* ── Glass morphism card ── */
         .dsh-glass {
-            background: rgba(255, 255, 255, 0.72);
+            background: color-mix(in srgb, var(--color-surface, #ffffff) 72%, transparent);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
         }
@@ -118,11 +118,11 @@ function injectStyles() {
 
         /* ── Tooltip custom ── */
         .dsh-chart-tooltip {
-            background: rgba(255,255,255,0.95) !important;
+            background: color-mix(in srgb, var(--color-surface, #ffffff) 95%, transparent) !important;
             backdrop-filter: blur(12px) !important;
-            border: 1px solid rgba(241,245,249,0.8) !important;
+            border: 1px solid var(--color-border-light, rgba(241,245,249,0.8)) !important;
             border-radius: 16px !important;
-            box-shadow: 0 20px 40px -12px rgba(0,0,0,0.12) !important;
+            box-shadow: var(--shadow-modal, 0 20px 40px -12px rgba(0,0,0,0.12)) !important;
             padding: 12px 16px !important;
         }
 
@@ -136,9 +136,9 @@ function injectStyles() {
             align-items: center;
             justify-content: center;
             gap: 8px;
-            background-color: #ffffff;
-            border: 1px solid #e2e8f0;
-            color: #475569;
+            background-color: var(--color-surface, #ffffff);
+            border: 1px solid var(--color-border, #e2e8f0);
+            color: var(--color-text-secondary, #475569);
             padding: 10px 16px;
             border-radius: 12px;
             font-weight: 600;
@@ -150,10 +150,10 @@ function injectStyles() {
             touch-action: manipulation;
             transform: translateZ(0); /* Force GPU */
         }
-        
+
         @media (hover: hover) and (pointer: fine) {
             .dsh-btn-refresh:not(:disabled):hover {
-                background-color: #f8fafc;
+                background-color: var(--color-surface-secondary, #f8fafc);
                 color: #2563eb;
                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
                 border-color: #bfdbfe;
