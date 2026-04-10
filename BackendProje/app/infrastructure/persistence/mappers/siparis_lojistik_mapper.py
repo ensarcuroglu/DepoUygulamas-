@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from sqlalchemy.orm.exc import DetachedInstanceError
+
 from models import (
     Siparis as SiparisORM,
     SiparisKalemi as SiparisKalemiORM,
@@ -42,8 +44,8 @@ def siparis_to_entity(orm: SiparisORM, kalemler_dahil: bool = True) -> Siparis:
     if kalemler_dahil:
         try:
             kalemler = [siparis_kalemi_to_entity(k) for k in orm.kalemler]
-        except Exception:
-            pass  # Lazy-load tetiklenmemişse boş bırak
+        except DetachedInstanceError:
+            kalemler = []
 
     return Siparis(
         id=orm.id,

@@ -28,8 +28,21 @@ def zamanlama_kontrol() -> None:
             saat_str = schedule.saat or "09:00"
             try:
                 saat_parcalari = saat_str.split(":")
-                saat, dakika = int(saat_parcalari[0]), int(saat_parcalari[1])
-            except Exception:
+                saat = int(saat_parcalari[0])
+                dakika = int(saat_parcalari[1])
+                if not (0 <= saat <= 23 and 0 <= dakika <= 59):
+                    logger.warning(
+                        "Geçersiz zamanlama saati atlandı. schedule_id=%s saat=%r",
+                        schedule.id,
+                        saat_str,
+                    )
+                    continue
+            except (ValueError, IndexError):
+                logger.warning(
+                    "Zaman formatı çözümlenemedi, kayıt atlandı. schedule_id=%s saat=%r",
+                    schedule.id,
+                    saat_str,
+                )
                 continue
 
             # Son çalıştırma kontrolü — aynı periyotta çalıştırılmışsa atla
@@ -46,10 +59,10 @@ def zamanlama_kontrol() -> None:
             if simdi.hour == saat and simdi.minute == dakika:
                 schedule.son_calistirilma = simdi
                 db.commit()
-                logger.info(f"Zamanlı rapor tetiklendi: {schedule.sablon_adi}")
+                logger.info("Zamanlı rapor tetiklendi: %s", schedule.sablon_adi)
                 _zamanlama_email_gonder(schedule)
     except Exception as e:
-        logger.error(f"Zamanlama kontrolü hatası: {e}")
+        logger.error("Zamanlama kontrolü hatası: %s", e)
     finally:
         db.close()
 
@@ -88,6 +101,6 @@ def _zamanlama_email_gonder(schedule: RaporSchedule) -> None:
                 server.login(smtp_user, smtp_pass)
             server.sendmail(smtp_from, alicilar, msg.as_string())
 
-        logger.info(f"E-posta gönderildi: {alicilar}")
+        logger.info("E-posta gönderildi: %s", alicilar)
     except Exception as e:
-        logger.error(f"E-posta gönderilemedi: {e}")
+        logger.error("E-posta gönderilemedi: %s", e)
