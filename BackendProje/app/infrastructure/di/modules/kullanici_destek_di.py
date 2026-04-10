@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from app.core.auth import get_password_hash
 from app.infrastructure.persistence.repositories import (
+    SqlAlchemyDepoRepository,
     SqlAlchemyKullaniciRepository,
     SqlAlchemyDestekTalebiRepository,
     SqlAlchemySistemLogRepository,
@@ -28,6 +29,10 @@ from app.application.use_cases import (
 
 def get_kullanici_repo(db: Session = Depends(get_db)):
     return SqlAlchemyKullaniciRepository(db)
+
+
+def get_kullanici_depo_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyDepoRepository(db)
 
 
 def get_destek_repo(db: Session = Depends(get_db)):
@@ -54,9 +59,15 @@ def get_kullanici_getir_uc(
 
 def get_kullanici_guncelle_uc(
     kullanici_repo=Depends(get_kullanici_repo),
+    depo_repo=Depends(get_kullanici_depo_repo),
     log_repo=Depends(get_log_repo),
 ):
-    return KullaniciGuncelleUseCase(kullanici_repo, log_repo, password_hasher=get_password_hash)
+    return KullaniciGuncelleUseCase(
+        kullanici_repo,
+        depo_repo,
+        log_repo,
+        password_hasher=get_password_hash,
+    )
 
 
 def get_kullanici_sil_uc(

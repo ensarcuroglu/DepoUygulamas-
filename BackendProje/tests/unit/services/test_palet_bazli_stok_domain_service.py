@@ -124,6 +124,18 @@ class TestPaletGiris:
         with pytest.raises(DepoErisimHatasi):
             service.palet_giris("PLT-2026-00001", _make_kullanici(depo_id=1))
 
+    def test_hicbir_depoda_yetkisi_olmayan_kullanici_depo_erisim_hatasi_alir(self, palet_stok_service_mock):
+        service, m = palet_stok_service_mock
+        dto = _make_palet_bilgi_dto(depo_id=1, depo_adi="Depo-A")
+        m["veri_kaynagi"].palet_bilgisi_getir.return_value = dto
+        m["palet_repo"].getir_palet_no_ile.return_value = None
+
+        with pytest.raises(DepoErisimHatasi):
+            service.palet_giris(
+                "PLT-2026-00001",
+                _make_kullanici(depo_id=None, depo_erisimi_yok=True),
+            )
+
     def test_mevcut_lot_bulunur(self, palet_stok_service_mock):
         service, m = palet_stok_service_mock
         mevcut_lot = Lot(id=5, urun_id=1, lot_no="LOT-2026-0001")

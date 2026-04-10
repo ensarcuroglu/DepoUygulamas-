@@ -8,6 +8,7 @@ kullanıcı CRUD yönetimi içindir (listeleme, güncelleme, silme).
 from __future__ import annotations
 from typing import List
 
+from app.core.repositories.depo_repository import IDepoRepository
 from app.core.repositories.kullanici_repository import IKullaniciRepository
 from app.core.repositories.sistem_log_repository import ISistemLogRepository
 from app.core.entities.kullanici import Kullanici
@@ -50,10 +51,12 @@ class KullaniciGuncelleUseCase:
     def __init__(
         self,
         kullanici_repo: IKullaniciRepository,
+        depo_repo: IDepoRepository,
         log_repo: ISistemLogRepository,
         password_hasher=None,
     ):
         self._kullanici_repo = kullanici_repo
+        self._depo_repo = depo_repo
         self._log_repo = log_repo
         self._password_hasher = password_hasher
 
@@ -73,7 +76,12 @@ class KullaniciGuncelleUseCase:
         if not mevcut:
             raise KayitBulunamadiError("Kullanıcı", kullanici_id)
 
-        eski_veri = {"kullanici_adi": mevcut.kullanici_adi, "rol": mevcut.rol}
+        eski_veri = {
+            "kullanici_adi": mevcut.kullanici_adi,
+            "rol": mevcut.rol,
+            "depo_id": mevcut.depo_id,
+            "depo_erisimi_yok": mevcut.depo_erisimi_yok,
+        }
         guncel = dto.model_dump(exclude_unset=True)
 
         # Kullanıcı adı değişiyorsa çakışma kontrolü
@@ -90,6 +98,7 @@ class KullaniciGuncelleUseCase:
             if not admin_mi(current_user):
                 raise YetkisizIslemError("Sadece yöneticiler rol değiştirebilir")
             mevcut.rol_degistir(yeni_rol)
+        hedef_rol = yeni_rol or mevcut.rol
 
         # Şifre değişikliği
         yeni_sifre = guncel.pop("sifre", None)
@@ -97,10 +106,31 @@ class KullaniciGuncelleUseCase:
             mevcut.sifre_hash = self._password_hasher(yeni_sifre)
 
         # Depo ataması sadece admin yapabilir
-        if "depo_id" in guncel:
+        if "depo_id" in guncel or "depo_erisimi_yok" in guncel:
             if not admin_mi(current_user):
                 raise YetkisizIslemError("Sadece yöneticiler depo ataması yapabilir")
-            mevcut.depo_id = guncel["depo_id"]
+            yeni_depo_id = guncel.get("depo_id", mevcut.depo_id)
+            yeni_depo_erisimi_yok = bool(guncel.get("depo_erisimi_yok", mevcut.depo_erisimi_yok))
+            if hedef_rol == "admin":
+                mevcut.depo_id = None
+                mevcut.depo_erisimi_yok = False
+            elif yeni_depo_erisimi_yok:
+                mevcut.depo_id = None
+                mevcut.depo_erisimi_yok = True
+            elif yeni_depo_id is None:
+                mevcut.depo_id = None
+                mevcut.depo_erisimi_yok = False
+            else:
+                depo = self._depo_repo.getir_id_ile(yeni_depo_id)
+                if not depo:
+                    raise KayitBulunamadiError("Depo", yeni_depo_id)
+                if not depo.aktif and yeni_depo_id != mevcut.depo_id:
+                    raise GecersizIslemError("Pasif depoya yeni atama yapılamaz")
+                mevcut.depo_id = yeni_depo_id
+                mevcut.depo_erisimi_yok = False
+        elif hedef_rol == "admin":
+            mevcut.depo_id = None
+            mevcut.depo_erisimi_yok = False
 
         # Kalan alanlar
         for alan in ("ad_soyad", "telefon", "email", "departman", "sicil_no", "kart_numarasi"):
@@ -116,7 +146,12 @@ class KullaniciGuncelleUseCase:
                 modul="Kullanıcı Yönetimi",
                 detay=f"Kullanıcı güncellendi: {kaydedilen.kullanici_adi}",
                 eski_veri=eski_veri,
-                yeni_veri={"kullanici_adi": kaydedilen.kullanici_adi, "rol": kaydedilen.rol},
+                yeni_veri={
+                    "kullanici_adi": kaydedilen.kullanici_adi,
+                    "rol": kaydedilen.rol,
+                    "depo_id": kaydedilen.depo_id,
+                    "depo_erisimi_yok": kaydedilen.depo_erisimi_yok,
+                },
             )
         )
 

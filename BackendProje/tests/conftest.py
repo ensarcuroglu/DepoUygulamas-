@@ -19,6 +19,7 @@ if os.path.exists(_env_test_path):
 
 from database import Base, get_db
 from app.core.auth import create_access_token
+from limiter import limiter
 from main import app
 
 # Bcrypt hash'i bir kez hesapla — test başına ~400ms tasarruf
@@ -92,10 +93,12 @@ def client(db_session):
     def _override_get_db():
         yield db_session
 
+    limiter.reset()
     app.dependency_overrides[get_db] = _override_get_db
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
+    limiter.reset()
 
 
 # ========================

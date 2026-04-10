@@ -4,7 +4,7 @@ Login, register, me, logout endpoint'lerini test eder.
 """
 
 import pytest
-from tests.factories import KullaniciFactory
+from tests.factories import KullaniciFactory, DepoFactory
 from tests.conftest import TEST_PASSWORD
 
 pytestmark = pytest.mark.api
@@ -89,6 +89,52 @@ class TestRegisterEndpoint:
         data = response.json()
         assert data["kullanici_adi"] == "yeni_depocu"
         assert data["rol"] == "depocu"
+
+    def test_admin_gecerli_depo_atamasi_ile_kayit_olusturur(self, admin_client):
+        """Geçerli depo_id ile kullanıcı oluşturma başarılı olmalı."""
+        depo = DepoFactory.create(isim="Ana Depo")
+
+        response = admin_client.post("/api/auth/register", json={
+            "kullanici_adi": "depolu_user",
+            "ad_soyad": "Depolu Kullanıcı",
+            "sifre": TEST_PASSWORD,
+            "rol": "depocu",
+            "depo_id": depo.id,
+        })
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["kullanici_adi"] == "depolu_user"
+        assert data["depo_id"] == depo.id
+        assert data["depo_erisimi_yok"] is False
+
+    def test_admin_hicbir_depoda_yetkisi_olmayan_kullanici_olusturur(self, admin_client):
+        """Yeni kullanıcı hiçbir depoda yetkili olmayacak şekilde oluşturulabilmeli."""
+        response = admin_client.post("/api/auth/register", json={
+            "kullanici_adi": "yetkisiz_user",
+            "ad_soyad": "Yetkisiz Kullanıcı",
+            "sifre": TEST_PASSWORD,
+            "rol": "depocu",
+            "depo_erisimi_yok": True,
+        })
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["kullanici_adi"] == "yetkisiz_user"
+        assert data["depo_id"] is None
+        assert data["depo_erisimi_yok"] is True
+
+    def test_admin_gecersiz_depo_ile_kayit_olusturamaz(self, admin_client):
+        """Olmayan depo_id ile kayıt 404 dönmeli."""
+        response = admin_client.post("/api/auth/register", json={
+            "kullanici_adi": "hatali_depo_user",
+            "ad_soyad": "Hatalı Depo",
+            "sifre": TEST_PASSWORD,
+            "rol": "depocu",
+            "depo_id": 99999,
+        })
+
+        assert response.status_code == 404
 
     def test_depocu_kayit_olusturamaz(self, depocu_client):
         """Depocu kullanıcı oluşturamamalı — 403."""

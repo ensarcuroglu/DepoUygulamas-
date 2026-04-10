@@ -48,6 +48,7 @@ class SqlAlchemyKullaniciRepository(IKullaniciRepository):
         orm.sicil_no = kullanici.sicil_no
         orm.kart_numarasi = kullanici.kart_numarasi
         orm.depo_id = kullanici.depo_id
+        orm.depo_erisimi_yok = kullanici.depo_erisimi_yok
         orm.refresh_token_hash = kullanici.refresh_token_hash
         orm.refresh_token_son_kullanim = kullanici.refresh_token_son_kullanim
         self._db.commit()

@@ -50,6 +50,10 @@ def _terminal_depo_id(
     requested_depo_id: Optional[int] = None,
 ) -> int:
     if current_user.rol == "depocu":
+        if getattr(current_user, "depo_erisimi_yok", False):
+            raise GecersizIslemError(
+                "Bu kullanıcının hiçbir depoda yetkisi yok. Lütfen yöneticiniz ile iletişime geçin."
+            )
         if current_user.depo_id is None:
             raise GecersizIslemError(
                 "Depocu kullanıcısına depo atanmamış. Lütfen yöneticiniz ile iletişime geçin."

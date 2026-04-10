@@ -32,6 +32,7 @@ class Kullanici:
     sicil_no: Optional[str] = None
     kart_numarasi: Optional[str] = None
     depo_id: Optional[int] = None
+    depo_erisimi_yok: bool = False
     refresh_token_hash: Optional[str] = None
     refresh_token_son_kullanim: Optional[datetime] = None
     olusturma_tarihi: datetime = field(default_factory=datetime.utcnow)
@@ -49,6 +50,8 @@ class Kullanici:
         """
         if self.admin_mi():
             return True
+        if self.depo_erisimi_yok:
+            return False
         if self.depo_id is None:
             return True
         return self.depo_id == hedef_depo_id

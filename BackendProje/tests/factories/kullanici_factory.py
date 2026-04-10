@@ -12,3 +12,4 @@ class KullaniciFactory(BaseFactory):
     sifre_hash = factory.LazyFunction(get_test_password_hash)
     ad_soyad = factory.Sequence(lambda n: f"Test Kullanici {n}")
     rol = "depocu"
+    depo_erisimi_yok = False

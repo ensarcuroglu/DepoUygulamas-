@@ -59,6 +59,10 @@ router = APIRouter(prefix="/api/yerlestirme-gorevleri", tags=["Yerleştirme Gör
 def _depocu_depo_id(current_user: Kullanici) -> Optional[int]:
     if current_user.rol != "depocu":
         return None
+    if getattr(current_user, "depo_erisimi_yok", False):
+        raise GecersizIslemError(
+            "Bu kullanıcının hiçbir depoda yetkisi yok. Lütfen yöneticiniz ile iletişime geçin."
+        )
     if current_user.depo_id is None:
         raise GecersizIslemError(
             "Depocu kullanıcısına depo atanmamış. Lütfen yöneticiniz ile iletişime geçin."

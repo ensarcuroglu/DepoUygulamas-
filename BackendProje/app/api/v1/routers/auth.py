@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Kullanici, SistemLog
+from models import Kullanici, SistemLog, Depo
 from app.core.auth import (
     verify_password,
     get_password_hash,
@@ -85,6 +85,7 @@ def login(request: Request, login_request: LoginRequest, db: Session = Depends(g
             "ad_soyad": user.ad_soyad,
             "rol": user.rol,
             "depo_id": user.depo_id,
+            "depo_erisimi_yok": user.depo_erisimi_yok,
             "telefon": user.telefon,
             "email": user.email,
             "departman": user.departman,
@@ -166,6 +167,21 @@ def register(
             detail="Bu kullanıcı adı zaten kullanımda."
         )
 
+    depo_erisimi_yok = False if kullanici.rol == "admin" else bool(kullanici.depo_erisimi_yok)
+    atanmis_depo_id = None if (kullanici.rol == "admin" or depo_erisimi_yok) else kullanici.depo_id
+    if atanmis_depo_id is not None:
+        depo = db.query(Depo).filter(Depo.id == atanmis_depo_id).first()
+        if not depo:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Atanmak istenen depo bulunamadı."
+            )
+        if not depo.aktif:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Pasif depoya yeni kullanıcı ataması yapılamaz."
+            )
+
     new_user = Kullanici(
         kullanici_adi=kullanici.kullanici_adi,
         sifre_hash=get_password_hash(kullanici.sifre),
@@ -176,7 +192,8 @@ def register(
         departman=kullanici.departman,
         sicil_no=kullanici.sicil_no,
         kart_numarasi=kullanici.kart_numarasi,
-        depo_id=kullanici.depo_id,
+        depo_id=atanmis_depo_id,
+        depo_erisimi_yok=depo_erisimi_yok,
     )
     db.add(new_user)
     db.flush()
@@ -186,7 +203,12 @@ def register(
         islem_tipi="CREATE",
         modul="Kullanıcı Yönetimi",
         detay=f"Yeni kullanıcı oluşturuldu: {new_user.ad_soyad} ({new_user.kullanici_adi})",
-        yeni_veri={"kullanici_adi": new_user.kullanici_adi, "rol": new_user.rol}
+        yeni_veri={
+            "kullanici_adi": new_user.kullanici_adi,
+            "rol": new_user.rol,
+            "depo_id": new_user.depo_id,
+            "depo_erisimi_yok": new_user.depo_erisimi_yok,
+        }
     ))
     db.commit()
     db.refresh(new_user)

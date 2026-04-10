@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Users, Plus, Edit3, Trash2, X, Shield, ShieldCheck, Eye,
-    User, Lock, Mail, ChevronRight, AlertTriangle, CheckCircle2, Loader2,
+    User, Lock, Mail, ChevronRight, Loader2,
     Truck, Phone, Building, Briefcase, CreditCard
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getKullanicilar, createKullanici, updateKullanici, deleteKullanici } from '../services/api';
+import {
+    getKullanicilar,
+    getDepolar,
+    createKullanici,
+    updateKullanici,
+    deleteKullanici
+} from '../services/api';
 import { hataMetni } from '../utils/hata';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -15,6 +21,32 @@ const ROL_CONFIG = {
     lojistik: { label: 'Lojistik', color: 'bg-amber-50 text-amber-700 border-amber-200', icon: Truck },
     goruntuleyen: { label: 'Görüntüleyici', color: 'bg-slate-100 text-slate-600 border-slate-200', icon: Eye },
 };
+
+const DEPO_SECENEK_TUMU = '__all__';
+const DEPO_SECENEK_YETKI_YOK = '__none__';
+
+function getDepoSecimi(kullanici) {
+    if (kullanici?.depo_erisimi_yok) {
+        return DEPO_SECENEK_YETKI_YOK;
+    }
+    if (kullanici?.depo_id != null) {
+        return String(kullanici.depo_id);
+    }
+    return DEPO_SECENEK_TUMU;
+}
+
+function buildDepoPayload(rol, depoSecimi) {
+    if (rol === 'admin') {
+        return { depo_id: null, depo_erisimi_yok: false };
+    }
+    if (depoSecimi === DEPO_SECENEK_YETKI_YOK) {
+        return { depo_id: null, depo_erisimi_yok: true };
+    }
+    if (depoSecimi === DEPO_SECENEK_TUMU || depoSecimi === '') {
+        return { depo_id: null, depo_erisimi_yok: false };
+    }
+    return { depo_id: Number(depoSecimi), depo_erisimi_yok: false };
+}
 
 function RolBadge({ rol }) {
     const config = ROL_CONFIG[rol] || ROL_CONFIG.depocu;
@@ -28,12 +60,19 @@ function RolBadge({ rol }) {
 }
 
 // Kullanıcı Formu Modal
-function KullaniciModal({ isOpen, onClose, onSave, kullanici }) {
+function KullaniciModal({ isOpen, onClose, onSave, kullanici, depolar = [] }) {
     const [form, setForm] = useState({
         kullanici_adi: '', ad_soyad: '', rol: 'depocu', sifre: '',
-        telefon: '', email: '', departman: '', sicil_no: '', kart_numarasi: ''
+        telefon: '', email: '', departman: '', sicil_no: '', kart_numarasi: '',
+        depo_id: DEPO_SECENEK_TUMU
     });
     const [saving, setSaving] = useState(false);
+    const aktifDepolar = depolar.filter((depo) => depo.aktif !== false);
+    const seciliDepoPasifMi =
+        form.rol !== 'admin' &&
+        form.depo_id &&
+        ![DEPO_SECENEK_TUMU, DEPO_SECENEK_YETKI_YOK].includes(form.depo_id) &&
+        !aktifDepolar.some((depo) => String(depo.id) === String(form.depo_id));
 
     // Sürükleme (Drag) Durumları
     const [dragY, setDragY] = useState(0);
@@ -81,12 +120,14 @@ function KullaniciModal({ isOpen, onClose, onSave, kullanici }) {
                 email: kullanici.email || '',
                 departman: kullanici.departman || '',
                 sicil_no: kullanici.sicil_no || '',
-                kart_numarasi: kullanici.kart_numarasi || ''
+                kart_numarasi: kullanici.kart_numarasi || '',
+                depo_id: getDepoSecimi(kullanici)
             });
         } else {
             setForm({
                 kullanici_adi: '', ad_soyad: '', rol: 'depocu', sifre: '',
-                telefon: '', email: '', departman: '', sicil_no: '', kart_numarasi: ''
+                telefon: '', email: '', departman: '', sicil_no: '', kart_numarasi: '',
+                depo_id: DEPO_SECENEK_TUMU
             });
         }
     }, [kullanici, isOpen]);
@@ -113,6 +154,7 @@ function KullaniciModal({ isOpen, onClose, onSave, kullanici }) {
         try {
             const data = { ...form };
             if (kullanici && !data.sifre) delete data.sifre;
+            Object.assign(data, buildDepoPayload(data.rol, data.depo_id));
             await onSave(data);
         } finally {
             setSaving(false);
@@ -206,6 +248,41 @@ function KullaniciModal({ isOpen, onClose, onSave, kullanici }) {
                             </select>
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><ChevronRight className="w-4 h-4 rotate-90" /></div>
                         </div>
+                    </div>
+
+                    {/* Yetkili Depo */}
+                    <div className="space-y-1.5">
+                        <label className="text-[13px] font-semibold text-slate-700 ml-1">Yetkili Depo</label>
+                        {form.rol === 'admin' ? (
+                            <div className="h-12 rounded-xl border border-emerald-200 bg-emerald-50 px-4 flex items-center text-[13px] font-semibold text-emerald-700">
+                                Yönetici rolü tüm depolara erişir.
+                            </div>
+                        ) : (
+                            <>
+                                <div className="relative group">
+                                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"><Building className="w-4.5 h-4.5" /></div>
+                                    <select
+                                        value={form.depo_id}
+                                        onChange={e => setForm({ ...form, depo_id: e.target.value })}
+                                        className="w-full h-12 bg-slate-50 border border-slate-200 text-slate-800 text-[14px] rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer pl-11 pr-10"
+                                    >
+                                        <option value={DEPO_SECENEK_TUMU}>Tüm Depolar</option>
+                                        <option value={DEPO_SECENEK_YETKI_YOK}>Hiçbir Depoda Yetki Yok</option>
+                                        {aktifDepolar.map((depo) => (
+                                            <option key={depo.id} value={depo.id}>
+                                                {depo.isim}
+                                            </option>
+                                        ))}
+                                        {seciliDepoPasifMi ? (
+                                            <option value={form.depo_id}>
+                                                Mevcut atama: Depo #{form.depo_id} (pasif)
+                                            </option>
+                                        ) : null}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><ChevronRight className="w-4 h-4 rotate-90" /></div>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Şifre */}
@@ -312,43 +389,42 @@ function KullaniciModal({ isOpen, onClose, onSave, kullanici }) {
 // Ana Sayfa
 export default function KullanicilarPage() {
     const [kullanicilar, setKullanicilar] = useState([]);
+    const [depolar, setDepolar] = useState([]);
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editKullanici, setEditKullanici] = useState(null);
     const { user: currentUser } = useAuth();
 
-    const fetchData = useCallback(() => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
-        getKullanicilar()
-            .then(res => setKullanicilar(res.data))
-            .catch(() => toast.error('Kullanıcı listesi yüklenemedi.'))
-            .finally(() => setLoading(false));
+        try {
+            const [kullanicilarRes, depolarRes] = await Promise.all([
+                getKullanicilar(),
+                getDepolar(),
+            ]);
+            setKullanicilar(kullanicilarRes.data);
+            setDepolar(depolarRes.data);
+        } catch {
+            toast.error('Kullanıcı veya depo verileri yüklenemedi.');
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
     useEffect(() => {
-        let aktif = true;
+        fetchData();
+    }, [fetchData]);
 
-        getKullanicilar()
-            .then((res) => {
-                if (aktif) {
-                    setKullanicilar(res.data);
-                }
-            })
-            .catch(() => {
-                if (aktif) {
-                    toast.error('Kullanıcı listesi yüklenemedi.');
-                }
-            })
-            .finally(() => {
-                if (aktif) {
-                    setLoading(false);
-                }
-            });
-
-        return () => {
-            aktif = false;
-        };
-    }, []);
+    const getDepoEtiketi = (kullanici) => {
+        if (kullanici.depo_erisimi_yok) {
+            return 'Hiçbir Depoda Yetki Yok';
+        }
+        if (kullanici.depo_id == null) {
+            return 'Tüm Depolar';
+        }
+        const depo = depolar.find((item) => item.id === kullanici.depo_id);
+        return depo?.isim || `Depo #${kullanici.depo_id}`;
+    };
 
     const handleDelete = async (id, isim) => {
         if (id === currentUser?.id) {
@@ -481,6 +557,9 @@ export default function KullanicilarPage() {
 
                                     {/* Kayıt Tarihi */}
                                     <div className="mt-4 pt-3 border-t border-slate-100">
+                                        <p className="text-[12px] text-slate-500 font-medium mb-1.5">
+                                            Yetkili Depo: <span className="text-slate-700 font-semibold">{getDepoEtiketi(k)}</span>
+                                        </p>
                                         <p className="text-[11px] text-slate-400 font-medium">
                                             Kayıt: {new Date(k.olusturma_tarihi).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
                                         </p>
@@ -497,6 +576,7 @@ export default function KullanicilarPage() {
                 onClose={() => { setModalOpen(false); setEditKullanici(null); }}
                 onSave={handleSave}
                 kullanici={editKullanici}
+                depolar={depolar}
             />
         </>
     );

@@ -35,6 +35,7 @@ class KullaniciCreateDTO(BaseModel):
     sicil_no: Optional[str] = None
     kart_numarasi: Optional[str] = None
     depo_id: Optional[int] = None
+    depo_erisimi_yok: bool = False
 
     @field_validator("sifre")
     @classmethod
@@ -59,6 +60,7 @@ class TokenUserInfoDTO(BaseModel):
     ad_soyad: str
     rol: str
     depo_id: Optional[int] = None
+    depo_erisimi_yok: bool = False
     telefon: Optional[str] = None
     email: Optional[str] = None
     departman: Optional[str] = None
@@ -71,4 +73,3 @@ class TokenResponseDTO(BaseModel):
     refresh_token: str
     token_type: str
     user: TokenUserInfoDTO
-

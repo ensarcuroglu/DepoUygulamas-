@@ -26,6 +26,7 @@ alter_statements = [
     # Faz 1d: Kullanıcı depo ataması
     "ALTER TABLE kullanicilar ADD COLUMN depo_id INT DEFAULT NULL;",
     "ALTER TABLE kullanicilar ADD CONSTRAINT fk_kullanici_depo FOREIGN KEY (depo_id) REFERENCES depolar(id);",
+    "ALTER TABLE kullanicilar ADD COLUMN depo_erisimi_yok TINYINT(1) NOT NULL DEFAULT 0;",
 ]
 
 print("Veritabanı migration başlatılıyor...")
