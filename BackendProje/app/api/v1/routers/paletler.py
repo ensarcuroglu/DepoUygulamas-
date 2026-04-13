@@ -66,10 +66,11 @@ def sonraki_palet_numarasi(
 def palet_getir_by_barkod(
     request: Request,
     palet_no: str,
+    include_pasif: bool = Query(False, description="True ise pasif paletler de döner"),
     current_user: Kullanici = Depends(get_current_user),
     uc: PaletBarkodIleGetirUseCase = Depends(get_palet_barkod_ile_getir_uc),
 ):
-    return uc.execute(palet_no)
+    return uc.execute(palet_no, include_pasif=include_pasif)
 
 
 @router.get("/{palet_id}", response_model=PaletResponseDTO)

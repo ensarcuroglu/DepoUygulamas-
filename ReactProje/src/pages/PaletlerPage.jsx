@@ -49,16 +49,21 @@ function FilterPanel({ filters, setFilters, lotlar, paletler, onReset, onEanChan
         [paletler]
     );
 
-    const uniqueRaflar = useMemo(() =>
-        [...new Set(paletler.map(p => p.raf?.kod).filter(Boolean))],
-        [paletler]
-    );
+    const uniqueRaflar = useMemo(() => {
+        const rafMap = new Map();
+        paletler.forEach((p) => {
+            if (p.raf?.id && p.raf?.kod) {
+                rafMap.set(p.raf.id, { id: p.raf.id, kod: p.raf.kod });
+            }
+        });
+        return Array.from(rafMap.values());
+    }, [paletler]);
 
     const chipBase = "h-8 px-3 rounded-lg text-xs font-semibold border transition-all cursor-pointer select-none";
     const chipActive = "bg-blue-50 border-blue-200 text-blue-700";
     const chipInactive = "bg-white border-slate-200 text-slate-600 hover:border-slate-300";
 
-    const hasActiveFilters = filters.lot_id || filters.vardiya || filters.raf || filters.ean;
+    const hasActiveFilters = filters.lot_id || filters.vardiya || filters.raf_id || filters.ean;
 
     // EAN format doğrulama
     const eanValue = filters.ean || '';
@@ -160,18 +165,18 @@ function FilterPanel({ filters, setFilters, lotlar, paletler, onReset, onEanChan
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Raf</p>
                     <div className="flex flex-wrap gap-1.5">
                         <button
-                            onClick={() => setFilters(f => ({ ...f, raf: f.raf === '__none__' ? '' : '__none__' }))}
-                            className={`${chipBase} ${filters.raf === '__none__' ? chipActive : chipInactive}`}
+                            onClick={() => setFilters(f => ({ ...f, raf_id: f.raf_id === '__none__' ? '' : '__none__' }))}
+                            className={`${chipBase} ${filters.raf_id === '__none__' ? chipActive : chipInactive}`}
                         >
                             Raf Yok
                         </button>
                         {uniqueRaflar.map(r => (
                             <button
-                                key={r}
-                                onClick={() => setFilters(f => ({ ...f, raf: f.raf === r ? '' : r }))}
-                                className={`${chipBase} ${filters.raf === r ? chipActive : chipInactive}`}
+                                key={r.id}
+                                onClick={() => setFilters(f => ({ ...f, raf_id: f.raf_id === r.id ? '' : r.id }))}
+                                className={`${chipBase} ${filters.raf_id === r.id ? chipActive : chipInactive}`}
                             >
-                                {r}
+                                {r.kod}
                             </button>
                         ))}
                     </div>
@@ -446,8 +451,10 @@ export default function PaletlerPage() {
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
     const [sortKey, setSortKey] = useState('default');
     const [filtersOpen, setFiltersOpen] = useState(false);
-    const [filters, setFilters] = useState({ lot_id: '', vardiya: '', raf: '', ean: '' });
+    const [filters, setFilters] = useState({ lot_id: '', vardiya: '', raf_id: '', ean: '' });
+    const [debouncedEan, setDebouncedEan] = useState('');
     const eanDebounceRef = useRef(null);
+    const requestSeqRef = useRef(0);
 
     // Infinite scroll state
     const [page, setPage] = useState(0);
@@ -458,11 +465,13 @@ export default function PaletlerPage() {
 
     // Initial + paginated fetch
     const fetchData = useCallback(async (pageNum = 0, append = false) => {
+        const requestSeq = ++requestSeqRef.current;
         try {
-            // EAN filtresi aktifse API'ye gönder
             const apiParams = { skip: pageNum * limit, limit };
-            if (filters.ean && /^\d{8,14}$/.test(filters.ean)) {
-                apiParams.ean = filters.ean;
+            if (filters.lot_id) apiParams.lot_id = filters.lot_id;
+            if (filters.raf_id && filters.raf_id !== '__none__') apiParams.raf_id = filters.raf_id;
+            if (debouncedEan && /^\d{8,14}$/.test(debouncedEan)) {
+                apiParams.ean = debouncedEan;
             }
 
             const fetcher = () => Promise.all([
@@ -481,6 +490,7 @@ export default function PaletlerPage() {
 
             const [palRes, ...rest] = results;
             const newPaletler = palRes.data;
+            if (requestSeq !== requestSeqRef.current) return;
 
             if (append) {
                 setPaletler(prev => {
@@ -497,13 +507,20 @@ export default function PaletlerPage() {
             if (rest.length) {
                 setLotlar(rest[0].data);
             }
-        } catch {
-            toast.error('Veriler yüklenemedi');
+        } catch (err) {
+            if (requestSeq !== requestSeqRef.current) return;
+            const status = err?.response?.status;
+            if (status === 429) toast.error('Çok sık istek gönderildi, lütfen kısa süre sonra tekrar deneyin');
+            else if (status === 403) toast.error('Bu listeye erişim yetkiniz yok');
+            else toast.error('Veriler yüklenemedi');
             setLoadingMore(false);
         }
-    }, [run, limit, filters.ean]);
+    }, [run, limit, filters.lot_id, filters.raf_id, debouncedEan]);
 
     useEffect(() => {
+        setPage(0);
+        setHasMore(true);
+        setPaletler([]);
         const timeoutId = setTimeout(() => {
             void fetchData(0);
         }, 0);
@@ -536,8 +553,11 @@ export default function PaletlerPage() {
             try {
                 const res = await getPaletByBarkod(code);
                 toast.success(`${res.data.palet_no} No'lu palet bulundu!`, { icon: '📦' });
-            } catch {
-                toast.error(`Kayıtlı palet bulunamadı: ${code}`);
+        } catch (err) {
+            const status = err?.response?.status;
+            if (status === 404) toast.error(`Aktif palet bulunamadı: ${code}`);
+            else if (status === 429) toast.error('Çok sık sorgu yapıldı, lütfen kısa süre bekleyin');
+            else toast.error(`Kayıtlı palet bulunamadı: ${code}`);
             }
         }
     });
@@ -550,20 +570,24 @@ export default function PaletlerPage() {
             toast.success('Palet pasife alındı');
             setPaletler(prev => prev.filter(p => p.id !== id));
         } catch (err) {
-            toast.error(hataMetni(err, 'Çıkarma işlemi başarısız'));
+            const status = err?.response?.status;
+            if (status === 403) toast.error('Bu işlem için yetkiniz yok');
+            else if (status === 429) toast.error('Çok sık istek gönderildi, lütfen tekrar deneyin');
+            else toast.error(hataMetni(err, 'Çıkarma işlemi başarısız'));
         }
     };
 
-    const resetFilters = () => setFilters({ lot_id: '', vardiya: '', raf: '', ean: '' });
+    const resetFilters = () => {
+        setDebouncedEan('');
+        setFilters({ lot_id: '', vardiya: '', raf_id: '', ean: '' });
+    };
 
     // EAN debounce handler — yazma bitince sunucu tarafı filtrele
     const handleEanChange = useCallback((val) => {
         if (eanDebounceRef.current) clearTimeout(eanDebounceRef.current);
         eanDebounceRef.current = setTimeout(() => {
             if (!val || /^\d{8,14}$/.test(val)) {
-                // Geçerli EAN veya boş → yeniden fetch
-                setPage(0);
-                setHasMore(true);
+                setDebouncedEan(val);
             }
         }, 500);
     }, []);
@@ -584,10 +608,8 @@ export default function PaletlerPage() {
         }
 
         // Filters
-        if (filters.lot_id) result = result.filter(p => p.lot_id === filters.lot_id);
         if (filters.vardiya) result = result.filter(p => p.vardiya === filters.vardiya);
-        if (filters.raf === '__none__') result = result.filter(p => !p.raf);
-        else if (filters.raf) result = result.filter(p => p.raf?.kod === filters.raf);
+        if (filters.raf_id === '__none__') result = result.filter(p => !p.raf);
 
         // Sort
         switch (sortKey) {
@@ -611,7 +633,7 @@ export default function PaletlerPage() {
         lotCount: new Set(paletler.map(p => p.lot_id)).size,
     }), [paletler]);
 
-    const activeFilterCount = [filters.lot_id, filters.vardiya, filters.raf, filters.ean].filter(Boolean).length;
+    const activeFilterCount = [filters.lot_id, filters.vardiya, filters.raf_id, filters.ean].filter(Boolean).length;
 
     return (
         <div className="pb-24 sm:pb-8 max-w-[1400px] mx-auto px-4 sm:px-6 pt-4 sm:pt-6">
@@ -776,8 +798,11 @@ export default function PaletlerPage() {
                     try {
                         const res = await getPaletByBarkod(code);
                         toast.success(`Palet bulundu: ${res.data.palet_no}`, { icon: '📦' });
-                    } catch {
-                        toast.error(`Kayıtlı palet bulunamadı: ${code}`);
+                    } catch (err) {
+                        const status = err?.response?.status;
+                        if (status === 404) toast.error(`Aktif palet bulunamadı: ${code}`);
+                        else if (status === 429) toast.error('Çok sık sorgu yapıldı, lütfen kısa süre bekleyin');
+                        else toast.error(`Kayıtlı palet bulunamadı: ${code}`);
                     }
                 }}
             />

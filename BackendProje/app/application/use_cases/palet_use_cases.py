@@ -52,9 +52,9 @@ class PaletBarkodIleGetirUseCase:
     def __init__(self, palet_repo: IPaletRepository):
         self._palet_repo = palet_repo
 
-    def execute(self, palet_no: str) -> PaletResponseDTO:
+    def execute(self, palet_no: str, include_pasif: bool = False) -> PaletResponseDTO:
         palet = self._palet_repo.getir_palet_no_ile(palet_no)
-        if not palet:
+        if not palet or (not include_pasif and not palet.aktif):
             raise KayitBulunamadiError("Palet barkodu", palet_no)
         return PaletResponseDTO.from_entity(palet)
 
