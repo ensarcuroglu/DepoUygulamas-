@@ -77,6 +77,7 @@ MAPPER_PAIRS = _collect_mapper_pairs()
 
 # ORM'de olmayip entity'de bulunmasi bilincli olan alanlar (relation/computed)
 ALLOWED_ENTITY_ONLY_FIELDS: dict[str, set[str]] = {
+    "Lot": {"urun_isim", "marka_id", "marka_isim"},
     "MalKabulIrsaliye": {
         "kalemler",
         "yerlestirme_gorev_toplam",
