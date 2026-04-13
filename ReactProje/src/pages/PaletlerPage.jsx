@@ -534,13 +534,17 @@ export default function PaletlerPage() {
     }, [run, limit, filters.lot_id, filters.raf_id, debouncedEan]);
 
     useEffect(() => {
-        setPage(0);
-        setHasMore(true);
-        setPaletler([]);
         const timeoutId = setTimeout(() => {
+            // State sıfırlama işlemlerini asenkron bloğun (timeout) içine taşıdık
+            setPage(0);
+            setHasMore(true);
+            setPaletler([]);
+            
+            // Ardından veriyi çekiyoruz
             void fetchData(0);
         }, 0);
 
+        // Component unmount olduğunda veya fetchData değiştiğinde timeout'u temizle
         return () => clearTimeout(timeoutId);
     }, [fetchData]);
 

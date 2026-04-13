@@ -36,15 +36,17 @@ class LotGuncelleRequestDTO(BaseModel):
 # YANIT (RESPONSE) DTO'LARI
 # ─────────────────────────────────────────
 
+class MarkaOzetDTO(BaseModel):
+    id: int
+    isim: str
+
+
+class UrunOzetDTO(BaseModel):
+    isim: str
+    marka: Optional[MarkaOzetDTO] = None
+
+
 class LotResponseDTO(BaseModel):
-    class MarkaOzetDTO(BaseModel):
-        id: int
-        isim: str
-
-    class UrunOzetDTO(BaseModel):
-        isim: str
-        marka: Optional["MarkaOzetDTO"] = None
-
     id: int
     urun_id: int
     lot_no: Optional[str] = None
@@ -66,11 +68,11 @@ class LotResponseDTO(BaseModel):
         
         marka = None
         if entity.marka_id is not None and entity.marka_isim:
-            marka = cls.MarkaOzetDTO(id=entity.marka_id, isim=entity.marka_isim)
+            marka = MarkaOzetDTO(id=entity.marka_id, isim=entity.marka_isim)
 
         urun = None
         if entity.urun_isim:
-            urun = cls.UrunOzetDTO(isim=entity.urun_isim, marka=marka)
+            urun = UrunOzetDTO(isim=entity.urun_isim, marka=marka)
 
         return cls(
             id=entity.id,
