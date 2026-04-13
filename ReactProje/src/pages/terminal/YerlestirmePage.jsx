@@ -1,4 +1,4 @@
-﻿/**
+/**
  * YerlestirmePage — 4 adımlı scan-to-verify yerleştirme akışı.
  *
  * Adım 1: Sıradaki Görevi Al / Görev Detayı (operasyonel bilgilerle)
@@ -36,6 +36,7 @@ export default function YerlestirmePage() {
   const { loading, run } = useAsync();
   const { user } = useAuth();
   const overrideYetkisiVar = user?.rol === 'admin' || user?.rol === 'lojistik';
+  const sorunIslemYetkisiVar = user?.rol === 'admin' || user?.rol === 'lojistik';
 
   const [adim, setAdim] = useState(ADIM.GOREV);
   const [gorev, setGorev] = useState(location.state?.gorev || null);
@@ -89,14 +90,18 @@ export default function YerlestirmePage() {
 
   // Görev al
   const goreviAl = async () => {
-    await run(async () => {
-      const res = await siradakiGorevisiniAl();
-      if (res.data) {
-        setGorev(res.data);
-      } else {
-        toast('Havuzda bekleyen görev yok.', { icon: '📦' });
-      }
-    });
+    try {
+      await run(async () => {
+        const res = await siradakiGorevisiniAl();
+        if (res.data) {
+          setGorev(res.data);
+        } else {
+          toast('Havuzda bekleyen görev yok.', { icon: '📦' });
+        }
+      });
+    } catch {
+      toast.error('Sıradaki görev alınamadı.');
+    }
   };
 
   // Görevi başlat (paleti fiziksel olarak al).
@@ -105,22 +110,34 @@ export default function YerlestirmePage() {
       setAdim(ADIM.PALET);
       return;
     }
-    await run(async () => {
-      await goreviBaslat(gorev.id);
-      setGorev((g) => ({ ...g, durum: 'DevamEdiyor' }));
-      setAdim(ADIM.PALET);
-    });
+    try {
+      await run(async () => {
+        await goreviBaslat(gorev.id);
+        setGorev((g) => ({ ...g, durum: 'DevamEdiyor' }));
+        setAdim(ADIM.PALET);
+      });
+    } catch {
+      toast.error('Görev başlatılamadı.');
+    }
   };
 
   // Görevi bırak
   const goreviBirakAction = async () => {
-    await run(async () => {
-      await goreviBirak(gorev.id);
-      toast('Görev havuza iade edildi.');
-      setGorev(null);
-      setAdim(ADIM.GOREV);
-      void bekleyenYukle();
-    });
+    if (gorev?.durum === 'DevamEdiyor') {
+      toast.error('Başlatılmış görev bırakılamaz. Süreci tamamlayın veya süpervizöre bildirin.');
+      return;
+    }
+    try {
+      await run(async () => {
+        await goreviBirak(gorev.id);
+        toast('Görev havuza iade edildi.');
+        setGorev(null);
+        setAdim(ADIM.GOREV);
+        void bekleyenYukle();
+      });
+    } catch {
+      toast.error('Görev bırakılamadı.');
+    }
   };
 
   // Palet doğrulama — gerçek barkod eşleşmesi
@@ -142,15 +159,19 @@ export default function YerlestirmePage() {
     const r = rafKod.trim();
     if (!r) return;
     setRafBarkod(r);
-    await run(async () => {
-      const res = await terminalYerlestir({
-        gorev_id: gorev.id,
-        palet_barkod: paletBarkod,
-        raf_barkod: r,
+    try {
+      await run(async () => {
+        const res = await terminalYerlestir({
+          gorev_id: gorev.id,
+          palet_barkod: paletBarkod,
+          raf_barkod: r,
+        });
+        setSonuc(res.data);
+        setAdim(ADIM.SONUC);
       });
-      setSonuc(res.data);
-      setAdim(ADIM.SONUC);
-    });
+    } catch {
+      toast.error('Yerleştirme doğrulaması başarısız.');
+    }
   };
 
   // Override
@@ -163,37 +184,49 @@ export default function YerlestirmePage() {
       toast.error('Override gerekçesi zorunludur.');
       return;
     }
-    await run(async () => {
-      const res = await goreviOverride(gorev.id, {
-        gerceklesen_raf_id: overrideRafSec.id,
-        neden: overrideNeden,
+    try {
+      await run(async () => {
+        const res = await goreviOverride(gorev.id, {
+          gerceklesen_raf_id: overrideRafSec.raf_id,
+          neden: overrideNeden,
+        });
+        setSonuc({ basarili: true, durum: 'TAMAMLANDI', mesaj: 'Override ile yerleştirildi.', ...res.data });
+        setAdim(ADIM.SONUC);
+        setOverrideModal(false);
+        setOverrideNeden('');
       });
-      setSonuc({ basarili: true, durum: 'TAMAMLANDI', mesaj: 'Override ile yerleştirildi.', ...res.data });
-      setAdim(ADIM.SONUC);
-      setOverrideModal(false);
-      setOverrideNeden('');
-    });
+    } catch {
+      toast.error('Override işlemi başarısız.');
+    }
   };
 
   // Sorun bildir — gönder
   const sorunGonder = async () => {
+    if (!sorunIslemYetkisiVar) {
+      toast.error('Bu işlem için yetkiniz yok. Lütfen süpervizör veya admin çağırın.');
+      return;
+    }
     if (!sorunNeden.trim()) {
       toast.error('Açıklama zorunludur.');
       return;
     }
-    await run(async () => {
-      if (sorunTip === 'karantina') {
-        await karantinayaAl({ palet_id: gorev.palet_id, neden: sorunNeden });
-        toast.success('Palet karantina zonuna yönlendirildi. Transfer görevi oluşturuldu.');
-      } else {
-        await goreviIptal(gorev.id, { neden: sorunNeden });
-        toast('Görev iptal edildi.');
-      }
-      setSorunSheet(false);
-      setSorunNeden('');
-      setSorunTip(null);
-      sifirla();
-    });
+    try {
+      await run(async () => {
+        if (sorunTip === 'karantina') {
+          await karantinayaAl({ palet_id: gorev.palet_id, neden: sorunNeden });
+          toast.success('Palet karantina zonuna yönlendirildi. Transfer görevi oluşturuldu.');
+        } else {
+          await goreviIptal(gorev.id, { neden: sorunNeden });
+          toast('Görev iptal edildi.');
+        }
+        setSorunSheet(false);
+        setSorunNeden('');
+        setSorunTip(null);
+        sifirla();
+      });
+    } catch {
+      toast.error('Sorun bildirimi işlenemedi.');
+    }
   };
 
   const sifirla = () => {
@@ -543,12 +576,6 @@ export default function YerlestirmePage() {
                   <div className="h-px bg-slate-800 flex-1"></div>
                 </div>
 
-                {sonuc.hata_neden && (
-                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2.5 flex items-start gap-2.5 shadow-inner">
-                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <p className="text-[12px] font-medium text-amber-300">{sonuc.hata_neden}</p>
-                  </div>
-                )}
                 <div className="space-y-2">
                   {sonuc.alternatifler.map((alt) => (
                     <button
@@ -738,6 +765,15 @@ function OncelikBadge({ oncelik }) {
 
 function SorunSheet({ open, onClose, sorunTip, setSorunTip, sorunNeden, setSorunNeden, onGonder, loading }) {
   if (!open) return null;
+  const userRaw = localStorage.getItem('user');
+  let role = null;
+  try {
+    role = userRaw ? JSON.parse(userRaw)?.rol : null;
+  } catch {
+    role = null;
+  }
+  const sorunIslemYetkisiVar = role === 'admin' || role === 'lojistik';
+
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all">
       <div
@@ -786,7 +822,14 @@ function SorunSheet({ open, onClose, sorunTip, setSorunTip, sorunNeden, setSorun
           </button>
         </div>
 
-        {sorunTip && (
+        {!sorunIslemYetkisiVar && (
+          <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-4">
+            <p className="text-[13px] text-slate-300 font-semibold">Bu aksiyonlar için yetkiniz yok.</p>
+            <p className="text-[12px] text-slate-500 mt-1">Lütfen süpervizör veya admin ile devam edin.</p>
+          </div>
+        )}
+
+        {sorunTip && sorunIslemYetkisiVar && (
           <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <textarea
               className="w-full bg-slate-950/50 border border-slate-700/80 rounded-2xl px-4 py-3 text-slate-100 text-[13px] placeholder-slate-600 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/50 transition-all resize-none shadow-inner"
