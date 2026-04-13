@@ -409,6 +409,24 @@ class IrsaliyeOnaylaVeGorevOlusturUseCase:
                 self._gorev_repo.olustur(gorev)
 
                 kalem.giris_yapildi()
+            
+            # İrsaliye durumunu güncelle ve kaydet
+            irsaliye.durum_degistir(MalKabulDurum.ONAYLANDI)
+            self._repo.guncelle(irsaliye)
+
+            # Başarılı onayın logunu at
+            self._log_repo.olustur(
+                SistemLog.olustur(
+                    kullanici_id=kullanici_id,
+                    islem_tipi=IslemTipi.UPDATE,
+                    modul="Mal Kabul İrsaliyesi",
+                    detay=f"İrsaliye onaylandı: {irsaliye.irsaliye_no}",
+                )
+            )
+
+            # Tüm işlemleri (lot, palet, görev, log, durum) tek seferde commit et
+            self._db.commit()
+            
         except Exception:
             self._db.rollback()
             raise
