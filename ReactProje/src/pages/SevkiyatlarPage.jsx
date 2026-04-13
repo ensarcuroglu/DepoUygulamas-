@@ -18,8 +18,9 @@ import {
     Filter,
     RotateCcw
 } from 'lucide-react';
-import { getStokHareketleri, getUrunler } from '../services/api';
+import { getStokHareketleri, getUrunler, getKullanicilar, getRaflar } from '../services/api';
 import toast from 'react-hot-toast';
+import { useMemo } from 'react';
 
 // Güvenlik (XSS) için basit bir temizleme fonksiyonu
 const escapeHtml = (unsafeText) => {
@@ -66,7 +67,10 @@ function gunOnce(n) {
 function tarihToInput(tarih) {
     if (!tarih) return '';
     const d = new Date(tarih);
-    return d.toISOString().split('T')[0];
+    const yil = d.getFullYear();
+    const ay = String(d.getMonth() + 1).padStart(2, '0');
+    const gun = String(d.getDate()).padStart(2, '0');
+    return `${yil}-${ay}-${gun}`;
 }
 
 const HIZLI_FILTRELER = [
@@ -82,6 +86,8 @@ export default function SevkiyatlarPage() {
     // State tanımlamaları
     const [cikislar, setCikislar] = useState([]);
     const [urunler, setUrunler] = useState([]);
+    const [kullanicilar, setKullanicilar] = useState([]);
+    const [raflar, setRaflar] = useState([]);
     const [loading, setLoading] = useState(true);
     const [aramaMetni, setAramaMetni] = useState('');
     const [seciliSevkiyat, setSeciliSevkiyat] = useState(null);
@@ -109,20 +115,58 @@ export default function SevkiyatlarPage() {
 
     const filtreAktifMi = aramaMetni || aktifHizliFiltre !== 'bu_ay';
 
+    const urunMap = useMemo(
+        () => new Map(urunler.map((u) => [u.id, u.isim])),
+        [urunler]
+    );
+    const kullaniciMap = useMemo(
+        () => new Map(kullanicilar.map((k) => [k.id, k.ad_soyad])),
+        [kullanicilar]
+    );
+    const rafMap = useMemo(
+        () => new Map(raflar.map((r) => [r.id, r.kod])),
+        [raflar]
+    );
+
     // API Verilerini Çek
     useEffect(() => {
+        const fetchTumCikislar = async () => {
+            const limit = 500;
+            const maxDongu = 20;
+            let skip = 0;
+            let dongu = 0;
+            let tumKayitlar = [];
+
+            while (dongu < maxDongu) {
+                const res = await getStokHareketleri({ limit, skip, hareket_tipi: 'cikis' });
+                const parcali = Array.isArray(res.data) ? res.data : [];
+                tumKayitlar = tumKayitlar.concat(parcali);
+                if (parcali.length < limit) break;
+                skip += limit;
+                dongu += 1;
+            }
+            return tumKayitlar;
+        };
+
         const fetchData = async () => {
             try {
-                const [hareketlerRes, urunlerRes] = await Promise.all([
-                    // Sadece çıkışları getir (yeni backend özelliği eklendi)
-                    getStokHareketleri({ limit: 100, hareket_tipi: 'cikis' }),
-                    getUrunler({ limit: 500 })
+                const [hareketler, urunlerRes, raflarRes] = await Promise.all([
+                    fetchTumCikislar(),
+                    getUrunler({ limit: 2000 }),
+                    getRaflar({ limit: 1000 }),
                 ]);
 
-                // Bazı eski kayıtlarda siparis_no olmayabilir, 
-                // ya da frontend'de sıralama gerekebilir. Backend zaten ID descending getiriyor.
-                setCikislar(hareketlerRes.data);
+                setCikislar(hareketler);
                 setUrunler(urunlerRes.data);
+                setRaflar(raflarRes.data);
+
+                // Bu endpoint admin yetkisi gerektirdiği için opsiyonel çekiliyor.
+                try {
+                    const kullanicilarRes = await getKullanicilar();
+                    setKullanicilar(kullanicilarRes.data);
+                } catch {
+                    setKullanicilar([]);
+                }
             } catch (err) {
                 toast.error("Sevkiyat geçmişi yüklenirken hata oluştu.");
                 console.error(err);
@@ -135,8 +179,17 @@ export default function SevkiyatlarPage() {
 
     // Ürün ismini bulmak için yardımcı fonksiyon
     const getUrunIsmi = (urun_id) => {
-        const urun = urunler.find(u => u.id === urun_id);
-        return urun ? urun.isim : `Ürün #${urun_id}`;
+        return urunMap.get(urun_id) || `Ürün #${urun_id}`;
+    };
+    const getKullaniciAdi = (sevkiyat) => {
+        if (sevkiyat.kullanici?.ad_soyad) return sevkiyat.kullanici.ad_soyad;
+        if (sevkiyat.kullanici_id) return kullaniciMap.get(sevkiyat.kullanici_id) || `Kullanıcı #${sevkiyat.kullanici_id}`;
+        return 'Sistem';
+    };
+    const getRafKodu = (sevkiyat) => {
+        if (sevkiyat.raf?.kod) return sevkiyat.raf.kod;
+        if (sevkiyat.raf_id) return rafMap.get(sevkiyat.raf_id) || `Raf #${sevkiyat.raf_id}`;
+        return '-';
     };
 
     // Filtreler değiştiğinde sayfayı sıfırla
@@ -151,7 +204,11 @@ export default function SevkiyatlarPage() {
         const metinUygun = !aramaMetni || (
             (c.tir_plaka && c.tir_plaka.toLowerCase().includes(arama)) ||
             (c.siparis_no && c.siparis_no.toLowerCase().includes(arama)) ||
-            (c.kullanici && c.kullanici.ad_soyad.toLowerCase().includes(arama)) ||
+            (getKullaniciAdi(c).toLowerCase().includes(arama)) ||
+            (c.irsaliye_no && c.irsaliye_no.toLowerCase().includes(arama)) ||
+            (c.sofor_adi && c.sofor_adi.toLowerCase().includes(arama)) ||
+            (c.tasiyici_firma && c.tasiyici_firma.toLowerCase().includes(arama)) ||
+            (c.palet_no && c.palet_no.toLowerCase().includes(arama)) ||
             (getUrunIsmi(c.urun_id).toLowerCase().includes(arama))
         );
 
@@ -181,11 +238,20 @@ export default function SevkiyatlarPage() {
     const handleYazdir = (sevkiyat) => {
         const urunAdi = escapeHtml(getUrunIsmi(sevkiyat.urun_id));
         const tarih = escapeHtml(new Date(sevkiyat.tarih).toLocaleString('tr-TR'));
+        const tirPlaka = escapeHtml(sevkiyat.tir_plaka || 'Araç Bilgisi Yok');
+        const depoKapi = escapeHtml(sevkiyat.depo_kapi || 'Tanımsız');
+        const siparisNo = escapeHtml(sevkiyat.siparis_no || 'Yok');
+        const aciklama = escapeHtml(sevkiyat.aciklama || '-');
+        const kullaniciAdi = escapeHtml(getKullaniciAdi(sevkiyat));
+        const soforAdi = escapeHtml(sevkiyat.sofor_adi || '-');
+        const tasiyiciFirma = escapeHtml(sevkiyat.tasiyici_firma || '-');
+        const irsaliyeNo = escapeHtml(sevkiyat.irsaliye_no || '-');
+        const paletNo = escapeHtml(sevkiyat.palet_no || '-');
 
         let barkodHtml = '';
         if (sevkiyat.barkodlar && Array.isArray(sevkiyat.barkodlar) && sevkiyat.barkodlar.length > 0) {
             barkodHtml = sevkiyat.barkodlar.map(b =>
-                `<div class="barcode-tag">${b}</div>`
+                `<div class="barcode-tag">${escapeHtml(b)}</div>`
             ).join('');
         } else {
             barkodHtml = '<div style="color:#64748b; font-style:italic;">Barkod verisi bulunamadı / Genel Çıkış</div>';
@@ -251,7 +317,7 @@ export default function SevkiyatlarPage() {
                         .info-box-title { font-size: 12px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
                         .info-box-val { font-size: 18px; font-weight: 700; color: #0f172a; }
 
-                        table { w-full; border-collapse: collapse; margin-bottom: 40px; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
                         th { background: #0f172a; color: white; text-align: left; padding: 12px; font-size: 14px; text-transform: uppercase; font-weight: 700;}
                         td { border-bottom: 2px solid #e2e8f0; padding: 16px 12px; font-size: 16px; font-weight: 600;}
                         
@@ -309,13 +375,16 @@ export default function SevkiyatlarPage() {
                         <div class="info-grid">
                             <div class="info-box">
                                 <div class="info-box-title">LOJİSTİK / NAKLİYE BİLGİSİ</div>
-                                <div class="info-box-val" style="font-size: 24px;">🚚 ${sevkiyat.tir_plaka || 'Araç Bilgisi Yok'}</div>
-                                <div style="margin-top:10px; font-weight:600;">Çıkış Kapısı: ${sevkiyat.depo_kapi || 'Tanımsız'}</div>
-                                <div style="margin-top:5px; font-weight:600;">Sipariş / Referans: ${sevkiyat.siparis_no || 'Yok'}</div>
+                                <div class="info-box-val" style="font-size: 24px;">🚚 ${tirPlaka}</div>
+                                <div style="margin-top:10px; font-weight:600;">Çıkış Kapısı: ${depoKapi}</div>
+                                <div style="margin-top:5px; font-weight:600;">Sipariş / Referans: ${siparisNo}</div>
+                                <div style="margin-top:5px; font-weight:600;">İrsaliye No: ${irsaliyeNo}</div>
                             </div>
                             <div class="info-box">
                                 <div class="info-box-title">İŞLEMİ YAPAN (DEPO PERSONELİ)</div>
-                                <div class="info-box-val">👤 ${sevkiyat.kullanici ? sevkiyat.kullanici.ad_soyad : 'Sistem Auth'}</div>
+                                <div class="info-box-val">👤 ${kullaniciAdi}</div>
+                                <div style="margin-top:10px; font-weight:600;">Şoför: ${soforAdi}</div>
+                                <div style="margin-top:5px; font-weight:600;">Taşıyıcı: ${tasiyiciFirma}</div>
                             </div>
                         </div>
 
@@ -331,9 +400,9 @@ export default function SevkiyatlarPage() {
                                 <tr>
                                     <td>
                                         <div style="font-weight: 800;">${urunAdi}</div>
-                                        <div style="font-size: 13px; color: #64748b; margin-top: 4px;">ID: ${sevkiyat.urun_id} • İşlem Tipi: O-CKS</div>
+                                        <div style="font-size: 13px; color: #64748b; margin-top: 4px;">ID: ${sevkiyat.urun_id} • İşlem Tipi: O-CKS • Palet: ${paletNo}</div>
                                     </td>
-                                    <td>${sevkiyat.aciklama || '-'}</td>
+                                    <td>${aciklama}</td>
                                     <td style="text-align: right; font-size: 22px; font-weight: 900;">${sevkiyat.miktar} AD.</td>
                                 </tr>
                             </tbody>
@@ -350,7 +419,7 @@ export default function SevkiyatlarPage() {
                             <div>
                                 Yüklemeyi Yapan
                                 <div class="signature-line"></div>
-                                <div style="margin-top: 5px;">${sevkiyat.kullanici ? sevkiyat.kullanici.ad_soyad : ''}</div>
+                                <div style="margin-top: 5px;">${kullaniciAdi}</div>
                             </div>
                             <div>
                                 Kontrol Eden / Güvenlik
@@ -576,7 +645,7 @@ export default function SevkiyatlarPage() {
                                                     <User className="w-5 h-5 text-slate-400 mt-0.5" />
                                                     <div>
                                                         <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Yükleyen / Depocu</span>
-                                                        <span className="font-semibold text-slate-700 text-sm">{sevkiyat.kullanici ? sevkiyat.kullanici.ad_soyad : 'Sistem'}</span>
+                                                        <span className="font-semibold text-slate-700 text-sm">{getKullaniciAdi(sevkiyat)}</span>
                                                     </div>
                                                 </div>
 
@@ -592,8 +661,27 @@ export default function SevkiyatlarPage() {
                                                     <MapPin className="w-5 h-5 text-slate-400 mt-0.5" />
                                                     <div>
                                                         <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Raf (Opsiyonel)</span>
-                                                        <span className="font-semibold text-slate-700 text-sm">{sevkiyat.raf ? sevkiyat.raf.kod : '-'}</span>
+                                                        <span className="font-semibold text-slate-700 text-sm">{getRafKodu(sevkiyat)}</span>
                                                     </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                                                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">İrsaliye No</span>
+                                                    <span className="font-semibold text-slate-700 text-sm">{sevkiyat.irsaliye_no || '-'}</span>
+                                                </div>
+                                                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Palet No</span>
+                                                    <span className="font-semibold text-slate-700 text-sm">{sevkiyat.palet_no || '-'}</span>
+                                                </div>
+                                                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Şoför</span>
+                                                    <span className="font-semibold text-slate-700 text-sm">{sevkiyat.sofor_adi || '-'}</span>
+                                                </div>
+                                                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Taşıyıcı Firma</span>
+                                                    <span className="font-semibold text-slate-700 text-sm">{sevkiyat.tasiyici_firma || '-'}</span>
                                                 </div>
                                             </div>
 
