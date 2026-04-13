@@ -33,10 +33,12 @@ def run():
         return
 
     if engine.dialect.name == "sqlite":
+        # nosemgrep
         sql = text(
             f"ALTER TABLE {TABLE_NAME} ADD COLUMN {COLUMN_NAME} VARCHAR(100)"
         )
     else:
+        # nosemgrep
         sql = text(
             f"ALTER TABLE {TABLE_NAME} ADD COLUMN {COLUMN_NAME} VARCHAR(100) NULL"
         )

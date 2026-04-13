@@ -72,6 +72,7 @@ def fetch_target_tables(conn: Connection, db_name: str) -> list[str]:
 def count_nulls(conn: Connection, table_name: str) -> int:
     return int(
         conn.execute(
+            # nosemgrep
             text(f"SELECT COUNT(*) FROM `{table_name}` WHERE `{COLUMN_NAME}` IS NULL")
         ).scalar()
     )

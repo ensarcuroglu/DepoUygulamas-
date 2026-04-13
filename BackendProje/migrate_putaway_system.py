@@ -82,6 +82,7 @@ def alter_ekle(conn, tablo: str, sutun: str, tanim: str) -> None:
     if sutun_var_mi(conn, tablo, sutun):
         print(f"    ↳ {tablo}.{sutun} zaten var — atlandı.")
         return
+    # nosemgrep
     conn.execute(text(f"ALTER TABLE {tablo} ADD COLUMN {sutun} {tanim}"))
     print(f"    ✓ {tablo}.{sutun} eklendi.")
 

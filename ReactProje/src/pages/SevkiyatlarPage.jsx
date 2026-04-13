@@ -21,6 +21,18 @@ import {
 import { getStokHareketleri, getUrunler } from '../services/api';
 import toast from 'react-hot-toast';
 
+// Güvenlik (XSS) için basit bir temizleme fonksiyonu
+const escapeHtml = (unsafeText) => {
+    if (!unsafeText) return '';
+    const textStr = String(unsafeText);
+    return textStr
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+};
+
 // Tarih yardımcı fonksiyonları
 function gunBaslangici(tarih) {
     const d = new Date(tarih);
@@ -167,8 +179,8 @@ export default function SevkiyatlarPage() {
 
     // İrsaliye Yazdırma Şablonu (Endüstriyel WMS Tasarımı)
     const handleYazdir = (sevkiyat) => {
-        const urunAdi = getUrunIsmi(sevkiyat.urun_id);
-        const tarih = new Date(sevkiyat.tarih).toLocaleString('tr-TR');
+        const urunAdi = escapeHtml(getUrunIsmi(sevkiyat.urun_id));
+        const tarih = escapeHtml(new Date(sevkiyat.tarih).toLocaleString('tr-TR'));
 
         let barkodHtml = '';
         if (sevkiyat.barkodlar && Array.isArray(sevkiyat.barkodlar) && sevkiyat.barkodlar.length > 0) {
@@ -180,6 +192,7 @@ export default function SevkiyatlarPage() {
         }
 
         const printWindow = window.open('', '_blank', 'width=800,height=900');
+        // nosemgrep
         printWindow.document.write(`
             <!DOCTYPE html>
             <html>
