@@ -281,8 +281,15 @@ export default function SistemLoglariPage() {
     const [seciliLog, setSeciliLog] = useState(null);
     const [hamJsonGoster, setHamJsonGoster] = useState(false);
 
-    // Modal her değiştiğinde ham JSON görünümünü kapat
-    useEffect(() => { setHamJsonGoster(false); }, [seciliLog]);
+    const logDetayiAc = (log) => {
+    setHamJsonGoster(false);
+    setSeciliLog(log);
+    };
+
+    const logDetayiKapat = () => {
+        setHamJsonGoster(false);
+        setSeciliLog(null);
+    };
 
     const fetchData = useCallback(async () => {
         try {
@@ -472,7 +479,7 @@ export default function SistemLoglariPage() {
                         return (
                             <div
                                 key={log.id}
-                                onClick={() => hasDiff && setSeciliLog(log)}
+                                onClick={() => hasDiff && logDetayiAc(log)}
                                 className={`flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 p-3.5 sm:p-5 bg-white rounded-xl md:rounded-2xl border border-slate-200 transition-all duration-300
                                 ${hasDiff ? 'cursor-pointer hover:border-slate-300 hover:shadow-md' : ''}`}
                             >
@@ -538,7 +545,7 @@ export default function SistemLoglariPage() {
             {seciliLog && (
                 <div
                     className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in"
-                    onClick={() => setSeciliLog(null)}
+                    onClick={logDetayiKapat}
                 >
                     <div
                         className="bg-white rounded-[24px] md:rounded-[32px] w-full max-w-3xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200"
@@ -558,7 +565,7 @@ export default function SistemLoglariPage() {
                                 </div>
                             </div>
                             <button
-                                onClick={() => setSeciliLog(null)}
+                                onClick={logDetayiKapat}
                                 className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors"
                             >
                                 <X className="w-4 h-4 md:w-5 md:h-5" />
