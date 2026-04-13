@@ -27,4 +27,9 @@ class IStokHareketiRepository(ABC):
         """
         ...
 
+    @abstractmethod
+    def siparis_icin_cikis_var_mi(self, siparis_no: str) -> bool:
+        """Sipariş numarasına ait çıkış hareketi olup olmadığını kontrol eder."""
+        ...
+
 

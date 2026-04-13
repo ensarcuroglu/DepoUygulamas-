@@ -1,7 +1,7 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.entities.stok_hareketi import StokHareketi
+from app.core.entities.stok_hareketi import StokHareketi, HareketTipi
 from app.core.repositories.stok_hareketi_repository import IStokHareketiRepository
 from app.infrastructure.persistence.mappers import stok_hareketi_to_entity, stok_hareketi_to_orm
 from models import StokHareketi as StokHareketiORM, Palet as PaletORM
@@ -52,3 +52,14 @@ class SqlAlchemyStokHareketiRepository(IStokHareketiRepository):
         ).order_by(StokHareketiORM.id.desc()).first()
         
         return stok_hareketi_to_entity(orm) if orm else None
+
+    def siparis_icin_cikis_var_mi(self, siparis_no: str) -> bool:
+        subq = (
+            self._db.query(StokHareketiORM)
+            .filter(
+                StokHareketiORM.siparis_no == siparis_no,
+                StokHareketiORM.hareket_tipi == HareketTipi.CIKIS,
+            )
+            .exists()
+        )
+        return self._db.query(subq).scalar()

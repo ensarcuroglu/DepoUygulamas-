@@ -39,6 +39,7 @@ class StokCikisDomainService:
         kullanici_id: int,
         tir_plaka: str | None = None,
         depo_kapi: str | None = None,
+        irsaliye_no: str | None = None,
         aciklama_prefix: str = "Stok çıkışı",
         modul: str = "Stok İşlemleri",
     ) -> None:
@@ -61,6 +62,7 @@ class StokCikisDomainService:
                     hareket_tipi=HareketTipi.CIKIS,
                     miktar=kalem.miktar,
                     siparis_no=siparis_no,
+                    irsaliye_no=irsaliye_no,
                     tir_plaka=tir_plaka,
                     depo_kapi=depo_kapi,
                     aciklama=aciklama_prefix,

@@ -16,12 +16,13 @@ from sqlalchemy.orm import Session
 from app.core.repositories.irsaliye_repository import IIrsaliyeRepository
 from app.core.repositories.siparis_repository import ISiparisRepository
 from app.core.repositories.sevkiyat_plani_repository import ISevkiyatPlaniRepository
+from app.core.repositories.stok_hareketi_repository import IStokHareketiRepository
 from app.core.repositories.sistem_log_repository import ISistemLogRepository
 from app.core.services.stok_cikis_domain_service import StokCikisDomainService
 from app.core.entities.irsaliye import Irsaliye, IrsaliyeDurum
 from app.core.entities.sevkiyat_plani import SevkiyatDurum
 from app.core.entities.sistem_log import SistemLog, IslemTipi
-from app.core.exceptions import KayitBulunamadiError, GecersizDurumGecisiError
+from app.core.exceptions import KayitBulunamadiError, GecersizDurumGecisiError, GecersizIslemError
 from app.application.dto.irsaliye_dto import (
     IrsaliyeOlusturRequestDTO,
     IrsaliyeGuncelleRequestDTO,
@@ -91,6 +92,7 @@ class IrsaliyeOlusturUseCase:
         irsaliye_repo: IIrsaliyeRepository,
         siparis_repo: ISiparisRepository,
         sevkiyat_repo: ISevkiyatPlaniRepository,
+        hareket_repo: IStokHareketiRepository,
         log_repo: ISistemLogRepository,
         stok_cikis_service: StokCikisDomainService,
         db: Session,
@@ -98,6 +100,7 @@ class IrsaliyeOlusturUseCase:
         self._irsaliye_repo = irsaliye_repo
         self._siparis_repo = siparis_repo
         self._sevkiyat_repo = sevkiyat_repo
+        self._hareket_repo = hareket_repo
         self._log_repo = log_repo
         self._stok_cikis = stok_cikis_service
         self._db = db
@@ -110,6 +113,8 @@ class IrsaliyeOlusturUseCase:
         siparis = self._siparis_repo.getir_id_ile(dto.siparis_id)
         if not siparis:
             raise KayitBulunamadiError("Sipariş", dto.siparis_id)
+
+        self._sevkiyat_id_dogrula(dto.sevkiyat_id, dto.siparis_id)
 
         irsaliye_no = self._irsaliye_repo.sonraki_irsaliye_no()
 
@@ -136,12 +141,13 @@ class IrsaliyeOlusturUseCase:
                 auto_commit=False,
             )
 
-            if not self._sevkiyat_stok_cikarildi_mi(dto.siparis_id) and siparis.kalemler:
+            if not self._stok_cikisi_yapildi_mi(siparis.siparis_no) and siparis.kalemler:
                 self._stok_cikis.siparis_bazli_stok_cikisi(
                     kalemler=siparis.kalemler,
                     siparis_no=siparis.siparis_no,
                     kullanici_id=kullanici_id,
                     tir_plaka=dto.tir_plaka,
+                    irsaliye_no=irsaliye_no,
                     aciklama_prefix=f"İrsaliye çıkışı - {irsaliye_no}",
                     modul="İrsaliye Yönetimi",
                 )
@@ -153,9 +159,22 @@ class IrsaliyeOlusturUseCase:
             self._db.rollback()
             raise
 
-    def _sevkiyat_stok_cikarildi_mi(self, siparis_id: int) -> bool:
-        plan = self._sevkiyat_repo.getir_siparis_id_ile(siparis_id)
-        return plan is not None and SevkiyatDurum.stok_cikarilmis_mi(plan.durum)
+    def _stok_cikisi_yapildi_mi(self, siparis_no: str) -> bool:
+        """Sipariş için daha önce stok çıkışı yapılıp yapılmadığını kontrol eder."""
+        return self._hareket_repo.siparis_icin_cikis_var_mi(siparis_no)
+
+    def _sevkiyat_id_dogrula(self, sevkiyat_id: int | None, siparis_id: int) -> None:
+        """sevkiyat_id varsa planın varlığını ve sipariş uyumunu doğrular."""
+        if sevkiyat_id is None:
+            return
+        plan = self._sevkiyat_repo.getir_id_ile(sevkiyat_id)
+        if not plan:
+            raise KayitBulunamadiError("Sevkiyat Planı", sevkiyat_id)
+        if plan.siparis_id != siparis_id:
+            raise GecersizIslemError(
+                f"Sevkiyat planı (ID: {sevkiyat_id}) farklı bir siparişe ait. "
+                f"Beklenen sipariş ID: {siparis_id}, bulunan: {plan.siparis_id}"
+            )
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -191,6 +210,17 @@ class IrsaliyeGuncelleUseCase:
             raise KayitBulunamadiError("İrsaliye", irsaliye_id)
 
         eski_durum = irsaliye.durum
+
+        alan_degisikligi = (
+            dto.belge_turu is not None
+            or dto.tir_plaka is not None
+            or dto.sofor_adi is not None
+        )
+        if alan_degisikligi and not irsaliye.duzenlenebilir_mi():
+            raise GecersizIslemError(
+                f"'{irsaliye.durum}' durumundaki irsaliye düzenlenemez. "
+                "Yalnızca durum geçişi yapılabilir."
+            )
 
         if dto.belge_turu is not None:
             irsaliye.belge_turu = dto.belge_turu

@@ -44,10 +44,11 @@ class SevkiyatPlaniOlusturRequestDTO(BaseModel):
     @field_validator("durum")
     @classmethod
     def gecerli_durum(cls, v: str) -> str:
-        sonuc = _dogrula_durum(v)
-        if sonuc is None:
-            raise ValueError("Durum boş olamaz.")
-        return sonuc
+        if v != SevkiyatDurum.PLANLANDI:
+            raise ValueError(
+                f"Sevkiyat planı yalnızca '{SevkiyatDurum.PLANLANDI}' durumunda oluşturulabilir."
+            )
+        return v
 
 
 class SevkiyatPlaniGuncelleRequestDTO(BaseModel):

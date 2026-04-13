@@ -297,11 +297,16 @@ class TestSevkiyatDTOSinirDegerleri:
         with pytest.raises(ValidationError):
             SevkiyatPlaniOlusturRequestDTO(siparis_id=1, notlar="x" * 2001)
 
-    @pytest.mark.parametrize("durum", ["Planlandi", "Yukleniyor", "Yolda", "TeslimEdildi"])
-    def test_gecerli_durumlar(self, durum):
-        """Tüm geçerli durum değerleri kabul edilmeli."""
-        dto = SevkiyatPlaniOlusturRequestDTO(siparis_id=1, durum=durum)
-        assert dto.durum == durum
+    def test_yalnizca_planlandi_durumu_kabul_edilir(self):
+        """Oluşturmada yalnızca Planlandi durumu kabul edilmeli."""
+        dto = SevkiyatPlaniOlusturRequestDTO(siparis_id=1, durum="Planlandi")
+        assert dto.durum == "Planlandi"
+
+    @pytest.mark.parametrize("durum", ["Yukleniyor", "Yolda", "TeslimEdildi"])
+    def test_planlandi_disindaki_durumlar_reddedilir(self, durum):
+        """Oluşturmada Planlandi dışındaki durumlar reddedilmeli."""
+        with pytest.raises(ValidationError):
+            SevkiyatPlaniOlusturRequestDTO(siparis_id=1, durum=durum)
 
     def test_opsiyonel_alanlar_none_gecerli(self):
         """Opsiyonel alanların hepsi None olabilir."""

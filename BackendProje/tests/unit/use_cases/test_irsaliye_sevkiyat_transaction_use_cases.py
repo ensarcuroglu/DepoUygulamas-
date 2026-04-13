@@ -70,7 +70,7 @@ class TestIrsaliyeOlusturUseCase:
 
         siparis = _make_siparis_entity()
         mocks["siparis_repo"].getir_id_ile.return_value = siparis
-        mocks["sevkiyat_repo"].getir_siparis_id_ile.return_value = None
+        mocks["hareket_repo"].siparis_icin_cikis_var_mi.return_value = False
         mocks["irsaliye_repo"].sonraki_irsaliye_no.return_value = "IRS-2026-0001"
         mocks["irsaliye_repo"].olustur.return_value = _make_irsaliye_entity()
 
@@ -90,7 +90,7 @@ class TestIrsaliyeOlusturUseCase:
         )
 
         mocks["siparis_repo"].getir_id_ile.return_value = _make_siparis_entity()
-        mocks["sevkiyat_repo"].getir_siparis_id_ile.return_value = None
+        mocks["hareket_repo"].siparis_icin_cikis_var_mi.return_value = False
         mocks["irsaliye_repo"].sonraki_irsaliye_no.return_value = "IRS-2026-0001"
         mocks["irsaliye_repo"].olustur.return_value = _make_irsaliye_entity()
         mocks["stok_cikis_service"].siparis_bazli_stok_cikisi.side_effect = StokVeriUyumsuzluguError("Urun ID: 10")
