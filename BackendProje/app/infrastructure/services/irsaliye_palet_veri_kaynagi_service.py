@@ -43,6 +43,10 @@ class IrsaliyePaletVeriKaynagiService(IPaletVeriKaynagiService):
         if not kalem:
             raise KayitBulunamadiError("Palet", palet_no)
 
+        # PYRIGHT DÜZELTMESİ: Tip daraltma (Type Narrowing) ile None kontrolü
+        if kalem.mal_kabul_irsaliyesi_id is None:
+            raise GecersizIslemError(f"Palet ({palet_no}) kaydina ait bir irsaliye ID bulunamadi.")
+
         # Irsaliye'den depo bilgisini al
         irsaliye = self._mal_kabul_repo.getir_id_ile(kalem.mal_kabul_irsaliyesi_id)
         if not irsaliye:
@@ -104,6 +108,10 @@ class IrsaliyePaletVeriKaynagiService(IPaletVeriKaynagiService):
 
         if kalem.durum == KalemDurum.GIRIS_YAPILDI:
             raise GecersizIslemError("Bu palet icin giris zaten yapilmis.")
+
+        # PYRIGHT DÜZELTMESİ: Tip daraltma (Type Narrowing) ile None kontrolü
+        if kalem.mal_kabul_irsaliyesi_id is None:
+            raise GecersizIslemError(f"Palet ({palet_no}) kaydina ait bir irsaliye ID bulunamadi.")
 
         # Irsaliye entity'sini getir ve kalemini guncelle
         irsaliye = self._mal_kabul_repo.getir_id_ile(kalem.mal_kabul_irsaliyesi_id)
