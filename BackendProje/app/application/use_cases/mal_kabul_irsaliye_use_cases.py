@@ -350,10 +350,17 @@ class IrsaliyeOnaylaVeGorevOlusturUseCase:
                     continue
 
                 urun = self._urun_repo.getir_id_ile(kalem.urun_id)
-                if not urun:
+                # Pyright'a urun.id'nin None olmadığını kanıtla
+                if not urun or urun.id is None:
                     raise KayitBulunamadiError("Ürün", kalem.urun_id)
 
                 lot = self._lot_bul_veya_olustur(kalem)
+                
+                # Repository'den dönen nesnelerin ID'si None olmamalı
+                if lot.id is None:
+                    raise GecersizIslemError("Lot oluşturuldu fakat ID alınamadı.")
+                if staging_raf.id is None:
+                    raise GecersizIslemError("Staging raf ID bulunamadı.")
 
                 palet = Palet(
                     lot_id=lot.id,
@@ -362,6 +369,10 @@ class IrsaliyeOnaylaVeGorevOlusturUseCase:
                     koli_adedi=kalem.miktar,
                 )
                 palet = self._palet_repo.olustur(palet, auto_commit=False)
+                
+                # Yeni oluşturulan paletin ID'sini doğrula
+                if palet.id is None:
+                    raise GecersizIslemError("Palet oluşturuldu fakat ID alınamadı. Flush eksik olabilir.")
 
                 hareket = StokHareketi(
                     urun_id=urun.id,
@@ -377,7 +388,15 @@ class IrsaliyeOnaylaVeGorevOlusturUseCase:
                 self._hareket_repo.olustur(hareket, auto_commit=False)
 
                 oneri = self._algoritma.raf_oner(palet, urun, irsaliye.depo_id)
-                onerilen_raf_id = oneri.onerilen_raf.id if oneri else staging_raf.id
+                
+                # Onerilen raf ID'si için güvenli atama
+                if oneri and oneri.onerilen_raf.id is not None:
+                    onerilen_raf_id = oneri.onerilen_raf.id
+                else:
+                    onerilen_raf_id = staging_raf.id
+
+                # irsaliye.id'nin None olamayacağını da garantilemek isteyebilirsin
+                assert irsaliye.id is not None, "İrsaliye ID eksik"
 
                 gorev = YerlestirmeGorevi(
                     palet_id=palet.id,
@@ -390,24 +409,6 @@ class IrsaliyeOnaylaVeGorevOlusturUseCase:
                 self._gorev_repo.olustur(gorev)
 
                 kalem.giris_yapildi()
-
-            irsaliye.onayla()
-            self._repo.guncelle(irsaliye)
-
-            self._log_repo.olustur(
-                SistemLog.olustur(
-                    kullanici_id=kullanici_id,
-                    islem_tipi=IslemTipi.UPDATE,
-                    modul="Mal Kabul İrsaliyesi",
-                    detay=(
-                        f"İrsaliye onaylandı + görevler oluşturuldu: {irsaliye.irsaliye_no} "
-                        f"| {len(irsaliye.kalemler)} kalem"
-                    ),
-                ),
-                auto_commit=False,
-            )
-
-            self._db.commit()
         except Exception:
             self._db.rollback()
             raise

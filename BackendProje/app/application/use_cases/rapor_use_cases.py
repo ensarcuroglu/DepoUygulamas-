@@ -434,6 +434,11 @@ class RaporExportUseCase:
         row_dicts = self._to_row_dicts(rows)
         wb = openpyxl.Workbook()
         ws = wb.active
+
+        # Pyright tip daraltması (Type Narrowing)
+        # ws'nin None olmadığını kesinleştirerek hataları önlüyoruz
+        assert ws is not None, "Yeni Workbook oluşturulduğunda aktif sayfa bulunamadı."
+
         ws.title = tur.capitalize()
 
         headers = list(row_dicts[0].keys())

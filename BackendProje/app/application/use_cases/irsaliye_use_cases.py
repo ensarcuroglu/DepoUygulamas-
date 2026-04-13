@@ -245,7 +245,7 @@ class IrsaliyeYazdirVerisiGetirUseCase:
         siparis = self._siparis_repo.getir_id_ile(irsaliye.siparis_id)
 
         irsaliye_dto = IrsaliyeYazdirIrsaliyeDTO(
-            id=irsaliye.id,
+            id=irsaliye_id,
             irsaliye_no=irsaliye.irsaliye_no,
             irsaliye_tarihi=str(irsaliye.irsaliye_tarihi),
             belge_turu=irsaliye.belge_turu,

@@ -66,6 +66,9 @@ class KullaniciGuncelleUseCase:
         dto: KullaniciGuncelleRequestDTO,
         current_user: Kullanici,
     ) -> KullaniciResponseDTO:
+        # GÜVENLİK VE TİP KONTROLÜ (Guard Clause)
+        if current_user.id is None:
+            raise YetkisizIslemError("Geçersiz oturum: Mevcut kullanıcı kimliği doğrulanamadı.")
         # Yetki: admin değilse sadece kendi hesabını güncelleyebilir
         if not admin_mi(current_user) and current_user.id != kullanici_id:
             raise YetkisizIslemError(
@@ -164,6 +167,10 @@ class KullaniciSilUseCase:
         self._log_repo = log_repo
 
     def execute(self, kullanici_id: int, current_user: Kullanici) -> None:
+        # GÜVENLİK VE TİP KONTROLÜ (Guard Clause) BURAYA DA EKLENMELİ
+        if current_user.id is None:
+            raise YetkisizIslemError("Geçersiz oturum: Mevcut kullanıcı kimliği doğrulanamadı.")
+
         if kullanici_id == current_user.id:
             raise GecersizIslemError("Kendi hesabınızı silemezsiniz")
 
@@ -175,7 +182,7 @@ class KullaniciSilUseCase:
 
         self._log_repo.olustur(
             SistemLog.olustur(
-                kullanici_id=current_user.id,
+                kullanici_id=current_user.id,  # Artık Pyright buranın kesinlikle 'int' olduğunu biliyor
                 islem_tipi=IslemTipi.DELETE,
                 modul="Kullanıcı Yönetimi",
                 detay=f"Kullanıcı silindi: {kullanici.kullanici_adi} (ID: {kullanici_id})",
