@@ -65,8 +65,10 @@ def test_onayli_irsaliyeden_palet_bilgisi_alinabilir(service, mock_repos):
 
 def test_son_palet_girilince_irsaliye_otomatik_tamamlanmali(service, mock_repos):
     # Hazırlık: 2 kalemli irsaliye, biri zaten girilmiş, diğeri bekliyor
-    k1 = MalKabulKalemi(palet_no="P1", durum=KalemDurum.GIRIS_YAPILDI)
-    k2 = MalKabulKalemi(palet_no="P2", durum=KalemDurum.BEKLIYOR)
+    # DÜZELTME: mal_kabul_irsaliyesi_id=1 parametreleri eklendi
+    k1 = MalKabulKalemi(palet_no="P1", durum=KalemDurum.GIRIS_YAPILDI, mal_kabul_irsaliyesi_id=1)
+    k2 = MalKabulKalemi(palet_no="P2", durum=KalemDurum.BEKLIYOR, mal_kabul_irsaliyesi_id=1)
+    
     irsaliye = MalKabulIrsaliye(id=1, durum=MalKabulDurum.ONAYLANDI, kalemler=[k1, k2])
     
     mock_repos["mal_kabul"].getir_kalem_palet_no_ile.return_value = k2
@@ -75,6 +77,6 @@ def test_son_palet_girilince_irsaliye_otomatik_tamamlanmali(service, mock_repos)
     # İşlem: Son paleti (P2) onayla (Yüksek-1)
     service.palet_giris_onayla("P2")
 
-    # Doğrulama: İrsaliye durumu TAMAMLANDI olmalı
+    # Doğrulama: İrsaliye durumu KAPANDI olmalı
     assert irsaliye.durum == MalKabulDurum.KAPANDI
     mock_repos["mal_kabul"].guncelle.assert_called_once()
