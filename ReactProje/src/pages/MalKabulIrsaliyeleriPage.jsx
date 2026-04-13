@@ -7,12 +7,13 @@ import {
 import {
     getMalKabulIrsaliyeleri, createMalKabulIrsaliye,
     deleteMalKabulIrsaliye, getTedarikciler, getDepolar, getUrunler, getRaflar,
-    onaylaMalKabulIrsaliye, malKabulKalemiIstisnaGuncelle
+    onaylaMalKabulIrsaliye, malKabulKalemiIstisnaGuncelle, updateMalKabulIrsaliye
 } from '../services/api';
 import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 const durumRenkleri = {
     'Taslak': 'bg-slate-100 text-slate-700 border-slate-200/60',
@@ -28,6 +29,7 @@ const durumEtiketleri = {
 
 export default function MalKabulIrsaliyeleriPage() {
     const { loading, run } = useAsync(true);
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [irsaliyeler, setIrsaliyeler] = useState([]);
     const [tedarikciler, setTedarikciler] = useState([]);
@@ -38,6 +40,8 @@ export default function MalKabulIrsaliyeleriPage() {
     const [aramaMetni, setAramaMetni] = useState('');
     const [durumFiltre, setDurumFiltre] = useState('');
     const [yeniModal, setYeniModal] = useState(false);
+    const [aktifIrsaliyeId, setAktifIrsaliyeId] = useState(null);
+    const [duzenlemeSnapshot, setDuzenlemeSnapshot] = useState(null);
     const [expandedId, setExpandedId] = useState(null);
     const [onayOzet, setOnayOzet] = useState(null);
     const aramaMetniRef = useRef(aramaMetni);
@@ -54,6 +58,78 @@ export default function MalKabulIrsaliyeleriPage() {
     });
 
     const bosKalem = { palet_no: '', urun_id: '', lot_no: '', miktar: '', raf_id: '', uretim_tarihi: '', son_kullanma_tarihi: '' };
+    const kullaniciRolu = user?.rol;
+    const canCreateOrApprove = kullaniciRolu === 'admin' || kullaniciRolu === 'depocu';
+    const canDelete = kullaniciRolu === 'admin';
+
+    const formuSifirla = () => {
+        setFormData({
+            tedarikci_id: '',
+            depo_id: '',
+            tarih: new Date().toISOString().split('T')[0],
+            tir_plaka: '',
+            sofor_adi: '',
+            kalemler: [],
+        });
+    };
+
+    const modalKapat = () => {
+        setYeniModal(false);
+        setAktifIrsaliyeId(null);
+        setDuzenlemeSnapshot(null);
+        formuSifirla();
+    };
+
+    const yeniIrsaliyeModalAc = () => {
+        setAktifIrsaliyeId(null);
+        setDuzenlemeSnapshot(null);
+        formuSifirla();
+        setYeniModal(true);
+    };
+
+    const duzenlemeModalAc = (irs) => {
+        const normalizeKalem = (kalem) => ({
+            palet_no: kalem.palet_no || '',
+            urun_id: String(kalem.urun_id ?? ''),
+            lot_no: kalem.lot_no || '',
+            miktar: String(kalem.miktar ?? ''),
+            raf_id: kalem.raf_id ? String(kalem.raf_id) : '',
+            uretim_tarihi: kalem.uretim_tarihi || '',
+            son_kullanma_tarihi: kalem.son_kullanma_tarihi || '',
+        });
+
+        const snapshot = {
+            tedarikci_id: String(irs.tedarikci_id ?? ''),
+            depo_id: String(irs.depo_id ?? ''),
+            tarih: irs.tarih || '',
+            tir_plaka: irs.tir_plaka || '',
+            sofor_adi: irs.sofor_adi || '',
+            kalemler: (irs.kalemler || []).map(normalizeKalem),
+        };
+
+        setAktifIrsaliyeId(irs.id);
+        setDuzenlemeSnapshot(snapshot);
+        setFormData({
+            ...snapshot,
+            tarih: snapshot.tarih || new Date().toISOString().split('T')[0],
+        });
+        setYeniModal(true);
+    };
+
+    const alanDegistiMi = (alan) => {
+        if (!duzenlemeSnapshot) return false;
+        return String(formData[alan] ?? '') !== String(duzenlemeSnapshot[alan] ?? '');
+    };
+
+    const kalemAlandegistiMi = (index, alan) => {
+        if (!duzenlemeSnapshot) return false;
+        const snapshotKalem = duzenlemeSnapshot.kalemler?.[index];
+        if (!snapshotKalem) return false;
+        return String(formData.kalemler?.[index]?.[alan] ?? '') !== String(snapshotKalem[alan] ?? '');
+    };
+
+    const degisenAlanSinifi = (degisti) =>
+        degisti ? 'border-amber-300 ring-2 ring-amber-200 bg-amber-50/40' : '';
 
     // ===== REFERANS VERİLERİ =====
     useEffect(() => {
@@ -61,9 +137,9 @@ export default function MalKabulIrsaliyeleriPage() {
             try {
                 const [tedRes, depRes, urnRes, rafRes] = await Promise.all([
                     getTedarikciler({ limit: 500 }),
-                    getDepolar(),
+                    getDepolar({ limit: 500 }),
                     getUrunler({ limit: 500 }),
-                    getRaflar(),
+                    getRaflar({ limit: 1000 }),
                 ]);
                 setTedarikciler(tedRes?.data || []);
                 setDepolar(depRes?.data || []);
@@ -140,6 +216,10 @@ export default function MalKabulIrsaliyeleriPage() {
 
     // ===== İRSALİYE OLUŞTUR =====
     const handleOlustur = async () => {
+        if (!canCreateOrApprove) {
+            toast.error('Bu işlem için yetkiniz yok');
+            return;
+        }
         if (!formData.tedarikci_id || !formData.depo_id || !formData.tarih) {
             toast.error('Tedarikçi, depo ve tarih zorunludur');
             return;
@@ -165,21 +245,26 @@ export default function MalKabulIrsaliyeleriPage() {
                     })),
             };
 
-            await createMalKabulIrsaliye(payload);
-            toast.success('Mal kabul irsaliyesi oluşturuldu');
-            setYeniModal(false);
-            setFormData({
-                tedarikci_id: '', depo_id: '', tarih: new Date().toISOString().split('T')[0],
-                tir_plaka: '', sofor_adi: '', kalemler: [],
-            });
+            if (aktifIrsaliyeId) {
+                await updateMalKabulIrsaliye(aktifIrsaliyeId, payload);
+                toast.success('Mal kabul irsaliyesi güncellendi');
+            } else {
+                await createMalKabulIrsaliye(payload);
+                toast.success('Mal kabul irsaliyesi oluşturuldu');
+            }
+            modalKapat();
             yukle();
         } catch (err) {
-            toast.error(hataMetni(err, 'İrsaliye oluşturulamadı'));
+            toast.error(hataMetni(err, aktifIrsaliyeId ? 'İrsaliye güncellenemedi' : 'İrsaliye oluşturulamadı'));
         }
     };
 
     // ===== ONAYLA =====
     const handleOnayla = async (irs) => {
+        if (!canCreateOrApprove) {
+            toast.error('Bu işlem için yetkiniz yok');
+            return;
+        }
         try {
             const res = await onaylaMalKabulIrsaliye(irs.id);
             const veri = res?.data ?? {};
@@ -196,6 +281,10 @@ export default function MalKabulIrsaliyeleriPage() {
 
     // ===== İSTİSNA BİLDİR =====
     const handleIstisnaBildir = async (irsaliyeId, kalemId) => {
+        if (!canCreateOrApprove) {
+            toast.error('Bu işlem için yetkiniz yok');
+            return;
+        }
         if (!istisnaForm.istisna_tip) {
             toast.error('İstisna tipi seçilmesi zorunludur');
             return;
@@ -217,6 +306,10 @@ export default function MalKabulIrsaliyeleriPage() {
 
     // ===== SİL =====
     const handleSil = async (id) => {
+        if (!canDelete) {
+            toast.error('Bu işlem için yetkiniz yok');
+            return;
+        }
         if (!window.confirm('Bu irsaliyeyi silmek istediğinize emin misiniz?')) return;
         try {
             await deleteMalKabulIrsaliye(id);
@@ -244,13 +337,15 @@ export default function MalKabulIrsaliyeleriPage() {
                         <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Mal Kabul İrsaliyeleri</h1>
                         <p className="text-sm md:text-base text-slate-500 mt-1">Tedarikçilerden gelen irsaliyeleri ve depo girişlerini yönetin</p>
                     </div>
-                    <button
-                        onClick={() => setYeniModal(true)}
-                        className="flex items-center justify-center gap-2 h-12 px-6 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 active:bg-blue-800 transition-all shadow-md shadow-blue-600/20 text-sm font-semibold w-full sm:w-auto"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Yeni İrsaliye
-                    </button>
+                    {canCreateOrApprove && (
+                        <button
+                            onClick={yeniIrsaliyeModalAc}
+                            className="flex items-center justify-center gap-2 h-12 px-6 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 active:bg-blue-800 transition-all shadow-md shadow-blue-600/20 text-sm font-semibold w-full sm:w-auto"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Yeni İrsaliye
+                        </button>
+                    )}
                 </div>
 
                 {/* ONAYLA SONRASI ÖZET BANNER */}
@@ -515,7 +610,7 @@ export default function MalKabulIrsaliyeleriPage() {
                                                                                             </span>
                                                                                             {kalem.istisna_aciklama && <span className="text-[10px] text-slate-400 max-w-[120px] truncate" title={kalem.istisna_aciklama}>{kalem.istisna_aciklama}</span>}
                                                                                         </div>
-                                                                                    ) : irs.durum !== 'Kapandi' ? (
+                                                                                    ) : canCreateOrApprove && irs.durum !== 'Kapandi' ? (
                                                                                         <div className="relative">
                                                                                             <button
                                                                                                 onClick={() => {
@@ -637,7 +732,7 @@ export default function MalKabulIrsaliyeleriPage() {
                                                                                     {kalem.istisna_aciklama && <div className="text-xs text-red-600 mt-0.5 leading-relaxed">{kalem.istisna_aciklama}</div>}
                                                                                 </div>
                                                                             </div>
-                                                                        ) : irs.durum !== 'Kapandi' && !istisnaAcikMobil && (
+                                                                        ) : canCreateOrApprove && irs.durum !== 'Kapandi' && !istisnaAcikMobil && (
                                                                             <button
                                                                                 onClick={() => {
                                                                                     setIstisnaAcikKalem({ irsaliyeId: irs.id, kalemId: kalem.id });
@@ -706,18 +801,30 @@ export default function MalKabulIrsaliyeleriPage() {
                                             <div className="flex flex-col sm:flex-row items-center gap-3 mt-6 pt-6 border-t border-slate-200/60">
                                                 {irs.durum === 'Taslak' && (
                                                     <>
-                                                        <button
-                                                            onClick={() => handleOnayla(irs)}
-                                                            className="w-full sm:w-auto sm:flex-1 flex justify-center items-center gap-2 h-12 px-6 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm shadow-blue-600/20 order-1 sm:order-2"
-                                                        >
-                                                            <CheckCircle className="w-5 h-5" /> İrsaliyeyi Onayla
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleSil(irs.id)}
-                                                            className="w-full sm:w-auto flex justify-center items-center gap-2 h-12 px-6 bg-white border-2 border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors order-2 sm:order-1"
-                                                        >
-                                                            <Trash2 className="w-5 h-5" /> Sil
-                                                        </button>
+                                                        {canCreateOrApprove && (
+                                                            <button
+                                                                onClick={() => duzenlemeModalAc(irs)}
+                                                                className="w-full sm:w-auto flex justify-center items-center gap-2 h-12 px-6 bg-white border-2 border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:border-blue-200 hover:text-blue-700 hover:bg-blue-50 transition-colors order-1 sm:order-1"
+                                                            >
+                                                                Düzenle
+                                                            </button>
+                                                        )}
+                                                        {canCreateOrApprove && (
+                                                            <button
+                                                                onClick={() => handleOnayla(irs)}
+                                                                className="w-full sm:w-auto sm:flex-1 flex justify-center items-center gap-2 h-12 px-6 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm shadow-blue-600/20 order-2 sm:order-2"
+                                                            >
+                                                                <CheckCircle className="w-5 h-5" /> İrsaliyeyi Onayla
+                                                            </button>
+                                                        )}
+                                                        {canDelete && (
+                                                            <button
+                                                                onClick={() => handleSil(irs.id)}
+                                                                className="w-full sm:w-auto flex justify-center items-center gap-2 h-12 px-6 bg-white border-2 border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors order-3 sm:order-3"
+                                                            >
+                                                                <Trash2 className="w-5 h-5" /> Sil
+                                                            </button>
+                                                        )}
                                                     </>
                                                 )}
                                                 {irs.durum === 'Onaylandi' && (
@@ -751,17 +858,24 @@ export default function MalKabulIrsaliyeleriPage() {
                 )}
 
                 {/* YENİ İRSALİYE MODAL (Mobile First Bottom Sheet -> Desktop Centered Modal) */}
-                {yeniModal && (
+                {yeniModal && canCreateOrApprove && (
                     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 transition-opacity">
                         <div className="bg-white w-full sm:max-w-4xl max-h-[92vh] sm:max-h-[85vh] h-full sm:h-auto rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col transform transition-transform animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 overflow-hidden">
 
                             {/* Modal Header (Sticky) */}
                             <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-white z-10 shrink-0">
                                 <div>
-                                    <h2 className="text-xl font-extrabold text-slate-900">Yeni İrsaliye</h2>
-                                    <p className="text-xs text-slate-500 mt-0.5 font-medium">Sisteme yeni bir mal kabul kaydı girin</p>
+                                    <h2 className="text-xl font-extrabold text-slate-900">{aktifIrsaliyeId ? 'İrsaliyeyi Düzenle' : 'Yeni İrsaliye'}</h2>
+                                    <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                                        {aktifIrsaliyeId ? 'Taslak irsaliye kaydını güncelleyin' : 'Sisteme yeni bir mal kabul kaydı girin'}
+                                    </p>
+                                    {aktifIrsaliyeId && (
+                                        <p className="text-[11px] text-amber-700 mt-1 font-semibold">
+                                            Değiştirdiğiniz alanlar sarı ile vurgulanır.
+                                        </p>
+                                    )}
                                 </div>
-                                <button onClick={() => setYeniModal(false)} className="w-10 h-10 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-full flex items-center justify-center transition-colors">
+                                <button onClick={modalKapat} className="w-10 h-10 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-full flex items-center justify-center transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -781,7 +895,7 @@ export default function MalKabulIrsaliyeleriPage() {
                                                 <select
                                                     value={formData.tedarikci_id}
                                                     onChange={e => setFormData(prev => ({ ...prev, tedarikci_id: e.target.value }))}
-                                                    className="w-full h-12 pl-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none appearance-none cursor-pointer"
+                                                    className={`w-full h-12 pl-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none appearance-none cursor-pointer ${degisenAlanSinifi(alanDegistiMi('tedarikci_id'))}`}
                                                 >
                                                     <option value="">Seçiniz...</option>
                                                     {tedarikciler.map(t => (
@@ -797,7 +911,7 @@ export default function MalKabulIrsaliyeleriPage() {
                                                 <select
                                                     value={formData.depo_id}
                                                     onChange={e => setFormData(prev => ({ ...prev, depo_id: e.target.value }))}
-                                                    className="w-full h-12 pl-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none appearance-none cursor-pointer"
+                                                    className={`w-full h-12 pl-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none appearance-none cursor-pointer ${degisenAlanSinifi(alanDegistiMi('depo_id'))}`}
                                                 >
                                                     <option value="">Seçiniz...</option>
                                                     {depolar.map(d => (
@@ -813,7 +927,7 @@ export default function MalKabulIrsaliyeleriPage() {
                                                 type="date"
                                                 value={formData.tarih}
                                                 onChange={e => setFormData(prev => ({ ...prev, tarih: e.target.value }))}
-                                                className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                                                className={`w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none ${degisenAlanSinifi(alanDegistiMi('tarih'))}`}
                                             />
                                         </div>
                                         <div className="space-y-1.5">
@@ -823,7 +937,7 @@ export default function MalKabulIrsaliyeleriPage() {
                                                 value={formData.tir_plaka}
                                                 onChange={e => setFormData(prev => ({ ...prev, tir_plaka: e.target.value }))}
                                                 placeholder="Örn: 34 ABC 123"
-                                                className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none placeholder-slate-400"
+                                                className={`w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none placeholder-slate-400 ${degisenAlanSinifi(alanDegistiMi('tir_plaka'))}`}
                                             />
                                         </div>
                                         <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
@@ -833,7 +947,7 @@ export default function MalKabulIrsaliyeleriPage() {
                                                 value={formData.sofor_adi}
                                                 onChange={e => setFormData(prev => ({ ...prev, sofor_adi: e.target.value }))}
                                                 placeholder="Örn: Ahmet Yılmaz"
-                                                className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none placeholder-slate-400"
+                                                className={`w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none placeholder-slate-400 ${degisenAlanSinifi(alanDegistiMi('sofor_adi'))}`}
                                             />
                                         </div>
                                     </div>
@@ -864,7 +978,7 @@ export default function MalKabulIrsaliyeleriPage() {
                                     ) : (
                                         <div className="space-y-4">
                                             {formData.kalemler.map((kalem, idx) => (
-                                                <div key={idx} className="p-4 sm:p-5 border border-slate-200 rounded-2xl bg-white shadow-sm flex flex-col gap-4 relative animate-in fade-in zoom-in-95 duration-200">
+                                                <div key={idx} className={`p-4 sm:p-5 border border-slate-200 rounded-2xl bg-white shadow-sm flex flex-col gap-4 relative animate-in fade-in zoom-in-95 duration-200 ${duzenlemeSnapshot?.kalemler?.[idx] ? '' : 'border-blue-200 ring-2 ring-blue-100'}`}>
                                                     <div className="flex justify-between items-center pb-3 border-b border-slate-100">
                                                         <h4 className="text-xs font-extrabold text-blue-600 uppercase bg-blue-50 px-2.5 py-1 rounded-md">Kalem #{idx + 1}</h4>
                                                         <button 
@@ -880,14 +994,14 @@ export default function MalKabulIrsaliyeleriPage() {
                                                             <input
                                                                 type="text" placeholder="Palet No *" value={kalem.palet_no}
                                                                 onChange={e => kalemGuncelle(idx, 'palet_no', e.target.value)}
-                                                                className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                className={`w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none ${degisenAlanSinifi(kalemAlandegistiMi(idx, 'palet_no'))}`}
                                                             />
                                                         </div>
                                                         <div className="lg:col-span-2 relative">
                                                             <select
                                                                 value={kalem.urun_id}
                                                                 onChange={e => kalemGuncelle(idx, 'urun_id', e.target.value)}
-                                                                className="w-full h-11 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                                                                className={`w-full h-11 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none ${degisenAlanSinifi(kalemAlandegistiMi(idx, 'urun_id'))}`}
                                                             >
                                                                 <option value="">Ürün Seçin *</option>
                                                                 {urunler.map(u => (
@@ -900,21 +1014,21 @@ export default function MalKabulIrsaliyeleriPage() {
                                                             <input
                                                                 type="number" placeholder="Miktar *" value={kalem.miktar} min="1"
                                                                 onChange={e => kalemGuncelle(idx, 'miktar', e.target.value)}
-                                                                className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                className={`w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none ${degisenAlanSinifi(kalemAlandegistiMi(idx, 'miktar'))}`}
                                                             />
                                                         </div>
                                                         <div className="lg:col-span-1">
                                                             <input
                                                                 type="text" placeholder="Lot No" value={kalem.lot_no}
                                                                 onChange={e => kalemGuncelle(idx, 'lot_no', e.target.value)}
-                                                                className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                className={`w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none ${degisenAlanSinifi(kalemAlandegistiMi(idx, 'lot_no'))}`}
                                                             />
                                                         </div>
                                                         <div className="lg:col-span-1 relative">
                                                             <select
                                                                 value={kalem.raf_id}
                                                                 onChange={e => kalemGuncelle(idx, 'raf_id', e.target.value)}
-                                                                className="w-full h-11 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                                                                className={`w-full h-11 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none ${degisenAlanSinifi(kalemAlandegistiMi(idx, 'raf_id'))}`}
                                                             >
                                                                 <option value="">Raf (Ops.)</option>
                                                                 {raflar.map(r => (
@@ -924,11 +1038,19 @@ export default function MalKabulIrsaliyeleriPage() {
                                                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                                                         </div>
                                                         <div className="lg:col-span-2 relative">
+                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold bg-white px-1">ÜT:</span>
+                                                            <input
+                                                                type="date" value={kalem.uretim_tarihi}
+                                                                onChange={e => kalemGuncelle(idx, 'uretim_tarihi', e.target.value)}
+                                                                className={`w-full h-11 pl-12 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none ${degisenAlanSinifi(kalemAlandegistiMi(idx, 'uretim_tarihi'))}`}
+                                                            />
+                                                        </div>
+                                                        <div className="lg:col-span-2 relative">
                                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold bg-white px-1">SKT:</span>
                                                             <input
                                                                 type="date" value={kalem.son_kullanma_tarihi}
                                                                 onChange={e => kalemGuncelle(idx, 'son_kullanma_tarihi', e.target.value)}
-                                                                className="w-full h-11 pl-12 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                className={`w-full h-11 pl-12 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none ${degisenAlanSinifi(kalemAlandegistiMi(idx, 'son_kullanma_tarihi'))}`}
                                                             />
                                                         </div>
                                                     </div>
@@ -953,10 +1075,10 @@ export default function MalKabulIrsaliyeleriPage() {
                                     onClick={handleOlustur}
                                     className="w-full sm:w-auto h-12 px-8 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 active:bg-blue-800 shadow-sm shadow-blue-600/20 transition-all flex items-center justify-center"
                                 >
-                                    İrsaliyeyi Kaydet
+                                    {aktifIrsaliyeId ? 'Değişiklikleri Kaydet' : 'İrsaliyeyi Kaydet'}
                                 </button>
                                 <button
-                                    onClick={() => setYeniModal(false)}
+                                    onClick={modalKapat}
                                     className="w-full sm:w-auto h-12 px-8 text-sm font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center"
                                 >
                                     Vazgeç

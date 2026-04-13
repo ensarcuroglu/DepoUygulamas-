@@ -220,7 +220,7 @@ export const deleteKategori = (id) => api.delete(`/kategoriler/${id}`);
 // ========================
 // DEPOLAR
 // ========================
-export const getDepolar = () => api.get('/depolar/');
+export const getDepolar = (params = {}) => api.get('/depolar/', { params });
 export const getDepo = (id) => api.get(`/depolar/${id}`);
 export const createDepo = (data) => api.post('/depolar/', data);
 export const updateDepo = (id, data) => api.put(`/depolar/${id}`, data);
@@ -267,7 +267,7 @@ export const stokIslemleriTopluCikis = (data) => api.post('/stok-islemleri/toplu
 // ========================
 // TEDARİKÇİLER
 // ========================
-export const getTedarikciler = () => api.get('/tedarikciler/');
+export const getTedarikciler = (params = {}) => api.get('/tedarikciler/', { params });
 export const getTedarikci = (id) => api.get(`/tedarikciler/${id}`);
 export const addTedarikci = (data) => api.post('/tedarikciler/', data);
 export const deleteTedarikci = (id) => api.delete(`/tedarikciler/${id}`);
