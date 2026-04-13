@@ -17,6 +17,9 @@ class Lot:
     aciklama: str = ""
     aktif: bool = True
     olusturma_tarihi: datetime = field(default_factory=datetime.utcnow)
+    urun_isim: Optional[str] = None
+    marka_id: Optional[int] = None
+    marka_isim: Optional[str] = None
 
     # ── İş Kuralları ──
 

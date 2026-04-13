@@ -253,6 +253,7 @@ function ActiveFilterChip({ label, onRemove }) {
 export default function LotlarPage() {
     const [lotlar, setLotlar] = useState([]);
     const [markalar, setMarkalar] = useState([]);
+    const [totalCount, setTotalCount] = useState(0);
     const { loading, run } = useAsync(true);
     const [sktLotlar, setSktLotlar] = useState([]);
     const [page, setPage] = useState(0);
@@ -270,13 +271,14 @@ export default function LotlarPage() {
 
     const searchRef = useRef(null);
 
-    const fetchData = useCallback(async () => {
+    const refreshData = useCallback(async () => {
         try {
             const [lotRes, sktRes] = await run(() => Promise.all([
                 getLotlar({ skip: page * limit, limit }),
                 getSktYaklasanLotlar(60)
             ]));
             setLotlar(lotRes.data);
+            setTotalCount(Number(lotRes.headers?.['x-total-count'] || 0));
             setSktLotlar(sktRes.data);
         } catch {
             toast.error('Veriler yüklenemedi');
@@ -285,35 +287,41 @@ export default function LotlarPage() {
 
     useEffect(() => {
         let aktif = true;
-
         run(() => Promise.all([
             getLotlar({ skip: page * limit, limit }),
             getSktYaklasanLotlar(60)
         ]))
             .then(([lotRes, sktRes]) => {
-                if (aktif) {
-                    setLotlar(lotRes.data);
-                    setSktLotlar(sktRes.data);
-                }
+                if (!aktif) return;
+                setLotlar(lotRes.data);
+                setTotalCount(Number(lotRes.headers?.['x-total-count'] || 0));
+                setSktLotlar(sktRes.data);
             })
             .catch(() => {
                 if (aktif) {
                     toast.error('Veriler yüklenemedi');
                 }
             });
-
         return () => {
             aktif = false;
         };
     }, [run, page, limit]);
-    useEffect(() => { getMarkalar().then(res => setMarkalar(res.data)).catch(() => {}); }, []);
-    useEffect(() => { if (filterOpen && searchRef.current) searchRef.current.focus(); }, [filterOpen]);
+    useEffect(() => {
+        getMarkalar()
+            .then(res => setMarkalar(res.data))
+            .catch(() => {
+                toast.error('Marka listesi yüklenemedi');
+            });
+    }, []);
+    useEffect(() => {
+        if (filterOpen && searchRef.current) searchRef.current.focus();
+    }, [filterOpen]);
 
-    const handleDelete = async (id) => {
+    const handleDelete = useCallback(async (id) => {
         if (!confirm('Bu LOT kaydını pasife almak istiyor musunuz?')) return;
-        try { await deleteLot(id); toast.success('LOT pasife alındı'); fetchData(); }
+        try { await deleteLot(id); toast.success('LOT pasife alındı'); refreshData(); }
         catch (err) { toast.error(hataMetni(err, 'LOT pasife alınamadı')); }
-    };
+    }, [refreshData]);
 
     const formatDate = useCallback((d) => d ? new Date(d).toLocaleDateString('tr-TR') : '—', []);
 
@@ -388,6 +396,8 @@ export default function LotlarPage() {
     }, [baseLotlar, searchQuery, selectedMarka, sktFilters, tarihTuru, tarihBaslangic, tarihBitis]);
 
     const hasFilters = activeFilterCount > 0;
+    const toplamSayfa = Math.max(1, Math.ceil(totalCount / limit));
+    const canNextPage = page + 1 < toplamSayfa;
 
     /* Active filter labels for chips */
     const activeFilterChips = useMemo(() => {
@@ -661,7 +671,7 @@ export default function LotlarPage() {
                             <ChevronLeft className="w-4 h-4" />
                         </button>
                         <span className="text-[13px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-3 py-1.5 rounded-xl min-w-[36px] text-center">{page + 1}</span>
-                        <button onClick={() => displayLotlar.length === limit && setPage(page + 1)} disabled={displayLotlar.length < limit}
+                        <button onClick={() => canNextPage && setPage(page + 1)} disabled={!canNextPage}
                             className="h-9 w-9 rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-30 hover:border-amber-300 active:scale-95 transition-all duration-200 flex items-center justify-center">
                             <ChevronRight className="w-4 h-4" />
                         </button>

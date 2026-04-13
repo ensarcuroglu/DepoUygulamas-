@@ -236,22 +236,25 @@ def get_lot_skt_yaklasan_uc(
 def get_lot_olustur_uc(
     lot_repo=Depends(get_lot_repo),
     log_repo=Depends(get_log_repo),
+    db: Session = Depends(get_db),
 ):
-    return LotOlusturUseCase(lot_repo, log_repo)
+    return LotOlusturUseCase(lot_repo, log_repo, db)
 
 
 def get_lot_guncelle_uc(
     lot_repo=Depends(get_lot_repo),
     log_repo=Depends(get_log_repo),
+    db: Session = Depends(get_db),
 ):
-    return LotGuncelleUseCase(lot_repo, log_repo)
+    return LotGuncelleUseCase(lot_repo, log_repo, db)
 
 
 def get_lot_sil_uc(
     lot_repo=Depends(get_lot_repo),
     log_repo=Depends(get_log_repo),
+    db: Session = Depends(get_db),
 ):
-    return LotSilUseCase(lot_repo, log_repo)
+    return LotSilUseCase(lot_repo, log_repo, db)
 
 
 # â”€â”€ Palet use case factory'leri â”€â”€

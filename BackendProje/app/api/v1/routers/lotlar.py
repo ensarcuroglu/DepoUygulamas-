@@ -2,7 +2,7 @@
 Lot API Router — Clean Architecture (Thin Controller).
 """
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 from typing import List, Optional
 
 from app.core.auth import get_current_user, require_role
@@ -38,13 +38,16 @@ router = APIRouter(prefix="/api/lotlar", tags=["Lotlar"])
 @limiter.limit("100/minute")
 def lotlari_listele(
     request: Request,
+    response: Response,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=500),
     urun_id: Optional[int] = Query(None, description="Ürüne göre filtrele"),
     current_user: Kullanici = Depends(get_current_user),
     uc: LotListeleUseCase = Depends(get_lot_listele_uc),
 ):
-    return uc.execute(skip=skip, limit=limit, urun_id=urun_id)
+    lotlar, toplam = uc.execute(skip=skip, limit=limit, urun_id=urun_id)
+    response.headers["X-Total-Count"] = str(toplam)
+    return lotlar
 
 
 @router.get("/skt-yaklasan", response_model=List[LotResponseDTO])

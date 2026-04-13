@@ -14,6 +14,10 @@ class ILotRepository(ABC):
         ...
 
     @abstractmethod
+    def say(self, urun_id: Optional[int] = None, sadece_aktif: bool = True) -> int:
+        ...
+
+    @abstractmethod
     def getir_id_ile(self, lot_id: int) -> Optional[Lot]:
         ...
 
@@ -30,7 +34,7 @@ class ILotRepository(ABC):
         ...
 
     @abstractmethod
-    def sil(self, lot_id: int) -> bool:
+    def sil(self, lot_id: int, auto_commit: bool = True) -> bool:
         ...
 
     @abstractmethod

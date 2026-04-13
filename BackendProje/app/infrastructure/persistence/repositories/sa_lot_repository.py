@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.entities.lot import Lot
 from app.core.repositories.lot_repository import ILotRepository
 from app.infrastructure.persistence.mappers import lot_to_entity, lot_to_orm
-from models import Lot as LotORM
+from models import Lot as LotORM, Urun as UrunORM
 
 
 class SqlAlchemyLotRepository(ILotRepository):
@@ -17,7 +17,9 @@ class SqlAlchemyLotRepository(ILotRepository):
         self, skip: int = 0, limit: int = 50,
         urun_id: Optional[int] = None, sadece_aktif: bool = True,
     ) -> List[Lot]:
-        query = self._db.query(LotORM).options(joinedload(LotORM.urun))
+        query = self._db.query(LotORM).options(
+            joinedload(LotORM.urun).joinedload(UrunORM.marka)
+        )
         if sadece_aktif:
             query = query.filter(LotORM.aktif)
         if urun_id:
@@ -25,16 +27,24 @@ class SqlAlchemyLotRepository(ILotRepository):
         orm_list = query.order_by(LotORM.olusturma_tarihi.desc()).offset(skip).limit(limit).all()
         return [lot_to_entity(o) for o in orm_list]
 
+    def say(self, urun_id: Optional[int] = None, sadece_aktif: bool = True) -> int:
+        query = self._db.query(LotORM)
+        if sadece_aktif:
+            query = query.filter(LotORM.aktif)
+        if urun_id:
+            query = query.filter(LotORM.urun_id == urun_id)
+        return query.count()
+
     def getir_id_ile(self, lot_id: int) -> Optional[Lot]:
         orm = self._db.query(LotORM).options(
-            joinedload(LotORM.urun),
+            joinedload(LotORM.urun).joinedload(UrunORM.marka),
             joinedload(LotORM.paletler),
         ).filter(LotORM.id == lot_id).first()
         return lot_to_entity(orm) if orm else None
 
     def getir_lot_no_ile(self, lot_no: str) -> Optional[Lot]:
         orm = self._db.query(LotORM).options(
-            joinedload(LotORM.urun),
+            joinedload(LotORM.urun).joinedload(UrunORM.marka),
             joinedload(LotORM.paletler),
         ).filter(LotORM.lot_no == lot_no).first()
         return lot_to_entity(orm) if orm else None
@@ -68,21 +78,24 @@ class SqlAlchemyLotRepository(ILotRepository):
         self._db.refresh(orm)
         return lot_to_entity(orm)
 
-    def sil(self, lot_id: int) -> bool:
+    def sil(self, lot_id: int, auto_commit: bool = True) -> bool:
         orm = self._db.query(LotORM).filter(LotORM.id == lot_id).first()
         if not orm:
             return False
         orm.aktif = False
-        self._db.commit()
+        if auto_commit:
+            self._db.commit()
+        else:
+            self._db.flush()
         return True
 
     def getir_skt_yaklasan(self, gun: int = 30) -> List[Lot]:
         sinir_tarih = date.today() + timedelta(days=gun)
         orm_list = self._db.query(LotORM).options(
-            joinedload(LotORM.urun),
+            joinedload(LotORM.urun).joinedload(UrunORM.marka),
         ).filter(
             LotORM.aktif,
-            LotORM.son_kullanma_tarihi is not None,
+            LotORM.son_kullanma_tarihi.isnot(None),
             LotORM.son_kullanma_tarihi <= sinir_tarih,
         ).order_by(LotORM.son_kullanma_tarihi.asc()).all()
         return [lot_to_entity(o) for o in orm_list]

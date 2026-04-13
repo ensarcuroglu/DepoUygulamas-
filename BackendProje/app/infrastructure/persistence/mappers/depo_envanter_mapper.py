@@ -103,6 +103,8 @@ def raf_to_orm(entity: Raf) -> RafORM:
 
 
 def lot_to_entity(orm: LotORM) -> Lot:
+    urun = getattr(orm, "urun", None)
+    marka = getattr(urun, "marka", None) if urun is not None else None
     return Lot(
         id=orm.id,
         urun_id=orm.urun_id,
@@ -113,6 +115,9 @@ def lot_to_entity(orm: LotORM) -> Lot:
         aciklama=orm.aciklama or "",
         aktif=orm.aktif,
         olusturma_tarihi=orm.olusturma_tarihi,
+        urun_isim=getattr(urun, "isim", None),
+        marka_id=getattr(marka, "id", None),
+        marka_isim=getattr(marka, "isim", None),
     )
 
 
