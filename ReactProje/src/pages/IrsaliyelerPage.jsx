@@ -71,22 +71,46 @@ export default function IrsaliyelerPage() {
     [planBul, siparisBul]
   );
 
-  const yükle = useCallback(async () => {
-    const [irsRes, sipRes, planRes] = await run(() =>
-      Promise.all([
-        getIrsaliyeler({ limit: 100, durum: durumFiltre || undefined, arama: aramaMetni }),
-        getSiparisler({ limit: 500 }),
-        getSevkiyatPlanlari({ limit: 500 }),
-      ])
-    );
-    setIrsaliyeler(irsRes?.data || []);
-    setSiparisler(sipRes?.data || []);
-    setSevkiyatPlanlari(planRes?.data || []);
-  }, [run, durumFiltre, aramaMetni]);
+  // 1. Sadece veri çekme işini yapan (state değiştirmeyen) saf fonksiyon
+const verileriGetir = useCallback(async () => {
+  return await run(() =>
+    Promise.all([
+      getIrsaliyeler({ limit: 100, durum: durumFiltre || undefined, arama: aramaMetni }),
+      getSiparisler({ limit: 500 }),
+      getSevkiyatPlanlari({ limit: 500 }),
+    ])
+  );
+}, [run, durumFiltre, aramaMetni]);
 
-  useEffect(() => {
-    void yükle();
-  }, [yükle]);
+// 2. Buton tıklamaları (Yeni İrsaliye, Durum Değiştirme vb.) için manuel tetikleyici
+const yükle = useCallback(async () => {
+  const [irsRes, sipRes, planRes] = await verileriGetir();
+  setIrsaliyeler(irsRes?.data || []);
+  setSiparisler(sipRes?.data || []);
+  setSevkiyatPlanlari(planRes?.data || []);
+}, [verileriGetir]);
+
+// 3. Effect içindeki doğru ve güvenli veri çekme paterni
+useEffect(() => {
+  let isMounted = true; // Bileşen unmount olursa state güncellenmesini engellemek için
+
+  const baslangicYuklemesi = async () => {
+    const [irsRes, sipRes, planRes] = await verileriGetir();
+
+    // Sadece bileşen hala ekrandaysa state'i güncelle (Memory leak'i önler ve linter'ı susturur)
+    if (isMounted) {
+      setIrsaliyeler(irsRes?.data || []);
+      setSiparisler(sipRes?.data || []);
+      setSevkiyatPlanlari(planRes?.data || []);
+    }
+  };
+
+  void baslangicYuklemesi();
+
+  return () => {
+    isMounted = false; // Cleanup: Component DOM'dan silinirse bayrağı indir
+  };
+}, [verileriGetir]);
 
   const handlePlanSecimi = (planIdDegeri) => {
     const planId = parseInt(planIdDegeri, 10);

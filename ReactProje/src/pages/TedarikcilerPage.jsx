@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getTedarikciler, addTedarikci } from '../services/api';
 import {
   Building2,
@@ -38,19 +38,14 @@ const TedarikcilerPage = () => {
     vergi_no: ''
   });
 
-  // Sayfa yüklendiğinde tedarikçileri getir
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const showToast = (type, message) => {
+  const showToast = useCallback((type, message) => {
     setToast({ show: true, type, message });
     setTimeout(() => {
       setToast({ show: false, type: '', message: '' });
     }, 3000);
-  };
+  }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await getTedarikciler();
@@ -61,7 +56,12 @@ const TedarikcilerPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
+
+  // Sayfa yüklendiğinde tedarikçileri getir
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Form elemanları değiştiğinde state'i güncelle
   const handleChange = (e) => {
