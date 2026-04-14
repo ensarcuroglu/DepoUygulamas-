@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { updateKullanici } from '../services/api';
 import { hataMetni } from '../utils/hata';
+import { motion } from 'framer-motion';
 
 const ROL_LABELS = {
     admin: 'Sistem Yöneticisi',
@@ -72,168 +73,207 @@ export default function ProfilAyarlariPage() {
         }
     };
 
-    const labelClass = "text-[12px] font-extrabold text-slate-500 mb-2.5 block tracking-widest uppercase ml-1";
-    const inputClass = `w-full h-14 pl-12 pr-5 text-[15px] font-bold rounded-2xl border-2 border-slate-100 bg-slate-50 
-    text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 
-    focus:border-blue-500 focus:bg-white transition-all duration-300 shadow-sm`;
+    // Optimize edilmiş input stili (Erişilebilirlik ve modern odaklanma durumları)
+    const labelClass = "text-xs font-semibold text-slate-500 mb-2 block tracking-wide";
+    const inputClass = `w-full h-12 pl-11 pr-4 text-sm font-medium rounded-xl border border-slate-200 bg-white/50 
+    text-slate-900 placeholder-slate-400 transition-all duration-200 shadow-sm
+    focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 
+    hover:border-slate-300 disabled:opacity-60 disabled:bg-slate-50`;
+
+    // Animasyon varyantları
+    const containerVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.4, staggerChildren: 0.1 } }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 15 },
+        visible: { opacity: 1, y: 0 }
+    };
 
     return (
-        <div className="max-w-[1000px] mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-24 sm:pb-8 space-y-6 md:space-y-8 animate-fade-in">
+        <div className="min-h-screen bg-slate-50/50 pb-24 sm:pb-12">
+            <motion.div 
+                className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 pt-8 sm:pt-12"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+            >
+                {/* Header Section */}
+                <motion.div variants={itemVariants} className="flex items-center gap-4 mb-8 sm:mb-12">
+                    <div className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-200 flex items-center justify-center">
+                        <UserCircle className="w-6 h-6 text-indigo-600" strokeWidth={2} />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mb-1">Hesap Ayarları</h1>
+                        <p className="text-sm font-medium text-slate-500">Kişisel bilgilerinizi ve güvenliğinizi buradan yönetin.</p>
+                    </div>
+                </motion.div>
 
-            {/* Header Section */}
-            <div className="flex items-center gap-4 mb-4 sm:mb-8">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/30 flex items-center justify-center">
-                    <UserCircle className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                    <h1 className="text-[24px] font-black tracking-tight text-slate-900 leading-none mb-1">Hesabım</h1>
-                    <p className="text-[13px] font-medium text-slate-500">Kişisel bilgilerinizi ve güvenliğinizi yönetin.</p>
-                </div>
-            </div>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+                    {/* Left Column: Profile Card (Sticky on Desktop) */}
+                    <motion.div variants={itemVariants} className="lg:col-span-4 lg:sticky lg:top-8">
+                        <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm flex flex-col items-center text-center relative overflow-hidden">
+                            {/* Dekoratif Arka Plan */}
+                            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-indigo-50/80 to-transparent" />
 
-                {/* Left Column: Profile Card */}
-                <div className="lg:col-span-1">
-                    <div className="bg-white rounded-[32px] border border-slate-100 p-6 sm:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center relative overflow-hidden group">
-
-                        {/* Decorative Background Blob */}
-                        <div className="absolute -left-10 -top-10 w-40 h-40 rounded-full bg-gradient-to-br from-indigo-50 to-purple-50 opacity-40 group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
-
-                        <div className="relative mb-5 z-10">
-                            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl shadow-indigo-500/20 border-4 border-white transform group-hover:scale-105 transition-transform duration-300">
-                                <span className="text-[36px] font-black text-white">{initials}</span>
+                            <div className="relative mb-6 z-10 group mt-4">
+                                <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 border-4 border-white transform transition-transform duration-300 group-hover:scale-105">
+                                    <span className="text-3xl font-bold text-white tracking-tight">{initials}</span>
+                                </div>
+                                <motion.button 
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className="absolute bottom-0 right-0 w-9 h-9 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:border-indigo-200 shadow-sm transition-colors"
+                                    aria-label="Profil fotoğrafını değiştir"
+                                >
+                                    <Camera className="w-4 h-4" />
+                                </motion.button>
                             </div>
-                            <button className="absolute bottom-1 right-1 w-10 h-10 bg-white border-2 border-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm active:scale-90">
-                                <Camera className="w-5 h-5" />
-                            </button>
-                        </div>
 
-                        <div className="relative z-10">
-                            <h2 className="text-[20px] font-black text-slate-900">{user?.ad_soyad}</h2>
-                            <p className="text-[14px] font-bold text-slate-400 mt-0.5">@{user?.kullanici_adi}</p>
+                            <div className="relative z-10 w-full">
+                                <h2 className="text-xl font-bold text-slate-900 truncate px-2">{user?.ad_soyad}</h2>
+                                <p className="text-sm font-medium text-slate-500 mt-1 truncate px-2">@{user?.kullanici_adi}</p>
 
-                            <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 border border-blue-100">
-                                <Shield className="w-4 h-4 text-blue-500" strokeWidth={2.5} />
-                                <span className="text-[13px] font-extrabold text-blue-700 uppercase tracking-wide">
-                                    {ROL_LABELS[user?.rol] || user?.rol || 'Depo Görevlisi'}
-                                </span>
+                                <div className="mt-6 flex justify-center">
+                                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200">
+                                        <Shield className="w-3.5 h-3.5 text-slate-600" strokeWidth={2.5} />
+                                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                            {ROL_LABELS[user?.rol] || user?.rol || 'Kullanıcı'}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    </motion.div>
+
+                    {/* Right Column: Forms */}
+                    <div className="lg:col-span-8 space-y-6">
+
+                        {/* Personal Info Form */}
+                        <motion.div variants={itemVariants} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div className="px-6 sm:px-8 py-5 border-b border-slate-100 bg-white">
+                                <h3 className="text-base font-bold text-slate-900">Kişisel Bilgiler</h3>
+                                <p className="text-sm text-slate-500 mt-0.5">Sistemde görünecek profil detaylarınız.</p>
+                            </div>
+
+                            <form onSubmit={handleProfileSubmit} className="p-6 sm:p-8">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+                                    <div>
+                                        <label className={labelClass} htmlFor="ad_soyad">Ad Soyad</label>
+                                        <div className="relative group">
+                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-focus-within:text-indigo-500 transition-colors">
+                                                <User className="w-4 h-4" />
+                                            </div>
+                                            <input
+                                                id="ad_soyad"
+                                                value={form.ad_soyad}
+                                                onChange={e => setForm({ ...form, ad_soyad: e.target.value })}
+                                                className={inputClass}
+                                                disabled={saving}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className={labelClass} htmlFor="kullanici_adi">Kullanıcı Adı</label>
+                                        <div className="relative group">
+                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-focus-within:text-indigo-500 transition-colors">
+                                                <Mail className="w-4 h-4" />
+                                            </div>
+                                            <input
+                                                id="kullanici_adi"
+                                                value={form.kullanici_adi}
+                                                onChange={e => setForm({ ...form, kullanici_adi: e.target.value })}
+                                                className={inputClass}
+                                                disabled={saving}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex sm:justify-end border-t border-slate-100 pt-6">
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        type="submit"
+                                        disabled={saving}
+                                        className="w-full sm:w-auto h-11 px-6 bg-slate-900 text-white text-sm font-semibold rounded-xl
+                                        hover:bg-slate-800 disabled:bg-slate-800/70 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 flex items-center justify-center gap-2"
+                                    >
+                                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                        Değişiklikleri Kaydet
+                                    </motion.button>
+                                </div>
+                            </form>
+                        </motion.div>
+
+                        {/* Security Form */}
+                        <motion.div variants={itemVariants} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div className="px-6 sm:px-8 py-5 border-b border-slate-100 bg-white">
+                                <h3 className="text-base font-bold text-slate-900">Güvenlik</h3>
+                                <p className="text-sm text-slate-500 mt-0.5">Hesap erişim şifrenizi güncelleyin.</p>
+                            </div>
+
+                            <form onSubmit={handlePasswordSubmit} className="p-6 sm:p-8">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+                                    <div>
+                                        <label className={labelClass} htmlFor="yeni_sifre">Yeni Şifre</label>
+                                        <div className="relative group">
+                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-focus-within:text-indigo-500 transition-colors">
+                                                <Lock className="w-4 h-4" />
+                                            </div>
+                                            <input
+                                                id="yeni_sifre"
+                                                type="password"
+                                                value={passwordForm.yeni_sifre}
+                                                onChange={e => setPasswordForm({ ...passwordForm, yeni_sifre: e.target.value })}
+                                                placeholder="En az 6 karakter"
+                                                className={inputClass}
+                                                disabled={passwordSaving}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className={labelClass} htmlFor="yeni_sifre_tekrar">Yeni Şifre (Tekrar)</label>
+                                        <div className="relative group">
+                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-focus-within:text-indigo-500 transition-colors">
+                                                <CheckCircle2 className="w-4 h-4" />
+                                            </div>
+                                            <input
+                                                id="yeni_sifre_tekrar"
+                                                type="password"
+                                                value={passwordForm.yeni_sifre_tekrar}
+                                                onChange={e => setPasswordForm({ ...passwordForm, yeni_sifre_tekrar: e.target.value })}
+                                                placeholder="Şifreyi doğrulayın"
+                                                className={inputClass}
+                                                disabled={passwordSaving}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex sm:justify-end border-t border-slate-100 pt-6">
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        type="submit"
+                                        disabled={passwordSaving}
+                                        className="w-full sm:w-auto h-11 px-6 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl
+                                        hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-200 disabled:opacity-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center gap-2"
+                                    >
+                                        {passwordSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                                        Şifreyi Güncelle
+                                    </motion.button>
+                                </div>
+                            </form>
+                        </motion.div>
+
                     </div>
                 </div>
-
-                {/* Right Column: Forms */}
-                <div className="lg:col-span-2 space-y-6">
-
-                    {/* Personal Info Form */}
-                    <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-xl transition-shadow duration-300">
-                        <div className="px-6 sm:px-8 py-5 sm:py-6 border-b border-slate-100 bg-slate-50/50">
-                            <h3 className="text-[18px] font-black text-slate-900">Kişisel Bilgiler</h3>
-                            <p className="text-[13px] font-medium text-slate-500 mt-1">Sistemde görünecek profil detaylarınız.</p>
-                        </div>
-
-                        <form onSubmit={handleProfileSubmit} className="p-6 sm:p-8 space-y-6 bg-white relative z-10">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <div>
-                                    <label className={labelClass}>Ad Soyad</label>
-                                    <div className="relative group/input">
-                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-blue-500 transition-colors">
-                                            <User className="w-5 h-5" />
-                                        </div>
-                                        <input
-                                            value={form.ad_soyad}
-                                            onChange={e => setForm({ ...form, ad_soyad: e.target.value })}
-                                            className={inputClass}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className={labelClass}>Kullanıcı Adı</label>
-                                    <div className="relative group/input">
-                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-blue-500 transition-colors">
-                                            <Mail className="w-5 h-5" />
-                                        </div>
-                                        <input
-                                            value={form.kullanici_adi}
-                                            onChange={e => setForm({ ...form, kullanici_adi: e.target.value })}
-                                            className={inputClass}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="pt-2 sm:pt-4 flex sm:justify-end">
-                                <button
-                                    type="submit"
-                                    disabled={saving}
-                                    className="w-full sm:w-auto h-14 px-8 bg-slate-900 text-white text-[15px] font-bold rounded-2xl
-                                        hover:bg-slate-800 transition-all shadow-[0_8px_20px_-6px_rgba(15,23,42,0.4)] active:scale-95 flex items-center justify-center gap-2">
-                                    {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" strokeWidth={2.5} />}
-                                    Profili Güncelle
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    {/* Security Form */}
-                    <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-xl transition-shadow duration-300">
-                        <div className="px-6 sm:px-8 py-5 sm:py-6 border-b border-slate-100 bg-slate-50/50">
-                            <h3 className="text-[18px] font-black text-slate-900">Güvenlik ve Şifre</h3>
-                            <p className="text-[13px] font-medium text-slate-500 mt-1">Hesap giriş güvenliğinizi koruyun.</p>
-                        </div>
-
-                        <form onSubmit={handlePasswordSubmit} className="p-6 sm:p-8 space-y-6 bg-white relative z-10">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <div>
-                                    <label className={labelClass}>Yeni Şifreniz</label>
-                                    <div className="relative group/input">
-                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors">
-                                            <Lock className="w-5 h-5" />
-                                        </div>
-                                        <input
-                                            type="password"
-                                            value={passwordForm.yeni_sifre}
-                                            onChange={e => setPasswordForm({ ...passwordForm, yeni_sifre: e.target.value })}
-                                            placeholder="En az 6 karakter"
-                                            className={inputClass}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className={labelClass}>Şifre (Tekrar)</label>
-                                    <div className="relative group/input">
-                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors">
-                                            <CheckCircle2 className="w-5 h-5" />
-                                        </div>
-                                        <input
-                                            type="password"
-                                            value={passwordForm.yeni_sifre_tekrar}
-                                            onChange={e => setPasswordForm({ ...passwordForm, yeni_sifre_tekrar: e.target.value })}
-                                            placeholder="Tekrar girin"
-                                            className={inputClass}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="pt-2 sm:pt-4 flex sm:justify-end">
-                                <button
-                                    type="submit"
-                                    disabled={passwordSaving}
-                                    className="w-full sm:w-auto h-14 px-8 bg-white border-2 border-slate-100 text-slate-700 text-[15px] font-bold rounded-2xl
-                                        hover:border-indigo-600 hover:text-indigo-600 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
-                                    {passwordSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" strokeWidth={2.5} />}
-                                    Şifreyi Değiştir
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                </div>
-            </div>
+            </motion.div>
         </div>
     );
 }

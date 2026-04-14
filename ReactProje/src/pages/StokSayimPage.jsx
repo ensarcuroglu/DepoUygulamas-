@@ -2,8 +2,32 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+    Barcode, Plus, Minus, Play, CheckCircle2, 
+    AlertCircle, FileText, X, History, Package, ShieldCheck
+} from 'lucide-react';
 
 const EAN_REGEX = /^\d{8,14}$/;
+
+// İşitsel geri bildirim için yardımcı fonksiyon (Harici dosya gerektirmez)
+const playBeep = () => {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 notası
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.1);
+    } catch (e) {
+        console.error("Tarayıcı ses çalamadı:", e);
+    }
+};
 
 export default function StokSayimPage() {
     const [sayimlar, setSayimlar] = useState([]);
@@ -23,7 +47,6 @@ export default function StokSayimPage() {
         await run(async () => {
             const res = await api.get('/stok-sayimlar');
             setSayimlar(res.data);
-            // Aktif sayım: devam ediyor veya bitti (onay bekliyor) durumundakini seç
             const aktif = res.data.find(s => s.durum === 'devam_ediyor' || s.durum === 'bitti');
             setAktifSayim(aktif ?? null);
         });
@@ -72,6 +95,7 @@ export default function StokSayimPage() {
             });
             setCozumlenenUrun({ id: res.data.urun_id, isim: res.data.urun_adi || `#${res.data.urun_id}` });
             setMiktar(1);
+            playBeep(); // Başarılı okumada sesli bildirim
             toast.success(`Kaydedildi: ${res.data.urun_adi || `Ürün #${res.data.urun_id}`} × ${miktar}`);
         });
     };
@@ -112,331 +136,423 @@ export default function StokSayimPage() {
         });
     };
 
-    const durumRenk = (durum) => {
-        if (durum === 'onaylandı') return 'bg-emerald-100 text-emerald-800';
-        if (durum === 'devam_ediyor') return 'bg-amber-100 text-amber-800';
-        if (durum === 'bitti') return 'bg-blue-100 text-blue-800';
-        return 'bg-slate-100 text-slate-700';
-    };
     const sayimDuzenlenebilir = aktifSayim?.durum === 'devam_ediyor';
 
     return (
-        <div className="p-6 max-w-5xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Stok Sayımı (Inventar)</h1>
-                    <p className="text-sm text-gray-500 mt-1">Periyodik stok sayımı ve varyans raporlaması</p>
+        <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
+            <div className="max-w-5xl mx-auto space-y-6 lg:space-y-8">
+                
+                {/* HEADER */}
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                            <Barcode className="w-8 h-8 text-blue-600" />
+                            Stok Sayımı
+                        </h1>
+                        <p className="text-sm sm:text-base text-slate-500 mt-1">Periyodik envanter kontrolü ve varyans yönetimi</p>
+                    </div>
+                    <button
+                        onClick={() => setAciklamaModal(true)}
+                        disabled={!!aktifSayim || loading}
+                        className="w-full sm:w-auto bg-blue-600 text-white px-5 py-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-bold shadow-sm shadow-blue-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                        <Play className="w-4 h-4 fill-current" /> Yeni Sayım Başlat
+                    </button>
                 </div>
-                <button
-                    onClick={() => setAciklamaModal(true)}
-                    disabled={!!aktifSayim || loading}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold"
-                >
-                    + Yeni Sayım Başlat
-                </button>
-            </div>
 
-            {/* AKTİF SAYIM PANELİ */}
-            {aktifSayim && (
-                <div className="bg-amber-50 border border-amber-300 rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <h2 className="text-lg font-bold text-amber-900">{aktifSayim.sayim_no}</h2>
-                            <p className="text-sm text-amber-700">{aktifSayim.aciklama || 'Açıklama yok'}</p>
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => varyansGor(aktifSayim.id)}
-                                disabled={loading}
-                                className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-700"
-                            >
-                                Varyans Gör
-                            </button>
-                            {aktifSayim.durum === 'devam_ediyor' && (
-                                <button
-                                    onClick={sayimiBitir}
-                                    disabled={loading}
-                                    className="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-amber-700"
-                                >
-                                    Sayımı Bitir
-                                </button>
-                            )}
-                            <button
-                                onClick={sayimiKapat}
-                                disabled={loading || aktifSayim.durum !== 'bitti'}
-                                className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
-                                title={aktifSayim.durum !== 'bitti' ? 'Önce sayımı bitirin' : ''}
-                            >
-                                Onayla
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* BARKOD GİRİŞİ */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-semibold text-amber-800 mb-1">
-                            EAN Barkod Tara
-                        </label>
-                        <input
-                            ref={barkodRef}
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            disabled={!sayimDuzenlenebilir || loading}
-                            placeholder="EAN barkod okutun (8-14 rakam), Enter'a basın..."
-                            onKeyDown={(e) => {
-                                if (sayimDuzenlenebilir && e.key === 'Enter' && e.target.value.trim()) {
-                                    urunKaydet(e.target.value.trim());
-                                    e.target.value = '';
-                                }
-                            }}
-                            className="border border-amber-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-base disabled:bg-slate-100 disabled:cursor-not-allowed"
-                        />
-                        {!sayimDuzenlenebilir && (
-                            <p className="mt-1 text-xs text-slate-600">
-                                Bu sayım bitirilmiş durumda; barkod girişi kapalıdır.
-                            </p>
-                        )}
-                        {cozumlenenUrun && (
-                            <p className="mt-1 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-1">
-                                Son: <span className="font-semibold">{cozumlenenUrun.isim}</span> <span className="text-emerald-500">#{cozumlenenUrun.id}</span>
-                            </p>
-                        )}
-                    </div>
-
-                    {/* MİKTAR GİRİŞİ */}
-                    <div className="mb-4 flex items-center gap-3">
-                        <label className="text-sm font-semibold text-amber-800 whitespace-nowrap">Sayım Miktarı</label>
-                        <div className="flex items-center gap-1">
-                            <button
-                                type="button"
-                                onClick={() => setMiktar(m => Math.max(1, m - 1))}
-                                disabled={!sayimDuzenlenebilir || loading}
-                                className="w-8 h-8 rounded-lg border border-amber-300 bg-white text-amber-800 font-bold hover:bg-amber-50 flex items-center justify-center disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                            >
-                                −
-                            </button>
-                            <input
-                                type="number"
-                                min="1"
-                                value={miktar}
-                                disabled={!sayimDuzenlenebilir || loading}
-                                onChange={e => setMiktar(Math.max(1, parseInt(e.target.value) || 1))}
-                                className="w-16 text-center border border-amber-300 rounded-lg p-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setMiktar(m => m + 1)}
-                                disabled={!sayimDuzenlenebilir || loading}
-                                className="w-8 h-8 rounded-lg border border-amber-300 bg-white text-amber-800 font-bold hover:bg-amber-50 flex items-center justify-center disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                            >
-                                +
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* SAYILAN ÜRÜNLER */}
-                    <div className="bg-white rounded-lg border border-amber-200 overflow-hidden">
-                        <div className="px-4 py-2 bg-amber-100 text-sm font-semibold text-amber-800">
-                            Sayılan Ürünler ({aktifSayim.sayim_kalemleri?.length || 0})
-                        </div>
-                        {aktifSayim.sayim_kalemleri?.length > 0 ? (
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="bg-gray-50 text-left">
-                                        <th className="px-4 py-2 font-semibold text-gray-600">Ürün</th>
-                                        <th className="px-4 py-2 font-semibold text-gray-600 text-center">Sayılan Miktar</th>
-                                        <th className="px-4 py-2 font-semibold text-gray-600">Notlar</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {aktifSayim.sayim_kalemleri.map(k => (
-                                        <tr key={k.id} className="border-t hover:bg-gray-50">
-                                            <td className="px-4 py-2">
-                                                <span className="font-medium">{k.urun_adi || `Ürün #${k.urun_id}`}</span>
-                                            </td>
-                                            <td className="px-4 py-2 text-center font-bold text-blue-700">{k.sayilan_miktar}</td>
-                                            <td className="px-4 py-2 text-gray-500 text-xs">{k.notlar || '—'}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <p className="text-center text-gray-400 py-6 text-sm">Henüz ürün taranmadı</p>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* SAYIM TARİHÇESİ */}
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100">
-                    <h2 className="font-bold text-gray-800">Sayım Tarihçesi</h2>
-                </div>
-                {sayimlar.length > 0 ? (
-                    <table className="w-full text-sm">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-gray-600">Sayım No</th>
-                                <th className="px-4 py-3 text-left font-semibold text-gray-600">Açıklama</th>
-                                <th className="px-4 py-3 text-left font-semibold text-gray-600">Durum</th>
-                                <th className="px-4 py-3 text-left font-semibold text-gray-600">Başlangıç</th>
-                                <th className="px-4 py-3 text-center font-semibold text-gray-600">İşlem</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sayimlar.map(s => (
-                                <tr key={s.id} className="border-t hover:bg-gray-50">
-                                    <td className="px-4 py-3 font-mono font-semibold text-gray-800">{s.sayim_no}</td>
-                                    <td className="px-4 py-3 text-gray-600">{s.aciklama || '—'}</td>
-                                    <td className="px-4 py-3">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${durumRenk(s.durum)}`}>
-                                            {s.durum}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-500">
-                                        {new Date(s.baslangic_tarihi).toLocaleDateString('tr-TR', {
-                                            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                                        })}
-                                    </td>
-                                    <td className="px-4 py-3 text-center space-x-2">
+                {/* AKTİF SAYIM PANELİ */}
+                <AnimatePresence mode="popLayout">
+                    {aktifSayim && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }} 
+                            animate={{ opacity: 1, y: 0 }} 
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-100 overflow-hidden"
+                        >
+                            {/* Panel Header */}
+                            <div className="bg-slate-900 px-5 py-4 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-2.5 h-2.5 rounded-full ${sayimDuzenlenebilir ? 'bg-emerald-400 animate-pulse' : 'bg-blue-400'}`}></div>
+                                        <h2 className="text-lg font-bold font-mono tracking-wider">{aktifSayim.sayim_no}</h2>
+                                    </div>
+                                    <p className="text-sm text-slate-400 mt-0.5">{aktifSayim.aciklama || 'Açıklama belirtilmedi'}</p>
+                                </div>
+                                <div className="flex items-center gap-2 w-full md:w-auto">
+                                    <button
+                                        onClick={() => varyansGor(aktifSayim.id)}
+                                        disabled={loading}
+                                        className="flex-1 md:flex-none bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <FileText className="w-4 h-4" /> <span className="hidden sm:inline">Varyans</span>
+                                    </button>
+                                    
+                                    {sayimDuzenlenebilir && (
                                         <button
-                                            onClick={() => varyansGor(s.id)}
-                                            className="text-blue-600 hover:text-blue-800 text-xs font-semibold hover:underline"
+                                            onClick={sayimiBitir}
+                                            disabled={loading}
+                                            className="flex-1 md:flex-none bg-amber-500 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-400 transition-colors flex items-center justify-center gap-2 shadow-sm"
                                         >
-                                            Varyans
+                                            <AlertCircle className="w-4 h-4" /> Bitir
                                         </button>
-                                        {(s.durum === 'devam_ediyor' || s.durum === 'bitti') && (
-                                            <button
-                                                onClick={() => setAktifSayim(s)}
-                                                className="text-amber-600 hover:text-amber-800 text-xs font-semibold hover:underline"
-                                            >
-                                                {s.durum === 'bitti' ? 'Onayla' : 'Devam Et'}
-                                            </button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                ) : (
-                    <p className="text-center text-gray-400 py-10">Henüz sayım yapılmadı</p>
-                )}
-            </div>
+                                    )}
+                                    <button
+                                        onClick={sayimiKapat}
+                                        disabled={loading || aktifSayim.durum !== 'bitti'}
+                                        className="flex-1 md:flex-none bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-emerald-400 disabled:opacity-30 disabled:bg-slate-700 disabled:text-slate-400 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                    >
+                                        <ShieldCheck className="w-4 h-4" /> Onayla
+                                    </button>
+                                </div>
+                            </div>
 
-            {/* AÇIKLAMA MODAL */}
-            {aciklamaModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-                        <h3 className="text-lg font-bold mb-4">Yeni Sayım Başlat</h3>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama (opsiyonel)</label>
-                        <input
-                            type="text"
-                            value={aciklama}
-                            onChange={e => setAciklama(e.target.value)}
-                            placeholder="Örn: Aylık sayım, Çeyrek sonu..."
-                            className="border rounded-lg p-2.5 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 mb-4"
-                            onKeyDown={e => e.key === 'Enter' && sayimBaslat()}
-                        />
-                        <div className="flex justify-end gap-2">
-                            <button
-                                onClick={() => setAciklamaModal(false)}
-                                className="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-50"
-                            >
-                                İptal
-                            </button>
-                            <button
-                                onClick={sayimBaslat}
-                                disabled={loading}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
-                            >
-                                {loading ? 'Başlatılıyor...' : 'Sayımı Başlat'}
-                            </button>
-                        </div>
+                            <div className="p-5 sm:p-8">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                    {/* Giriş Alanı */}
+                                    <div className="lg:col-span-1 space-y-6">
+                                        <div>
+                                            <label className="flex items-center justify-between text-sm font-bold text-slate-700 mb-2">
+                                                <span>EAN Barkod</span>
+                                                {!sayimDuzenlenebilir && <span className="text-xs text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">Sayım Kapalı</span>}
+                                            </label>
+                                            <input
+                                                ref={barkodRef}
+                                                type="text"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
+                                                disabled={!sayimDuzenlenebilir || loading}
+                                                placeholder="Barkod okutun..."
+                                                onKeyDown={(e) => {
+                                                    if (sayimDuzenlenebilir && e.key === 'Enter' && e.target.value.trim()) {
+                                                        urunKaydet(e.target.value.trim());
+                                                        e.target.value = '';
+                                                    }
+                                                }}
+                                                className="w-full text-xl sm:text-2xl font-mono text-center tracking-widest border-2 border-slate-200 rounded-xl p-4 sm:p-5 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-slate-50 transition-all disabled:bg-slate-100 disabled:text-slate-400"
+                                            />
+                                        </div>
+
+                                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                            <label className="block text-center text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                                                Eklenecek Miktar
+                                            </label>
+                                            <div className="flex items-center justify-center gap-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setMiktar(m => Math.max(1, m - 1))}
+                                                    disabled={!sayimDuzenlenebilir || loading}
+                                                    className="w-14 h-14 rounded-xl border-2 border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:border-slate-300 flex items-center justify-center active:scale-95 transition-all disabled:opacity-50"
+                                                >
+                                                    <Minus className="w-6 h-6" />
+                                                </button>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={miktar}
+                                                    disabled={!sayimDuzenlenebilir || loading}
+                                                    onChange={e => setMiktar(Math.max(1, parseInt(e.target.value) || 1))}
+                                                    className="w-24 text-3xl font-bold text-center border-none bg-transparent focus:outline-none text-blue-700 p-0 disabled:text-slate-400"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setMiktar(m => m + 1)}
+                                                    disabled={!sayimDuzenlenebilir || loading}
+                                                    className="w-14 h-14 rounded-xl border-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300 flex items-center justify-center active:scale-95 transition-all disabled:opacity-50 disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400"
+                                                >
+                                                    <Plus className="w-6 h-6" />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <AnimatePresence>
+                                            {cozumlenenUrun && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, scale: 0.95 }}
+                                                    className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-3"
+                                                >
+                                                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                                                    <div>
+                                                        <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Son Okutulan</p>
+                                                        <p className="font-bold text-emerald-900 mt-0.5 leading-tight">{cozumlenenUrun.isim}</p>
+                                                        <p className="text-xs text-emerald-600/80 mt-1 font-mono">#{cozumlenenUrun.id}</p>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+
+                                    {/* Sayılan Ürünler Listesi */}
+                                    <div className="lg:col-span-2 flex flex-col h-[400px] border border-slate-200 rounded-xl overflow-hidden bg-white">
+                                        <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+                                            <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                                                <Package className="w-4 h-4" /> Sayım Kalemleri
+                                            </h3>
+                                            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full">
+                                                {aktifSayim.sayim_kalemleri?.length || 0} Ürün
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="flex-1 overflow-y-auto p-2 bg-slate-50/50">
+                                            <AnimatePresence>
+                                                {aktifSayim.sayim_kalemleri?.length > 0 ? (
+                                                    <div className="space-y-2">
+                                                        {aktifSayim.sayim_kalemleri.map((k, idx) => (
+                                                            <motion.div 
+                                                                key={k.id}
+                                                                initial={{ opacity: 0, x: -20 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                transition={{ delay: idx < 10 ? idx * 0.05 : 0 }}
+                                                                className="bg-white border border-slate-200 rounded-lg p-3 sm:p-4 flex items-center gap-4 hover:border-blue-300 transition-colors shadow-sm"
+                                                            >
+                                                                <div className="w-12 h-12 rounded-lg bg-blue-50 text-blue-700 font-black text-xl flex items-center justify-center shrink-0">
+                                                                    {k.sayilan_miktar}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="font-bold text-slate-900 truncate">{k.urun_adi || `Ürün #${k.urun_id}`}</p>
+                                                                    {k.notlar && <p className="text-xs text-slate-500 mt-1 truncate">{k.notlar}</p>}
+                                                                </div>
+                                                                <div className="text-xs font-mono text-slate-400 shrink-0">
+                                                                    #{k.urun_id}
+                                                                </div>
+                                                            </motion.div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
+                                                        <Barcode className="w-12 h-12 opacity-20" />
+                                                        <p className="text-sm font-medium">Henüz ürün okutulmadı</p>
+                                                    </div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* SAYIM TARİHÇESİ */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-2">
+                        <History className="w-5 h-5 text-slate-400" />
+                        <h2 className="font-bold text-slate-800 text-lg">Sayım Tarihçesi</h2>
                     </div>
-                </div>
-            )}
-
-            {/* VARYANS MODAL */}
-            {varyansModal && varyansData && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
-                        <div className="p-6 border-b flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-bold">Varyans Raporu</h3>
-                                <p className="text-sm text-gray-500">{varyansData.sayim_no}</p>
-                            </div>
-                            <button
-                                onClick={() => setVaryansModal(false)}
-                                className="text-gray-400 hover:text-gray-700 text-2xl leading-none"
-                            >
-                                &times;
-                            </button>
-                        </div>
-
-                        <div className="p-6 overflow-y-auto flex-1">
-                            {/* Özet */}
-                            <div className="grid grid-cols-3 gap-4 mb-6">
-                                <div className="bg-slate-50 rounded-lg p-4 text-center">
-                                    <p className="text-2xl font-bold text-slate-800">{varyansData.varyanslar?.length || 0}</p>
-                                    <p className="text-xs text-slate-500 mt-1">Sapmalı Ürün</p>
-                                </div>
-                                <div className="bg-red-50 rounded-lg p-4 text-center">
-                                    <p className="text-2xl font-bold text-red-700">{varyansData.toplam_sapma}</p>
-                                    <p className="text-xs text-red-500 mt-1">Toplam Sapma (koli)</p>
-                                </div>
-                                <div className="bg-blue-50 rounded-lg p-4 text-center">
-                                    <p className="text-2xl font-bold text-blue-700">%{varyansData.sapma_orani}</p>
-                                    <p className="text-xs text-blue-500 mt-1">Sapma Oranı</p>
-                                </div>
-                            </div>
-
-                            {varyansData.varyanslar?.length > 0 ? (
-                                <table className="w-full text-sm">
-                                    <thead className="bg-gray-50">
+                    
+                    {sayimlar.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            {/* Masaüstü Tablo, Mobilde Kart Görünümü */}
+                            <div className="min-w-[800px] w-full">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                                         <tr>
-                                            <th className="px-3 py-2 text-left font-semibold text-gray-600">Ürün</th>
-                                            <th className="px-3 py-2 text-center font-semibold text-gray-600">Beklenen</th>
-                                            <th className="px-3 py-2 text-center font-semibold text-gray-600">Sayılan</th>
-                                            <th className="px-3 py-2 text-center font-semibold text-gray-600">Fark</th>
-                                            <th className="px-3 py-2 text-center font-semibold text-gray-600">%</th>
+                                            <th className="px-6 py-4">Sayım No</th>
+                                            <th className="px-6 py-4">Açıklama</th>
+                                            <th className="px-6 py-4">Durum</th>
+                                            <th className="px-6 py-4">Başlangıç</th>
+                                            <th className="px-6 py-4 text-right">İşlemler</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        {varyansData.varyanslar.map((v, i) => (
-                                            <tr key={i} className="border-t hover:bg-gray-50">
-                                                <td className="px-3 py-2 font-medium">{v.urun_adi}</td>
-                                                <td className="px-3 py-2 text-center text-gray-600">{v.beklenen}</td>
-                                                <td className="px-3 py-2 text-center text-gray-800 font-semibold">{v.sayilan}</td>
-                                                <td className={`px-3 py-2 text-center font-bold ${v.fark > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                                    {v.fark > 0 ? `+${v.fark}` : v.fark}
+                                    <tbody className="divide-y divide-slate-100">
+                                        {sayimlar.map(s => (
+                                            <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
+                                                <td className="px-6 py-4 font-mono font-bold text-slate-800">{s.sayim_no}</td>
+                                                <td className="px-6 py-4 text-slate-600 max-w-xs truncate">{s.aciklama || '—'}</td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${
+                                                        s.durum === 'onaylandı' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                                                        s.durum === 'devam_ediyor' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
+                                                        'bg-blue-50 text-blue-700 border-blue-200'
+                                                    }`}>
+                                                        {s.durum === 'devam_ediyor' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></span>}
+                                                        {s.durum.replace('_', ' ').toUpperCase()}
+                                                    </span>
                                                 </td>
-                                                <td className={`px-3 py-2 text-center text-xs font-semibold ${v.fark > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                                    {v.yuzde > 0 ? `+${v.yuzde}%` : `${v.yuzde}%`}
+                                                <td className="px-6 py-4 text-slate-500">
+                                                    {new Date(s.baslangic_tarihi).toLocaleDateString('tr-TR', {
+                                                        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                                                    })}
+                                                </td>
+                                                <td className="px-6 py-4 text-right space-x-3">
+                                                    <button
+                                                        onClick={() => varyansGor(s.id)}
+                                                        className="text-slate-600 hover:text-blue-600 font-semibold text-sm transition-colors"
+                                                    >
+                                                        Rapor
+                                                    </button>
+                                                    {(s.durum === 'devam_ediyor' || s.durum === 'bitti') && (
+                                                        <button
+                                                            onClick={() => setAktifSayim(s)}
+                                                            className="text-blue-600 hover:text-blue-800 font-bold text-sm transition-colors"
+                                                        >
+                                                            {s.durum === 'bitti' ? 'İncele/Onayla' : 'Devam Et'}
+                                                        </button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
-                            ) : (
-                                <div className="text-center py-8 text-gray-400">
-                                    <p className="text-4xl mb-2">✓</p>
-                                    <p className="font-semibold">Sapma yok — stok tamamen eşleşti!</p>
-                                </div>
-                            )}
+                            </div>
                         </div>
-
-                        <div className="p-4 border-t flex justify-end">
-                            <button
-                                onClick={() => setVaryansModal(false)}
-                                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-semibold"
-                            >
-                                Kapat
-                            </button>
+                    ) : (
+                        <div className="text-center py-12">
+                            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <History className="w-8 h-8 text-slate-400" />
+                            </div>
+                            <p className="text-slate-500 font-medium">Sistemde kayıtlı sayım bulunamadı.</p>
                         </div>
-                    </div>
+                    )}
                 </div>
-            )}
+
+                {/* YENİ SAYIM MODAL */}
+                <AnimatePresence>
+                    {aciklamaModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                            <motion.div 
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                                onClick={() => setAciklamaModal(false)}
+                            />
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+                                animate={{ opacity: 1, scale: 1, y: 0 }} 
+                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden"
+                            >
+                                <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                                    <h3 className="text-lg font-extrabold text-slate-800">Yeni Sayım Başlat</h3>
+                                    <button onClick={() => setAciklamaModal(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <div className="p-6">
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Sayım Açıklaması (Opsiyonel)</label>
+                                    <input
+                                        type="text"
+                                        autoFocus
+                                        value={aciklama}
+                                        onChange={e => setAciklama(e.target.value)}
+                                        placeholder="Örn: 2026 1. Çeyrek Sayımı..."
+                                        className="w-full border-2 border-slate-200 rounded-xl p-3 sm:p-4 text-base focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all"
+                                        onKeyDown={e => e.key === 'Enter' && sayimBaslat()}
+                                    />
+                                    <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 mt-8">
+                                        <button
+                                            onClick={() => setAciklamaModal(false)}
+                                            className="w-full sm:w-auto px-5 py-3 rounded-xl text-slate-600 font-bold hover:bg-slate-100 transition-colors"
+                                        >
+                                            İptal
+                                        </button>
+                                        <button
+                                            onClick={sayimBaslat}
+                                            disabled={loading}
+                                            className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 shadow-sm transition-all active:scale-95 flex items-center justify-center"
+                                        >
+                                            {loading ? 'Başlatılıyor...' : 'Sayımı Başlat'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* VARYANS MODAL */}
+                <AnimatePresence>
+                    {varyansModal && varyansData && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+                            <motion.div 
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                                onClick={() => setVaryansModal(false)}
+                            />
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }} 
+                                animate={{ opacity: 1, scale: 1 }} 
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative z-10"
+                            >
+                                <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 rounded-t-2xl">
+                                    <div>
+                                        <h3 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
+                                            <FileText className="w-5 h-5 text-blue-600" /> Varyans Raporu
+                                        </h3>
+                                        <p className="text-sm text-slate-500 mt-1 font-mono">{varyansData.sayim_no}</p>
+                                    </div>
+                                    <button onClick={() => setVaryansModal(false)} className="text-slate-400 hover:text-slate-700 bg-white shadow-sm p-2 rounded-full border border-slate-200 transition-all hover:scale-105">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-50/30">
+                                    {/* Özet Kartları */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                                        <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col items-center justify-center shadow-sm">
+                                            <p className="text-3xl font-black text-slate-800">{varyansData.varyanslar?.length || 0}</p>
+                                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-2">Sapmalı Ürün</p>
+                                        </div>
+                                        <div className="bg-white border border-rose-200 rounded-xl p-5 flex flex-col items-center justify-center shadow-sm">
+                                            <p className="text-3xl font-black text-rose-600">{varyansData.toplam_sapma}</p>
+                                            <p className="text-xs font-bold text-rose-500/80 uppercase tracking-wider mt-2">Toplam Sapma Adedi</p>
+                                        </div>
+                                        <div className="bg-white border border-blue-200 rounded-xl p-5 flex flex-col items-center justify-center shadow-sm">
+                                            <p className="text-3xl font-black text-blue-600">%{varyansData.sapma_orani}</p>
+                                            <p className="text-xs font-bold text-blue-500/80 uppercase tracking-wider mt-2">Genel Sapma Oranı</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Varyans Tablosu */}
+                                    {varyansData.varyanslar?.length > 0 ? (
+                                        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-sm text-left whitespace-nowrap">
+                                                    <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                                                        <tr>
+                                                            <th className="px-4 py-3">Ürün</th>
+                                                            <th className="px-4 py-3 text-center">Sistem (Beklenen)</th>
+                                                            <th className="px-4 py-3 text-center">Fiziksel (Sayılan)</th>
+                                                            <th className="px-4 py-3 text-center">Fark</th>
+                                                            <th className="px-4 py-3 text-right">Oran</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100">
+                                                        {varyansData.varyanslar.map((v, i) => (
+                                                            <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                                                <td className="px-4 py-3 font-semibold text-slate-800">{v.urun_adi}</td>
+                                                                <td className="px-4 py-3 text-center text-slate-500">{v.beklenen}</td>
+                                                                <td className="px-4 py-3 text-center font-bold text-slate-900 bg-slate-50/50">{v.sayilan}</td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md font-bold text-xs ${v.fark > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                                        {v.fark > 0 ? `+${v.fark}` : v.fark}
+                                                                    </span>
+                                                                </td>
+                                                                <td className={`px-4 py-3 text-right font-bold ${v.fark > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                                    {v.yuzde > 0 ? `+${v.yuzde}%` : `${v.yuzde}%`}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-10 flex flex-col items-center justify-center text-emerald-700">
+                                            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                                                <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+                                            </div>
+                                            <p className="text-xl font-extrabold text-center">Kusursuz Sayım!</p>
+                                            <p className="text-emerald-600/80 font-medium mt-2 text-center">Sistem verileri ile fiziksel sayım birebir eşleşti.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
     );
 }
