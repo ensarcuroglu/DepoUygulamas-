@@ -86,6 +86,7 @@ ALLOWED_ENTITY_ONLY_FIELDS: dict[str, set[str]] = {
     },
     "Palet": {"lot", "raf"},
     "Siparis": {"kalemler"},
+    "SevkiyatPlani": {"kalemler"},
     "StokHareketi": {"palet_no"},
     "StokSayim": {"sayim_kalemleri"},
     "Urun": {"stok_miktari"},

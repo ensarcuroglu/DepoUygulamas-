@@ -8,10 +8,11 @@ from models import (
     Siparis as SiparisORM,
     SiparisKalemi as SiparisKalemiORM,
     SevkiyatPlani as SevkiyatPlaniORM,
+    SevkiyatKalemi as SevkiyatKalemiORM,
     Irsaliye as IrsaliyeORM,
 )
 from app.core.entities.siparis import Siparis, SiparisKalemi
-from app.core.entities.sevkiyat_plani import SevkiyatPlani
+from app.core.entities.sevkiyat_plani import SevkiyatPlani, SevkiyatKalemi
 from app.core.entities.irsaliye import Irsaliye
 
 
@@ -86,7 +87,33 @@ def siparis_to_orm(entity: Siparis) -> SiparisORM:
     return orm
 
 
+def sevkiyat_kalemi_to_entity(orm: SevkiyatKalemiORM) -> SevkiyatKalemi:
+    return SevkiyatKalemi(
+        id=orm.id,
+        sevkiyat_id=orm.sevkiyat_id,
+        siparis_kalemi_id=orm.siparis_kalemi_id,
+        urun_id=orm.urun_id,
+        miktar=orm.miktar,
+    )
+
+
+def sevkiyat_kalemi_to_orm(entity: SevkiyatKalemi) -> SevkiyatKalemiORM:
+    return SevkiyatKalemiORM(
+        id=entity.id,
+        sevkiyat_id=entity.sevkiyat_id,
+        siparis_kalemi_id=entity.siparis_kalemi_id,
+        urun_id=entity.urun_id,
+        miktar=entity.miktar,
+    )
+
+
 def sevkiyat_plani_to_entity(orm: SevkiyatPlaniORM) -> SevkiyatPlani:
+    kalemler: list[SevkiyatKalemi] = []
+    try:
+        kalemler = [sevkiyat_kalemi_to_entity(k) for k in orm.kalemler]
+    except DetachedInstanceError:
+        kalemler = []
+
     return SevkiyatPlani(
         id=orm.id,
         siparis_id=orm.siparis_id,
@@ -101,6 +128,7 @@ def sevkiyat_plani_to_entity(orm: SevkiyatPlaniORM) -> SevkiyatPlani:
         notlar=orm.notlar or "",
         olusturma_tarihi=orm.olusturma_tarihi,
         guncelleme_tarihi=orm.guncelleme_tarihi,
+        kalemler=kalemler,
     )
 
 

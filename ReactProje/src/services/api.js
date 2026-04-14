@@ -324,6 +324,7 @@ export const getSevkiyatPlanlari = (params = {}) => api.get('/sevkiyat-planlama/
 export const getSevkiyatPlani = (id) => api.get(`/sevkiyat-planlama/${id}`);
 export const createSevkiyatPlani = (data) => api.post('/sevkiyat-planlama/', data);
 export const updateSevkiyatPlani = (id, data) => api.put(`/sevkiyat-planlama/${id}`, data);
+export const onaylaSevkiyatYukleme = (id) => api.post(`/sevkiyat-planlama/${id}/yukleme-onayla`);
 export const deleteSevkiyatPlani = (id) => api.delete(`/sevkiyat-planlama/${id}`);
 
 // ========================

@@ -25,6 +25,7 @@ from app.application.use_cases import (
     SevkiyatPlaniOlusturUseCase,
     SevkiyatPlaniGuncelleUseCase,
     SevkiyatPlaniSilUseCase,
+    YuklemeOnaylaUseCase,
     MalKabulIrsaliyeListeleUseCase,
     MalKabulIrsaliyeGetirUseCase,
     MalKabulIrsaliyeOlusturUseCase,
@@ -126,17 +127,13 @@ def get_irsaliye_getir_uc(
 
 
 def get_irsaliye_olustur_uc(
-    db: Session = Depends(get_db),
     irsaliye_repo=Depends(get_irsaliye_repo),
     siparis_repo=Depends(get_siparis_repo),
     sevkiyat_repo=Depends(get_sevkiyat_repo),
-    hareket_repo=Depends(get_hareket_repo),
     log_repo=Depends(get_log_repo),
-    stok_cikis_service=Depends(get_stok_cikis_service),
 ):
     return IrsaliyeOlusturUseCase(
-        irsaliye_repo, siparis_repo, sevkiyat_repo, hareket_repo,
-        log_repo, stok_cikis_service, db,
+        irsaliye_repo, siparis_repo, sevkiyat_repo, log_repo,
     )
 
 
@@ -177,13 +174,28 @@ def get_sevkiyat_olustur_uc(
 
 
 def get_sevkiyat_guncelle_uc(
+    sevkiyat_repo=Depends(get_sevkiyat_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return SevkiyatPlaniGuncelleUseCase(sevkiyat_repo, log_repo)
+
+
+def get_yukleme_onayla_uc(
     db: Session = Depends(get_db),
     sevkiyat_repo=Depends(get_sevkiyat_repo),
     siparis_repo=Depends(get_siparis_repo),
+    hareket_repo=Depends(get_hareket_repo),
     log_repo=Depends(get_log_repo),
     stok_cikis_service=Depends(get_stok_cikis_service),
 ):
-    return SevkiyatPlaniGuncelleUseCase(sevkiyat_repo, siparis_repo, log_repo, stok_cikis_service, db)
+    return YuklemeOnaylaUseCase(
+        sevkiyat_repo,
+        siparis_repo,
+        hareket_repo,
+        log_repo,
+        stok_cikis_service,
+        db,
+    )
 
 
 def get_sevkiyat_sil_uc(

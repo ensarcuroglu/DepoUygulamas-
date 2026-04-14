@@ -3,7 +3,7 @@ import {
   Plus, Search, Calendar, Truck, User, Phone, DoorOpen, Loader2, X, AlertCircle, Clock, FileText, Package
 } from 'lucide-react';
 import {
-  getSevkiyatPlanlari, createSevkiyatPlani, updateSevkiyatPlani,
+  getSevkiyatPlanlari, createSevkiyatPlani, updateSevkiyatPlani, onaylaSevkiyatYukleme,
   deleteSevkiyatPlani, getSiparisler
 } from '../services/api';
 import { useAsync } from '../hooks/useAsync';
@@ -18,6 +18,12 @@ const durumRenkleri = {
 };
 
 const durumButonlari = ['Planlandi', 'Yukleniyor', 'Yolda', 'TeslimEdildi'];
+const izinliGecisler = {
+  Planlandi: ['Yukleniyor'],
+  Yukleniyor: ['Yolda'],
+  Yolda: ['TeslimEdildi'],
+  TeslimEdildi: [],
+};
 
 export default function SevkiyatPlanlamaPage() {
   const { loading, run } = useAsync(true);
@@ -86,10 +92,22 @@ export default function SevkiyatPlanlamaPage() {
     }
   };
 
-  const handleDurumDegis = async (planId, yeniDurum) => {
+  const handleDurumDegis = async (plan, yeniDurum) => {
+    const mevcutDurum = plan.durum;
+    const izinliHedefler = izinliGecisler[mevcutDurum] || [];
+
+    if (yeniDurum === mevcutDurum || !izinliHedefler.includes(yeniDurum)) {
+      return;
+    }
+
     try {
-      await updateSevkiyatPlani(planId, { durum: yeniDurum });
-      toast.success('Durum güncellendi');
+      if (mevcutDurum === 'Planlandi' && yeniDurum === 'Yukleniyor') {
+        await onaylaSevkiyatYukleme(plan.id);
+        toast.success('Yükleme onayı tamamlandı');
+      } else {
+        await updateSevkiyatPlani(plan.id, { durum: yeniDurum });
+        toast.success('Durum güncellendi');
+      }
       yükle();
     } catch (err) {
       toast.error(hataMetni(err, 'Güncelleme başarısız'));
@@ -181,7 +199,9 @@ export default function SevkiyatPlanlamaPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5">
-            {filtrelenmis.map((plan) => (
+            {filtrelenmis.map((plan) => {
+              const siparis = plan.siparis || siparisler.find((item) => item.id === plan.siparis_id);
+              return (
               <div
                 key={plan.id}
                 className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
@@ -206,7 +226,7 @@ export default function SevkiyatPlanlamaPage() {
                         <div className="flex items-center gap-2 text-slate-500">
                           <Package className="h-4 w-4" />
                           <p className="font-medium text-sm">
-                            {plan.siparis?.musteri_adi} <span className="text-slate-300 mx-1">|</span> <span className="text-slate-700">{plan.siparis?.siparis_no}</span>
+                            {siparis?.musteri_adi || 'Müşteri bilgisi yok'} <span className="text-slate-300 mx-1">|</span> <span className="text-slate-700">{siparis?.siparis_no || `Sipariş #${plan.siparis_id}`}</span>
                           </p>
                         </div>
                       </div>
@@ -284,15 +304,18 @@ export default function SevkiyatPlanlamaPage() {
                     <div className="flex flex-wrap gap-2">
                       {durumButonlari.map((durum) => {
                         const isCurrent = durum === plan.durum;
+                        const isAllowed = (izinliGecisler[plan.durum] || []).includes(durum);
                         return (
                           <button
                             key={durum}
-                            onClick={() => handleDurumDegis(plan.id, durum)}
-                            disabled={isCurrent}
+                            onClick={() => handleDurumDegis(plan, durum)}
+                            disabled={isCurrent || !isAllowed}
                             className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-semibold text-xs sm:text-sm transition-colors text-center ${
                               isCurrent
                                 ? 'bg-blue-50 text-blue-600 cursor-not-allowed ring-1 ring-blue-200'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300'
+                                : isAllowed
+                                  ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300'
+                                  : 'bg-slate-50 text-slate-300 cursor-not-allowed'
                             }`}
                           >
                             {durum}
@@ -310,7 +333,7 @@ export default function SevkiyatPlanlamaPage() {
 
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
 

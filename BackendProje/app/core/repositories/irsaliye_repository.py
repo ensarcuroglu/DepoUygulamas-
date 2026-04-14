@@ -30,3 +30,8 @@ class IIrsaliyeRepository(ABC):
     def sonraki_irsaliye_no(self) -> str:
         """IRS-YYYY-NNNN formatında numara üretir."""
         ...
+
+    @abstractmethod
+    def sevkiyat_icin_irsaliye_var_mi(self, sevkiyat_id: int) -> bool:
+        """Belirtilen sevkiyata bağlı irsaliye olup olmadığını kontrol eder."""
+        ...

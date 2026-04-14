@@ -45,7 +45,8 @@
       "Bash(ls:*)",
       "Bash(python -c ':*)",
       "Bash(npm run:*)",
-      "Bash(iconv -f UTF-16LE -t UTF-8 '/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje/pyright-hatalari.log')"
+      "Bash(iconv -f UTF-16LE -t UTF-8 '/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje/pyright-hatalari.log')",
+      "Bash(./.venv/Scripts/python.exe -m pytest tests/unit --tb=short)"
     ]
   }
 }

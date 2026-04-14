@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Plus, Search, FileText, Loader2, X, Printer, CheckCircle, AlertCircle
+  Plus, Search, FileText, Loader2, X, Printer, AlertCircle
 } from 'lucide-react';
 import {
-  getIrsaliyeler, createIrsaliye, updateIrsaliye, getSiparisler
+  getIrsaliyeler, createIrsaliye, updateIrsaliye, getSiparisler, getSevkiyatPlanlari
 } from '../services/api';
 import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
@@ -20,79 +20,122 @@ const belgeRenkleri = {
   'IadeIrsaliyesi': 'bg-orange-50 text-orange-900',
 };
 
+const bugunTarihi = () => new Date().toISOString().split('T')[0];
+
+const bosFormData = () => ({
+  sevkiyat_id: '',
+  siparis_id: '',
+  irsaliye_tarihi: bugunTarihi(),
+  belge_turu: 'SevkIrsaliyesi',
+  tir_plaka: '',
+  sofor_adi: '',
+});
+
 export default function IrsaliyelerPage() {
   const { loading, run } = useAsync(true);
   const [irsaliyeler, setIrsaliyeler] = useState([]);
   const [siparisler, setSiparisler] = useState([]);
+  const [sevkiyatPlanlari, setSevkiyatPlanlari] = useState([]);
   const [aramaMetni, setAramaMetni] = useState('');
   const [durumFiltre, setDurumFiltre] = useState('');
   const [yeniIrsaliyeModal, setYeniIrsaliyeModal] = useState(false);
   const [detayModal, setDetayModal] = useState(null);
+  const [formData, setFormData] = useState(bosFormData);
 
-  const [formData, setFormData] = useState({
-    siparis_id: '',
-    sevkiyat_id: null,
-    irsaliye_tarihi: new Date().toISOString().split('T')[0],
-    belge_turu: 'SevkIrsaliyesi',
-    tir_plaka: '',
-    sofor_adi: '',
-    durum: 'Taslak',
-  });
+  const siparisBul = useCallback(
+    (siparisId) => {
+      if (!siparisId) {
+        return null;
+      }
+      return siparisler.find((siparis) => siparis.id === siparisId) || null;
+    },
+    [siparisler]
+  );
+
+  const planBul = useCallback(
+    (planId) => {
+      if (!planId) {
+        return null;
+      }
+      return sevkiyatPlanlari.find((plan) => plan.id === planId) || null;
+    },
+    [sevkiyatPlanlari]
+  );
+
+  const detayliIrsaliyeOlustur = useCallback(
+    (irsaliye) => ({
+      ...irsaliye,
+      siparis: siparisBul(irsaliye.siparis_id),
+      sevkiyat: planBul(irsaliye.sevkiyat_id),
+    }),
+    [planBul, siparisBul]
+  );
 
   const yükle = useCallback(async () => {
-    const [irsRes, sipRes] = await run(() =>
+    const [irsRes, sipRes, planRes] = await run(() =>
       Promise.all([
         getIrsaliyeler({ limit: 100, durum: durumFiltre || undefined, arama: aramaMetni }),
         getSiparisler({ limit: 500 }),
+        getSevkiyatPlanlari({ limit: 500 }),
       ])
     );
     setIrsaliyeler(irsRes?.data || []);
     setSiparisler(sipRes?.data || []);
+    setSevkiyatPlanlari(planRes?.data || []);
   }, [run, durumFiltre, aramaMetni]);
 
   useEffect(() => {
-    let aktif = true;
+    void yükle();
+  }, [yükle]);
 
-    run(() =>
-      Promise.all([
-        getIrsaliyeler({ limit: 100, durum: durumFiltre || undefined, arama: aramaMetni }),
-        getSiparisler({ limit: 500 }),
-      ])
-    )
-      .then(([irsRes, sipRes]) => {
-        if (!aktif) return;
-        setIrsaliyeler(irsRes?.data || []);
-        setSiparisler(sipRes?.data || []);
-      })
-      .catch(() => {
-        // mevcut davranışı korumak için yükleme hatasında sessiz kal
-      });
+  const handlePlanSecimi = (planIdDegeri) => {
+    const planId = parseInt(planIdDegeri, 10);
 
-    return () => {
-      aktif = false;
-    };
-  }, [run, durumFiltre, aramaMetni]);
+    if (!planId) {
+      setFormData((onceki) => ({
+        ...onceki,
+        sevkiyat_id: '',
+        siparis_id: '',
+        tir_plaka: '',
+        sofor_adi: '',
+      }));
+      return;
+    }
+
+    const plan = planBul(planId);
+    setFormData((onceki) => ({
+      ...onceki,
+      sevkiyat_id: planId,
+      siparis_id: plan?.siparis_id || '',
+      tir_plaka: plan?.tir_plaka || '',
+      sofor_adi: plan?.sofor_adi || '',
+    }));
+  };
 
   const handleYeniIrsaliye = async () => {
+    if (!formData.sevkiyat_id) {
+      toast.error('Lütfen bir sevkiyat planı seçin');
+      return;
+    }
+
     if (!formData.siparis_id) {
-      toast.error('Lütfen sipariş seçin');
+      toast.error('Seçilen sevkiyat planının sipariş bilgisi bulunamadı');
       return;
     }
 
     try {
-      await createIrsaliye(formData);
+      await createIrsaliye({
+        siparis_id: Number(formData.siparis_id),
+        sevkiyat_id: Number(formData.sevkiyat_id),
+        irsaliye_tarihi: formData.irsaliye_tarihi,
+        belge_turu: formData.belge_turu,
+        tir_plaka: formData.tir_plaka || null,
+        sofor_adi: formData.sofor_adi || null,
+      });
       toast.success('İrsaliye oluşturuldu');
       setYeniIrsaliyeModal(false);
-      setFormData({
-        siparis_id: '',
-        sevkiyat_id: null,
-        irsaliye_tarihi: new Date().toISOString().split('T')[0],
-        belge_turu: 'SevkIrsaliyesi',
-        tir_plaka: '',
-        sofor_adi: '',
-        durum: 'Taslak',
-      });
-      yükle();
+      setFormData(bosFormData());
+      void yükle();
     } catch (err) {
       toast.error(hataMetni(err, 'İrsaliye oluşturma başarısız'));
     }
@@ -102,7 +145,7 @@ export default function IrsaliyelerPage() {
     try {
       await updateIrsaliye(irsaliyeId, { durum: yeniDurum });
       toast.success('Durum güncellendi');
-      yükle();
+      void yükle();
       setDetayModal(null);
     } catch (err) {
       toast.error(hataMetni(err, 'Güncelleme başarısız'));
@@ -110,12 +153,14 @@ export default function IrsaliyelerPage() {
   };
 
   const handleYazdir = (irsaliye) => {
+    const detayliIrsaliye = detayliIrsaliyeOlustur(irsaliye);
+    const siparis = detayliIrsaliye.siparis;
     const isSevk = irsaliye.belge_turu === 'SevkIrsaliyesi';
     const belgeBaslik = isSevk ? 'SEVK İRSALİYESİ' : 'İADE İRSALİYESİ';
     const accentColor = isSevk ? '#1e40af' : '#b45309'; // Kurumsal lacivert veya kiremit
 
     // Tarih formatlama
-    const tarih = new Date(irsaliye.irsaliye_tarihi).toLocaleDateString('tr-TR', {
+    const tarih = new Date(detayliIrsaliye.irsaliye_tarihi).toLocaleDateString('tr-TR', {
       year: 'numeric', month: 'long', day: 'numeric'
     });
     const saat = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
@@ -289,11 +334,11 @@ export default function IrsaliyelerPage() {
               <div class="box-title">Alıcı Bilgileri</div>
               <div class="data-row">
                 <span class="data-label">Müşteri/Unvan:</span>
-                <span class="data-value">${irsaliye.siparis?.musteri_adi || '-'}</span>
+                <span class="data-value">${siparis?.musteri_adi || '-'}</span>
               </div>
               <div class="data-row">
                 <span class="data-label">Teslimat Adresi:</span>
-                <span class="data-value">${irsaliye.siparis?.teslimat_adresi || '-'}</span>
+                <span class="data-value">${siparis?.teslimat_adresi || '-'}</span>
               </div>
             </div>
 
@@ -309,7 +354,7 @@ export default function IrsaliyelerPage() {
               </div>
               <div class="data-row">
                 <span class="data-label">Sipariş No:</span>
-                <span class="data-value">${irsaliye.siparis?.siparis_no || '-'}</span>
+                <span class="data-value">${siparis?.siparis_no || '-'}</span>
               </div>
             </div>
           </div>
@@ -318,15 +363,15 @@ export default function IrsaliyelerPage() {
             <div class="info-box" style="grid-column: 1 / -1; display: flex; justify-content: space-between;">
               <div>
                 <span class="data-label">Taşıyıcı / Şoför:</span>
-                <span class="data-value" style="margin-left: 10px;">${irsaliye.sofor_adi || '-'}</span>
+                <span class="data-value" style="margin-left: 10px;">${detayliIrsaliye.sofor_adi || '-'}</span>
               </div>
               <div>
                 <span class="data-label">Araç Plakası:</span>
-                <span class="data-value" style="margin-left: 10px;">${irsaliye.tir_plaka || '-'}</span>
+                <span class="data-value" style="margin-left: 10px;">${detayliIrsaliye.tir_plaka || '-'}</span>
               </div>
               <div>
                 <span class="data-label">Durum:</span>
-                <span class="data-value" style="margin-left: 10px;">${irsaliye.durum}</span>
+                <span class="data-value" style="margin-left: 10px;">${detayliIrsaliye.durum}</span>
               </div>
             </div>
           </div>
@@ -363,12 +408,12 @@ export default function IrsaliyelerPage() {
             </div>
             <div class="sign-box">
               <div class="sign-title">Taşıyıcı / Teslim Eden</div>
-              <div class="sign-name">${irsaliye.sofor_adi || 'Şoför Adı'}</div>
+              <div class="sign-name">${detayliIrsaliye.sofor_adi || 'Şoför Adı'}</div>
               <div class="sign-area">İmza</div>
             </div>
             <div class="sign-box">
               <div class="sign-title">Teslim Alan</div>
-              <div class="sign-name">${irsaliye.siparis?.musteri_adi || 'Müşteri'}</div>
+              <div class="sign-name">${siparis?.musteri_adi || 'Müşteri'}</div>
               <div class="sign-area">Kaşe / İmza / Tarih</div>
             </div>
           </div>
@@ -384,6 +429,10 @@ export default function IrsaliyelerPage() {
     `;
 
     const newWindow = window.open('', '_blank');
+    if (!newWindow) {
+      toast.error('Yazdırma penceresi açılamadı');
+      return;
+    }
     newWindow.document.write(htmlContent);
     newWindow.document.close();
 
@@ -394,10 +443,28 @@ export default function IrsaliyelerPage() {
     }, 400);
   };
 
-  const filtrelenmis = irsaliyeler.filter((i) =>
-    i.irsaliye_no.toLowerCase().includes(aramaMetni.toLowerCase()) ||
-    i.siparis?.siparis_no.toLowerCase().includes(aramaMetni.toLowerCase())
+  const filtreMetni = aramaMetni.trim().toLowerCase();
+  const kullanilabilirPlanlar = sevkiyatPlanlari.filter(
+    (plan) => !irsaliyeler.some((irsaliye) => irsaliye.sevkiyat_id === plan.id)
   );
+  const seciliPlan = planBul(formData.sevkiyat_id);
+  const seciliSiparis = siparisBul(formData.siparis_id);
+  const filtrelenmis = irsaliyeler
+    .map(detayliIrsaliyeOlustur)
+    .filter((irsaliye) => {
+      if (!filtreMetni) {
+        return true;
+      }
+
+      const alanlar = [
+        irsaliye.irsaliye_no,
+        irsaliye.siparis?.siparis_no,
+        irsaliye.siparis?.musteri_adi,
+        irsaliye.tir_plaka,
+      ];
+
+      return alanlar.some((alan) => (alan || '').toLowerCase().includes(filtreMetni));
+    });
 
   if (loading) {
     return (
@@ -469,7 +536,7 @@ export default function IrsaliyelerPage() {
                     </span>
                   </div>
                   <p className="text-slate-600 text-sm">
-                    {irsaliye.siparis?.musteri_adi} - {irsaliye.siparis?.siparis_no}
+                    {irsaliye.siparis?.musteri_adi || 'Müşteri bilgisi yok'} - {irsaliye.siparis?.siparis_no || `Sipariş #${irsaliye.siparis_id}`}
                   </p>
                 </div>
                 <button
@@ -522,7 +589,7 @@ export default function IrsaliyelerPage() {
                     </button>
                   )}
                   <button
-                    onClick={() => setDetayModal(irsaliye)}
+                    onClick={() => setDetayModal(detayliIrsaliyeOlustur(irsaliye))}
                     className="ml-auto px-4 py-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-semibold text-sm transition"
                   >
                     Detay
@@ -549,23 +616,65 @@ export default function IrsaliyelerPage() {
             </div>
 
             <div className="p-6 space-y-4">
+              <div className="flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <p>
+                  İrsaliye artık doğrudan siparişten değil, seçilmiş bir sevkiyat planından oluşturuluyor.
+                  Aynı sevkiyat planı için ikinci bir irsaliye seçilemez.
+                </p>
+              </div>
+
               <div>
                 <label className="block text-sm font-bold text-slate-600 uppercase mb-2">
-                  Sipariş * (Zorunlu)
+                  Sevkiyat Planı * (Zorunlu)
                 </label>
                 <select
-                  value={formData.siparis_id}
-                  onChange={(e) => setFormData({ ...formData, siparis_id: parseInt(e.target.value) || '' })}
+                  value={formData.sevkiyat_id}
+                  onChange={(e) => handlePlanSecimi(e.target.value)}
                   className="h-12 px-4 w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                 >
-                  <option value="">Sipariş Seçin</option>
-                  {siparisler.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.siparis_no} - {s.musteri_adi}
-                    </option>
-                  ))}
+                  <option value="">Sevkiyat Planı Seçin</option>
+                  {kullanilabilirPlanlar.map((plan) => {
+                    const siparis = siparisBul(plan.siparis_id);
+                    return (
+                      <option key={plan.id} value={plan.id}>
+                        #{plan.id} - {siparis?.siparis_no || `Sipariş #${plan.siparis_id}`} - {siparis?.musteri_adi || 'Müşteri bilgisi yok'}
+                      </option>
+                    );
+                  })}
                 </select>
+                {kullanilabilirPlanlar.length === 0 && (
+                  <p className="mt-2 text-sm text-slate-500">
+                    Kullanılabilir sevkiyat planı bulunmuyor. Önce yeni bir sevkiyat planı oluşturun veya mevcut irsaliyeleri kontrol edin.
+                  </p>
+                )}
               </div>
+
+              {seciliPlan && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="mb-3 text-sm font-bold text-slate-700">Seçili Plan Özeti</p>
+                  <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-bold uppercase text-slate-500">Sipariş</p>
+                      <p className="font-semibold text-slate-900">
+                        {seciliSiparis?.siparis_no || `Sipariş #${seciliPlan.siparis_id}`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold uppercase text-slate-500">Müşteri</p>
+                      <p className="font-semibold text-slate-900">{seciliSiparis?.musteri_adi || 'Müşteri bilgisi yok'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold uppercase text-slate-500">Yükleme Tarihi</p>
+                      <p className="font-semibold text-slate-900">{seciliPlan.yukleme_tarihi || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold uppercase text-slate-500">Durum</p>
+                      <p className="font-semibold text-slate-900">{seciliPlan.durum}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <input
@@ -654,7 +763,7 @@ export default function IrsaliyelerPage() {
                 </div>
                 <div>
                   <p className="text-slate-500 text-xs font-bold uppercase">Sipariş No</p>
-                  <p className="text-slate-900 font-semibold">{detayModal.siparis?.siparis_no}</p>
+                  <p className="text-slate-900 font-semibold">{detayModal.siparis?.siparis_no || `Sipariş #${detayModal.siparis_id}`}</p>
                 </div>
               </div>
 
@@ -663,11 +772,11 @@ export default function IrsaliyelerPage() {
                 <div className="space-y-2">
                   <p>
                     <span className="text-slate-500 text-xs font-bold">MÜŞTERİ:</span>{' '}
-                    <span className="text-slate-900">{detayModal.siparis?.musteri_adi}</span>
+                    <span className="text-slate-900">{detayModal.siparis?.musteri_adi || 'Müşteri bilgisi yok'}</span>
                   </p>
                   <p>
                     <span className="text-slate-500 text-xs font-bold">ADRES:</span>{' '}
-                    <span className="text-slate-900">{detayModal.siparis?.teslimat_adresi}</span>
+                    <span className="text-slate-900">{detayModal.siparis?.teslimat_adresi || '-'}</span>
                   </p>
                 </div>
               </div>

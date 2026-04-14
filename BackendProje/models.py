@@ -1,5 +1,16 @@
 from typing import Optional
-from sqlalchemy import String, Float, DateTime, Date, ForeignKey, Text, Boolean, JSON, Integer
+from sqlalchemy import (
+    String,
+    Float,
+    DateTime,
+    Date,
+    ForeignKey,
+    Text,
+    Boolean,
+    JSON,
+    Integer,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import date, datetime
 
@@ -413,6 +424,40 @@ class SevkiyatPlani(Base):
 
     # İlişkiler
     siparis: Mapped["Siparis"] = relationship("Siparis", back_populates="sevkiyat_plani")
+    kalemler: Mapped[list["SevkiyatKalemi"]] = relationship(
+        "SevkiyatKalemi", back_populates="sevkiyat",
+        cascade="all, delete-orphan",
+    )
+
+
+# ========================
+# SEVKİYAT KALEMİ
+# ========================
+
+class SevkiyatKalemi(Base):
+    __tablename__ = "sevkiyat_kalemleri"
+    __table_args__ = (
+        UniqueConstraint(
+            "sevkiyat_id",
+            "siparis_kalemi_id",
+            name="uq_sevkiyat_kalemi_plan_siparis_kalem",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    sevkiyat_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("sevkiyat_planlari.id"), nullable=False
+    )
+    siparis_kalemi_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("siparis_kalemleri.id"), nullable=False
+    )
+    urun_id: Mapped[int] = mapped_column(Integer, ForeignKey("urunler.id"), nullable=False)
+    miktar: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # İlişkiler
+    sevkiyat: Mapped["SevkiyatPlani"] = relationship("SevkiyatPlani", back_populates="kalemler")
+    siparis_kalemi: Mapped["SiparisKalemi"] = relationship("SiparisKalemi")
+    urun: Mapped["Urun"] = relationship("Urun")
 
 
 # ========================

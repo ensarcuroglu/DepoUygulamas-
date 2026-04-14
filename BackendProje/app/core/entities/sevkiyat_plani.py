@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, date
-from typing import Optional
+from typing import List, Optional
 
 
 class SevkiyatDurum:
@@ -29,6 +29,17 @@ class SevkiyatDurum:
 
 
 @dataclass
+class SevkiyatKalemi:
+    """Sevkiyat kalemi — sipariş kaleminden 1:1 kopyalanır (yüklenen ürün)."""
+
+    id: Optional[int] = None
+    sevkiyat_id: Optional[int] = None
+    siparis_kalemi_id: int = 0
+    urun_id: int = 0
+    miktar: int = 0
+
+
+@dataclass
 class SevkiyatPlani:
     """Sevkiyat planı domain entity."""
 
@@ -45,6 +56,7 @@ class SevkiyatPlani:
     notlar: str = ""
     olusturma_tarihi: datetime = field(default_factory=datetime.utcnow)
     guncelleme_tarihi: datetime = field(default_factory=datetime.utcnow)
+    kalemler: List[SevkiyatKalemi] = field(default_factory=list)
 
     # ── İş Kuralları ──
 

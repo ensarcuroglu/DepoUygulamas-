@@ -90,76 +90,23 @@ class TestSevkiyatPlaniDurumKisitlamasi:
 
 
 # ═══════════════════════════════════════════════════════
-# 2. İrsaliye stok çıkışı idempotency
-# ═══════════════════════════════════════════════════════
-
-
-class TestIrsaliyeStokIdempotency:
-
-    def test_ilk_irsaliyede_stok_cikisi_yapilir(self, irsaliye_olustur_uc_mock):
-        use_case, mocks = irsaliye_olustur_uc_mock
-        dto = IrsaliyeOlusturRequestDTO(siparis_id=1, irsaliye_tarihi=date(2026, 4, 13))
-
-        mocks["siparis_repo"].getir_id_ile.return_value = _make_siparis_entity()
-        mocks["sevkiyat_repo"].getir_id_ile.return_value = None
-        mocks["hareket_repo"].siparis_icin_cikis_var_mi.return_value = False
-        mocks["irsaliye_repo"].sonraki_irsaliye_no.return_value = "IRS-2026-0001"
-        mocks["irsaliye_repo"].olustur.return_value = _make_irsaliye_entity()
-
-        use_case.execute(dto, kullanici_id=7)
-
-        mocks["stok_cikis_service"].siparis_bazli_stok_cikisi.assert_called_once()
-
-    def test_mukerrer_irsaliyede_stok_cikisi_yapilmaz(self, irsaliye_olustur_uc_mock):
-        use_case, mocks = irsaliye_olustur_uc_mock
-        dto = IrsaliyeOlusturRequestDTO(siparis_id=1, irsaliye_tarihi=date(2026, 4, 13))
-
-        mocks["siparis_repo"].getir_id_ile.return_value = _make_siparis_entity()
-        mocks["sevkiyat_repo"].getir_id_ile.return_value = None
-        mocks["hareket_repo"].siparis_icin_cikis_var_mi.return_value = True
-        mocks["irsaliye_repo"].sonraki_irsaliye_no.return_value = "IRS-2026-0002"
-        mocks["irsaliye_repo"].olustur.return_value = _make_irsaliye_entity()
-
-        use_case.execute(dto, kullanici_id=7)
-
-        mocks["stok_cikis_service"].siparis_bazli_stok_cikisi.assert_not_called()
-
-    def test_stok_cikisinda_irsaliye_no_gonderilir(self, irsaliye_olustur_uc_mock):
-        use_case, mocks = irsaliye_olustur_uc_mock
-        dto = IrsaliyeOlusturRequestDTO(siparis_id=1, irsaliye_tarihi=date(2026, 4, 13))
-
-        mocks["siparis_repo"].getir_id_ile.return_value = _make_siparis_entity()
-        mocks["sevkiyat_repo"].getir_id_ile.return_value = None
-        mocks["hareket_repo"].siparis_icin_cikis_var_mi.return_value = False
-        mocks["irsaliye_repo"].sonraki_irsaliye_no.return_value = "IRS-2026-0001"
-        mocks["irsaliye_repo"].olustur.return_value = _make_irsaliye_entity()
-
-        use_case.execute(dto, kullanici_id=7)
-
-        cagri = mocks["stok_cikis_service"].siparis_bazli_stok_cikisi.call_args
-        assert cagri.kwargs["irsaliye_no"] == "IRS-2026-0001"
-
-
-# ═══════════════════════════════════════════════════════
-# 3. İrsaliye sevkiyat_id doğrulaması
+# 2. İrsaliye sevkiyat_id doğrulaması
 # ═══════════════════════════════════════════════════════
 
 
 class TestIrsaliyeSevkiyatIdDogrulama:
 
-    def test_sevkiyat_id_none_ise_dogrulama_atlanir(self, irsaliye_olustur_uc_mock):
+    def test_sevkiyat_id_none_ise_reddedilir(self, irsaliye_olustur_uc_mock):
         use_case, mocks = irsaliye_olustur_uc_mock
         dto = IrsaliyeOlusturRequestDTO(
             siparis_id=1, sevkiyat_id=None, irsaliye_tarihi=date(2026, 4, 13)
         )
 
-        mocks["siparis_repo"].getir_id_ile.return_value = _make_siparis_entity()
-        mocks["hareket_repo"].siparis_icin_cikis_var_mi.return_value = True
-        mocks["irsaliye_repo"].sonraki_irsaliye_no.return_value = "IRS-2026-0001"
-        mocks["irsaliye_repo"].olustur.return_value = _make_irsaliye_entity()
+        with pytest.raises(GecersizIslemError, match="sevkiyat plan"):
+            use_case.execute(dto, kullanici_id=7)
 
-        result = use_case.execute(dto, kullanici_id=7)
-        assert result.id == 100
+        mocks["siparis_repo"].getir_id_ile.assert_not_called()
+        mocks["irsaliye_repo"].olustur.assert_not_called()
 
     def test_var_olmayan_sevkiyat_id_reddedilir(self, irsaliye_olustur_uc_mock):
         use_case, mocks = irsaliye_olustur_uc_mock
@@ -193,7 +140,7 @@ class TestIrsaliyeSevkiyatIdDogrulama:
 
         mocks["siparis_repo"].getir_id_ile.return_value = _make_siparis_entity(siparis_id=1)
         mocks["sevkiyat_repo"].getir_id_ile.return_value = _make_sevkiyat_entity(siparis_id=1)
-        mocks["hareket_repo"].siparis_icin_cikis_var_mi.return_value = True
+        mocks["irsaliye_repo"].sevkiyat_icin_irsaliye_var_mi.return_value = False
         mocks["irsaliye_repo"].sonraki_irsaliye_no.return_value = "IRS-2026-0001"
         mocks["irsaliye_repo"].olustur.return_value = _make_irsaliye_entity()
 

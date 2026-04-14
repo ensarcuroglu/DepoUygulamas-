@@ -11,16 +11,11 @@
 from __future__ import annotations
 from typing import List, Optional
 
-from sqlalchemy.orm import Session
-
 from app.core.repositories.irsaliye_repository import IIrsaliyeRepository
 from app.core.repositories.siparis_repository import ISiparisRepository
 from app.core.repositories.sevkiyat_plani_repository import ISevkiyatPlaniRepository
-from app.core.repositories.stok_hareketi_repository import IStokHareketiRepository
 from app.core.repositories.sistem_log_repository import ISistemLogRepository
-from app.core.services.stok_cikis_domain_service import StokCikisDomainService
 from app.core.entities.irsaliye import Irsaliye, IrsaliyeDurum
-from app.core.entities.sevkiyat_plani import SevkiyatDurum
 from app.core.entities.sistem_log import SistemLog, IslemTipi
 from app.core.exceptions import KayitBulunamadiError, GecersizDurumGecisiError, GecersizIslemError
 from app.application.dto.irsaliye_dto import (
@@ -78,13 +73,14 @@ class IrsaliyeGetirUseCase:
 
 class IrsaliyeOlusturUseCase:
     """
-    Yeni irsaliye oluşturur.
+    Yeni irsaliye oluşturur (yalnızca evrak kaydı).
 
     İş kuralları:
     - Sipariş varlığı kontrol edilir.
-    - Otomatik irsaliye numarası atanır. Durum her zaman Taslak başlar.
-    - Sevkiyat planı yoksa veya henüz yüklemeye başlanmadıysa stok çıkışı yapılır.
-    - Oluşturma logu yazılır.
+    - sevkiyat_id verilmişse: plan sipariş ile uyumlu olmalı ve aynı sevkiyata
+      başka irsaliye bağlı olmamalı.
+    - Otomatik irsaliye numarası atanır, durum her zaman Taslak başlar.
+    - Stok çıkışı bu use case'den kaldırıldı (YuklemeOnaylaUseCase sorumlusu).
     """
 
     def __init__(
@@ -92,24 +88,23 @@ class IrsaliyeOlusturUseCase:
         irsaliye_repo: IIrsaliyeRepository,
         siparis_repo: ISiparisRepository,
         sevkiyat_repo: ISevkiyatPlaniRepository,
-        hareket_repo: IStokHareketiRepository,
         log_repo: ISistemLogRepository,
-        stok_cikis_service: StokCikisDomainService,
-        db: Session,
     ):
         self._irsaliye_repo = irsaliye_repo
         self._siparis_repo = siparis_repo
         self._sevkiyat_repo = sevkiyat_repo
-        self._hareket_repo = hareket_repo
         self._log_repo = log_repo
-        self._stok_cikis = stok_cikis_service
-        self._db = db
 
     def execute(
         self,
         dto: IrsaliyeOlusturRequestDTO,
         kullanici_id: int,
     ) -> IrsaliyeResponseDTO:
+        if dto.sevkiyat_id is None:
+            raise GecersizIslemError(
+                "İrsaliye oluşturmak için bir sevkiyat planı seçilmelidir."
+            )
+
         siparis = self._siparis_repo.getir_id_ile(dto.siparis_id)
         if not siparis:
             raise KayitBulunamadiError("Sipariş", dto.siparis_id)
@@ -128,45 +123,21 @@ class IrsaliyeOlusturUseCase:
             sofor_adi=dto.sofor_adi,
         )
 
-        try:
-            kaydedilen = self._irsaliye_repo.olustur(irsaliye, auto_commit=False)
+        kaydedilen = self._irsaliye_repo.olustur(irsaliye)
 
-            self._log_repo.olustur(
-                SistemLog.olustur(
-                    kullanici_id=kullanici_id,
-                    islem_tipi=IslemTipi.CREATE,
-                    modul="İrsaliye Yönetimi",
-                    detay=f"Yeni irsaliye oluşturuldu: {irsaliye_no}",
-                ),
-                auto_commit=False,
+        self._log_repo.olustur(
+            SistemLog.olustur(
+                kullanici_id=kullanici_id,
+                islem_tipi=IslemTipi.CREATE,
+                modul="İrsaliye Yönetimi",
+                detay=f"Yeni irsaliye oluşturuldu: {irsaliye_no}",
             )
+        )
 
-            if not self._stok_cikisi_yapildi_mi(siparis.siparis_no) and siparis.kalemler:
-                self._stok_cikis.siparis_bazli_stok_cikisi(
-                    kalemler=siparis.kalemler,
-                    siparis_no=siparis.siparis_no,
-                    kullanici_id=kullanici_id,
-                    tir_plaka=dto.tir_plaka,
-                    irsaliye_no=irsaliye_no,
-                    aciklama_prefix=f"İrsaliye çıkışı - {irsaliye_no}",
-                    modul="İrsaliye Yönetimi",
-                )
+        return IrsaliyeResponseDTO.from_entity(kaydedilen)
 
-            self._db.commit()
-            return IrsaliyeResponseDTO.from_entity(kaydedilen)
-
-        except Exception:
-            self._db.rollback()
-            raise
-
-    def _stok_cikisi_yapildi_mi(self, siparis_no: str) -> bool:
-        """Sipariş için daha önce stok çıkışı yapılıp yapılmadığını kontrol eder."""
-        return self._hareket_repo.siparis_icin_cikis_var_mi(siparis_no)
-
-    def _sevkiyat_id_dogrula(self, sevkiyat_id: int | None, siparis_id: int) -> None:
-        """sevkiyat_id varsa planın varlığını ve sipariş uyumunu doğrular."""
-        if sevkiyat_id is None:
-            return
+    def _sevkiyat_id_dogrula(self, sevkiyat_id: int, siparis_id: int) -> None:
+        """Plan varlığı, sipariş uyumu ve mükerrer irsaliye kontrolü yapar."""
         plan = self._sevkiyat_repo.getir_id_ile(sevkiyat_id)
         if not plan:
             raise KayitBulunamadiError("Sevkiyat Planı", sevkiyat_id)
@@ -174,6 +145,11 @@ class IrsaliyeOlusturUseCase:
             raise GecersizIslemError(
                 f"Sevkiyat planı (ID: {sevkiyat_id}) farklı bir siparişe ait. "
                 f"Beklenen sipariş ID: {siparis_id}, bulunan: {plan.siparis_id}"
+            )
+        if self._irsaliye_repo.sevkiyat_icin_irsaliye_var_mi(sevkiyat_id):
+            raise GecersizIslemError(
+                f"Sevkiyat planına (ID: {sevkiyat_id}) zaten bir irsaliye bağlı. "
+                "Aynı sevkiyata birden fazla irsaliye oluşturulamaz."
             )
 
 

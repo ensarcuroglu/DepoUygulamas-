@@ -4,7 +4,11 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.core.entities.sevkiyat_plani import SevkiyatPlani
 from app.core.repositories.sevkiyat_plani_repository import ISevkiyatPlaniRepository
-from app.infrastructure.persistence.mappers import sevkiyat_plani_to_entity, sevkiyat_plani_to_orm
+from app.infrastructure.persistence.mappers import (
+    sevkiyat_plani_to_entity,
+    sevkiyat_plani_to_orm,
+    sevkiyat_kalemi_to_orm,
+)
 from models import SevkiyatPlani as SevkiyatPlaniORM
 
 
@@ -21,6 +25,7 @@ class SqlAlchemySevkiyatPlaniRepository(ISevkiyatPlaniRepository):
     ) -> List[SevkiyatPlani]:
         query = self._db.query(SevkiyatPlaniORM).options(
             joinedload(SevkiyatPlaniORM.siparis),
+            joinedload(SevkiyatPlaniORM.kalemler),
         )
 
         if durum:
@@ -38,7 +43,21 @@ class SqlAlchemySevkiyatPlaniRepository(ISevkiyatPlaniRepository):
     def getir_id_ile(self, plan_id: int) -> Optional[SevkiyatPlani]:
         orm = self._db.query(SevkiyatPlaniORM).options(
             joinedload(SevkiyatPlaniORM.siparis),
+            joinedload(SevkiyatPlaniORM.kalemler),
         ).filter(SevkiyatPlaniORM.id == plan_id).first()
+        return sevkiyat_plani_to_entity(orm) if orm else None
+
+    def getir_id_ile_kilitli(self, plan_id: int) -> Optional[SevkiyatPlani]:
+        orm = (
+            self._db.query(SevkiyatPlaniORM)
+            .options(
+                joinedload(SevkiyatPlaniORM.siparis),
+                joinedload(SevkiyatPlaniORM.kalemler),
+            )
+            .filter(SevkiyatPlaniORM.id == plan_id)
+            .with_for_update()
+            .first()
+        )
         return sevkiyat_plani_to_entity(orm) if orm else None
 
     def getir_siparis_id_ile(self, siparis_id: int) -> Optional[SevkiyatPlani]:
@@ -72,6 +91,11 @@ class SqlAlchemySevkiyatPlaniRepository(ISevkiyatPlaniRepository):
         orm.durum = plan.durum
         orm.notlar = plan.notlar
         orm.guncelleme_tarihi = plan.guncelleme_tarihi
+
+        yeni_kalemler = [k for k in plan.kalemler if k.id is None]
+        for kalem in yeni_kalemler:
+            orm.kalemler.append(sevkiyat_kalemi_to_orm(kalem))
+
         self._db.flush()
         if auto_commit:
             self._db.commit()

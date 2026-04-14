@@ -21,6 +21,11 @@ class ISevkiyatPlaniRepository(ABC):
         ...
 
     @abstractmethod
+    def getir_id_ile_kilitli(self, plan_id: int) -> Optional[SevkiyatPlani]:
+        """Sevkiyat planını SELECT FOR UPDATE ile kilitleyerek getirir."""
+        ...
+
+    @abstractmethod
     def olustur(self, plan: SevkiyatPlani, auto_commit: bool = True) -> SevkiyatPlani:
         ...
 

@@ -15,6 +15,7 @@ from app.infrastructure.di.container import (
     get_sevkiyat_olustur_uc,
     get_sevkiyat_guncelle_uc,
     get_sevkiyat_sil_uc,
+    get_yukleme_onayla_uc,
 )
 
 from app.application.dto import (
@@ -29,6 +30,7 @@ from app.application.use_cases import (
     SevkiyatPlaniOlusturUseCase,
     SevkiyatPlaniGuncelleUseCase,
     SevkiyatPlaniSilUseCase,
+    YuklemeOnaylaUseCase,
 )
 
 router = APIRouter(prefix="/api/sevkiyat-planlama", tags=["Sevkiyat Planlama"])
@@ -80,6 +82,16 @@ def sevkiyat_plani_guncelle(
 ):
     """Sevkiyat planını günceller. Durum makinesi doğrulaması uygulanır."""
     return uc.execute(plan_id, plan_update, kullanici_id=current_user.id)
+
+
+@router.post("/{plan_id}/yukleme-onayla", response_model=SevkiyatPlaniResponseDTO)
+def sevkiyat_yukleme_onayla(
+    plan_id: int,
+    current_user: Kullanici = Depends(require_role("admin", "lojistik")),
+    uc: YuklemeOnaylaUseCase = Depends(get_yukleme_onayla_uc),
+):
+    """Sevkiyat yüklemesini onaylar: sevkiyat kalemlerini oluşturur ve stok çıkışı yapar."""
+    return uc.execute(plan_id, kullanici_id=current_user.id)
 
 
 @router.delete("/{plan_id}")

@@ -158,6 +158,7 @@ from app.infrastructure.di.modules.siparis_lojistik_di import (  # noqa: F401
     get_sevkiyat_olustur_uc,
     get_sevkiyat_guncelle_uc,
     get_sevkiyat_sil_uc,
+    get_yukleme_onayla_uc,
     get_mal_kabul_irsaliye_listele_uc,
     get_mal_kabul_irsaliye_getir_uc,
     get_mal_kabul_irsaliye_olustur_uc,

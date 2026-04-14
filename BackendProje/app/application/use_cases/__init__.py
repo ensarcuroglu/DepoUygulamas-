@@ -105,6 +105,7 @@ from .sevkiyat_plani_use_cases import (
     SevkiyatPlaniOlusturUseCase,
     SevkiyatPlaniGuncelleUseCase,
     SevkiyatPlaniSilUseCase,
+    YuklemeOnaylaUseCase,
 )
 from .stok_sayim_use_cases import (
     StokSayimListeleUseCase,
@@ -209,7 +210,7 @@ __all__ = [
     # Sevkiyat Planı
     "SevkiyatPlaniListeleUseCase", "SevkiyatPlaniGetirUseCase",
     "SevkiyatPlaniOlusturUseCase", "SevkiyatPlaniGuncelleUseCase",
-    "SevkiyatPlaniSilUseCase",
+    "SevkiyatPlaniSilUseCase", "YuklemeOnaylaUseCase",
     # Stok Sayım
     "StokSayimListeleUseCase", "StokSayimGetirUseCase", "StokSayimBaslatUseCase",
     "StokSayimKalemKaydetUseCase", "StokSayimVaryansHesaplaUseCase",

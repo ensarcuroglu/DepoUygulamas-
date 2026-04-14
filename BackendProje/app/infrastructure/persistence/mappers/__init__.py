@@ -57,6 +57,8 @@ from app.infrastructure.persistence.mappers.siparis_lojistik_mapper import (  # 
     siparis_to_orm,
     sevkiyat_plani_to_entity,
     sevkiyat_plani_to_orm,
+    sevkiyat_kalemi_to_entity,
+    sevkiyat_kalemi_to_orm,
     irsaliye_to_entity,
     irsaliye_to_orm,
 )

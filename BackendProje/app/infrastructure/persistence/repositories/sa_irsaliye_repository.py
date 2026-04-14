@@ -90,3 +90,11 @@ class SqlAlchemyIrsaliyeRepository(IIrsaliyeRepository):
             yeni_no = 1
 
         return f"{prefix}{yeni_no:04d}"
+
+    def sevkiyat_icin_irsaliye_var_mi(self, sevkiyat_id: int) -> bool:
+        subq = (
+            self._db.query(IrsaliyeORM)
+            .filter(IrsaliyeORM.sevkiyat_id == sevkiyat_id)
+            .exists()
+        )
+        return self._db.query(subq).scalar()

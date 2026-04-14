@@ -10,20 +10,20 @@ import pytest
 from unittest.mock import MagicMock
 
 from app.application.use_cases.irsaliye_use_cases import IrsaliyeOlusturUseCase, IrsaliyeGuncelleUseCase
-from app.application.use_cases.sevkiyat_plani_use_cases import SevkiyatPlaniGuncelleUseCase
+from app.application.use_cases.sevkiyat_plani_use_cases import (
+    SevkiyatPlaniGuncelleUseCase,
+    YuklemeOnaylaUseCase,
+)
 
 
 @pytest.fixture
 def irsaliye_olustur_uc_mock():
     """IrsaliyeOlusturUseCase ile mock bağımlılık seti."""
     mocks = {
-        "irsaliye_repo":      MagicMock(),
-        "siparis_repo":       MagicMock(),
-        "sevkiyat_repo":      MagicMock(),
-        "hareket_repo":       MagicMock(),
-        "log_repo":           MagicMock(),
-        "stok_cikis_service": MagicMock(),
-        "db":                 MagicMock(),
+        "irsaliye_repo": MagicMock(),
+        "siparis_repo":  MagicMock(),
+        "sevkiyat_repo": MagicMock(),
+        "log_repo":      MagicMock(),
     }
     return IrsaliyeOlusturUseCase(**mocks), mocks
 
@@ -42,10 +42,22 @@ def irsaliye_guncelle_uc_mock():
 def sevkiyat_guncelle_uc_mock():
     """SevkiyatPlaniGuncelleUseCase ile mock bağımlılık seti."""
     mocks = {
+        "sevkiyat_repo": MagicMock(),
+        "log_repo":      MagicMock(),
+    }
+    return SevkiyatPlaniGuncelleUseCase(**mocks), mocks
+
+
+@pytest.fixture
+def yukleme_onayla_uc_mock():
+    """YuklemeOnaylaUseCase ile mock bağımlılık seti."""
+    mocks = {
         "sevkiyat_repo":      MagicMock(),
         "siparis_repo":       MagicMock(),
+        "hareket_repo":       MagicMock(),
         "log_repo":           MagicMock(),
         "stok_cikis_service": MagicMock(),
         "db":                 MagicMock(),
     }
-    return SevkiyatPlaniGuncelleUseCase(**mocks), mocks
+    mocks["hareket_repo"].siparis_icin_cikis_var_mi.return_value = False
+    return YuklemeOnaylaUseCase(**mocks), mocks

@@ -4,7 +4,7 @@ Sevkiyat Planı veri transfer nesneleri (DTO).
 
 from __future__ import annotations
 from datetime import datetime, date
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.entities.sevkiyat_plani import SevkiyatDurum
@@ -74,6 +74,28 @@ class SevkiyatPlaniGuncelleRequestDTO(BaseModel):
 # YANIT (RESPONSE) DTO'LARI
 # ─────────────────────────────────────────
 
+class SevkiyatKalemiResponseDTO(BaseModel):
+    """Sevkiyat kalemi response — hangi sipariş kaleminden ne kadar yüklendi."""
+
+    id: int
+    sevkiyat_id: int
+    siparis_kalemi_id: int
+    urun_id: int
+    miktar: int
+
+    model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_entity(cls, entity) -> "SevkiyatKalemiResponseDTO":
+        return cls(
+            id=entity.id,
+            sevkiyat_id=entity.sevkiyat_id,
+            siparis_kalemi_id=entity.siparis_kalemi_id,
+            urun_id=entity.urun_id,
+            miktar=entity.miktar,
+        )
+
+
 class SevkiyatPlaniResponseDTO(BaseModel):
     """Sevkiyat planı response DTO."""
 
@@ -90,11 +112,16 @@ class SevkiyatPlaniResponseDTO(BaseModel):
     notlar: str
     olusturma_tarihi: datetime
     guncelleme_tarihi: datetime
+    kalemler: List[SevkiyatKalemiResponseDTO] = []
 
     model_config = {"from_attributes": True}
 
     @classmethod
     def from_entity(cls, entity) -> "SevkiyatPlaniResponseDTO":
+        kalemler = [
+            SevkiyatKalemiResponseDTO.from_entity(k)
+            for k in getattr(entity, "kalemler", [])
+        ]
         return cls(
             id=entity.id,
             siparis_id=entity.siparis_id,
@@ -109,4 +136,5 @@ class SevkiyatPlaniResponseDTO(BaseModel):
             notlar=entity.notlar,
             olusturma_tarihi=entity.olusturma_tarihi,
             guncelleme_tarihi=entity.guncelleme_tarihi,
+            kalemler=kalemler,
         )
