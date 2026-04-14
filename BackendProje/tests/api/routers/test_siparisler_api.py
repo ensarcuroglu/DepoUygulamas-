@@ -208,12 +208,15 @@ class TestSiparisDurumGecisi:
     """
 
     @pytest.mark.parametrize("baslangic,hedef,beklenen", [
-        # --- Geçerli geçişler ---
+        # --- Geçerli geçişler (Manuel yapılabilenler) ---
         ("Bekleme",      "Hazirlaniyor",  200),
         ("Bekleme",      "Iptal",         200),
-        ("Hazirlaniyor", "YolaCikti",     200),
         ("Hazirlaniyor", "Iptal",         200),
-        ("YolaCikti",    "TeslimEdildi",  200),
+        
+        # --- Sistem Güdümlü Geçişler (Manuel yapılamaz, 400 dönmeli) ---
+        ("Hazirlaniyor", "YolaCikti",     400), # BU SATIR DEĞİŞTİ
+        ("YolaCikti",    "TeslimEdildi",  400), # BU SATIR DEĞİŞTİ
+        
         # --- Geçersiz geçişler ---
         ("Bekleme",      "TeslimEdildi",  400),  # Atlama
         ("Bekleme",      "YolaCikti",     400),  # Atlama
