@@ -181,11 +181,36 @@ class SiparisGuncelleUseCase:
 
         # 2. Durum geçiş doğrulaması (sadece durum güncelleniyorsa)
         if dto.durum and dto.durum != eski_durum:
+            # Faz 3: Hazirlaniyor ve sonrası sistem güdümlüdür; manuel olarak
+            # yalnızca Iptal'e geçiş verilebilir. İleri durumlar (YolaCikti,
+            # TeslimEdildi) sevkiyat lifecycle olaylarıyla yazılır.
+            sistem_gudumlu_durumlar = {
+                SiparisDurum.HAZIRLANIYOR,
+                SiparisDurum.YOLA_CIKTI,
+                SiparisDurum.TESLIM_EDILDI,
+            }
+            if (
+                eski_durum in sistem_gudumlu_durumlar
+                and dto.durum != SiparisDurum.IPTAL
+            ):
+                raise GecersizIslemError(
+                    "Sipariş bu durumdayken manuel durum değişikliği yapılamaz; "
+                    "ilerletme sevkiyat lifecycle olayları ile yürür."
+                )
             if not SiparisDurum.gecis_gecerli_mi(eski_durum, dto.durum):
                 raise GecersizDurumGecisiError("Sipariş", eski_durum, dto.durum)
             siparis.durum = dto.durum
 
-        # 3. Diğer alanları güncelle
+        # 3. Teslimat meta alanları — ileri durumlarda kilitli.
+        teslimat_meta_denemesi = any(
+            v is not None for v in (dto.musteri_adi, dto.teslimat_adresi, dto.teslimat_tarihi)
+        )
+        if teslimat_meta_denemesi and not siparis.teslimat_meta_duzenlenebilir_mi():
+            raise GecersizIslemError(
+                f"Sipariş '{siparis.durum}' durumundayken müşteri, adres veya "
+                "teslimat tarihi değiştirilemez."
+            )
+
         if dto.musteri_adi is not None:
             siparis.musteri_adi = dto.musteri_adi
         if dto.teslimat_adresi is not None:
@@ -194,8 +219,6 @@ class SiparisGuncelleUseCase:
             siparis.teslimat_tarihi = dto.teslimat_tarihi
         if dto.notlar is not None:
             siparis.notlar = dto.notlar
-        if dto.aktif is not None:
-            siparis.aktif = dto.aktif
 
         siparis.guncelleme_tarihi = datetime.utcnow()
 

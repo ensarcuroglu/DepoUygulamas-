@@ -5,6 +5,7 @@ Sevkiyat Planı veri transfer nesneleri (DTO).
 from __future__ import annotations
 from datetime import datetime, date
 from typing import List, Optional
+import re
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.entities.sevkiyat_plani import SevkiyatDurum
@@ -16,10 +17,20 @@ _IZINLI_DURUMLAR = {
     SevkiyatDurum.TESLIM_EDILDI,
 }
 
+_SAAT_REGEX = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+
 
 def _dogrula_durum(v: str | None) -> str | None:
     if v is not None and v not in _IZINLI_DURUMLAR:
         raise ValueError(f"Geçersiz durum: '{v}'. İzin verilen: {_IZINLI_DURUMLAR}")
+    return v
+
+
+def _dogrula_saat(v: Optional[str]) -> Optional[str]:
+    if v is None or v == "":
+        return v
+    if not _SAAT_REGEX.match(v):
+        raise ValueError(f"Geçersiz saat formatı: '{v}'. Beklenen format: HH:MM (24 saat).")
     return v
 
 
@@ -35,7 +46,7 @@ class SevkiyatPlaniOlusturRequestDTO(BaseModel):
     sofor_adi: Optional[str] = Field(None, max_length=100)
     sofor_telefon: Optional[str] = Field(None, max_length=20)
     depo_kapi: Optional[str] = Field(None, max_length=20)
-    yukleme_tarihi: Optional[date] = None
+    yukleme_tarihi: date = Field(..., description="Planlanan yükleme tarihi (zorunlu).")
     cikis_saati: Optional[str] = Field(None, max_length=10)
     varis_saati: Optional[str] = Field(None, max_length=10)
     durum: str = Field(default=SevkiyatDurum.PLANLANDI, max_length=20)
@@ -49,6 +60,11 @@ class SevkiyatPlaniOlusturRequestDTO(BaseModel):
                 f"Sevkiyat planı yalnızca '{SevkiyatDurum.PLANLANDI}' durumunda oluşturulabilir."
             )
         return v
+
+    @field_validator("cikis_saati", "varis_saati")
+    @classmethod
+    def saat_formati(cls, v: Optional[str]) -> Optional[str]:
+        return _dogrula_saat(v)
 
 
 class SevkiyatPlaniGuncelleRequestDTO(BaseModel):
@@ -68,6 +84,11 @@ class SevkiyatPlaniGuncelleRequestDTO(BaseModel):
     @classmethod
     def gecerli_durum(cls, v: Optional[str]) -> Optional[str]:
         return _dogrula_durum(v)
+
+    @field_validator("cikis_saati", "varis_saati")
+    @classmethod
+    def saat_formati(cls, v: Optional[str]) -> Optional[str]:
+        return _dogrula_saat(v)
 
 
 # ─────────────────────────────────────────

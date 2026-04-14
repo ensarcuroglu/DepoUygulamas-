@@ -85,3 +85,11 @@ class SevkiyatPlani:
 
     def teslim_edildi_mi(self) -> bool:
         return self.durum == SevkiyatDurum.TESLIM_EDILDI
+
+    def meta_duzenlenebilir_mi(self) -> bool:
+        """Plaka, şoför, kapı, tarih, saat gibi meta alanlar değiştirilebilir mi?"""
+        return self.durum not in (SevkiyatDurum.YOLDA, SevkiyatDurum.TESLIM_EDILDI)
+
+    def tamamen_kilitli_mi(self) -> bool:
+        """Teslim edildikten sonra hiçbir alan değiştirilemez."""
+        return self.durum == SevkiyatDurum.TESLIM_EDILDI

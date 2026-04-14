@@ -9,7 +9,9 @@ Kapsam:
 - Stok hareketine irsaliye_no yazılması
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+
+_GELECEK = date.today() + timedelta(days=7)
 from unittest.mock import MagicMock, call
 
 import pytest
@@ -71,12 +73,13 @@ class TestSevkiyatPlaniDurumKisitlamasi:
     def test_planlandi_durumu_kabul_edilir(self):
         dto = SevkiyatPlaniOlusturRequestDTO(
             siparis_id=1,
+            yukleme_tarihi=_GELECEK,
             durum=SevkiyatDurum.PLANLANDI,
         )
         assert dto.durum == SevkiyatDurum.PLANLANDI
 
     def test_varsayilan_durum_planlandi(self):
-        dto = SevkiyatPlaniOlusturRequestDTO(siparis_id=1)
+        dto = SevkiyatPlaniOlusturRequestDTO(siparis_id=1, yukleme_tarihi=_GELECEK)
         assert dto.durum == SevkiyatDurum.PLANLANDI
 
     @pytest.mark.parametrize("durum", [
@@ -86,7 +89,7 @@ class TestSevkiyatPlaniDurumKisitlamasi:
     ])
     def test_planlandi_disindaki_durumlar_reddedilir(self, durum):
         with pytest.raises(ValueError, match="yalnızca.*Planlandi"):
-            SevkiyatPlaniOlusturRequestDTO(siparis_id=1, durum=durum)
+            SevkiyatPlaniOlusturRequestDTO(siparis_id=1, yukleme_tarihi=_GELECEK, durum=durum)
 
 
 # ═══════════════════════════════════════════════════════

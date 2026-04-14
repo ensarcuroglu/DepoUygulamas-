@@ -299,7 +299,7 @@ class TestSevkiyatDTOSinirDegerleri:
 
     def test_yalnizca_planlandi_durumu_kabul_edilir(self):
         """Oluşturmada yalnızca Planlandi durumu kabul edilmeli."""
-        dto = SevkiyatPlaniOlusturRequestDTO(siparis_id=1, durum="Planlandi")
+        dto = SevkiyatPlaniOlusturRequestDTO(siparis_id=1, yukleme_tarihi=_GELECEK, durum="Planlandi")
         assert dto.durum == "Planlandi"
 
     @pytest.mark.parametrize("durum", ["Yukleniyor", "Yolda", "TeslimEdildi"])
@@ -310,7 +310,7 @@ class TestSevkiyatDTOSinirDegerleri:
 
     def test_opsiyonel_alanlar_none_gecerli(self):
         """Opsiyonel alanların hepsi None olabilir."""
-        dto = SevkiyatPlaniOlusturRequestDTO(siparis_id=1)
+        dto = SevkiyatPlaniOlusturRequestDTO(siparis_id=1, yukleme_tarihi=_GELECEK)
         assert dto.tir_plaka is None
         assert dto.sofor_adi is None
-        assert dto.yukleme_tarihi is None
+        assert dto.yukleme_tarihi == _GELECEK

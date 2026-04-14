@@ -46,7 +46,10 @@
       "Bash(python -c ':*)",
       "Bash(npm run:*)",
       "Bash(iconv -f UTF-16LE -t UTF-8 '/mnt/d/Ensar Dosya/DepoUygulaması/BackendProje/pyright-hatalari.log')",
-      "Bash(./.venv/Scripts/python.exe -m pytest tests/unit --tb=short)"
+      "Bash(./.venv/Scripts/python.exe -m pytest tests/unit --tb=short)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/unit/ -x --tb=short)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/unit/use_cases/test_cikis_akisi_faz3.py)",
+      "Bash(python -m pytest tests/unit -x --tb=short -q)"
     ]
   }
 }

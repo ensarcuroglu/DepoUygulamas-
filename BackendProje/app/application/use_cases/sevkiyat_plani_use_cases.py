@@ -85,10 +85,12 @@ class SevkiyatPlaniOlusturUseCase:
         sevkiyat_repo: ISevkiyatPlaniRepository,
         siparis_repo: ISiparisRepository,
         log_repo: ISistemLogRepository,
+        durum_orchestrator: SiparisDurumOrchestrator,
     ):
         self._repo = sevkiyat_repo
         self._siparis_repo = siparis_repo
         self._log_repo = log_repo
+        self._orchestrator = durum_orchestrator
 
     def execute(
         self,
@@ -113,6 +115,8 @@ class SevkiyatPlaniOlusturUseCase:
         )
 
         kaydedilen = self._repo.olustur(plan)
+
+        self._orchestrator.sevkiyat_planlandi(dto.siparis_id)
 
         self._log_repo.olustur(
             SistemLog.olustur(
@@ -145,9 +149,11 @@ class SevkiyatPlaniGuncelleUseCase:
         self,
         sevkiyat_repo: ISevkiyatPlaniRepository,
         log_repo: ISistemLogRepository,
+        durum_orchestrator: SiparisDurumOrchestrator,
     ):
         self._repo = sevkiyat_repo
         self._log_repo = log_repo
+        self._orchestrator = durum_orchestrator
 
     def execute(
         self,
@@ -160,6 +166,25 @@ class SevkiyatPlaniGuncelleUseCase:
             raise KayitBulunamadiError("Sevkiyat Planı", plan_id)
 
         eski_durum = plan.durum
+
+        meta_alan_denemesi = any(
+            v is not None for v in (
+                dto.tir_plaka, dto.sofor_adi, dto.sofor_telefon,
+                dto.depo_kapi, dto.yukleme_tarihi, dto.cikis_saati,
+                dto.varis_saati,
+            )
+        )
+        notlar_denemesi = dto.notlar is not None
+
+        if plan.tamamen_kilitli_mi() and (meta_alan_denemesi or notlar_denemesi):
+            raise GecersizIslemError(
+                "Teslim edilmiş sevkiyat planında hiçbir alan değiştirilemez."
+            )
+        if meta_alan_denemesi and not plan.meta_duzenlenebilir_mi():
+            raise GecersizIslemError(
+                f"Sevkiyat '{plan.durum}' durumundayken plaka, şoför, kapı, "
+                "tarih veya saat alanları değiştirilemez."
+            )
 
         if dto.tir_plaka is not None:
             plan.tir_plaka = dto.tir_plaka
@@ -196,6 +221,9 @@ class SevkiyatPlaniGuncelleUseCase:
         plan.guncelleme_tarihi = datetime.utcnow()
 
         kaydedilen = self._repo.guncelle(plan)
+
+        if durum_degisti and dto.durum == SevkiyatDurum.TESLIM_EDILDI:
+            self._orchestrator.sevkiyat_teslim_edildi(plan.siparis_id)
 
         if durum_degisti:
             self._log_repo.olustur(
@@ -234,6 +262,7 @@ class YuklemeOnaylaUseCase:
         log_repo: ISistemLogRepository,
         stok_cikis_service: StokCikisDomainService,
         db: Session,
+        durum_orchestrator: SiparisDurumOrchestrator,
     ):
         self._repo = sevkiyat_repo
         self._siparis_repo = siparis_repo
@@ -241,6 +270,7 @@ class YuklemeOnaylaUseCase:
         self._log_repo = log_repo
         self._stok_cikis = stok_cikis_service
         self._db = db
+        self._orchestrator = durum_orchestrator
 
     def execute(self, plan_id: int, kullanici_id: int) -> SevkiyatPlaniResponseDTO:
         plan = self._repo.getir_id_ile_kilitli(plan_id)
@@ -309,6 +339,8 @@ class YuklemeOnaylaUseCase:
                 auto_commit=False,
             )
 
+            self._orchestrator.yukleme_onaylandi(plan.siparis_id)
+
             self._db.commit()
             return SevkiyatPlaniResponseDTO.from_entity(kaydedilen)
 
@@ -341,9 +373,11 @@ class SevkiyatPlaniSilUseCase:
         self,
         sevkiyat_repo: ISevkiyatPlaniRepository,
         log_repo: ISistemLogRepository,
+        durum_orchestrator: SiparisDurumOrchestrator,
     ):
         self._repo = sevkiyat_repo
         self._log_repo = log_repo
+        self._orchestrator = durum_orchestrator
 
     def execute(self, plan_id: int, kullanici_id: int) -> None:
         plan = self._repo.getir_id_ile(plan_id)
@@ -353,7 +387,9 @@ class SevkiyatPlaniSilUseCase:
         if plan.teslim_edildi_mi():
             raise GecersizIslemError("Teslim edilmiş sevkiyat planları silinemez.")
 
+        siparis_id = plan.siparis_id
         self._repo.sil(plan_id)
+        self._orchestrator.sevkiyat_plani_iptal(siparis_id)
 
         self._log_repo.olustur(
             SistemLog.olustur(

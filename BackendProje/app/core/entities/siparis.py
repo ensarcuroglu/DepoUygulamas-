@@ -92,3 +92,11 @@ class Siparis:
 
     def iptal_edilebilir_mi(self) -> bool:
         return SiparisDurum.gecis_gecerli_mi(self.durum, SiparisDurum.IPTAL)
+
+    def teslimat_meta_duzenlenebilir_mi(self) -> bool:
+        """Müşteri adı/adres/teslimat tarihi değiştirilebilir mi?"""
+        return self.durum not in (
+            SiparisDurum.YOLA_CIKTI,
+            SiparisDurum.TESLIM_EDILDI,
+            SiparisDurum.IPTAL,
+        )

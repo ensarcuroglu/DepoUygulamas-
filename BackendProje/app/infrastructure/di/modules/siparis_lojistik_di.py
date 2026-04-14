@@ -37,6 +37,7 @@ from app.application.use_cases import (
     InboundKpiUseCase,
 )
 from app.core.services.stok_cikis_domain_service import StokCikisDomainService
+from app.core.services.siparis_durum_orchestrator import SiparisDurumOrchestrator
 
 from app.infrastructure.di.modules.kullanici_destek_di import get_log_repo
 from app.infrastructure.di.modules.urun_di import get_urun_repo
@@ -75,6 +76,15 @@ def get_stok_cikis_service(
     log_repo=Depends(get_log_repo),
 ):
     return StokCikisDomainService(palet_repo, hareket_repo, log_repo)
+
+
+# ── Sipariş Durum Orchestrator factory ──
+
+def get_siparis_durum_orchestrator(
+    siparis_repo=Depends(get_siparis_repo),
+    sevkiyat_repo=Depends(get_sevkiyat_repo),
+):
+    return SiparisDurumOrchestrator(siparis_repo, sevkiyat_repo)
 
 
 # ── Sipariş use case factory'leri ──
@@ -169,15 +179,17 @@ def get_sevkiyat_olustur_uc(
     sevkiyat_repo=Depends(get_sevkiyat_repo),
     siparis_repo=Depends(get_siparis_repo),
     log_repo=Depends(get_log_repo),
+    orchestrator=Depends(get_siparis_durum_orchestrator),
 ):
-    return SevkiyatPlaniOlusturUseCase(sevkiyat_repo, siparis_repo, log_repo)
+    return SevkiyatPlaniOlusturUseCase(sevkiyat_repo, siparis_repo, log_repo, orchestrator)
 
 
 def get_sevkiyat_guncelle_uc(
     sevkiyat_repo=Depends(get_sevkiyat_repo),
     log_repo=Depends(get_log_repo),
+    orchestrator=Depends(get_siparis_durum_orchestrator),
 ):
-    return SevkiyatPlaniGuncelleUseCase(sevkiyat_repo, log_repo)
+    return SevkiyatPlaniGuncelleUseCase(sevkiyat_repo, log_repo, orchestrator)
 
 
 def get_yukleme_onayla_uc(
@@ -187,6 +199,7 @@ def get_yukleme_onayla_uc(
     hareket_repo=Depends(get_hareket_repo),
     log_repo=Depends(get_log_repo),
     stok_cikis_service=Depends(get_stok_cikis_service),
+    orchestrator=Depends(get_siparis_durum_orchestrator),
 ):
     return YuklemeOnaylaUseCase(
         sevkiyat_repo,
@@ -195,14 +208,16 @@ def get_yukleme_onayla_uc(
         log_repo,
         stok_cikis_service,
         db,
+        orchestrator,
     )
 
 
 def get_sevkiyat_sil_uc(
     sevkiyat_repo=Depends(get_sevkiyat_repo),
     log_repo=Depends(get_log_repo),
+    orchestrator=Depends(get_siparis_durum_orchestrator),
 ):
-    return SevkiyatPlaniSilUseCase(sevkiyat_repo, log_repo)
+    return SevkiyatPlaniSilUseCase(sevkiyat_repo, log_repo, orchestrator)
 
 
 # ── Mal Kabul İrsaliyesi use case factory'leri ──

@@ -73,7 +73,6 @@ class SiparisGuncelleRequestDTO(BaseModel):
         description="Bekleme | Hazirlaniyor | YolaCikti | TeslimEdildi | Iptal",
     )
     notlar: Optional[str] = Field(None, max_length=2000)
-    aktif: Optional[bool] = None
 
     @field_validator("durum")
     @classmethod

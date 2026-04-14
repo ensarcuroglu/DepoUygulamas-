@@ -34,7 +34,7 @@ class IrsaliyeOlusturRequestDTO(BaseModel):
 
     siparis_id: int = Field(..., gt=0)
     sevkiyat_id: Optional[int] = Field(None, gt=0)
-    irsaliye_tarihi: Optional[date] = None
+    irsaliye_tarihi: date = Field(..., description="İrsaliye tarihi (zorunlu).")
     belge_turu: str = Field(default=BelgeTuru.SEVK_IRSALIYESI, max_length=50)
     tir_plaka: Optional[str] = Field(None, max_length=20)
     sofor_adi: Optional[str] = Field(None, max_length=100)
