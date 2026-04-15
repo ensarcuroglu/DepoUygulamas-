@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
     getDestekTalepleri,
@@ -7,57 +7,60 @@ import {
 } from '../services/api';
 import toast from 'react-hot-toast';
 import { hataMetni } from '../utils/hata';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import {
-    HelpCircle,
-    Plus,
-    Search,
-    Filter,
-    RefreshCw,
-    Clock,
-    CheckCircle2,
-    X,
-    MessageCircle,
-    Eye,
-    AlertTriangle,
-    UserCircle,
-    Tag,
-    ChevronDown
+    HelpCircle, Plus, Search, Filter, RefreshCw, Clock,
+    CheckCircle2, X, MessageCircle, AlertTriangle
 } from 'lucide-react';
 
 // ========================
-// YARDIMCI BİLEŞENLER (BADGES)
+// YARDIMCI FONKSİYONLAR
 // ========================
 
-const getDurumBadge = (durum) => {
-    const styles = {
-        'Açık': 'bg-blue-50/80 text-blue-600 border-blue-200/50',
-        'İşlemde': 'bg-amber-50/80 text-amber-600 border-amber-200/50',
-        'Çözüldü': 'bg-emerald-50/80 text-emerald-600 border-emerald-200/50'
-    };
-    const currentStyle = styles[durum] || 'bg-slate-50 text-slate-500 border-slate-200';
+const formatDate = (dateString, includeTime = false) => {
+    if (!dateString) return 'Tarih Yok';
+    try {
+        const options = { day: 'numeric', month: 'short', year: 'numeric' };
+        if (includeTime) {
+            options.hour = '2-digit';
+            options.minute = '2-digit';
+        }
+        return new Date(dateString).toLocaleString('tr-TR', options);
+    } catch {
+        return 'Geçersiz Tarih';
+    }
+};
 
-    let icon = <Clock className="w-3.5 h-3.5" />;
-    if (durum === 'İşlemde') icon = <RefreshCw className="w-3.5 h-3.5 animate-[spin_3s_linear_infinite]" />;
-    if (durum === 'Çözüldü') icon = <CheckCircle2 className="w-3.5 h-3.5" />;
+// ========================
+// BADGES (Kurumsal & Minimal)
+// ========================
+
+const DurumBadge = ({ durum }) => {
+    const configs = {
+        'Açık': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', icon: <Clock className="w-3.5 h-3.5" /> },
+        'İşlemde': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', icon: <RefreshCw className="w-3.5 h-3.5 animate-spin" /> },
+        'Çözüldü': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: <CheckCircle2 className="w-3.5 h-3.5" /> }
+    };
+    const conf = configs[durum] || { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200', icon: null };
 
     return (
-        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${currentStyle} shadow-sm backdrop-blur-md transition-all`}>
-            {icon}
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${conf.bg} ${conf.text} ${conf.border}`}>
+            {conf.icon}
             {durum}
         </span>
     );
 };
 
-const getOncelikBadge = (oncelik) => {
-    const styles = {
-        'Düşük': 'bg-slate-100/80 text-slate-500 border border-slate-200/60',
-        'Normal': 'bg-indigo-50/80 text-indigo-600 border border-indigo-200/50',
-        'Yüksek': 'bg-rose-50/80 flex text-rose-600 border border-rose-200/50 shadow-sm'
+const OncelikBadge = ({ oncelik }) => {
+    const configs = {
+        'Düşük': 'bg-slate-100 text-slate-600',
+        'Normal': 'bg-slate-800 text-white',
+        'Yüksek': 'bg-rose-50 text-rose-700 border border-rose-200'
     };
-    const currentStyle = styles[oncelik] || 'bg-slate-100 text-slate-500 border border-slate-200';
+    const style = configs[oncelik] || 'bg-slate-100 text-slate-600';
 
     return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider backdrop-blur-sm ${currentStyle}`}>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wide ${style}`}>
             {oncelik === 'Yüksek' && <AlertTriangle className="w-3 h-3 mr-1" />}
             {oncelik}
         </span>
@@ -65,308 +68,217 @@ const getOncelikBadge = (oncelik) => {
 };
 
 // ========================
-// SWIPE-TO-DISMISS HOOK
+// SKELETON LOADER
 // ========================
 
-function useSwipeToDismiss(onClose, { threshold = 120, enabled = true } = {}) {
-    const [dragY, setDragY] = useState(0);
-    const [isDragging, setIsDragging] = useState(false);
-    const startY = useRef(0);
-    const startTime = useRef(0);
-    const contentRef = useRef(null);
-    const dragHandleRef = useRef(null);
-    const isSwipeActive = useRef(false);
-
-    const handleTouchStart = useCallback((e) => {
-        if (!enabled) return;
-
-        // Drag handle üzerinden başlayan touch her zaman swipe'ı aktifleştirir
-        const fromHandle = dragHandleRef.current && dragHandleRef.current.contains(e.target);
-
-        // İçerik alanından başlayan touch sadece scroll en üstteyse çalışır
-        const scrolledToTop = !contentRef.current || contentRef.current.scrollTop <= 0;
-
-        if (!fromHandle && !scrolledToTop) return;
-
-        startY.current = e.touches[0].clientY;
-        startTime.current = Date.now();
-        isSwipeActive.current = true;
-        setIsDragging(true);
-    }, [enabled]);
-
-    const handleTouchMove = useCallback((e) => {
-        if (!isSwipeActive.current || !enabled) return;
-        const currentY = e.touches[0].clientY;
-        const diff = currentY - startY.current;
-
-        if (diff > 0) {
-            // Elastik direnç efekti
-            const dampened = diff * 0.55;
-            setDragY(dampened);
-        } else {
-            setDragY(0);
-            isSwipeActive.current = false;
-            setIsDragging(false);
-        }
-    }, [enabled]);
-
-    const handleTouchEnd = useCallback(() => {
-        if (!isSwipeActive.current || !enabled) {
-            setIsDragging(false);
-            return;
-        }
-
-        const elapsed = Date.now() - startTime.current;
-        const velocity = dragY / Math.max(elapsed, 1);
-
-        if (dragY > threshold || velocity > 0.5) {
-            setDragY(window.innerHeight);
-            setTimeout(onClose, 200);
-        } else {
-            setDragY(0);
-        }
-        isSwipeActive.current = false;
-        setIsDragging(false);
-    }, [enabled, dragY, threshold, onClose]);
-
-    return {
-        dragY,
-        isDragging,
-        contentRef,
-        dragHandleRef,
-        handlers: {
-            onTouchStart: handleTouchStart,
-            onTouchMove: handleTouchMove,
-            onTouchEnd: handleTouchEnd,
-        },
-    };
-}
+const SkeletonCard = () => (
+    <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col relative overflow-hidden h-[180px]">
+        <div className="flex justify-between items-start mb-4">
+            <div className="w-16 h-5 bg-slate-100 rounded animate-pulse" />
+            <div className="w-20 h-6 bg-slate-100 rounded-md animate-pulse" />
+        </div>
+        <div className="space-y-2 mb-4">
+            <div className="w-3/4 h-5 bg-slate-100 rounded animate-pulse" />
+            <div className="w-1/2 h-5 bg-slate-100 rounded animate-pulse" />
+        </div>
+        <div className="mt-auto pt-4 border-t border-slate-50 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-slate-100 animate-pulse" />
+                <div className="w-24 h-4 bg-slate-100 rounded animate-pulse" />
+            </div>
+            <div className="w-16 h-3 bg-slate-100 rounded animate-pulse" />
+        </div>
+    </div>
+);
 
 // ========================
-// ESC TUŞU HOOK
+// FRAMER MOTION MODAL
 // ========================
 
-function useEscapeKey(onClose, isOpen) {
+function ModalWrapper({ isOpen, onClose, children, maxWidth = "max-w-xl" }) {
+    const dragControls = useDragControls();
+
     useEffect(() => {
-        if (!isOpen) return;
-        const handleKeyDown = (e) => {
-            if (e.key === 'Escape') onClose();
-        };
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
+        const handleEsc = (e) => e.key === 'Escape' && onClose();
+        if (isOpen) window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
     }, [isOpen, onClose]);
-}
-
-// ========================
-// MODAL WRAPPER BİLEŞENİ
-// ========================
-
-function ModalWrapper({
-    isOpen,
-    onClose,
-    children,
-    maxWidth = 'sm:max-w-xl',
-    dragY = 0,
-    isDragging = false,
-    swipeHandlers = {},
-    dragHandleRef
-}) {
-    useEscapeKey(onClose, isOpen);
-
-    const handleOverlayClick = (e) => {
-        if (e.target === e.currentTarget) onClose();
-    };
-
-    const panelTransform = dragY > 0
-        ? `translateY(${dragY}px)`
-        : undefined;
-
-    const panelTransition = isDragging
-        ? 'none'
-        : 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease';
-
-    const overlayOpacity = dragY > 0
-        ? Math.max(0.05, 1 - dragY / 500)
-        : 1;
 
     return (
-        <div
-            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4"
-            onClick={handleOverlayClick}
-            role="presentation"
-        >
-            {/* Overlay */}
-            <div
-                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-                style={{
-                    opacity: overlayOpacity,
-                    transition: isDragging ? 'none' : 'opacity 0.3s ease'
-                }}
-                aria-hidden="true"
-            />
-
-            {/* Modal Panel */}
-            <div
-                className={`relative bg-white w-full ${maxWidth} rounded-t-[28px] sm:rounded-[24px] shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[85vh] animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-[0.97] duration-300 ease-out`}
-                style={{
-                    transform: panelTransform,
-                    transition: panelTransition,
-                }}
-                onClick={(e) => e.stopPropagation()}
-                role="dialog"
-                aria-modal="true"
-                {...swipeHandlers}
-            >
-                {/* Mobilde Drag Handle */}
-                <div
-                    ref={dragHandleRef}
-                    className="sm:hidden flex justify-center pt-2.5 pb-1 cursor-grab active:cursor-grabbing select-none"
-                >
-                    <div className="w-10 h-1 rounded-full bg-slate-300/80" />
-                </div>
-
-                {children}
-            </div>
-        </div>
+        <AnimatePresence>
+            {isOpen && (
+                <>
+                    {/* Backdrop */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
+                        className="fixed inset-0 bg-slate-900/40 z-[100] backdrop-blur-sm"
+                        aria-hidden="true"
+                    />
+                    
+                    {/* Modal Container */}
+                    <div className="fixed inset-0 z-[101] flex items-end sm:items-center justify-center sm:p-4 pointer-events-none">
+                        <motion.div
+                            drag="y"
+                            dragControls={dragControls}
+                            dragListener={false} // Sadece handle üzerinden sürüklenebilir
+                            dragConstraints={{ top: 0, bottom: 0 }}
+                            dragElastic={0.2}
+                            onDragEnd={(e, info) => {
+                                if (info.offset.y > 100 || info.velocity.y > 500) onClose();
+                            }}
+                            initial={{ y: "100%", opacity: 0.5 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: "100%", opacity: 0, transition: { duration: 0.2 } }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className={`w-full ${maxWidth} bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh] pointer-events-auto`}
+                            role="dialog"
+                            aria-modal="true"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Drag Handle (Mobil) */}
+                            <div 
+                                className="sm:hidden w-full flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
+                                onPointerDown={(e) => dragControls.start(e)}
+                            >
+                                <div className="w-12 h-1.5 rounded-full bg-slate-200" />
+                            </div>
+                            
+                            {children}
+                        </motion.div>
+                    </div>
+                </>
+            )}
+        </AnimatePresence>
     );
 }
 
 // ========================
-// YENİ TALEP MODALI BİLEŞENİ
+// YENİ TALEP MODALI
 // ========================
 
-function CreateModal({
-    isOpen, onClose, onSubmit, isSubmitting,
-    yeniKonu, setYeniKonu,
-    yeniKategori, setYeniKategori,
-    yeniOncelik, setYeniOncelik,
-    yeniAciklama, setYeniAciklama
-}) {
-    const { dragY, isDragging, contentRef, dragHandleRef, handlers } = useSwipeToDismiss(onClose);
+function CreateModal({ isOpen, onClose, fetchTalepler }) {
+    const [yeniKonu, setYeniKonu] = useState('');
+    const [yeniKategori, setYeniKategori] = useState('Hata Bildirimi');
+    const [yeniOncelik, setYeniOncelik] = useState('Normal');
+    const [yeniAciklama, setYeniAciklama] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Modal kapandığında formu temizle
+    useEffect(() => {
+        if (!isOpen) {
+            setYeniKonu('');
+            setYeniKategori('Hata Bildirimi');
+            setYeniOncelik('Normal');
+            setYeniAciklama('');
+        }
+    }, [isOpen]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!yeniKonu.trim() || !yeniAciklama.trim()) {
+            return toast.error("Lütfen konu ve açıklama alanlarını doldurun.");
+        }
+
+        setIsSubmitting(true);
+        try {
+            await createDestekTalebi({ 
+                konu: yeniKonu.trim(), 
+                kategori: yeniKategori, 
+                oncelik: yeniOncelik, 
+                aciklama: yeniAciklama.trim() 
+            });
+            toast.success("Talebiniz başarıyla oluşturuldu.");
+            fetchTalepler();
+            onClose();
+        } catch (err) { 
+            toast.error(hataMetni(err, 'Talep oluşturulamadı.')); 
+        } finally { 
+            setIsSubmitting(false); 
+        }
+    };
 
     return (
-        <ModalWrapper
-            isOpen={isOpen}
-            onClose={onClose}
-            maxWidth="sm:max-w-xl"
-            dragY={dragY}
-            isDragging={isDragging}
-            swipeHandlers={handlers}
-            dragHandleRef={dragHandleRef}
-        >
-            {/* Header */}
-            <div className="shrink-0 px-5 sm:px-6 pt-2 sm:pt-5 pb-4 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                        <Plus className="w-5 h-5" />
-                    </div>
-                    <h2 className="text-lg font-black text-slate-800">Yeni Destek Talebi</h2>
-                </div>
-                <button
-                    onClick={onClose}
-                    className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        <ModalWrapper isOpen={isOpen} onClose={onClose}>
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+                <h2 className="text-lg font-bold text-slate-900">Yeni Destek Talebi</h2>
+                <button 
+                    onClick={onClose} 
+                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors outline-none focus:ring-2 focus:ring-slate-200"
                     aria-label="Kapat"
                 >
-                    <X className="w-4 h-4" />
+                    <X className="w-5 h-5" />
                 </button>
             </div>
 
-            {/* Form */}
-            <form onSubmit={onSubmit} className="flex flex-col flex-1 overflow-hidden">
-                <div
-                    ref={contentRef}
-                    className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 sm:py-6 space-y-5 bg-slate-50/30"
-                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
-                >
-                    {/* Konu */}
-                    <div className="space-y-1.5">
-                        <label htmlFor="create-konu" className="text-[13px] font-bold text-slate-600 block">
-                            Konu Başlığı <span className="text-rose-400">*</span>
-                        </label>
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 overscroll-contain">
+                    <div>
+                        <label className="text-sm font-semibold text-slate-700 block mb-1.5" htmlFor="konu">Konu Başlığı</label>
                         <input
-                            id="create-konu"
-                            type="text"
-                            autoFocus
-                            required
-                            placeholder="Kısaca sorunu/ihtiyacı yazın..."
-                            className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 text-slate-800 placeholder:text-slate-400 transition-all font-semibold text-[15px] shadow-sm"
-                            value={yeniKonu}
-                            onChange={e => setYeniKonu(e.target.value)}
+                            id="konu" type="text" autoFocus required
+                            className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-slate-900 text-slate-900 transition-shadow outline-none"
+                            placeholder="Kısaca sorunu özetleyin..."
+                            value={yeniKonu} onChange={e => setYeniKonu(e.target.value)}
                         />
                     </div>
 
-                    {/* Kategori + Öncelik yan yana */}
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                        <div className="space-y-1.5 relative group">
-                            <label htmlFor="create-kategori" className="text-[13px] font-bold text-slate-600 block">Kategori</label>
-                            <div className="relative">
-                                <select
-                                    id="create-kategori"
-                                    className="w-full h-12 px-3 sm:px-4 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 text-slate-800 font-semibold text-[14px] sm:text-[15px] shadow-sm appearance-none cursor-pointer"
-                                    value={yeniKategori}
-                                    onChange={e => setYeniKategori(e.target.value)}
-                                >
-                                    <option>Hata Bildirimi</option>
-                                    <option>Donanım Talebi</option>
-                                    <option>Yazılım İsteği</option>
-                                    <option>Bilgi Alma</option>
-                                    <option>Diğer</option>
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                            </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-sm font-semibold text-slate-700 block mb-1.5" htmlFor="kategori">Kategori</label>
+                            <select
+                                id="kategori"
+                                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 text-slate-900 outline-none appearance-none"
+                                value={yeniKategori} onChange={e => setYeniKategori(e.target.value)}
+                            >
+                                <option>Hata Bildirimi</option>
+                                <option>Donanım Talebi</option>
+                                <option>Yazılım İsteği</option>
+                                <option>Bilgi Alma</option>
+                                <option>Diğer</option>
+                            </select>
                         </div>
-
-                        <div className="space-y-1.5 relative group">
-                            <label htmlFor="create-oncelik" className="text-[13px] font-bold text-slate-600 block">Öncelik</label>
-                            <div className="relative">
-                                <select
-                                    id="create-oncelik"
-                                    className="w-full h-12 px-3 sm:px-4 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 text-slate-800 font-semibold text-[14px] sm:text-[15px] shadow-sm appearance-none cursor-pointer"
-                                    value={yeniOncelik}
-                                    onChange={e => setYeniOncelik(e.target.value)}
-                                >
-                                    <option>Düşük</option>
-                                    <option>Normal</option>
-                                    <option>Yüksek</option>
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                            </div>
+                        <div>
+                            <label className="text-sm font-semibold text-slate-700 block mb-1.5" htmlFor="oncelik">Öncelik</label>
+                            <select
+                                id="oncelik"
+                                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 text-slate-900 outline-none appearance-none"
+                                value={yeniOncelik} onChange={e => setYeniOncelik(e.target.value)}
+                            >
+                                <option>Düşük</option>
+                                <option>Normal</option>
+                                <option>Yüksek</option>
+                            </select>
                         </div>
                     </div>
 
-                    {/* Açıklama */}
-                    <div className="space-y-1.5">
-                        <label htmlFor="create-aciklama" className="text-[13px] font-bold text-slate-600 block">
-                            Detaylı Açıklama <span className="text-rose-400">*</span>
-                        </label>
+                    <div>
+                        <label className="text-sm font-semibold text-slate-700 block mb-1.5" htmlFor="aciklama">Detaylı Açıklama</label>
                         <textarea
-                            id="create-aciklama"
-                            required
-                            rows={5}
-                            placeholder="Yaşadığınız sorunu veya talebinizi detaylı olarak açıklayın..."
-                            className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 text-slate-800 placeholder:text-slate-400 transition-all font-medium resize-none text-[15px] shadow-sm min-h-[140px]"
-                            value={yeniAciklama}
-                            onChange={e => setYeniAciklama(e.target.value)}
+                            id="aciklama" required rows={5}
+                            className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 text-slate-900 resize-none outline-none transition-shadow"
+                            placeholder="Yaşadığınız durumu detaylıca anlatın..."
+                            value={yeniAciklama} onChange={e => setYeniAciklama(e.target.value)}
                         />
                     </div>
                 </div>
 
-                {/* Footer */}
-                <div className="shrink-0 bg-white border-t border-slate-100 px-5 sm:px-6 py-3.5 sm:py-4 pb-[calc(0.875rem+env(safe-area-inset-bottom))] flex gap-3">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="h-12 px-5 rounded-xl font-bold text-[15px] text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 hidden sm:block"
+                <div className="shrink-0 px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                    <button 
+                        type="button" 
+                        onClick={onClose} 
+                        className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors hidden sm:block outline-none focus:ring-2 focus:ring-slate-300"
                     >
                         İptal
                     </button>
                     <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="flex-1 sm:flex-none sm:px-8 h-12 rounded-xl font-bold text-[15px] text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-600"
+                        type="submit" disabled={isSubmitting}
+                        className="flex-1 sm:flex-none px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-70 outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
                     >
-                        {isSubmitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-                        Talebi Gönder
+                        {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                        Talebi Oluştur
                     </button>
                 </div>
             </form>
@@ -375,115 +287,102 @@ function CreateModal({
 }
 
 // ========================
-// TALEP DETAY MODALI BİLEŞENİ
+// DETAY & YANIT MODALI
 // ========================
 
-function DetailModal({
-    isOpen, onClose, talep, isAdmin, isSubmitting,
-    cevapMetni, setCevapMetni,
-    updateDurum, setUpdateDurum,
-    onUpdate
-}) {
-    const { dragY, isDragging, contentRef, dragHandleRef, handlers } = useSwipeToDismiss(onClose);
+function DetailModal({ isOpen, onClose, talep, isAdmin, fetchTalepler }) {
+    const [cevapMetni, setCevapMetni] = useState('');
+    const [updateDurum, setUpdateDurum] = useState('Açık');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Talep değiştiğinde state'leri senkronize et
+    useEffect(() => {
+        if (talep && isOpen) {
+            setCevapMetni(talep.admin_cevabi || '');
+            setUpdateDurum(talep.durum || 'Açık');
+        }
+    }, [talep, isOpen]);
+
+    const handleUpdate = async () => {
+        if (!talep || !isAdmin) return;
+        setIsSubmitting(true);
+        try {
+            await updateDestekTalebi(talep.id, { 
+                durum: updateDurum, 
+                admin_cevabi: cevapMetni.trim() 
+            });
+            toast.success("Talep başarıyla güncellendi.");
+            fetchTalepler();
+            onClose();
+        } catch (err) { 
+            toast.error(hataMetni(err, 'Talep güncellenemedi.')); 
+        } finally { 
+            setIsSubmitting(false); 
+        }
+    };
+
+    if (!talep) return null;
 
     return (
-        <ModalWrapper
-            isOpen={isOpen}
-            onClose={onClose}
-            maxWidth="sm:max-w-2xl"
-            dragY={dragY}
-            isDragging={isDragging}
-            swipeHandlers={handlers}
-            dragHandleRef={dragHandleRef}
-        >
-            {/* Header */}
-            <div className="shrink-0 px-5 sm:px-6 pt-2 sm:pt-5 pb-4 border-b border-slate-100 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 shrink-0">
-                        <Tag className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                        <h2 className="text-[16px] sm:text-lg font-black text-slate-800 leading-tight truncate">
-                            {talep.konu}
-                        </h2>
-                        <p className="text-[12px] font-semibold text-slate-400 mt-0.5">Talep #{talep.id}</p>
-                    </div>
+        <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="max-w-2xl">
+            <div className="shrink-0 px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
+                <div>
+                    <h2 className="text-xl font-bold text-slate-900 leading-tight">{talep.konu}</h2>
+                    <p className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-2">
+                        <span>#{talep.id}</span> • 
+                        <span>{formatDate(talep.olusturma_tarihi, true)}</span>
+                    </p>
                 </div>
-                <button
-                    onClick={onClose}
-                    className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                <button 
+                    onClick={onClose} 
+                    className="p-2 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors shrink-0 outline-none focus:ring-2 focus:ring-slate-200"
                     aria-label="Kapat"
                 >
-                    <X className="w-4 h-4" />
+                    <X className="w-5 h-5" />
                 </button>
             </div>
 
-            {/* İçerik */}
-            <div
-                ref={contentRef}
-                className="flex-1 overflow-y-auto bg-slate-50/50 p-4 sm:p-6 space-y-5"
-                style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
-            >
-                {/* Durum & Öncelik Etiketleri */}
-                <div className="flex flex-wrap gap-2">
-                    {getOncelikBadge(talep.oncelik)}
-                    {getDurumBadge(talep.durum)}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 overscroll-contain">
+                <div className="flex gap-2">
+                    <OncelikBadge oncelik={talep.oncelik} />
+                    <DurumBadge durum={talep.durum} />
                 </div>
 
-                {/* Kullanıcı Mesajı */}
-                <div className="flex gap-3">
-                    <div className="shrink-0 mt-1">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm uppercase shadow-sm">
-                            {talep.kullanici?.ad_soyad?.charAt(0) || '?'}
-                        </div>
+                <div className="flex gap-4">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-sm shrink-0 uppercase">
+                        {talep.kullanici?.ad_soyad?.charAt(0) || '?'}
                     </div>
-                    <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex items-baseline justify-between gap-2">
-                            <span className="font-bold text-[14px] text-slate-800 truncate">
-                                {talep.kullanici?.ad_soyad || 'Bilinmiyor'}
-                            </span>
-                            <span className="text-[11px] font-semibold text-slate-400 shrink-0">
-                                {new Date(talep.olusturma_tarihi).toLocaleString('tr-TR', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                })}
-                            </span>
-                        </div>
-                        <div className="bg-white p-4 rounded-2xl rounded-tl-md border border-slate-200/60 shadow-sm text-[14px] text-slate-700 leading-relaxed font-medium whitespace-pre-wrap break-words">
+                    <div className="flex-1 min-w-0">
+                        <span className="font-semibold text-sm text-slate-900 block mb-1 truncate">{talep.kullanici?.ad_soyad || 'Bilinmeyen Kullanıcı'}</span>
+                        <div className="bg-slate-50 p-4 rounded-xl text-sm text-slate-700 whitespace-pre-wrap border border-slate-100 break-words">
                             {talep.aciklama}
                         </div>
                     </div>
                 </div>
 
-                {/* Admin Cevabı */}
-                <div className="flex gap-3">
-                    <div className="shrink-0 mt-1">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-sm">
-                            <HelpCircle className="w-5 h-5" />
-                        </div>
+                <div className="flex gap-4">
+                    <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                        <HelpCircle className="w-5 h-5" />
                     </div>
-                    <div className="flex-1 min-w-0 space-y-1">
-                        <span className="font-bold text-[14px] text-slate-800 block">Sistem Yönetimi</span>
-
-                        {!isAdmin && !talep.admin_cevabi ? (
-                            <div className="border-2 border-dashed border-slate-200 p-4 rounded-2xl rounded-tl-md text-[14px] text-slate-400 font-medium flex items-center gap-2">
-                                <Clock className="w-4 h-4 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                        <span className="font-semibold text-sm text-slate-900 block mb-1">Sistem Yönetimi</span>
+                        
+                        {!isAdmin && !talep.admin_cevabi && (
+                            <div className="border border-dashed border-slate-300 p-4 rounded-xl text-sm text-slate-500 flex items-center gap-2">
+                                <Clock className="w-4 h-4 shrink-0" /> 
                                 <span>Talep inceleniyor, henüz yanıtlanmadı.</span>
                             </div>
-                        ) : isAdmin ? (
-                            <div className="bg-white p-4 rounded-2xl rounded-tl-md border border-slate-200/60 shadow-sm">
-                                <textarea
-                                    rows={4}
-                                    placeholder="Kullanıcıya iletilecek yanıtı buraya yazın..."
-                                    className="w-full min-h-[100px] p-0 bg-transparent border-none focus:ring-0 focus:outline-none text-slate-800 placeholder:text-slate-400 resize-none text-[14px] font-medium leading-relaxed"
-                                    value={cevapMetni}
-                                    onChange={e => setCevapMetni(e.target.value)}
-                                />
-                            </div>
+                        )}
+                        
+                        {isAdmin ? (
+                            <textarea
+                                rows={4} 
+                                placeholder="Kullanıcıya iletilecek yanıtı buraya yazın..."
+                                className="w-full p-4 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 focus:ring-2 focus:ring-slate-900 outline-none resize-none transition-shadow"
+                                value={cevapMetni} onChange={e => setCevapMetni(e.target.value)}
+                            />
                         ) : talep.admin_cevabi ? (
-                            <div className="bg-emerald-50 p-4 rounded-2xl rounded-tl-md border border-emerald-100 text-[14px] text-slate-800 leading-relaxed font-medium whitespace-pre-wrap break-words">
+                            <div className="bg-indigo-50/50 p-4 rounded-xl text-sm text-slate-800 whitespace-pre-wrap border border-indigo-100 break-words">
                                 {talep.admin_cevabi}
                             </div>
                         ) : null}
@@ -491,359 +390,231 @@ function DetailModal({
                 </div>
             </div>
 
-            {/* Admin Footer */}
             {isAdmin && (
-                <div className="shrink-0 bg-white border-t border-slate-100 px-4 sm:px-6 py-3.5 sm:py-4 pb-[calc(0.875rem+env(safe-area-inset-bottom))]">
-                    <div className="flex flex-col sm:flex-row gap-3">
-                        <div className="relative sm:w-48">
-                            <select
-                                className="w-full h-12 pl-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-[14px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/30 appearance-none"
-                                value={updateDurum}
-                                onChange={e => setUpdateDurum(e.target.value)}
-                            >
-                                <option>Açık</option>
-                                <option>İşlemde</option>
-                                <option>Çözüldü</option>
-                            </select>
-                            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        </div>
-
-                        <button
-                            onClick={onUpdate}
-                            disabled={isSubmitting}
-                            className="flex-1 h-12 rounded-xl font-bold text-[15px] text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 disabled:opacity-70 disabled:active:scale-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-600"
-                        >
-                            {isSubmitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <MessageCircle className="w-5 h-5" />}
-                            Yanıtı ve Durumu Kaydet
-                        </button>
-                    </div>
+                <div className="shrink-0 px-6 py-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                    <select
+                        className="sm:w-48 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-slate-900"
+                        value={updateDurum} onChange={e => setUpdateDurum(e.target.value)}
+                    >
+                        <option>Açık</option>
+                        <option>İşlemde</option>
+                        <option>Çözüldü</option>
+                    </select>
+                    <button
+                        onClick={handleUpdate} disabled={isSubmitting}
+                        className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-70 outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
+                    >
+                        {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+                        Kaydet ve Yanıtla
+                    </button>
                 </div>
-            )}
-
-            {/* Non-admin safe area padding */}
-            {!isAdmin && (
-                <div className="shrink-0 pb-[env(safe-area-inset-bottom)] bg-white sm:bg-transparent rounded-b-none sm:rounded-b-[24px]" />
             )}
         </ModalWrapper>
     );
 }
 
 // ========================
-// ANA BİLEŞEN
+// ANA SAYFA BİLEŞENİ
 // ========================
 
 export default function DestekMasasiPage() {
     const { user } = useAuth();
     const isAdmin = user?.rol === 'admin';
 
-    // --- State Yönetimi ---
     const [talepler, setTalepler] = useState([]);
     const [loading, setLoading] = useState(true);
+    
+    // Filtre State'leri
     const [aramaGirdisi, setAramaGirdisi] = useState('');
     const [filtreDurum, setFiltreDurum] = useState('');
 
-    // Modal States
+    // Modal State'leri
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [selectedTalep, setSelectedTalep] = useState(null);
 
-    // Form States (Yeni Talep)
-    const [yeniKonu, setYeniKonu] = useState('');
-    const [yeniKategori, setYeniKategori] = useState('Hata Bildirimi');
-    const [yeniOncelik, setYeniOncelik] = useState('Normal');
-    const [yeniAciklama, setYeniAciklama] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Form States (Cevaplama / Güncelleme)
-    const [cevapMetni, setCevapMetni] = useState('');
-    const [updateDurum, setUpdateDurum] = useState('');
-
-    // --- Veri Çekme ---
     const fetchTalepler = async () => {
         setLoading(true);
         try {
-            const params = {};
-            if (filtreDurum) params.durum = filtreDurum;
-
+            const params = filtreDurum ? { durum: filtreDurum } : {};
             const res = await getDestekTalepleri(params);
-            setTalepler(res.data);
+            setTalepler(res.data || []);
         } catch (error) {
-            console.error("Talepler yüklenemedi:", error);
             toast.error(hataMetni(error, 'Talepler yüklenirken bir sorun oluştu.'));
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchTalepler();
+    // Filtre durumu değiştiğinde API'den veriyi tekrar çek
+    useEffect(() => { 
+        fetchTalepler(); 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filtreDurum]);
 
-    // --- Yeni Talep Gönderimi ---
-    const handleCreateSubmit = async (e) => {
-        e.preventDefault();
-        if (!yeniKonu.trim() || !yeniAciklama.trim()) {
-            toast.error("Lütfen konu ve açıklama alanlarını doldurun.");
-            return;
-        }
-
-        setIsSubmitting(true);
-        try {
-            await createDestekTalebi({
-                konu: yeniKonu,
-                kategori: yeniKategori,
-                oncelik: yeniOncelik,
-                aciklama: yeniAciklama
-            });
-            toast.success("Destek talebiniz başarıyla oluşturuldu.");
-            setIsCreateOpen(false);
-
-            // Formu sıfırla
-            setYeniKonu('');
-            setYeniKategori('Hata Bildirimi');
-            setYeniOncelik('Normal');
-            setYeniAciklama('');
-
-            fetchTalepler();
-        } catch (err) {
-            toast.error(hataMetni(err, 'Talep oluşturulamadı'));
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    // --- Talep Güncelleme (Sadece Admin) ---
-    const handleUpdateTalep = async () => {
-        if (!selectedTalep || !isAdmin) return;
-
-        setIsSubmitting(true);
-        try {
-            await updateDestekTalebi(selectedTalep.id, {
-                durum: updateDurum,
-                admin_cevabi: cevapMetni
-            });
-
-            toast.success("Talep durumu güncellendi.");
-            setIsDetailOpen(false);
-            fetchTalepler();
-        } catch (err) {
-            toast.error(hataMetni(err, 'Güncelleme başarısız'));
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    // --- Detay Modalı Açma ---
-    const openDetailModal = (talep) => {
-        setSelectedTalep(talep);
-        setCevapMetni(talep.admin_cevabi || '');
-        setUpdateDurum(talep.durum);
-        setIsDetailOpen(true);
-    };
-
-    // --- Filtreleme Performans Optimizasyonu ---
-    const filteredTalepler = useMemo(() => {
-        return talepler.filter(t =>
-            t.konu.toLowerCase().includes(aramaGirdisi.toLowerCase()) ||
-            t.kullanici?.ad_soyad?.toLowerCase().includes(aramaGirdisi.toLowerCase())
-        );
-    }, [talepler, aramaGirdisi]);
-
-    // Modal açıldığında arkaplan kaydırmasını engelle
+    // Modallar açıkken arkaplan scroll'unu kapat
     useEffect(() => {
         if (isCreateOpen || isDetailOpen) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
         }
-        return () => {
-            document.body.style.overflow = 'unset';
-        };
+        return () => { document.body.style.overflow = 'unset'; };
     }, [isCreateOpen, isDetailOpen]);
 
+    const openDetailModal = (talep) => {
+        setSelectedTalep(talep);
+        setIsDetailOpen(true);
+    };
+
+    // Arama filtresi (Client-side)
+    const filteredTalepler = useMemo(() => {
+        if (!aramaGirdisi.trim()) return talepler;
+        const query = aramaGirdisi.toLowerCase();
+        return talepler.filter(t =>
+            t.konu?.toLowerCase().includes(query) ||
+            t.kullanici?.ad_soyad?.toLowerCase().includes(query)
+        );
+    }, [talepler, aramaGirdisi]);
+
     return (
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 animate-in fade-in duration-500 relative z-10 min-h-screen pb-32">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24 sm:pb-8 bg-slate-50 min-h-screen">
             
-            {/* BAŞLIK VE EYLEMLER - Modern Glassmorphism Card */}
-            <div className="relative overflow-hidden bg-white/70 backdrop-blur-xl border border-slate-200/60 shadow-sm p-6 sm:p-8 rounded-[32px] flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                
-                {/* Dekoratif Arkaplan Gradient */}
-                <div className="absolute -right-32 -top-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
-                <div className="absolute -left-32 -bottom-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none" />
-
-                <div className="flex items-center gap-4 sm:gap-6 relative z-10">
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center shadow-lg shadow-slate-900/20 shrink-0 transform transition-transform hover:scale-105 duration-300">
-                        <HelpCircle className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-400 stroke-[2.5]" />
-                    </div>
-                    <div>
-                        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-none mb-1.5">Destek Masası</h1>
-                        <p className="text-sm font-medium text-slate-500/90">Sistem yardım ve talep yönetimi</p>
-                    </div>
+            {/* Header Bölümü */}
+            <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Destek Masası</h1>
+                    <p className="text-sm font-medium text-slate-500 mt-1">Sistem talepleri ve yardım merkezi</p>
                 </div>
-
-                <div className="relative z-10 flex flex-row gap-3 w-full sm:w-auto mt-2 sm:mt-0">
-                    <button
-                        onClick={fetchTalepler}
+                
+                {/* Desktop Aksiyon Butonları */}
+                <div className="hidden sm:flex items-center gap-3">
+                    <button 
+                        onClick={fetchTalepler} 
                         disabled={loading}
-                        className="flex items-center justify-center gap-2.5 px-4 h-12 bg-white hover:bg-slate-50 text-slate-700 rounded-xl transition-all border border-slate-200 font-bold text-sm active:scale-95 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50 disabled:active:scale-100 flex-1 sm:flex-none"
+                        className="p-2.5 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-slate-300 disabled:opacity-50"
                         aria-label="Talepleri Yenile"
                     >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        <span className="hidden sm:inline">Yenile</span>
+                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                     </button>
-
-                    <button
-                        onClick={() => setIsCreateOpen(true)}
-                        className="flex items-center justify-center gap-2.5 px-5 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-md shadow-indigo-600/20 font-bold text-sm active:scale-95 group focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-600 flex-[2] sm:flex-none"
+                    <button 
+                        onClick={() => setIsCreateOpen(true)} 
+                        className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2 outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
                     >
-                        <Plus className="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" />
-                        Yeni Talep
+                        <Plus className="w-4 h-4" /> Yeni Talep
                     </button>
                 </div>
-            </div>
+            </header>
 
-            {/* FİLTRELER - Kompakt ve Odaklı Grid */}
-            <div className="bg-white/50 backdrop-blur-md p-3 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1 group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors duration-200" />
+            {/* Arama ve Filtreleme */}
+            <div className="flex flex-col sm:flex-row gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
-                        type="text"
+                        type="text" 
                         placeholder="Konu veya İsimle Ara..."
-                        className="w-full pl-11 pr-4 h-12 bg-white/60 sm:bg-transparent border border-slate-200/60 sm:border-transparent rounded-xl focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 text-sm font-semibold text-slate-800 placeholder:text-slate-400 transition-all shadow-sm sm:shadow-none"
-                        value={aramaGirdisi}
+                        className="w-full pl-10 pr-4 py-2.5 bg-transparent text-sm text-slate-900 outline-none"
+                        value={aramaGirdisi} 
                         onChange={(e) => setAramaGirdisi(e.target.value)}
                     />
                 </div>
-
-                <div className="hidden sm:block w-px h-8 bg-slate-200 self-center" />
-
-                <div className="relative w-full sm:w-56 group">
-                    <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                <div className="hidden sm:block w-px bg-slate-100 my-2" />
+                <div className="relative sm:w-64 border-t border-slate-100 sm:border-0 pt-2 sm:pt-0">
                     <select
-                        className="w-full pl-11 pr-10 h-12 bg-white/60 sm:bg-transparent border border-slate-200/60 sm:border-transparent rounded-xl focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 text-sm font-bold text-slate-700 cursor-pointer appearance-none transition-all shadow-sm sm:shadow-none"
-                        value={filtreDurum}
+                        className="w-full pl-4 pr-10 py-2.5 bg-transparent text-sm font-medium text-slate-700 outline-none appearance-none cursor-pointer"
+                        value={filtreDurum} 
                         onChange={(e) => setFiltreDurum(e.target.value)}
+                        aria-label="Duruma Göre Filtrele"
                     >
                         <option value="">Tüm Durumlar</option>
                         <option value="Açık">Açık</option>
                         <option value="İşlemde">İşlemde</option>
                         <option value="Çözüldü">Çözüldü</option>
                     </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 bg-white pl-2">
+                        <Filter className="w-4 h-4 inline-block mr-1" />
+                    </div>
                 </div>
             </div>
 
-            {/* LİSTE GÖRÜNÜMÜ - Modern Kartlar */}
-            <div className="min-h-[400px]">
+            {/* Kart Listesi Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center p-20 text-slate-400 space-y-5">
-                        <div className="relative">
-                            <div className="w-12 h-12 rounded-full border-4 border-slate-100 animate-pulse" />
-                            <div className="absolute top-0 left-0 w-12 h-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
-                        </div>
-                        <p className="text-sm font-bold uppercase tracking-widest text-slate-400">Veriler Yükleniyor</p>
-                    </div>
+                    Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
                 ) : filteredTalepler.length === 0 ? (
-                    <div className="bg-white/50 backdrop-blur-md rounded-[32px] p-16 sm:p-24 flex flex-col items-center text-center border border-slate-200/60 shadow-sm animate-in zoom-in-95 duration-500">
-                        <div className="w-24 h-24 bg-indigo-50 rounded-[2rem] flex items-center justify-center mb-6 rotate-3">
-                            <MessageCircle className="w-10 h-10 text-indigo-400 -rotate-3" />
-                        </div>
-                        <h3 className="text-xl sm:text-2xl font-black text-slate-800 mb-2">Buralar oldukça sakin.</h3>
-                        <p className="text-sm sm:text-base font-medium text-slate-500 max-w-sm">
-                            Kriterlerinize uygun destek talebi bulunamadı veya henüz hiç talep oluşturulmamış.
-                        </p>
+                    <div className="col-span-full py-20 text-center border border-dashed border-slate-300 rounded-2xl bg-white">
+                        <MessageCircle className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                        <h3 className="text-base font-semibold text-slate-700">Talep Bulunamadı</h3>
+                        <p className="text-sm text-slate-500 mt-1">Kriterlerinize uygun bir kayıt görünmüyor.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                        {filteredTalepler.map((talep) => (
-                            <div
-                                key={talep.id}
-                                onClick={() => openDetailModal(talep)}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e) => e.key === 'Enter' && openDetailModal(talep)}
-                                className="group bg-white p-5 sm:p-6 rounded-[24px] border border-slate-200/80 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 cursor-pointer flex flex-col relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                            >
-                                {/* Durum Renk Göstergesi */}
-                                <div className={`absolute top-0 left-0 bottom-0 w-1.5 transition-colors duration-300 ${
-                                    talep.durum === 'Açık' ? 'bg-blue-500' :
-                                    talep.durum === 'Çözüldü' ? 'bg-emerald-500' : 'bg-amber-500'
-                                }`} />
-
-                                <div className="flex justify-between items-start mb-4 pl-2">
-                                    {getOncelikBadge(talep.oncelik)}
-                                    {getDurumBadge(talep.durum)}
-                                </div>
-
-                                <h3 className="font-bold text-slate-900 text-base sm:text-lg leading-tight mb-2 pl-2 group-hover:text-indigo-600 transition-colors line-clamp-1">
-                                    {talep.konu}
-                                </h3>
-
-                                <p className="text-sm text-slate-500/90 mb-5 pl-2 font-medium line-clamp-2">
-                                    {talep.aciklama}
-                                </p>
-
-                                <div className="mt-auto pt-4 border-t border-slate-100 flex flex-row items-center justify-between pl-2 gap-3">
-                                    <div className="flex items-center gap-2.5 min-w-0">
-                                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs flex-shrink-0 uppercase border border-slate-200">
-                                            {talep.kullanici?.ad_soyad?.charAt(0) || '?'}
-                                        </div>
-                                        <span className="text-xs sm:text-sm font-bold text-slate-600 truncate">
-                                            {talep.kullanici?.ad_soyad || 'Bilinmiyor'}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex items-center gap-1.5 text-slate-400 flex-shrink-0">
-                                        <Clock className="w-3.5 h-3.5" />
-                                        <span className="text-[11px] sm:text-xs font-semibold">
-                                            {new Date(talep.olusturma_tarihi).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                                        </span>
-                                    </div>
-                                </div>
+                    filteredTalepler.map((talep) => (
+                        <div
+                            key={talep.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => openDetailModal(talep)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    openDetailModal(talep);
+                                }
+                            }}
+                            className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer flex flex-col group relative outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                        >
+                            <div className="flex justify-between items-start mb-3">
+                                <OncelikBadge oncelik={talep.oncelik} />
+                                <DurumBadge durum={talep.durum} />
                             </div>
-                        ))}
-                    </div>
+                            
+                            <h3 className="font-bold text-slate-900 text-base leading-snug mb-2 group-hover:text-slate-700 line-clamp-1">
+                                {talep.konu}
+                            </h3>
+                            <p className="text-sm text-slate-500 line-clamp-2 mb-4">
+                                {talep.aciklama}
+                            </p>
+                            
+                            <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-[10px] uppercase">
+                                        {talep.kullanici?.ad_soyad?.charAt(0) || '?'}
+                                    </div>
+                                    <span className="text-xs font-semibold text-slate-600 truncate max-w-[120px]">
+                                        {talep.kullanici?.ad_soyad?.split(' ')[0] || 'Bilinmiyor'}
+                                    </span>
+                                </div>
+                                <span className="text-xs font-medium text-slate-400 shrink-0">
+                                    {formatDate(talep.olusturma_tarihi)}
+                                </span>
+                            </div>
+                        </div>
+                    ))
                 )}
             </div>
 
-            {/* ==============================
-                YENİ TALEP OLUŞTURMA MODALI
-            ============================== */}
-            {isCreateOpen && (
-                <CreateModal
-                    isOpen={isCreateOpen}
-                    onClose={() => setIsCreateOpen(false)}
-                    onSubmit={handleCreateSubmit}
-                    isSubmitting={isSubmitting}
-                    yeniKonu={yeniKonu}
-                    setYeniKonu={setYeniKonu}
-                    yeniKategori={yeniKategori}
-                    setYeniKategori={setYeniKategori}
-                    yeniOncelik={yeniOncelik}
-                    setYeniOncelik={setYeniOncelik}
-                    yeniAciklama={yeniAciklama}
-                    setYeniAciklama={setYeniAciklama}
-                />
-            )}
+            {/* Mobil FAB (Floating Action Button) */}
+            <button
+                onClick={() => setIsCreateOpen(true)}
+                className="sm:hidden fixed bottom-6 right-6 w-14 h-14 bg-slate-900 text-white rounded-2xl shadow-xl flex items-center justify-center active:scale-95 transition-transform z-40 outline-none focus:ring-4 focus:ring-slate-300"
+                aria-label="Yeni Talep Oluştur"
+            >
+                <Plus className="w-6 h-6" />
+            </button>
 
-            {/* ==============================
-                TALEP DETAY / CEVAP MODALI
-            ============================== */}
-            {isDetailOpen && selectedTalep && (
-                <DetailModal
-                    isOpen={isDetailOpen}
-                    onClose={() => setIsDetailOpen(false)}
-                    talep={selectedTalep}
-                    isAdmin={isAdmin}
-                    isSubmitting={isSubmitting}
-                    cevapMetni={cevapMetni}
-                    setCevapMetni={setCevapMetni}
-                    updateDurum={updateDurum}
-                    setUpdateDurum={setUpdateDurum}
-                    onUpdate={handleUpdateTalep}
-                />
-            )}
+            {/* Modallar */}
+            <CreateModal
+                isOpen={isCreateOpen} 
+                onClose={() => setIsCreateOpen(false)}
+                fetchTalepler={fetchTalepler}
+            />
+
+            <DetailModal
+                isOpen={isDetailOpen} 
+                onClose={() => setIsDetailOpen(false)}
+                talep={selectedTalep} 
+                isAdmin={isAdmin}
+                fetchTalepler={fetchTalepler}
+            />
         </div>
     );
 }
