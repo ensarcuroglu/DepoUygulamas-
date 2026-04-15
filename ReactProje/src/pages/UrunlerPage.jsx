@@ -441,7 +441,6 @@ function StokDetayChip({ urunId }) {
     useEffect(() => {
         if (!acik || detay) return;
         let cancelled = false;
-        setYukleniyor(true);
         urunStokDetayApi.getir(urunId)
             .then(data => { if (!cancelled) setDetay(data); })
             .catch(() => { if (!cancelled) setDetay(null); })
@@ -451,6 +450,9 @@ function StokDetayChip({ urunId }) {
 
     const toggle = (e) => {
         e.stopPropagation();
+        if (!acik && !detay) {
+            setYukleniyor(true);
+        }   
         setAcik(prev => !prev);
     };
 

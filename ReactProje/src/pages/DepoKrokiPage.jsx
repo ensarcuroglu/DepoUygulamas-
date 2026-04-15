@@ -97,7 +97,6 @@ export default function DepoKrokiPage() {
 
     useEffect(() => {
         if (!seciliDepo) return;
-        setLoading(true);
 
         Promise.all([
             api.get(`/raflar/`),
@@ -408,7 +407,11 @@ export default function DepoKrokiPage() {
                                 value={seciliDepo?.id || ''}
                                 onChange={(e) => {
                                     const depo = depolar.find(d => d.id === parseInt(e.target.value));
-                                    if (depo) setSeciliDepo(depo);
+                                    if (depo){ 
+                                        setLoading(true);
+                                        setSeciliDepo(depo);
+
+                                    }
                                 }}
                                 className="w-full h-12 pl-11 pr-10 text-[14px] font-bold text-slate-700 bg-white border border-slate-200 rounded-2xl appearance-none focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 cursor-pointer transition-all shadow-sm"
                             >

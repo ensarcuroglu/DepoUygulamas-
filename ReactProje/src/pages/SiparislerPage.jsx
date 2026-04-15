@@ -62,9 +62,8 @@ export default function SiparislerPage() {
   }, [yükle]);
 
   useEffect(() => {
-    if (!detayModal) { setRezervasyonlar([]); return; }
+    if (!detayModal) return;
     let cancelled = false;
-    setRezervasyonYukleniyor(true);
     paletRezervasyonlariApi.siparisRezervasyonlari(detayModal.id)
       .then(data => { if (!cancelled) setRezervasyonlar(data); })
       .catch(() => { if (!cancelled) setRezervasyonlar([]); })
@@ -226,7 +225,7 @@ export default function SiparislerPage() {
 
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <button
-                        onClick={() => setDetayModal(siparis)}
+                        onClick={() => { setRezervasyonYukleniyor(true); setDetayModal(siparis); }}
                         className="flex-1 sm:flex-none flex items-center justify-center gap-2 p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors font-medium text-sm"
                         title="Detayları gör"
                       >
@@ -494,7 +493,7 @@ export default function SiparislerPage() {
                   </span>
                 </div>
                 <button
-                  onClick={() => setDetayModal(null)}
+                  onClick={() => { setDetayModal(null); setRezervasyonlar([]); }}
                   className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
                 >
                   <X className="h-6 w-6" />
@@ -603,7 +602,7 @@ export default function SiparislerPage() {
 
               <div className="border-t border-slate-100 p-5 sm:p-6 bg-white sm:rounded-b-2xl z-10 sticky bottom-0">
                 <button
-                  onClick={() => setDetayModal(null)}
+                  onClick={() => { setDetayModal(null); setRezervasyonlar([]); }}
                   className="w-full h-12 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 active:scale-[0.98] transition-all"
                 >
                   Kapat
