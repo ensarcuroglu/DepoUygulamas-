@@ -173,8 +173,8 @@ function MenuItem({ item, showLabel, collapsed, isMobile }) {
             to={item.path}
             className={`group flex items-center gap-3.5 rounded-xl text-[13.5px] font-semibold tracking-wide transition-all duration-250 relative overflow-hidden
                 ${isActive
-                    ? 'bg-gradient-to-r from-sky-500/[0.13] to-sky-500/[0.06] text-sky-400'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.04]'
+                    ? 'bg-gradient-to-r from-sky-500/[0.13] to-sky-500/[0.06] text-sky-600 dark:text-sky-400'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
                 }
                 ${!showLabel ? 'justify-center p-3 mx-auto w-12 h-12' : 'px-3.5 py-[11px]'}`}
         >
@@ -185,14 +185,14 @@ function MenuItem({ item, showLabel, collapsed, isMobile }) {
 
             {/* Hover shimmer */}
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-                <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] via-white/[0.04] to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/[0.02] dark:from-white/[0.02] via-black/[0.04] dark:via-white/[0.04] to-transparent" />
             </div>
 
             <div className="relative">
                 <Icon
                     className={`flex-shrink-0 transition-all duration-250
                         ${!showLabel ? 'w-[22px] h-[22px]' : 'w-[18px] h-[18px]'}
-                        ${isActive ? 'text-sky-400' : 'text-slate-500 group-hover:text-slate-300'}`}
+                    ${isActive ? 'text-sky-500 dark:text-sky-400' : 'text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300'}`}
                     strokeWidth={isActive ? 2.2 : 1.8}
                 />
                 {!showLabel && <Badge count={item.badge} collapsed />}
@@ -254,7 +254,7 @@ function AccordionGroup({ group, showLabel, collapsed, isMobile, userRole, openG
             <button
                 onClick={() => toggleGroup(group.id)}
                 className={`w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-[10.5px] font-bold uppercase tracking-[0.12em] transition-colors duration-200 group
-                    ${hasActiveChild ? 'text-sky-400/80' : 'text-slate-500 hover:text-slate-400'}`}
+                    ${hasActiveChild ? 'text-sky-600/80 dark:text-sky-400/80' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-400'}`}
             >
                 <span>{group.label}</span>
                 <ChevronDown
@@ -381,14 +381,14 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
             {/* ── Sidebar Shell ── */}
             <aside
                 className={`fixed top-0 left-0 h-[100dvh] z-50 flex flex-col
-                    bg-[#060C17] transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)]
+                    bg-white dark:bg-[#060C17] transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)]
                     ${isMobile
                         ? (mobileOpen
-                            ? 'w-[300px] translate-x-0 shadow-[8px_0_40px_rgba(0,0,0,0.5)] rounded-r-3xl'
+                            ? 'w-[300px] translate-x-0 shadow-[8px_0_40px_rgba(0,0,0,0.15)] dark:shadow-[8px_0_40px_rgba(0,0,0,0.5)] rounded-r-3xl'
                             : 'w-[300px] -translate-x-full rounded-r-3xl')
                         : (collapsed
-                            ? 'w-[80px] border-r border-white/[0.06]'
-                            : 'w-[272px] border-r border-white/[0.06]')
+                            ? 'w-[80px] border-r border-slate-200/60 dark:border-white/[0.06]'
+                            : 'w-[272px] border-r border-slate-200/60 dark:border-white/[0.06]')
                     }`}
             >
                 {/* ── Brand Area ── */}
@@ -403,7 +403,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
 
                     {showLabel && (
                         <div className="flex-1 min-w-0">
-                            <h1 className="text-[15px] font-extrabold tracking-tight text-white leading-tight">Depo Yönetim</h1>
+                            <h1 className="text-[15px] font-extrabold tracking-tight text-slate-800 dark:text-white leading-tight">Depo Yönetim</h1>
                             <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]" />
                                 <p className="text-[10px] text-emerald-400/90 font-semibold tracking-[0.15em] uppercase">Aktif</p>
@@ -415,7 +415,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
                     {isMobile && showLabel && (
                         <button
                             onClick={() => setMobileOpen(false)}
-                            className="w-9 h-9 rounded-xl bg-white/[0.05] flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/[0.1] transition-all duration-200 active:scale-95 flex-shrink-0"
+                            className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-white/[0.05] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/[0.1] transition-all duration-200 active:scale-95 flex-shrink-0"
                         >
                             <X className="w-4.5 h-4.5" />
                         </button>
@@ -423,7 +423,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
                 </div>
 
                 {/* Divider */}
-                <div className="mx-5 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent flex-shrink-0" />
+                <div className="mx-5 h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-white/[0.06] to-transparent flex-shrink-0" />
 
                 {/* ── Navigation ── */}
                 <div className="flex-1 flex flex-col overflow-y-auto sidebar-scroll py-4 px-3">
@@ -446,7 +446,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
 
                     {/* ── Bottom Section ── */}
                     <div className="mt-auto pt-4">
-                        <div className="mx-1 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent mb-4" />
+                        <div className="mx-1 h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-white/[0.06] to-transparent mb-4" />
 
                         {showLabel && (
                             <div className="px-3.5 mb-2">
@@ -462,13 +462,13 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
 
                         {/* User Profile */}
                         {showLabel && (
-                            <div className="mt-4 mx-0.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between group hover:bg-white/[0.05] transition-colors duration-200 cursor-pointer">
+                            <div className="mt-4 mx-0.5 p-3 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] flex items-center justify-between group hover:bg-slate-100 dark:hover:bg-white/[0.05] transition-colors duration-200 cursor-pointer">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center flex-shrink-0 shadow-inner">
-                                        <UserCircle className="w-5 h-5 text-slate-300" strokeWidth={1.8} />
+                                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-600 dark:to-slate-700 flex items-center justify-center flex-shrink-0 shadow-inner">
+                                        <UserCircle className="w-5 h-5 text-slate-600 dark:text-slate-300" strokeWidth={1.8} />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-[13px] font-semibold text-slate-200 truncate leading-tight">{user?.ad_soyad || 'Kullanıcı'}</p>
+                                        <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 truncate leading-tight">{user?.ad_soyad || 'Kullanıcı'}</p>
                                         <p className="text-[11px] font-medium text-slate-500 truncate capitalize leading-tight mt-0.5">{user?.rol || 'Rol Yok'}</p>
                                     </div>
                                 </div>
@@ -498,11 +498,11 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
                 {/* ── Collapse Toggle (desktop only) ── */}
                 {!isMobile && (
                     <div className="flex-shrink-0 px-3 pb-4 pt-2">
-                        <div className="mx-1 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent mb-3" />
+                        <div className="mx-1 h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-white/[0.06] to-transparent mb-3" />
                         <button
                             onClick={() => setCollapsed(!collapsed)}
                             className={`w-full flex items-center gap-2.5 py-3 rounded-xl text-[12px] font-bold uppercase tracking-wider
-                                text-slate-500 hover:text-slate-300 hover:bg-white/[0.04] transition-all duration-250
+                                text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-all duration-250
                                 ${collapsed ? 'justify-center' : 'px-3.5'}`}
                             title={collapsed ? 'Menüyü Genişlet' : 'Daralt'}
                         >

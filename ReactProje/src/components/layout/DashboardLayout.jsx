@@ -33,7 +33,7 @@ export default function DashboardLayout() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const contentMargin = isMobile ? '0px' : (sidebarCollapsed ? '80px' : '290px');
+    const contentMargin = isMobile ? '0px' : (sidebarCollapsed ? '80px' : '272px');
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -83,7 +83,6 @@ export default function DashboardLayout() {
                 style={{ marginLeft: contentMargin }}
             >
                 <Header
-                    sidebarCollapsed={sidebarCollapsed}
                     onMobileMenuToggle={() => setMobileOpen(!mobileOpen)}
                 />
 
