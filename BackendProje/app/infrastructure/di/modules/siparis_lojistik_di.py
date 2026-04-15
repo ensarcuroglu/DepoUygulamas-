@@ -1,4 +1,5 @@
-"""DI — Sipariş, İrsaliye, Sevkiyat Planı, Mal Kabul İrsaliyesi, Stok Çıkış Service."""
+"""DI — Sipariş, İrsaliye, Sevkiyat Planı, Mal Kabul İrsaliyesi, Stok Çıkış Service,
+Toplama Görevi, Palet Rezervasyonu."""
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
@@ -8,6 +9,8 @@ from app.infrastructure.persistence.repositories import (
     SqlAlchemySiparisRepository,
     SqlAlchemyIrsaliyeRepository,
     SqlAlchemySevkiyatPlaniRepository,
+    SqlAlchemyToplamaGoreviRepository,
+    SqlAlchemyPaletRezervasyonuRepository,
 )
 from app.application.use_cases import (
     SiparisListeleUseCase,
@@ -36,8 +39,28 @@ from app.application.use_cases import (
     InboundDashboardUseCase,
     InboundKpiUseCase,
 )
+from app.application.use_cases.palet_rezervasyonu_use_cases import (
+    PaletRezervasyonuListeleUseCase,
+    SiparisRezervasyonlariGetirUseCase,
+    RezervasyonBaslatUseCase,
+    RezervasyonIptalUseCase,
+    RezervasyonKesinlestirUseCase,
+    RezervasyonDegistirUseCase,
+    StokDetayUseCase,
+)
+from app.application.use_cases.toplama_gorevi_use_cases import (
+    ToplamaGoreviListeleUseCase,
+    ToplamaGoreviGetirUseCase,
+    PickTaskUretUseCase,
+    SiradanGorevAlUseCase,
+    GorevBaslatUseCase,
+    GorevTamamlaUseCase,
+    GorevIptalUseCase,
+    FefoOverrideUseCase,
+)
 from app.core.services.stok_cikis_domain_service import StokCikisDomainService
 from app.core.services.siparis_durum_orchestrator import SiparisDurumOrchestrator
+from app.core.services.fefo_secim_servisi import FEFOSecimServisi
 
 from app.infrastructure.di.modules.kullanici_destek_di import get_log_repo
 from app.infrastructure.di.modules.urun_di import get_urun_repo
@@ -68,6 +91,14 @@ def get_sevkiyat_repo(db: Session = Depends(get_db)):
     return SqlAlchemySevkiyatPlaniRepository(db)
 
 
+def get_toplama_gorevi_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyToplamaGoreviRepository(db)
+
+
+def get_rezervasyon_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyPaletRezervasyonuRepository(db)
+
+
 # ── Stok Çıkış Domain Service factory ──
 
 def get_stok_cikis_service(
@@ -78,13 +109,138 @@ def get_stok_cikis_service(
     return StokCikisDomainService(palet_repo, hareket_repo, log_repo)
 
 
+# ── Palet Rezervasyonu use case factory'leri ──
+
+def get_fefo_servisi():
+    return FEFOSecimServisi()
+
+
+def get_rezervasyon_baslat_uc(
+    rezervasyon_repo=Depends(get_rezervasyon_repo),
+    palet_repo=Depends(get_palet_repo),
+    siparis_repo=Depends(get_siparis_repo),
+    log_repo=Depends(get_log_repo),
+    fefo=Depends(get_fefo_servisi),
+):
+    return RezervasyonBaslatUseCase(rezervasyon_repo, palet_repo, siparis_repo, log_repo, fefo)
+
+
+def get_rezervasyon_iptal_uc(
+    rezervasyon_repo=Depends(get_rezervasyon_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return RezervasyonIptalUseCase(rezervasyon_repo, log_repo)
+
+
+def get_rezervasyon_kesinlestir_uc(
+    rezervasyon_repo=Depends(get_rezervasyon_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return RezervasyonKesinlestirUseCase(rezervasyon_repo, log_repo)
+
+
+def get_rezervasyon_degistir_uc(
+    rezervasyon_repo=Depends(get_rezervasyon_repo),
+    palet_repo=Depends(get_palet_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return RezervasyonDegistirUseCase(rezervasyon_repo, palet_repo, log_repo)
+
+
+def get_rezervasyon_listele_uc(
+    rezervasyon_repo=Depends(get_rezervasyon_repo),
+):
+    return PaletRezervasyonuListeleUseCase(rezervasyon_repo)
+
+
+def get_siparis_rezervasyonlari_uc(
+    rezervasyon_repo=Depends(get_rezervasyon_repo),
+):
+    return SiparisRezervasyonlariGetirUseCase(rezervasyon_repo)
+
+
+def get_stok_detay_uc(
+    palet_repo=Depends(get_palet_repo),
+    rezervasyon_repo=Depends(get_rezervasyon_repo),
+):
+    return StokDetayUseCase(palet_repo, rezervasyon_repo)
+
+
+# ── Toplama Görevi use case factory'leri ──
+
+def get_toplama_gorevi_listele_uc(
+    gorev_repo=Depends(get_toplama_gorevi_repo),
+):
+    return ToplamaGoreviListeleUseCase(gorev_repo)
+
+
+def get_toplama_gorevi_getir_uc(
+    gorev_repo=Depends(get_toplama_gorevi_repo),
+):
+    return ToplamaGoreviGetirUseCase(gorev_repo)
+
+
+def get_pick_task_uret_uc(
+    gorev_repo=Depends(get_toplama_gorevi_repo),
+    rezervasyon_repo=Depends(get_rezervasyon_repo),
+    sevkiyat_repo=Depends(get_sevkiyat_repo),
+    palet_repo=Depends(get_palet_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return PickTaskUretUseCase(gorev_repo, rezervasyon_repo, sevkiyat_repo, palet_repo, log_repo)
+
+
+def get_siradan_gorev_al_uc(
+    gorev_repo=Depends(get_toplama_gorevi_repo),
+):
+    return SiradanGorevAlUseCase(gorev_repo)
+
+
+def get_gorev_baslat_uc(
+    gorev_repo=Depends(get_toplama_gorevi_repo),
+):
+    return GorevBaslatUseCase(gorev_repo)
+
+
+def get_gorev_tamamla_uc(
+    gorev_repo=Depends(get_toplama_gorevi_repo),
+    palet_repo=Depends(get_palet_repo),
+    rezervasyon_repo=Depends(get_rezervasyon_repo),
+    hareket_repo=Depends(get_hareket_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return GorevTamamlaUseCase(gorev_repo, palet_repo, rezervasyon_repo, hareket_repo, log_repo)
+
+
+def get_gorev_iptal_uc(
+    gorev_repo=Depends(get_toplama_gorevi_repo),
+    rezervasyon_repo=Depends(get_rezervasyon_repo),
+    log_repo=Depends(get_log_repo),
+):
+    return GorevIptalUseCase(gorev_repo, rezervasyon_repo, log_repo)
+
+
+def get_fefo_override_uc(
+    gorev_repo=Depends(get_toplama_gorevi_repo),
+    rezervasyon_repo=Depends(get_rezervasyon_repo),
+    palet_repo=Depends(get_palet_repo),
+    log_repo=Depends(get_log_repo),
+    fefo=Depends(get_fefo_servisi),
+):
+    return FefoOverrideUseCase(gorev_repo, rezervasyon_repo, palet_repo, log_repo, fefo)
+
+
 # ── Sipariş Durum Orchestrator factory ──
 
 def get_siparis_durum_orchestrator(
     siparis_repo=Depends(get_siparis_repo),
     sevkiyat_repo=Depends(get_sevkiyat_repo),
+    rezervasyon_baslat_uc=Depends(get_rezervasyon_baslat_uc),
+    rezervasyon_iptal_uc=Depends(get_rezervasyon_iptal_uc),
 ):
-    return SiparisDurumOrchestrator(siparis_repo, sevkiyat_repo)
+    return SiparisDurumOrchestrator(
+        siparis_repo, sevkiyat_repo, rezervasyon_baslat_uc, rezervasyon_iptal_uc
+    )
 
 
 # ── Sipariş use case factory'leri ──

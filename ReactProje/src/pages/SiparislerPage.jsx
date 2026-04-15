@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Calendar, User, MapPin, Loader2, X, ChevronDown,
-  Trash2, Eye, DollarSign, Package, ShoppingBag, Receipt, AlertCircle
+  Trash2, Eye, DollarSign, Package, ShoppingBag, Receipt, AlertCircle,
+  Layers, RefreshCw,
 } from 'lucide-react';
 import { getSiparisler, createSiparis, deleteSiparis, getUrunler } from '../services/api';
+import { paletRezervasyonlariApi } from '../services/paletRezervasyonlariApi';
 import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
 import toast from 'react-hot-toast';
@@ -16,6 +18,12 @@ const durumRenkleri = {
   'Iptal': 'bg-red-50 text-red-700 border border-red-200',
 };
 
+const rezervasyonRenkleri = {
+  'Aktif': 'bg-amber-50 text-amber-700',
+  'Kesinlesti': 'bg-emerald-50 text-emerald-700',
+  'IptalEdildi': 'bg-slate-100 text-slate-500',
+};
+
 export default function SiparislerPage() {
   const { loading, run } = useAsync(true);
   const [siparisler, setSiparisler] = useState([]);
@@ -24,6 +32,8 @@ export default function SiparislerPage() {
   const [durumFiltre, setDurumFiltre] = useState('');
   const [yeniSiparisModal, setYeniSiparisModal] = useState(false);
   const [detayModal, setDetayModal] = useState(null);
+  const [rezervasyonlar, setRezervasyonlar] = useState([]);
+  const [rezervasyonYukleniyor, setRezervasyonYukleniyor] = useState(false);
   const [formData, setFormData] = useState({
     musteri_adi: '',
     teslimat_adresi: '',
@@ -50,6 +60,17 @@ export default function SiparislerPage() {
 
     return () => clearTimeout(timeoutId);
   }, [yükle]);
+
+  useEffect(() => {
+    if (!detayModal) { setRezervasyonlar([]); return; }
+    let cancelled = false;
+    setRezervasyonYukleniyor(true);
+    paletRezervasyonlariApi.siparisRezervasyonlari(detayModal.id)
+      .then(data => { if (!cancelled) setRezervasyonlar(data); })
+      .catch(() => { if (!cancelled) setRezervasyonlar([]); })
+      .finally(() => { if (!cancelled) setRezervasyonYukleniyor(false); });
+    return () => { cancelled = true; };
+  }, [detayModal]);
 
   const handleYeniSiparis = async () => {
     if (!formData.musteri_adi || !formData.teslimat_adresi || !formData.teslimat_tarihi) {
@@ -551,6 +572,33 @@ export default function SiparislerPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Rezerve Paletler */}
+              <div className="px-5 sm:px-6 pb-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Layers className="h-4 w-4 text-indigo-500" />
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Rezerve Paletler</h3>
+                  {rezervasyonYukleniyor && <RefreshCw className="h-3.5 w-3.5 animate-spin text-slate-400 ml-auto" />}
+                </div>
+                {!rezervasyonYukleniyor && rezervasyonlar.length === 0 && (
+                  <p className="text-sm text-slate-400 italic">Bu sipariş için aktif rezervasyon bulunmuyor.</p>
+                )}
+                {rezervasyonlar.length > 0 && (
+                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100">
+                    {rezervasyonlar.map(r => (
+                      <div key={r.id} className="flex items-center justify-between px-4 py-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">{r.palet_no || `Palet #${r.palet_id}`}</p>
+                          {r.lot_no && <p className="text-xs text-slate-500">Lot: {r.lot_no}</p>}
+                        </div>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${rezervasyonRenkleri[r.durum] || 'bg-slate-100 text-slate-500'}`}>
+                          {r.durum}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-slate-100 p-5 sm:p-6 bg-white sm:rounded-b-2xl z-10 sticky bottom-0">

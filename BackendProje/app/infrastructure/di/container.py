@@ -142,7 +142,10 @@ from app.infrastructure.di.modules.siparis_lojistik_di import (  # noqa: F401
     get_siparis_repo,
     get_irsaliye_repo,
     get_sevkiyat_repo,
+    get_toplama_gorevi_repo,
+    get_rezervasyon_repo,
     get_stok_cikis_service,
+    get_fefo_servisi,
     get_siparis_listele_uc,
     get_siparis_getir_uc,
     get_siparis_olustur_uc,
@@ -168,6 +171,23 @@ from app.infrastructure.di.modules.siparis_lojistik_di import (  # noqa: F401
     get_mal_kabul_kalemi_istisna_bildir_uc,
     get_inbound_dashboard_uc,
     get_inbound_kpi_uc,
+    # Palet Rezervasyonu
+    get_rezervasyon_baslat_uc,
+    get_rezervasyon_iptal_uc,
+    get_rezervasyon_kesinlestir_uc,
+    get_rezervasyon_degistir_uc,
+    get_rezervasyon_listele_uc,
+    get_siparis_rezervasyonlari_uc,
+    get_stok_detay_uc,
+    # Toplama Görevi
+    get_toplama_gorevi_listele_uc,
+    get_toplama_gorevi_getir_uc,
+    get_pick_task_uret_uc,
+    get_siradan_gorev_al_uc,
+    get_gorev_baslat_uc,
+    get_gorev_tamamla_uc,
+    get_gorev_iptal_uc,
+    get_fefo_override_uc,
 )
 
 from app.infrastructure.di.modules.rapor_dashboard_di import (  # noqa: F401

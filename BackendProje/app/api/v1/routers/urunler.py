@@ -22,6 +22,7 @@ from app.infrastructure.di.container import (
     get_urun_guncelle_uc,
     get_urun_sil_uc,
     get_urun_repo,
+    get_stok_detay_uc,
 )
 
 # ── DTO'lar ──
@@ -158,3 +159,14 @@ def urun_sil(
     """Bir ürünü pasife alır (soft delete). Sadece admin."""
     uc.execute(urun_id, kullanici_id=current_user.id)
     return {"success": True, "message": "Ürün başarıyla pasife alındı", "id": urun_id}
+
+
+@router.get("/{urun_id}/stok-detay")
+def urun_stok_detay(
+    urun_id: int,
+    current_user: Kullanici = Depends(get_current_user),
+    uc=Depends(get_stok_detay_uc),
+):
+    """Ürün bazlı stok görünürlük özeti: toplam / uygun / rezerve."""
+    from app.application.use_cases.palet_rezervasyonu_use_cases import StokDetayUseCase
+    return uc.execute(urun_id)

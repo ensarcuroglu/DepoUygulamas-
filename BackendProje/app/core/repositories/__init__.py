@@ -18,6 +18,8 @@ from .rapor_repository import IRaporSablonuRepository, IRaporLoguRepository, IRa
 from .stok_sayim_repository import IStokSayimRepository
 from .dashboard_repository import IDashboardRepository
 from .mal_kabul_irsaliye_repository import IMalKabulIrsaliyeRepository
+from .toplama_gorevi_repository import IToplamaGoreviRepository
+from .palet_rezervasyonu_repository import IPaletRezervasyonuRepository
 
 __all__ = [
     "IMarkaRepository", "IKategoriRepository", "IDepoRepository", "IZonRepository",
@@ -29,4 +31,6 @@ __all__ = [
     "IStokSayimRepository",
     "IDashboardRepository",
     "IMalKabulIrsaliyeRepository",
+    "IToplamaGoreviRepository",
+    "IPaletRezervasyonuRepository",
 ]

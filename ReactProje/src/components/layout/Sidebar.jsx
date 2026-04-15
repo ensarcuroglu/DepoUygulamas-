@@ -76,6 +76,13 @@ const menuGroups = [
         ],
     },
     {
+        id: 'toplama',
+        label: 'Toplama (Pick)',
+        items: [
+            { path: '/toplama-gorevleri', label: 'Toplama Görevleri', icon: ClipboardCheck, roles: ['admin', 'depocu', 'lojistik'], badge: null },
+        ],
+    },
+    {
         id: 'terminal',
         label: 'Saha Terminali',
         items: [

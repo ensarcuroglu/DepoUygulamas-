@@ -11,6 +11,7 @@ import { hataMetni } from '../utils/hata';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
 import { getUrunler, deleteUrun, getKategoriler, createUrun, updateUrun, getUrunByBarkod, getMarkalar, checkBarkodUniqueness } from '../services/api';
+import { urunStokDetayApi } from '../services/paletRezervasyonlariApi';
 import useBarcodeScanner from '../hooks/useBarcodeScanner';
 import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
 
@@ -431,6 +432,63 @@ function stokDurumu(urun) {
     return 'Yeterli';
 }
 
+// Uygun/Rezerve stok bilgisini talep üzerine yükleyen chip
+function StokDetayChip({ urunId }) {
+    const [detay, setDetay] = useState(null);
+    const [yukleniyor, setYukleniyor] = useState(false);
+    const [acik, setAcik] = useState(false);
+
+    useEffect(() => {
+        if (!acik || detay) return;
+        let cancelled = false;
+        setYukleniyor(true);
+        urunStokDetayApi.getir(urunId)
+            .then(data => { if (!cancelled) setDetay(data); })
+            .catch(() => { if (!cancelled) setDetay(null); })
+            .finally(() => { if (!cancelled) setYukleniyor(false); });
+        return () => { cancelled = true; };
+    }, [acik, detay, urunId]);
+
+    const toggle = (e) => {
+        e.stopPropagation();
+        setAcik(prev => !prev);
+    };
+
+    return (
+        <div className="relative inline-flex items-center">
+            <button
+                onClick={toggle}
+                className="ml-1.5 w-5 h-5 rounded-full bg-indigo-50 text-indigo-500 hover:bg-indigo-100 flex items-center justify-center transition-colors"
+                title="Uygun / Rezerve stok detayı"
+            >
+                <Info className="w-3 h-3" />
+            </button>
+            {acik && (
+                <div className="absolute left-6 top-0 z-20 bg-white border border-slate-200 rounded-xl shadow-lg p-3 min-w-[160px] text-xs">
+                    {yukleniyor && <p className="text-slate-400">Yükleniyor...</p>}
+                    {!yukleniyor && !detay && <p className="text-slate-400">Bilgi alınamadı.</p>}
+                    {!yukleniyor && detay && (
+                        <div className="space-y-1.5">
+                            <div className="flex justify-between gap-4">
+                                <span className="text-slate-500">Toplam</span>
+                                <span className="font-semibold text-slate-800">{detay.toplam_stok} koli</span>
+                            </div>
+                            <div className="flex justify-between gap-4">
+                                <span className="text-amber-600">Rezerve</span>
+                                <span className="font-semibold text-amber-700">{detay.rezerve_stok} koli</span>
+                            </div>
+                            <div className="flex justify-between gap-4 border-t border-slate-100 pt-1.5">
+                                <span className="text-emerald-600 font-medium">Uygun</span>
+                                <span className="font-bold text-emerald-700">{detay.uygun_stok} koli</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // Ana Sayfa Bileşeni
 export default function App() {
     const [urunler, setUrunler] = useState([]);
@@ -706,8 +764,9 @@ export default function App() {
                                     <div className="flex items-end justify-between mt-4">
                                         <div className="flex flex-col gap-1">
                                             <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Stok / Fiyat</span>
-                                            <div className="flex items-baseline gap-2">
+                                            <div className="flex items-center gap-2">
                                                 <p className="text-[15px] font-extrabold text-slate-800">{urun.stok_miktari ?? 0} <span className="text-[11px] font-bold text-slate-500">koli</span></p>
+                                                <StokDetayChip urunId={urun.id} />
                                                 <span className="text-slate-300">•</span>
                                                 <p className="text-[14px] font-bold text-emerald-600">₺{urun.fiyat?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
                                             </div>
@@ -800,9 +859,10 @@ export default function App() {
                                                 </div>
                                             </td>
                                             <td className="px-4 sm:px-6 py-4">
-                                                <div className="flex items-baseline gap-1">
+                                                <div className="flex items-center gap-1">
                                                     <span className="text-[15px] sm:text-[16px] font-extrabold text-slate-800">{urun.stok_miktari ?? 0}</span>
                                                     <span className="text-[11px] font-bold text-slate-400 uppercase">koli</span>
+                                                    <StokDetayChip urunId={urun.id} />
                                                 </div>
                                             </td>
                                             <td className="px-4 sm:px-6 py-4 hidden md:table-cell">

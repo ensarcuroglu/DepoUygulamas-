@@ -47,6 +47,8 @@ from app.api.v1.routers import ( # noqa: E402
     stok_islemleri_router as v1_stok_islemleri_router,
     yerlestirme_gorevleri_router as v1_yerlestirme_gorevleri_router,
     mobil_terminal_router as v1_mobil_terminal_router,
+    toplama_gorevleri_router as v1_toplama_gorevleri_router,
+    palet_rezervasyonlari_router as v1_palet_rezervasyonlari_router,
 )
 
 _scheduler = RaporScheduler()
@@ -130,6 +132,10 @@ app.include_router(v1_mal_kabul_irsaliyeleri_router)
 app.include_router(v1_stok_islemleri_router)
 app.include_router(v1_yerlestirme_gorevleri_router)
 app.include_router(v1_mobil_terminal_router)
+
+# Faz 1 — MVP Outbound Core
+app.include_router(v1_toplama_gorevleri_router)
+app.include_router(v1_palet_rezervasyonlari_router)
 
 # Auth + Dashboard Router (CA — Faz 3d)
 app.include_router(v1_auth_router)

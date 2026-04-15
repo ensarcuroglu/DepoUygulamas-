@@ -43,6 +43,8 @@ const InboundDashboardPage = lazy(() => import('./pages/InboundDashboardPage'));
 const KpiDashboardPage = lazy(() => import('./pages/KpiDashboardPage'));
 const ZonlarPage = lazy(() => import('./pages/ZonlarPage'));
 const YerlestirmeGorevleriPage = lazy(() => import('./pages/YerlestirmeGorevleriPage'));
+const ToplamaGorevleriPage = lazy(() => import('./pages/ToplamaGorevleriPage'));
+const ToplamaGoreviDetayPage = lazy(() => import('./pages/ToplamaGoreviDetayPage'));
 const DepocuAnaSayfasi = lazy(() => import('./pages/depocu/DepocuAnaSayfasi'));
 
 // Terminal Sayfaları
@@ -156,6 +158,12 @@ function App() {
                   <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
                     <Route path="/zonlar" element={<ZonlarPage />} />
                     <Route path="/yerlestirme-gorevleri" element={<YerlestirmeGorevleriPage />} />
+                  </Route>
+
+                  {/* Toplama Görevleri — Faz 1 */}
+                  <Route element={<RoleRoute allowedRoles={['admin', 'depocu', 'lojistik']} />}>
+                    <Route path="/toplama-gorevleri" element={<ToplamaGorevleriPage />} />
+                    <Route path="/toplama-gorevleri/:id" element={<ToplamaGoreviDetayPage />} />
                   </Route>
 
                   {/* Herkesin erişebildiği korumalı alanlar */}

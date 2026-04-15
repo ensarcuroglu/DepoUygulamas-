@@ -717,6 +717,63 @@ class YerlestirmeGorevi(Base):
     override_kullanici: Mapped[Optional["Kullanici"]] = relationship("Kullanici", foreign_keys=[override_kullanici_id])
 
 
+# ========================
+# TOPLAMA GÖREVİ
+# ========================
+
+class ToplamaGorevi(Base):
+    """Palet bazlı toplama (pick task) görevi."""
+    __tablename__ = "toplama_gorevleri"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    sevkiyat_id: Mapped[int] = mapped_column(Integer, ForeignKey("sevkiyat_planlari.id"), nullable=False, index=True)
+    palet_id: Mapped[int] = mapped_column(Integer, ForeignKey("paletler.id"), nullable=False, index=True)
+    lot_id: Mapped[int] = mapped_column(Integer, ForeignKey("lotlar.id"), nullable=False)
+    urun_id: Mapped[int] = mapped_column(Integer, ForeignKey("urunler.id"), nullable=False)
+    depo_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("depolar.id"), nullable=True, index=True)
+    atanan_kullanici_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
+    durum: Mapped[str] = mapped_column(String(20), default="Beklemede", nullable=False, index=True)
+    fefo_override: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    override_neden: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    override_kullanici_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
+    sira_no: Mapped[int] = mapped_column(Integer, default=0, nullable=False, index=True)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    atanma_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    baslama_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    tamamlanma_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    iptal_nedeni: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # İlişkiler
+    palet: Mapped["Palet"] = relationship("Palet", foreign_keys=[palet_id])
+    urun: Mapped["Urun"] = relationship("Urun", foreign_keys=[urun_id])
+    lot: Mapped["Lot"] = relationship("Lot", foreign_keys=[lot_id])
+    atanan_kullanici: Mapped[Optional["Kullanici"]] = relationship("Kullanici", foreign_keys=[atanan_kullanici_id])
+    override_kullanici: Mapped[Optional["Kullanici"]] = relationship("Kullanici", foreign_keys=[override_kullanici_id])
+
+
+# ========================
+# PALET REZERVASYONU
+# ========================
+
+class PaletRezervasyonu(Base):
+    """Sipariş → Palet rezervasyonu (lifecycle: Aktif → Kesinlesti | IptalEdildi)."""
+    __tablename__ = "palet_rezervasyonlari"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    palet_id: Mapped[int] = mapped_column(Integer, ForeignKey("paletler.id"), nullable=False, index=True)
+    siparis_id: Mapped[int] = mapped_column(Integer, ForeignKey("siparisler.id"), nullable=False, index=True)
+    sevkiyat_kalemi_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("sevkiyat_kalemleri.id"), nullable=True)
+    durum: Mapped[str] = mapped_column(String(20), default="Aktif", nullable=False, index=True)
+    rezerve_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    kesinlesme_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    iptal_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    iptal_nedeni: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # İlişkiler
+    palet: Mapped["Palet"] = relationship("Palet", foreign_keys=[palet_id])
+    siparis: Mapped["Siparis"] = relationship("Siparis", foreign_keys=[siparis_id])
+
+
 from sqlalchemy import select, func # noqa: E402
 from sqlalchemy.orm import column_property  # noqa: E402
 
