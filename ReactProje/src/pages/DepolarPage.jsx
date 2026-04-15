@@ -1,20 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Warehouse, Plus, X, MapPin, Building } from 'lucide-react';
+import { Warehouse, Plus, X, MapPin, Building, Calendar, LayoutGrid, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getDepolar, createDepo, createRaf } from '../services/api';
 import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
 
-// Bu sayfa hem Depo hem Raf yönetimini kapsar
-
+// Mobil dostu, modern Depo ve Raf yönetim sayfası
 export default function DepolarPage() {
     const [depolar, setDepolar] = useState([]);
     const { loading, run } = useAsync(true);
+    
+    // Depo Modal State'leri
     const [depoModalOpen, setDepoModalOpen] = useState(false);
     const [depoForm, setDepoForm] = useState({ isim: '', adres: '', aciklama: '' });
 
-    // Raf Form State'leri
+    // Raf Modal State'leri
     const [rafModalOpen, setRafModalOpen] = useState(false);
     const [rafForm, setRafForm] = useState({ depo_id: '', kod: '', bolge: '', kapasite: 100 });
 
@@ -29,7 +31,6 @@ export default function DepolarPage() {
 
     useEffect(() => {
         let aktif = true;
-
         run(() => getDepolar())
             .then((res) => {
                 if (aktif) {
@@ -72,163 +73,362 @@ export default function DepolarPage() {
         }
     };
 
-    const inputClass = `w-full h-11 px-4 text-[14px] font-medium rounded-xl border border-slate-200 bg-slate-50/50
-    text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10
-    focus:border-blue-500 focus:bg-white transition-all duration-300`;
+    // Modern Form Input Sınıfı (Masaüstü ve Mobil için optimize touch target)
+    const inputClass = `w-full min-h-[48px] px-4 text-[15px] font-medium rounded-xl border-2 border-transparent bg-slate-100/80
+    text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:bg-white 
+    transition-all duration-300 hover:bg-slate-200/50`;
+
+    // Animasyon Varyantları
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+    };
+
+    const modalBackdropVariants = {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1 }
+    };
+
+    const modalVariants = {
+        hidden: { opacity: 0, y: "100%", scale: 0.95 },
+        visible: { 
+            opacity: 1, 
+            y: 0, 
+            scale: 1,
+            transition: { type: "spring", bounce: 0, duration: 0.4 }
+        },
+        exit: { opacity: 0, y: "100%", transition: { duration: 0.2 } }
+    };
 
     return (
-        <div className="space-y-6 max-w-[1400px] mx-auto p-4 sm:p-6">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-violet-100 border border-violet-200 flex items-center justify-center">
-                        <Warehouse className="w-5 h-5 text-violet-600" />
-                    </div>
-                    <div>
-                        <h2 className="text-[17px] font-extrabold text-slate-800">Depo & Raf Yönetimi</h2>
-                        <p className="text-[12px] font-medium text-slate-500">Depoları ve raf lokasyonlarını yönetin</p>
-                    </div>
-                </div>
-                <button onClick={() => setDepoModalOpen(true)}
-                    className="h-11 px-5 bg-violet-600 text-white text-[14px] font-bold rounded-xl hover:bg-violet-700 shadow-lg hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                    <Plus className="w-5 h-5 stroke-[2.5px]" /> <span className="hidden sm:inline">Yeni Depo</span>
-                </button>
-            </div>
-
-            {/* Depo Kartları */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {loading ? (
-                    [...Array(3)].map((_, i) => (
-                        <div key={i} className="bg-white rounded-2xl border border-slate-200 p-6 animate-pulse">
-                            <div className="h-5 bg-slate-200 rounded w-32 mb-3" />
-                            <div className="h-4 bg-slate-100 rounded w-48 mb-2" />
-                            <div className="h-4 bg-slate-100 rounded w-24" />
+        <div className="min-h-screen bg-slate-50/50 pb-20">
+            <div className="max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+                
+                {/* Modern Toolbar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200/60">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-violet-200 shadow-lg">
+                            <Warehouse className="w-6 h-6 text-white" />
                         </div>
-                    ))
-                ) : depolar.length === 0 ? (
-                    <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
-                        <Warehouse className="w-14 h-14 text-slate-200 mb-4" />
-                        <p className="text-[15px] font-bold text-slate-600">Henüz depo kaydı yok</p>
-                        <p className="text-[13px] text-slate-400 mt-1">Yeni depo ekleyerek başlayın</p>
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Depo & Raf Yönetimi</h2>
+                            <p className="text-[14px] font-medium text-slate-500 mt-0.5">Operasyonel depo lokasyonlarınızı yönetin</p>
+                        </div>
                     </div>
+                    <button 
+                        onClick={() => setDepoModalOpen(true)}
+                        className="w-full sm:w-auto h-12 px-6 bg-slate-900 text-white text-[14px] font-semibold rounded-xl hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                        <Plus className="w-5 h-5" /> 
+                        <span>Yeni Depo Ekle</span>
+                    </button>
+                </div>
+
+                {/* İçerik Alanı */}
+                {loading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {[...Array(6)].map((_, i) => (
+                            <div key={i} className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm animate-pulse">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-12 h-12 bg-slate-200 rounded-xl" />
+                                    <div className="space-y-2 flex-1">
+                                        <div className="h-5 bg-slate-200 rounded-lg w-2/3" />
+                                        <div className="h-4 bg-slate-100 rounded-lg w-1/3" />
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <div className="h-4 bg-slate-100 rounded-lg w-full" />
+                                    <div className="h-4 bg-slate-100 rounded-lg w-4/5" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : depolar.length === 0 ? (
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="w-full max-w-md mx-auto bg-white border border-dashed border-slate-300 rounded-3xl p-10 text-center flex flex-col items-center justify-center shadow-sm mt-10"
+                    >
+                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-5 border border-slate-100">
+                            <Warehouse className="w-10 h-10 text-slate-400" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-800 mb-2">Henüz Depo Bulunmuyor</h3>
+                        <p className="text-[15px] text-slate-500 mb-6 leading-relaxed">
+                            Sisteme kayıtlı hiçbir depo bulunamadı. Hemen yeni bir depo ekleyerek yönetime başlayın.
+                        </p>
+                        <button 
+                            onClick={() => setDepoModalOpen(true)}
+                            className="h-12 px-6 bg-violet-50 text-violet-700 text-[14px] font-bold rounded-xl hover:bg-violet-100 transition-colors flex items-center gap-2"
+                        >
+                            <Plus className="w-5 h-5" /> Depo Oluştur
+                        </button>
+                    </motion.div>
                 ) : (
-                    depolar.map(depo => (
-                        <div key={depo.id} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
-                            <div className="p-6">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center">
-                                            <Building className="w-5 h-5 text-violet-600" />
+                    <motion.div 
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="show"
+                        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                    >
+                        {depolar.map(depo => (
+                            <motion.div 
+                                variants={itemVariants}
+                                key={depo.id} 
+                                className="group relative bg-white rounded-3xl border border-slate-200/70 shadow-sm hover:shadow-xl hover:shadow-violet-500/5 hover:border-violet-200 transition-all duration-300 overflow-hidden flex flex-col"
+                            >
+                                {/* Aktif/Pasif İndikatörü */}
+                                <div className={`absolute top-0 left-0 w-full h-1.5 ${depo.aktif ? 'bg-gradient-to-r from-emerald-400 to-teal-400' : 'bg-slate-300'}`} />
+
+                                <div className="p-6 flex-1">
+                                    <div className="flex items-start justify-between mb-5">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center group-hover:bg-violet-600 group-hover:text-white transition-colors duration-300">
+                                                <Building className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-[17px] font-bold text-slate-900 leading-tight">{depo.isim}</h3>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-[12px] font-semibold text-slate-400">ID: #{depo.id}</span>
+                                                    <span className="w-1 h-1 rounded-full bg-slate-300" />
+                                                    <span className={`text-[12px] font-semibold flex items-center gap-1.5 ${depo.aktif ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${depo.aktif ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                                                        {depo.aktif ? 'Aktif' : 'Pasif'}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-[16px] font-extrabold text-slate-800">{depo.isim}</h3>
-                                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">ID: #{depo.id}</span>
-                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {depo.adres ? (
+                                            <div className="flex items-start gap-3">
+                                                <MapPin className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                                                <p className="text-[14px] text-slate-600 leading-relaxed line-clamp-2">{depo.adres}</p>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-3 opacity-50">
+                                                <MapPin className="w-5 h-5 text-slate-300" />
+                                                <span className="text-[14px] text-slate-400 italic">Adres belirtilmemiş</span>
+                                            </div>
+                                        )}
+
+                                        {depo.aciklama && (
+                                            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-100 mt-4">
+                                                <p className="text-[13px] text-slate-600 line-clamp-2">{depo.aciklama}</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
-                                {depo.adres && (
-                                    <div className="flex items-start gap-2 mb-3">
-                                        <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                                        <p className="text-[13px] text-slate-600">{depo.adres}</p>
+                                {/* Alt Kısım & Aksiyon */}
+                                <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-2 text-[12px] font-medium text-slate-500">
+                                        <Calendar className="w-4 h-4" />
+                                        {new Date(depo.olusturma_tarihi).toLocaleDateString('tr-TR')}
                                     </div>
-                                )}
-
-                                {depo.aciklama && (
-                                    <p className="text-[13px] text-slate-500 bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">{depo.aciklama}</p>
-                                )}
-                            </div>
-
-                            <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                                <span className={`text-[11px] font-extrabold px-2.5 py-1 rounded-full border ${depo.aktif ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
-                                    {depo.aktif ? 'AKTİF' : 'PASİF'}
-                                </span>
-                                <span className="text-[11px] text-slate-400">
-                                    {new Date(depo.olusturma_tarihi).toLocaleDateString('tr-TR')}
-                                </span>
-                            </div>
-
-                            {/* Raf Ekle Butonu */}
-                            <div className="px-6 py-3 bg-white border-t border-slate-100 flex items-center justify-end">
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); setRafForm({ ...rafForm, depo_id: depo.id }); setRafModalOpen(true); }}
-                                    className="flex items-center gap-1.5 text-[12px] font-bold text-violet-600 hover:text-violet-700 bg-violet-50 px-3 py-1.5 rounded-lg transition-colors"
-                                >
-                                    <Plus className="w-3.5 h-3.5 stroke-[3px]" /> Raf Ekle
-                                </button>
-                            </div>
-                        </div>
-                    ))
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setRafForm({ ...rafForm, depo_id: depo.id }); setRafModalOpen(true); }}
+                                        className="h-10 px-4 bg-white border border-slate-200 text-slate-700 text-[13px] font-bold rounded-lg hover:border-violet-500 hover:text-violet-700 active:scale-95 transition-all flex items-center gap-2 shadow-sm"
+                                    >
+                                        <LayoutGrid className="w-4 h-4 text-violet-500" /> 
+                                        Raf Ekle
+                                    </button>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </motion.div>
                 )}
             </div>
 
-            {/* Depo Ekleme Modalı */}
-            {depoModalOpen && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDepoModalOpen(false)}>
-                    <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-md" />
-                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in ring-1 ring-slate-900/10" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
-                            <h3 className="text-[18px] font-extrabold text-slate-900">Yeni Depo</h3>
-                            <button onClick={() => setDepoModalOpen(false)} className="w-9 h-9 rounded-full bg-white border border-slate-200 shadow-sm hover:bg-slate-100 flex items-center justify-center">
-                                <X className="w-5 h-5 text-slate-500" />
-                            </button>
-                        </div>
-                        <form onSubmit={handleDepoSave} className="p-6 space-y-5">
-                            <div>
-                                <label className="text-[12px] font-bold text-slate-700 mb-2 block uppercase">Depo Adı *</label>
-                                <input className={inputClass} value={depoForm.isim} onChange={e => setDepoForm({ ...depoForm, isim: e.target.value })} placeholder="Ana Depo" required />
+            {/* Yeni Depo Modalı */}
+            <AnimatePresence>
+                {depoModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
+                        <motion.div 
+                            variants={modalBackdropVariants}
+                            initial="hidden" animate="visible" exit="hidden"
+                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                            onClick={() => setDepoModalOpen(false)} 
+                        />
+                        <motion.div 
+                            variants={modalVariants}
+                            initial="hidden" animate="visible" exit="exit"
+                            className="relative w-full sm:max-w-md bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl flex flex-col max-h-[90vh]"
+                        >
+                            <div className="flex-shrink-0 flex items-center justify-between px-6 sm:px-8 py-5 border-b border-slate-100">
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-900">Yeni Depo</h3>
+                                    <p className="text-[13px] text-slate-500 mt-1">Sisteme yeni bir tesis ekleyin.</p>
+                                </div>
+                                <button 
+                                    onClick={() => setDepoModalOpen(false)} 
+                                    className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
-                            <div>
-                                <label className="text-[12px] font-bold text-slate-700 mb-2 block uppercase">Adres</label>
-                                <input className={inputClass} value={depoForm.adres} onChange={e => setDepoForm({ ...depoForm, adres: e.target.value })} placeholder="OSB 1. Cadde No:12" />
+                            
+                            <form onSubmit={handleDepoSave} className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-5">
+                                <div>
+                                    <label className="text-[13px] font-bold text-slate-700 mb-2 flex items-center gap-1">
+                                        Depo Adı <span className="text-red-500">*</span>
+                                    </label>
+                                    <input 
+                                        className={inputClass} 
+                                        value={depoForm.isim} 
+                                        onChange={e => setDepoForm({ ...depoForm, isim: e.target.value })} 
+                                        placeholder="Örn: Ana Dağıtım Merkezi" 
+                                        autoFocus
+                                        required 
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[13px] font-bold text-slate-700 mb-2 block">Açık Adres</label>
+                                    <input 
+                                        className={inputClass} 
+                                        value={depoForm.adres} 
+                                        onChange={e => setDepoForm({ ...depoForm, adres: e.target.value })} 
+                                        placeholder="OSB 1. Cadde No:12, İstanbul" 
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[13px] font-bold text-slate-700 mb-2 block">Detaylı Açıklama</label>
+                                    <textarea 
+                                        className={`${inputClass} min-h-[100px] resize-none py-3`} 
+                                        value={depoForm.aciklama} 
+                                        onChange={e => setDepoForm({ ...depoForm, aciklama: e.target.value })} 
+                                        placeholder="Depo ile ilgili operasyonel notlar..."
+                                    />
+                                </div>
+                                
+                                {/* Padding for mobile scroll bottom */}
+                                <div className="h-4 sm:hidden"></div>
+                            </form>
+
+                            <div className="flex-shrink-0 flex gap-3 px-6 sm:px-8 py-5 border-t border-slate-100 bg-slate-50 sm:rounded-b-3xl">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setDepoModalOpen(false)} 
+                                    className="flex-1 h-12 rounded-xl bg-white border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                                >
+                                    İptal
+                                </button>
+                                <button 
+                                    onClick={handleDepoSave}
+                                    type="submit" 
+                                    disabled={!depoForm.isim}
+                                    className="flex-1 h-12 rounded-xl bg-slate-900 font-bold text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                    Kaydet
+                                </button>
                             </div>
-                            <div>
-                                <label className="text-[12px] font-bold text-slate-700 mb-2 block uppercase">Açıklama</label>
-                                <textarea className={`${inputClass} h-20 resize-none py-3`} value={depoForm.aciklama} onChange={e => setDepoForm({ ...depoForm, aciklama: e.target.value })} />
-                            </div>
-                            <div className="flex gap-3 pt-3">
-                                <button type="button" onClick={() => setDepoModalOpen(false)} className="flex-1 h-11 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">İptal</button>
-                                <button type="submit" className="flex-1 h-11 rounded-xl bg-violet-600 font-bold text-white hover:bg-violet-700 shadow-lg transition-all">Kaydet</button>
-                            </div>
-                        </form>
+                        </motion.div>
                     </div>
-                </div>,
-                document.body
-            )}
+                )}
+            </AnimatePresence>
 
             {/* Raf Ekleme Modalı */}
-            {rafModalOpen && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setRafModalOpen(false)}>
-                    <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-md" />
-                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in ring-1 ring-slate-900/10" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
-                            <h3 className="text-[18px] font-extrabold text-slate-900">Raf Ekle</h3>
-                            <button onClick={() => setRafModalOpen(false)} className="w-9 h-9 rounded-full bg-white border border-slate-200 shadow-sm hover:bg-slate-100 flex items-center justify-center">
-                                <X className="w-5 h-5 text-slate-500" />
-                            </button>
-                        </div>
-                        <form onSubmit={handleRafSave} className="p-6 space-y-5">
-                            <div>
-                                <label className="text-[12px] font-bold text-slate-700 mb-2 block uppercase">Raf Kodu *</label>
-                                <input className={inputClass} value={rafForm.kod} onChange={e => setRafForm({ ...rafForm, kod: e.target.value.toUpperCase() })} placeholder="A-01, ZEMİN-1 vb." required />
+            <AnimatePresence>
+                {rafModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
+                        <motion.div 
+                            variants={modalBackdropVariants}
+                            initial="hidden" animate="visible" exit="hidden"
+                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                            onClick={() => setRafModalOpen(false)} 
+                        />
+                        <motion.div 
+                            variants={modalVariants}
+                            initial="hidden" animate="visible" exit="exit"
+                            className="relative w-full sm:max-w-md bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl flex flex-col max-h-[90vh]"
+                        >
+                            <div className="flex-shrink-0 flex items-center justify-between px-6 sm:px-8 py-5 border-b border-slate-100">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center">
+                                        <LayoutGrid className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-900">Raf Ekle</h3>
+                                        <p className="text-[13px] text-slate-500">Seçili depoya yeni lokasyon tanımlayın.</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => setRafModalOpen(false)} 
+                                    className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
-                            <div>
-                                <label className="text-[12px] font-bold text-slate-700 mb-2 block uppercase">Bölge</label>
-                                <input className={inputClass} value={rafForm.bolge} onChange={e => setRafForm({ ...rafForm, bolge: e.target.value })} placeholder="A Blok Zemin Kat" />
+                            
+                            <form onSubmit={handleRafSave} className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-5">
+                                <div>
+                                    <label className="text-[13px] font-bold text-slate-700 mb-2 flex items-center gap-1">
+                                        Raf Kodu <span className="text-red-500">*</span>
+                                    </label>
+                                    <input 
+                                        className={`${inputClass} font-mono uppercase tracking-wider`} 
+                                        value={rafForm.kod} 
+                                        onChange={e => setRafForm({ ...rafForm, kod: e.target.value.toUpperCase() })} 
+                                        placeholder="A-01, ZEMİN-1" 
+                                        autoFocus
+                                        required 
+                                    />
+                                    <p className="text-[12px] text-slate-400 mt-2 flex items-center gap-1">
+                                        <AlertCircle className="w-3.5 h-3.5" /> Benzersiz ve kısa bir kod belirleyin.
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <label className="text-[13px] font-bold text-slate-700 mb-2 block">Bölge / Koridor</label>
+                                        <input 
+                                            className={inputClass} 
+                                            value={rafForm.bolge} 
+                                            onChange={e => setRafForm({ ...rafForm, bolge: e.target.value })} 
+                                            placeholder="A Blok" 
+                                        />
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <label className="text-[13px] font-bold text-slate-700 mb-2 block">Kapasite (Adet)</label>
+                                        <input 
+                                            type="number" 
+                                            className={inputClass} 
+                                            value={rafForm.kapasite} 
+                                            onChange={e => setRafForm({ ...rafForm, kapasite: parseInt(e.target.value) || 0 })} 
+                                            min="1" 
+                                            required 
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="h-4 sm:hidden"></div>
+                            </form>
+
+                            <div className="flex-shrink-0 flex gap-3 px-6 sm:px-8 py-5 border-t border-slate-100 bg-slate-50 sm:rounded-b-3xl">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setRafModalOpen(false)} 
+                                    className="flex-1 h-12 rounded-xl bg-white border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                                >
+                                    İptal
+                                </button>
+                                <button 
+                                    onClick={handleRafSave}
+                                    type="submit" 
+                                    disabled={!rafForm.kod}
+                                    className="flex-1 h-12 rounded-xl bg-violet-600 font-bold text-white hover:bg-violet-700 shadow-lg shadow-violet-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                    Rafı Ekle
+                                </button>
                             </div>
-                            <div>
-                                <label className="text-[12px] font-bold text-slate-700 mb-2 block uppercase">Kapasite (Palet)</label>
-                                <input type="number" className={inputClass} value={rafForm.kapasite} onChange={e => setRafForm({ ...rafForm, kapasite: parseInt(e.target.value) || 0 })} min="1" required />
-                            </div>
-                            <div className="flex gap-3 pt-3">
-                                <button type="button" onClick={() => setRafModalOpen(false)} className="flex-1 h-11 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">İptal</button>
-                                <button type="submit" className="flex-1 h-11 rounded-xl bg-violet-600 font-bold text-white hover:bg-violet-700 shadow-lg transition-all">Kaydet</button>
-                            </div>
-                        </form>
+                        </motion.div>
                     </div>
-                </div>,
-                document.body
-            )}
+                )}
+            </AnimatePresence>
         </div>
     );
 }
