@@ -11,7 +11,6 @@ from models import Kullanici
 from app.infrastructure.di.container import (
     get_rezervasyon_listele_uc,
     get_siparis_rezervasyonlari_uc,
-    get_rezervasyon_iptal_uc,
     get_rezervasyon_degistir_uc,
     get_rezervasyon_repo,
 )
@@ -25,7 +24,6 @@ from app.application.dto.palet_rezervasyonu_dto import (
 from app.application.use_cases.palet_rezervasyonu_use_cases import (
     PaletRezervasyonuListeleUseCase,
     SiparisRezervasyonlariGetirUseCase,
-    RezervasyonIptalUseCase,
     RezervasyonDegistirUseCase,
 )
 

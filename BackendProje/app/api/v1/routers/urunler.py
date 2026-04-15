@@ -168,5 +168,4 @@ def urun_stok_detay(
     uc=Depends(get_stok_detay_uc),
 ):
     """Ürün bazlı stok görünürlük özeti: toplam / uygun / rezerve."""
-    from app.application.use_cases.palet_rezervasyonu_use_cases import StokDetayUseCase
     return uc.execute(urun_id)

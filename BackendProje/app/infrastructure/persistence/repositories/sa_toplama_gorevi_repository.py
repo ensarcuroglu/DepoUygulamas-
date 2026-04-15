@@ -1,11 +1,10 @@
 from typing import List, Optional
-from datetime import datetime
 
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.entities.toplama_gorevi import ToplamaGorevi, ToplamaGoreviDurum
 from app.core.repositories.toplama_gorevi_repository import IToplamaGoreviRepository
-from models import ToplamaGorevi as ToplamaGoreviORM, Palet, Lot, Urun, Kullanici
+from models import ToplamaGorevi as ToplamaGoreviORM, Palet, Lot
 
 
 def _to_entity(orm: ToplamaGoreviORM) -> ToplamaGorevi:

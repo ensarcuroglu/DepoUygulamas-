@@ -11,8 +11,7 @@ Kapsam:
 
 from datetime import date, datetime, timedelta
 
-_GELECEK = date.today() + timedelta(days=7)
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -24,6 +23,8 @@ from app.application.dto.irsaliye_dto import (
 from app.core.entities.sevkiyat_plani import SevkiyatPlani, SevkiyatDurum
 from app.core.entities.irsaliye import IrsaliyeDurum
 from app.core.exceptions import GecersizIslemError, KayitBulunamadiError
+
+_GELECEK = date.today() + timedelta(days=7)
 
 pytestmark = pytest.mark.unit
 

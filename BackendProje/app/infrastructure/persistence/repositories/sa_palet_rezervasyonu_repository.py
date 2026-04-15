@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.core.entities.palet_rezervasyonu import PaletRezervasyonu, RezervasyonDurum
 from app.core.repositories.palet_rezervasyonu_repository import IPaletRezervasyonuRepository
-from models import PaletRezervasyonu as PaletRezervasyonuORM, Palet, Lot, Urun, Siparis
+from models import PaletRezervasyonu as PaletRezervasyonuORM, Palet, Lot
 
 
 def _to_entity(orm: PaletRezervasyonuORM) -> PaletRezervasyonu:

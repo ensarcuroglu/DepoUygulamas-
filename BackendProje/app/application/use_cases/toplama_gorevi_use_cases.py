@@ -417,7 +417,7 @@ class FefoOverrideUseCase:
         # Eski rezervasyonu iptal et
         eski_rezervasyon = self._rezervasyon_repo.getir_aktif_by_palet(eski_palet_id)
         if eski_rezervasyon:
-            eski_rezervasyon.iptal_et(f"FEFO override: palet değiştirildi")
+            eski_rezervasyon.iptal_et("FEFO override: palet değiştirildi")
             self._rezervasyon_repo.guncelle(eski_rezervasyon)
 
         # Yeni palet için rezervasyon oluştur
