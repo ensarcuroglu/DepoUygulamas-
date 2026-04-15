@@ -37,6 +37,8 @@ def irsaliye_guncelle_uc_mock():
     mocks = {
         "irsaliye_repo": MagicMock(),
         "log_repo":      MagicMock(),
+        "hareket_repo":  MagicMock(),
+        "siparis_repo":  MagicMock(),
     }
     return IrsaliyeGuncelleUseCase(**mocks), mocks
 

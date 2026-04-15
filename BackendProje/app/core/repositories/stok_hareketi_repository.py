@@ -32,4 +32,19 @@ class IStokHareketiRepository(ABC):
         """Sipariş numarasına ait çıkış hareketi olup olmadığını kontrol eder."""
         ...
 
+    @abstractmethod
+    def siparis_icin_irsaliye_no_guncelle(
+        self, siparis_no: str, irsaliye_no: str, auto_commit: bool = True
+    ) -> int:
+        """Sipariş çıkış hareketlerinden irsaliye_no=NULL olanları günceller.
+
+        İrsaliye KESILDI/GONDERILDI geçişinde evrak numarasını stok hareketlerine
+        geri yazmak için kullanılır. Daha önce irsaliye_no atanmış hareketler
+        değiştirilmez (idempotency).
+
+        Returns:
+            Güncellenen satır sayısı.
+        """
+        ...
+
 

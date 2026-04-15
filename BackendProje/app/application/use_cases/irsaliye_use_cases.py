@@ -15,6 +15,7 @@ from app.core.repositories.irsaliye_repository import IIrsaliyeRepository
 from app.core.repositories.siparis_repository import ISiparisRepository
 from app.core.repositories.sevkiyat_plani_repository import ISevkiyatPlaniRepository
 from app.core.repositories.sistem_log_repository import ISistemLogRepository
+from app.core.repositories.stok_hareketi_repository import IStokHareketiRepository
 from app.core.entities.irsaliye import Irsaliye, IrsaliyeDurum
 from app.core.entities.sistem_log import SistemLog, IslemTipi
 from app.core.exceptions import KayitBulunamadiError, GecersizDurumGecisiError, GecersizIslemError
@@ -171,9 +172,13 @@ class IrsaliyeGuncelleUseCase:
         self,
         irsaliye_repo: IIrsaliyeRepository,
         log_repo: ISistemLogRepository,
+        hareket_repo: IStokHareketiRepository,
+        siparis_repo: ISiparisRepository,
     ):
         self._repo = irsaliye_repo
         self._log_repo = log_repo
+        self._hareket_repo = hareket_repo
+        self._siparis_repo = siparis_repo
 
     def execute(
         self,
@@ -216,6 +221,13 @@ class IrsaliyeGuncelleUseCase:
         kaydedilen = self._repo.guncelle(irsaliye)
 
         if dto.durum and dto.durum != eski_durum:
+            if dto.durum in (IrsaliyeDurum.KESILDI, IrsaliyeDurum.GONDERILDI):
+                siparis = self._siparis_repo.getir_id_ile(irsaliye.siparis_id)
+                if siparis:
+                    self._hareket_repo.siparis_icin_irsaliye_no_guncelle(
+                        siparis.siparis_no, irsaliye.irsaliye_no, auto_commit=False,
+                    )
+
             self._log_repo.olustur(
                 SistemLog.olustur(
                     kullanici_id=kullanici_id,

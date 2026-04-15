@@ -1,8 +1,10 @@
 """
 Stok Çıkış Domain Service — FIFO mantığıyla sipariş kalemlerinden stok düşer.
 
-Bu servis İrsaliye ve Sevkiyat Planlama modülleri tarafından ortaklaşa kullanılır.
-Tek sorumluluk: sipariş kalemleri üzerinden FIFO palet stok düşüşü + StokHareketi kaydı.
+Bu servis YuklemeOnaylaUseCase tarafından kullanılır. Her palet dokunuşu için
+ayrı StokHareketi kaydı yazılır; bu sayede lot_id, palet_id ve raf_id hareket
+üzerinde izlenebilir kalır. irsaliye_no başlangıçta None'dur; irsaliye
+KESILDI/GONDERILDI durumuna geçtiğinde arka plandan doldurulur.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ if TYPE_CHECKING:
 
 
 class StokCikisDomainService:
-    """Sipariş kalemlerinden FIFO mantığıyla stok çıkışı yapar."""
+    """Sipariş kalemlerinden FIFO mantığıyla palet-bazlı stok çıkışı yapar."""
 
     def __init__(
         self,
@@ -34,7 +36,7 @@ class StokCikisDomainService:
 
     def siparis_bazli_stok_cikisi(
         self,
-        kalemler: List[SiparisKalemi],
+        kalemler: List["SiparisKalemi"],
         siparis_no: str,
         kullanici_id: int,
         tir_plaka: str | None = None,
@@ -43,32 +45,32 @@ class StokCikisDomainService:
         aciklama_prefix: str = "Stok çıkışı",
         modul: str = "Stok İşlemleri",
     ) -> None:
-        """Sipariş kalemleri için FIFO stok çıkışı yapar.
+        """Sipariş kalemleri için FIFO palet-bazlı stok çıkışı yapar.
 
-        Her kalem için:
-        1. Paletleri FIFO sırasıyla kilitler (SELECT FOR UPDATE).
-        2. İstenen miktarı düşer.
-        3. StokHareketi kaydı oluşturur.
-
-        Stok yetersizliğinde hata loglanır ve üst akış transaction'ı geri alabilsin
+        Her kalem için FIFO paletler kilitlenir; her palet tüketimi için ayrı
+        StokHareketi kaydı üretilir (lot_id, palet_id, raf_id dolu). Stok
+        yetersizliğinde hata loglanır ve üst akış transaction'ı geri alabilsin
         diye exception yeniden fırlatılır.
-        Programlama hataları (AttributeError, TypeError vb.) yutulmaz, yeniden fırlatılır.
         """
         for kalem in kalemler:
             try:
-                self._fifo_palet_azalt(kalem.urun_id, kalem.miktar)
-                hareket = StokHareketi(
-                    urun_id=kalem.urun_id,
-                    hareket_tipi=HareketTipi.CIKIS,
-                    miktar=kalem.miktar,
-                    siparis_no=siparis_no,
-                    irsaliye_no=irsaliye_no,
-                    tir_plaka=tir_plaka,
-                    depo_kapi=depo_kapi,
-                    aciklama=aciklama_prefix,
-                    kullanici_id=kullanici_id,
-                )
-                self._hareket_repo.olustur(hareket, auto_commit=False)
+                tuketimler = self._fifo_palet_tuket(kalem.urun_id, kalem.miktar)
+                for palet_id, lot_id, raf_id, dusurulen in tuketimler:
+                    hareket = StokHareketi(
+                        urun_id=kalem.urun_id,
+                        lot_id=lot_id,
+                        palet_id=palet_id,
+                        raf_id=raf_id,
+                        hareket_tipi=HareketTipi.CIKIS,
+                        miktar=dusurulen,
+                        siparis_no=siparis_no,
+                        irsaliye_no=irsaliye_no,
+                        tir_plaka=tir_plaka,
+                        depo_kapi=depo_kapi,
+                        aciklama=aciklama_prefix,
+                        kullanici_id=kullanici_id,
+                    )
+                    self._hareket_repo.olustur(hareket, auto_commit=False)
             except StokVeriUyumsuzluguError as e:
                 self._log_repo.olustur(
                     SistemLog.olustur(
@@ -82,19 +84,32 @@ class StokCikisDomainService:
                 raise
 
     def fifo_palet_azalt(self, urun_id: int, miktar: int) -> None:
-        """FIFO sırasıyla paletlerden stok düşer. Dışarıdan da çağrılabilir."""
-        self._fifo_palet_azalt(urun_id, miktar)
+        """Geriye dönük uyumluluk: FIFO düşümünü tetikler, hareket yazmaz."""
+        self._fifo_palet_tuket(urun_id, miktar)
 
-    def _fifo_palet_azalt(self, urun_id: int, miktar: int) -> None:
+    def _fifo_palet_tuket(
+        self, urun_id: int, miktar: int
+    ) -> list[tuple[int, int, int, int]]:
+        """FIFO sırasıyla paletlerden stok düşer.
+
+        Returns:
+            (palet_id, lot_id, raf_id, dusurulen_miktar) tuple listesi.
+        """
         fifo_paletler = self._palet_repo.getir_fifo_sirayla_kilitli(urun_id)
         kalan = miktar
+        tuketimler: list[tuple[int, int, int, int]] = []
 
         for palet in fifo_paletler:
             if kalan <= 0:
                 break
             dusurulen = palet.stok_dus(kalan)
+            if dusurulen <= 0:
+                continue
             kalan -= dusurulen
             self._palet_repo.guncelle(palet, auto_commit=False)
+            tuketimler.append((palet.id, palet.lot_id, palet.raf_id, dusurulen))
 
         if kalan > 0:
             raise StokVeriUyumsuzluguError(f"Ürün ID: {urun_id}")
+
+        return tuketimler

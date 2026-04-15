@@ -63,3 +63,24 @@ class SqlAlchemyStokHareketiRepository(IStokHareketiRepository):
             .exists()
         )
         return self._db.query(subq).scalar()
+
+    def siparis_icin_irsaliye_no_guncelle(
+        self, siparis_no: str, irsaliye_no: str, auto_commit: bool = True
+    ) -> int:
+        etkilenen = (
+            self._db.query(StokHareketiORM)
+            .filter(
+                StokHareketiORM.siparis_no == siparis_no,
+                StokHareketiORM.hareket_tipi == HareketTipi.CIKIS,
+                StokHareketiORM.irsaliye_no.is_(None),
+            )
+            .update(
+                {StokHareketiORM.irsaliye_no: irsaliye_no},
+                synchronize_session=False,
+            )
+        )
+        if auto_commit:
+            self._db.commit()
+        else:
+            self._db.flush()
+        return etkilenen

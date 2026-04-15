@@ -150,8 +150,10 @@ def get_irsaliye_olustur_uc(
 def get_irsaliye_guncelle_uc(
     irsaliye_repo=Depends(get_irsaliye_repo),
     log_repo=Depends(get_log_repo),
+    hareket_repo=Depends(get_hareket_repo),
+    siparis_repo=Depends(get_siparis_repo),
 ):
-    return IrsaliyeGuncelleUseCase(irsaliye_repo, log_repo)
+    return IrsaliyeGuncelleUseCase(irsaliye_repo, log_repo, hareket_repo, siparis_repo)
 
 
 def get_irsaliye_yazdir_uc(
