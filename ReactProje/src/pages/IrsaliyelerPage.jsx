@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Plus, Search, FileText, Loader2, X, Printer, AlertCircle, 
-  ChevronRight, Truck, Package, Calendar
+import {
+  Plus, Search, FileText, Loader2, X, Printer, AlertCircle,
+  ChevronRight, Truck, Package, Calendar, CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -21,6 +21,8 @@ const belgeRozetleri = {
   'SevkIrsaliyesi': 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600/20',
   'IadeIrsaliyesi': 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20',
 };
+
+const YUKLEME_SONRASI_DURUMLAR = new Set(['Yukleniyor', 'Yolda', 'TeslimEdildi']);
 
 const bugunTarihi = () => new Date().toISOString().split('T')[0];
 
@@ -135,7 +137,12 @@ export default function IrsaliyelerPage() {
       setFormData(bosFormData());
       void yukle();
     } catch (err) {
-      toast.error(hataMetni(err, 'İrsaliye oluşturma başarısız'));
+      // 409: aynı siparişe ikinci irsaliye oluşturma girişimi
+      if (err?.status === 409 || err?.response?.status === 409) {
+        toast.error('Bu sevkiyat planı için zaten bir irsaliye kesilmiş. Mükerrer belge oluşturulamaz.');
+      } else {
+        toast.error(hataMetni(err, 'İrsaliye oluşturma başarısız'));
+      }
     }
   };
 
@@ -316,9 +323,12 @@ export default function IrsaliyelerPage() {
       });
   }, [irsaliyeler, siparisSozlugu, planSozlugu, aramaMetni]);
 
+  // Sadece yükleme onaylanmış (Yukleniyor veya sonrası) ve irsaliyesi olmayan planlar
   const kullanilabilirPlanlar = useMemo(() => {
     const irsaliyesiKesilenPlanIdler = new Set(irsaliyeler.map(i => i.sevkiyat_id));
-    return sevkiyatPlanlari.filter(plan => !irsaliyesiKesilenPlanIdler.has(plan.id));
+    return sevkiyatPlanlari.filter(
+      plan => YUKLEME_SONRASI_DURUMLAR.has(plan.durum) && !irsaliyesiKesilenPlanIdler.has(plan.id)
+    );
   }, [sevkiyatPlanlari, irsaliyeler]);
 
   const seciliPlan = planSozlugu.get(Number(formData.sevkiyat_id));
@@ -504,7 +514,7 @@ export default function IrsaliyelerPage() {
               <div className="px-6 py-5 max-h-[70vh] overflow-y-auto">
                 <div className="mb-5 flex gap-3 rounded-xl bg-blue-50 p-4 text-sm text-blue-800 ring-1 ring-blue-600/20">
                   <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-                  <p>İrsaliyeler artık siparişten bağımsız, onaylanmış sevkiyat planları üzerinden kesilmektedir.</p>
+                  <p>İrsaliyeler yalnızca <strong>yükleme onaylanmış</strong> (Yukleniyor veya sonrası) sevkiyat planları üzerinden kesilebilir. Stok çıkışı zaten Yükleme Onayı adımında gerçekleşmiştir.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -657,6 +667,30 @@ export default function IrsaliyelerPage() {
                     <p className="text-xs text-slate-500">{detayModal.sofor_adi || '-'}</p>
                   </div>
                 </div>
+
+                {/* Sevkiyat Kalem Listesi */}
+                {(() => {
+                  const plan = planSozlugu.get(detayModal.sevkiyat_id);
+                  const kalemler = plan?.kalemler;
+                  if (!kalemler || kalemler.length === 0) return null;
+                  return (
+                    <div className="rounded-xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
+                      <div className="flex items-center gap-2 mb-3">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">Yüklenen Kalemler</p>
+                        <span className="ml-auto text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">{kalemler.length} kalem</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {kalemler.map((kalem) => (
+                          <div key={kalem.id} className="flex justify-between items-center text-sm py-1 border-b border-emerald-100 last:border-0">
+                            <span className="text-emerald-900 font-medium">Ürün #{kalem.urun_id}</span>
+                            <span className="text-emerald-700 font-bold">{kalem.miktar} adet</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100 flex flex-col gap-3">
                   <p className="text-xs font-semibold text-slate-700 uppercase">Hızlı İşlemler</p>

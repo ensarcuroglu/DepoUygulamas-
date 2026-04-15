@@ -675,6 +675,12 @@ export default function SevkiyatlarPage() {
                                                     <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Palet No</span>
                                                     <span className="font-semibold text-slate-700 text-sm">{sevkiyat.palet_no || '-'}</span>
                                                 </div>
+                                                {sevkiyat.lot_id && (
+                                                    <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                        <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Lot</span>
+                                                        <span className="font-semibold text-slate-700 text-sm">Lot #{sevkiyat.lot_id}</span>
+                                                    </div>
+                                                )}
                                                 <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
                                                     <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Şoför</span>
                                                     <span className="font-semibold text-slate-700 text-sm">{sevkiyat.sofor_adi || '-'}</span>

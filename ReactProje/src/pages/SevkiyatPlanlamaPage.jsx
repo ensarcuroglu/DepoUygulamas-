@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Plus, Search, Calendar, Truck, User, Phone, DoorOpen, Loader2, X, AlertCircle, Clock, FileText, Package
+  Plus, Search, Calendar, Truck, User, Phone, DoorOpen, Loader2, X, AlertCircle, Clock, FileText, Package, CheckCircle2
 } from 'lucide-react';
 import {
   getSevkiyatPlanlari, createSevkiyatPlani, updateSevkiyatPlani, onaylaSevkiyatYukleme,
@@ -299,36 +299,62 @@ export default function SevkiyatPlanlamaPage() {
                     )}
                   </div>
 
+                  {/* Sevkiyat Kalemleri (Yükleme onaylandıktan sonra görünür) */}
+                  {plan.kalemler && plan.kalemler.length > 0 && (
+                    <div className="mb-4 p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Yüklenen Kalemler</p>
+                        <span className="ml-auto text-xs font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-md">{plan.kalemler.length} kalem</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {plan.kalemler.map((kalem) => (
+                          <div key={kalem.id} className="flex justify-between items-center text-sm">
+                            <span className="text-emerald-900 font-medium">Ürün #{kalem.urun_id}</span>
+                            <span className="text-emerald-700 font-bold">{kalem.miktar} adet</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Aksiyon Butonları (Durum Değiştirme ve Silme) */}
                   <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 pt-4 border-t border-slate-100">
                     <div className="flex flex-wrap gap-2">
                       {durumButonlari.map((durum) => {
                         const isCurrent = durum === plan.durum;
                         const isAllowed = (izinliGecisler[plan.durum] || []).includes(durum);
+                        // Planlandi -> Yukleniyor geçişi için özel etiket ve stil
+                        const isYuklemeOnayla = plan.durum === 'Planlandi' && durum === 'Yukleniyor';
                         return (
                           <button
                             key={durum}
                             onClick={() => handleDurumDegis(plan, durum)}
                             disabled={isCurrent || !isAllowed}
-                            className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-semibold text-xs sm:text-sm transition-colors text-center ${
+                            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-semibold text-xs sm:text-sm transition-colors text-center ${
                               isCurrent
                                 ? 'bg-blue-50 text-blue-600 cursor-not-allowed ring-1 ring-blue-200'
-                                : isAllowed
-                                  ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300'
-                                  : 'bg-slate-50 text-slate-300 cursor-not-allowed'
+                                : isYuklemeOnayla
+                                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 shadow-sm'
+                                  : isAllowed
+                                    ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300'
+                                    : 'bg-slate-50 text-slate-300 cursor-not-allowed'
                             }`}
                           >
-                            {durum}
+                            {isYuklemeOnayla && <CheckCircle2 className="h-4 w-4" />}
+                            {isYuklemeOnayla ? 'Yükleme Onayla' : durum}
                           </button>
                         );
                       })}
                     </div>
-                    <button
-                      onClick={() => handleSil(plan.id)}
-                      className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 font-bold text-sm transition-colors text-center"
-                    >
-                      Planı Sil
-                    </button>
+                    {plan.durum !== 'TeslimEdildi' && (
+                      <button
+                        onClick={() => handleSil(plan.id)}
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 font-bold text-sm transition-colors text-center"
+                      >
+                        Planı Sil
+                      </button>
+                    )}
                   </div>
 
                 </div>

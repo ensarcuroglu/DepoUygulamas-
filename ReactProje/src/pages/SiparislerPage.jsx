@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Calendar, User, MapPin, Loader2, X, ChevronDown,
-  Trash2, Eye, DollarSign, Package, ShoppingBag, Receipt
+  Trash2, Eye, DollarSign, Package, ShoppingBag, Receipt, AlertCircle
 } from 'lucide-react';
 import { getSiparisler, createSiparis, deleteSiparis, getUrunler } from '../services/api';
 import { useAsync } from '../hooks/useAsync';
@@ -481,6 +481,14 @@ export default function SiparislerPage() {
               </div>
 
               <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1">
+                {/* Durum Bilgi Notu */}
+                {(detayModal.durum === 'YolaCikti' || detayModal.durum === 'TeslimEdildi') && (
+                  <div className="flex items-start gap-3 p-3.5 bg-blue-50 rounded-xl ring-1 ring-blue-100 text-sm text-blue-800">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-blue-600" />
+                    <p>Bu siparişin durumu sevkiyat sürecine göre otomatik güncellenmektedir.</p>
+                  </div>
+                )}
+
                 {/* Müşteri ve Adres Bilgisi */}
                 <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

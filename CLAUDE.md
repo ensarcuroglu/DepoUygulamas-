@@ -117,4 +117,3 @@ After completing any implementation, review the code for:
 - Components with more than 3 props that could be grouped into an object
 - Missing error handling on async operations
 
-Run /simplify before presenting code to the user.
