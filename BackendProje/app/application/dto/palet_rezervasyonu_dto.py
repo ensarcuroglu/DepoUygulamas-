@@ -48,7 +48,8 @@ class PaletRezervasyonuResponseDTO(BaseModel):
     @classmethod
     def from_entity(cls, e) -> "PaletRezervasyonuResponseDTO":
         from app.core.entities.palet_rezervasyonu import PaletRezervasyonu
-        assert isinstance(e, PaletRezervasyonu)
+        if not isinstance(e, PaletRezervasyonu):
+            raise TypeError(f"Beklenen tip PaletRezervasyonu, gelen: {type(e)}")
         return cls(
             id=e.id,
             palet_id=e.palet_id,

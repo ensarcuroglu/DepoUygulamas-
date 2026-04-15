@@ -15,7 +15,7 @@ from typing import List, Optional
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from BackendProje.app.core.services.siparis_durum_orchestrator import SiparisDurumOrchestrator
+from app.core.services.siparis_durum_orchestrator import SiparisDurumOrchestrator
 from app.core.repositories.stok_hareketi_repository import IStokHareketiRepository
 from app.core.repositories.sevkiyat_plani_repository import ISevkiyatPlaniRepository
 from app.core.repositories.siparis_repository import ISiparisRepository

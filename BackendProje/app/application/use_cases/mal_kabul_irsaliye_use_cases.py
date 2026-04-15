@@ -396,7 +396,8 @@ class IrsaliyeOnaylaVeGorevOlusturUseCase:
                     onerilen_raf_id = staging_raf.id
 
                 # irsaliye.id'nin None olamayacağını da garantilemek isteyebilirsin
-                assert irsaliye.id is not None, "İrsaliye ID eksik"
+                if irsaliye.id is None:
+                    raise ValueError("İrsaliye ID eksik")
 
                 gorev = YerlestirmeGorevi(
                     palet_id=palet.id,
