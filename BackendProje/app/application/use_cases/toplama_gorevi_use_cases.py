@@ -20,7 +20,6 @@ from app.core.repositories.stok_hareketi_repository import IStokHareketiReposito
 from app.core.repositories.sistem_log_repository import ISistemLogRepository
 from app.core.repositories.sevkiyat_plani_repository import ISevkiyatPlaniRepository
 from app.core.entities.toplama_gorevi import ToplamaGorevi, ToplamaGoreviDurum
-from app.core.entities.palet_rezervasyonu import RezervasyonDurum
 from app.core.entities.stok_hareketi import StokHareketi, HareketTipi
 from app.core.entities.sistem_log import SistemLog, IslemTipi
 from app.core.exceptions import (
@@ -239,6 +238,9 @@ class GorevTamamlaUseCase:
         if not gorev:
             raise KayitBulunamadiError("Toplama Görevi", gorev_id)
 
+        if gorev.atanan_kullanici_id != kullanici_id:
+            raise YetkisizIslemError("Bu görevi yalnızca atanan operatör tamamlayabilir.")
+
         if gorev.durum != ToplamaGoreviDurum.DEVAM_EDIYOR:
             raise GecersizIslemError(
                 "Görev tamamlamak için DevamEdiyor durumunda olmalıdır."
@@ -390,8 +392,30 @@ class FefoOverrideUseCase:
         if not yeni_palet or not yeni_palet.aktif:
             raise KayitBulunamadiError("Palet", dto.yeni_palet_id)
 
+        eski_palet_id = gorev.palet_id
+        if dto.yeni_palet_id == eski_palet_id:
+            raise GecersizIslemError(
+                "FEFO override için mevcut görevden farklı bir palet seçilmelidir."
+            )
+
+        yeni_palet_urun_id = (
+            yeni_palet.lot.urun_id
+            if yeni_palet.lot
+            else getattr(yeni_palet, "urun_id", None)
+        )
+        if yeni_palet_urun_id is None or yeni_palet_urun_id != gorev.urun_id:
+            raise GecersizIslemError(
+                "FEFO override yalnızca aynı ürüne ait aktif paletler için yapılabilir."
+            )
+
+        cakisan_rezervasyon = self._rezervasyon_repo.getir_aktif_by_palet(dto.yeni_palet_id)
+        if cakisan_rezervasyon:
+            raise GecersizIslemError(
+                f"Palet #{dto.yeni_palet_id} zaten başka bir siparişe rezerve edilmiş."
+            )
+
         # Eski rezervasyonu iptal et
-        eski_rezervasyon = self._rezervasyon_repo.getir_aktif_by_palet(gorev.palet_id)
+        eski_rezervasyon = self._rezervasyon_repo.getir_aktif_by_palet(eski_palet_id)
         if eski_rezervasyon:
             eski_rezervasyon.iptal_et(f"FEFO override: palet değiştirildi")
             self._rezervasyon_repo.guncelle(eski_rezervasyon)
@@ -408,7 +432,7 @@ class FefoOverrideUseCase:
         # Görevi güncelle
         gorev.palet_id = dto.yeni_palet_id
         gorev.lot_id = yeni_palet.lot_id
-        gorev.urun_id = yeni_palet.lot.urun_id if yeni_palet.lot else gorev.urun_id
+        gorev.urun_id = yeni_palet_urun_id
         gorev.fefo_override = True
         gorev.override_neden = dto.override_neden
         gorev.override_kullanici_id = kullanici_id
@@ -421,7 +445,7 @@ class FefoOverrideUseCase:
                 islem_tipi=IslemTipi.UPDATE,
                 modul="FEFO_OVERRIDE",
                 detay=(
-                    f"Görev #{gorev_id}: palet #{gorev.palet_id} → #{dto.yeni_palet_id}. "
+                    f"Görev #{gorev_id}: palet #{eski_palet_id} → #{dto.yeni_palet_id}. "
                     f"Neden: {dto.override_neden}"
                 ),
             )

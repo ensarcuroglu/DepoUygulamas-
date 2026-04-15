@@ -50,6 +50,7 @@ def sevkiyat_olustur_uc_mock():
         "sevkiyat_repo":      MagicMock(),
         "siparis_repo":       MagicMock(),
         "log_repo":           MagicMock(),
+        "db":                 MagicMock(),
         "durum_orchestrator": MagicMock(),
     }
     return SevkiyatPlaniOlusturUseCase(**mocks), mocks
@@ -61,6 +62,7 @@ def sevkiyat_guncelle_uc_mock():
     mocks = {
         "sevkiyat_repo":      MagicMock(),
         "log_repo":           MagicMock(),
+        "db":                 MagicMock(),
         "durum_orchestrator": MagicMock(),
     }
     return SevkiyatPlaniGuncelleUseCase(**mocks), mocks
@@ -72,6 +74,7 @@ def sevkiyat_sil_uc_mock():
     mocks = {
         "sevkiyat_repo":      MagicMock(),
         "log_repo":           MagicMock(),
+        "db":                 MagicMock(),
         "durum_orchestrator": MagicMock(),
     }
     return SevkiyatPlaniSilUseCase(**mocks), mocks

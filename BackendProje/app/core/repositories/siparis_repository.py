@@ -24,7 +24,7 @@ class ISiparisRepository(ABC):
         ...
 
     @abstractmethod
-    def guncelle(self, siparis: Siparis) -> Siparis:
+    def guncelle(self, siparis: Siparis, auto_commit: bool = True) -> Siparis:
         ...
 
     @abstractmethod

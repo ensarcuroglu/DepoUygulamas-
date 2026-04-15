@@ -52,15 +52,25 @@ class SiparisDurumOrchestrator:
         self._rezervasyon_baslat_uc = rezervasyon_baslat_uc
         self._rezervasyon_iptal_uc = rezervasyon_iptal_uc
 
-    def sevkiyat_planlandi(self, siparis_id: int, kullanici_id: int = 0) -> None:
-        self._gecis_uygula(siparis_id, SiparisDurum.BEKLEME, SiparisDurum.HAZIRLANIYOR)
+    def sevkiyat_planlandi(
+        self,
+        siparis_id: int,
+        kullanici_id: int = 0,
+        auto_commit: bool = True,
+    ) -> None:
+        self._gecis_uygula(
+            siparis_id,
+            SiparisDurum.BEKLEME,
+            SiparisDurum.HAZIRLANIYOR,
+            auto_commit=auto_commit,
+        )
         # Faz 1: Hazirlaniyor geçişinde palet rezervasyonlarını başlat
         if self._rezervasyon_baslat_uc is not None:
-            try:
-                self._rezervasyon_baslat_uc.execute(siparis_id, kullanici_id)
-            except Exception:
-                # Rezervasyon hatası sevkiyat oluşturmayı engellemesin; log yeterli
-                pass
+            self._rezervasyon_baslat_uc.execute(
+                siparis_id,
+                kullanici_id,
+                auto_commit=auto_commit,
+            )
 
     def yukleme_onaylandi(self, siparis_id: int) -> None:
         self._gecis_uygula(siparis_id, SiparisDurum.HAZIRLANIYOR, SiparisDurum.YOLA_CIKTI)
@@ -68,7 +78,12 @@ class SiparisDurumOrchestrator:
     def sevkiyat_teslim_edildi(self, siparis_id: int) -> None:
         self._gecis_uygula(siparis_id, SiparisDurum.YOLA_CIKTI, SiparisDurum.TESLIM_EDILDI)
 
-    def sevkiyat_plani_iptal(self, siparis_id: int, kullanici_id: int = 0) -> None:
+    def sevkiyat_plani_iptal(
+        self,
+        siparis_id: int,
+        kullanici_id: int = 0,
+        auto_commit: bool = True,
+    ) -> None:
         """Planlandi sevkiyat silindiğinde: başka aktif plan yoksa Hazirlaniyor→Bekleme
         ve aktif rezervasyonlar iptal edilir."""
         mevcut_plan = self._sevkiyat_repo.getir_siparis_id_ile(siparis_id)
@@ -79,17 +94,23 @@ class SiparisDurumOrchestrator:
             return
         siparis.durum = SiparisDurum.BEKLEME
         siparis.guncelleme_tarihi = datetime.utcnow()
-        self._siparis_repo.guncelle(siparis)
+        self._siparis_repo.guncelle(siparis, auto_commit=auto_commit)
         # Faz 1: Hazirlaniyor→Bekleme geçişinde rezervasyonları iptal et
         if self._rezervasyon_iptal_uc is not None:
-            try:
-                self._rezervasyon_iptal_uc.execute(
-                    siparis_id, kullanici_id, neden="Sevkiyat planı iptal edildi"
-                )
-            except Exception:
-                pass
+            self._rezervasyon_iptal_uc.execute(
+                siparis_id,
+                kullanici_id,
+                neden="Sevkiyat planı iptal edildi",
+                auto_commit=auto_commit,
+            )
 
-    def _gecis_uygula(self, siparis_id: int, beklenen: str, hedef: str) -> None:
+    def _gecis_uygula(
+        self,
+        siparis_id: int,
+        beklenen: str,
+        hedef: str,
+        auto_commit: bool = True,
+    ) -> None:
         siparis = self._siparis_repo.getir_id_ile(siparis_id)
         if siparis is None:
             raise KayitBulunamadiError("Sipariş", siparis_id)
@@ -99,4 +120,4 @@ class SiparisDurumOrchestrator:
             return
         siparis.durum = hedef
         siparis.guncelleme_tarihi = datetime.utcnow()
-        self._siparis_repo.guncelle(siparis)
+        self._siparis_repo.guncelle(siparis, auto_commit=auto_commit)

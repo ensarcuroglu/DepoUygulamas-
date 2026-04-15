@@ -93,6 +93,7 @@ class RezervasyonBaslatUseCase:
         self,
         siparis_id: int,
         kullanici_id: int,
+        auto_commit: bool = True,
     ) -> List[PaletRezervasyonuResponseDTO]:
         siparis = self._siparis_repo.getir_id_ile(siparis_id)
         if not siparis:
@@ -125,7 +126,10 @@ class RezervasyonBaslatUseCase:
                 siparis_id=siparis_id,
                 sevkiyat_kalemi_id=kalem.id,
             )
-            kaydedilen = self._rezervasyon_repo.olustur(rezervasyon)
+            kaydedilen = self._rezervasyon_repo.olustur(
+                rezervasyon,
+                auto_commit=auto_commit,
+            )
             olusturulan.append(kaydedilen)
 
         self._log_repo.olustur(
@@ -136,7 +140,8 @@ class RezervasyonBaslatUseCase:
                 detay=(
                     f"Sipariş #{siparis_id} için {len(olusturulan)} palet rezervasyonu oluşturuldu."
                 ),
-            )
+            ),
+            auto_commit=auto_commit,
         )
 
         return [PaletRezervasyonuResponseDTO.from_entity(r) for r in olusturulan]
@@ -162,11 +167,12 @@ class RezervasyonIptalUseCase:
         siparis_id: int,
         kullanici_id: int,
         neden: Optional[str] = None,
+        auto_commit: bool = True,
     ) -> int:
         aktif_rezervasyonlar = self._repo.getir_aktif_by_siparis(siparis_id)
         for r in aktif_rezervasyonlar:
             r.iptal_et(neden or "Sipariş iptali")
-            self._repo.guncelle(r)
+            self._repo.guncelle(r, auto_commit=auto_commit)
 
         if aktif_rezervasyonlar:
             self._log_repo.olustur(
@@ -178,7 +184,8 @@ class RezervasyonIptalUseCase:
                         f"Sipariş #{siparis_id} için "
                         f"{len(aktif_rezervasyonlar)} rezervasyon iptal edildi."
                     ),
-                )
+                ),
+                auto_commit=auto_commit,
             )
         return len(aktif_rezervasyonlar)
 

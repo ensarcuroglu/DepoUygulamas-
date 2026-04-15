@@ -1,19 +1,19 @@
-import axios from 'axios';
+import api from './api';
 
-const BASE = '/api/v1/palet-rezervasyonlari';
+const BASE = '/v1/palet-rezervasyonlari';
 
 export const paletRezervasyonlariApi = {
   listele: (params = {}) =>
-    axios.get(BASE + '/', { params }).then(r => r.data),
+    api.get(BASE + '/', { params }).then(r => r.data),
 
   siparisRezervasyonlari: (siparisId) =>
-    axios.get(`${BASE}/siparis/${siparisId}`).then(r => r.data),
+    api.get(`${BASE}/siparis/${siparisId}`).then(r => r.data),
 
   iptalEt: (id, neden = null) =>
-    axios.post(`${BASE}/${id}/iptal`, { neden }).then(r => r.data),
+    api.post(`${BASE}/${id}/iptal`, { neden }).then(r => r.data),
 
   degistir: (id, yeniPaletId, neden = null) =>
-    axios.post(`${BASE}/${id}/degistir`, {
+    api.post(`${BASE}/${id}/degistir`, {
       yeni_palet_id: yeniPaletId,
       neden,
     }).then(r => r.data),
@@ -21,5 +21,5 @@ export const paletRezervasyonlariApi = {
 
 export const urunStokDetayApi = {
   getir: (urunId) =>
-    axios.get(`/api/urunler/${urunId}/stok-detay`).then(r => r.data),
+    api.get(`/urunler/${urunId}/stok-detay`).then(r => r.data),
 };

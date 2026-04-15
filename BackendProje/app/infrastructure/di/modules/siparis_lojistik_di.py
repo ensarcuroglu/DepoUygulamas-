@@ -334,20 +334,28 @@ def get_sevkiyat_getir_uc(
 
 
 def get_sevkiyat_olustur_uc(
+    db: Session = Depends(get_db),
     sevkiyat_repo=Depends(get_sevkiyat_repo),
     siparis_repo=Depends(get_siparis_repo),
     log_repo=Depends(get_log_repo),
     orchestrator=Depends(get_siparis_durum_orchestrator),
 ):
-    return SevkiyatPlaniOlusturUseCase(sevkiyat_repo, siparis_repo, log_repo, orchestrator)
+    return SevkiyatPlaniOlusturUseCase(
+        sevkiyat_repo,
+        siparis_repo,
+        log_repo,
+        db,
+        orchestrator,
+    )
 
 
 def get_sevkiyat_guncelle_uc(
+    db: Session = Depends(get_db),
     sevkiyat_repo=Depends(get_sevkiyat_repo),
     log_repo=Depends(get_log_repo),
     orchestrator=Depends(get_siparis_durum_orchestrator),
 ):
-    return SevkiyatPlaniGuncelleUseCase(sevkiyat_repo, log_repo, orchestrator)
+    return SevkiyatPlaniGuncelleUseCase(sevkiyat_repo, log_repo, db, orchestrator)
 
 
 def get_yukleme_onayla_uc(
@@ -371,11 +379,12 @@ def get_yukleme_onayla_uc(
 
 
 def get_sevkiyat_sil_uc(
+    db: Session = Depends(get_db),
     sevkiyat_repo=Depends(get_sevkiyat_repo),
     log_repo=Depends(get_log_repo),
     orchestrator=Depends(get_siparis_durum_orchestrator),
 ):
-    return SevkiyatPlaniSilUseCase(sevkiyat_repo, log_repo, orchestrator)
+    return SevkiyatPlaniSilUseCase(sevkiyat_repo, log_repo, db, orchestrator)
 
 
 # ── Mal Kabul İrsaliyesi use case factory'leri ──

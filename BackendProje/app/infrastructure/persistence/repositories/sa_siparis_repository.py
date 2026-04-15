@@ -71,7 +71,7 @@ class SqlAlchemySiparisRepository(ISiparisRepository):
         self._db.refresh(orm)
         return siparis_to_entity(orm)
 
-    def guncelle(self, siparis: Siparis) -> Siparis:
+    def guncelle(self, siparis: Siparis, auto_commit: bool = True) -> Siparis:
         orm = self._db.query(SiparisORM).filter(SiparisORM.id == siparis.id).first()
         if not orm:
             return None
@@ -84,7 +84,10 @@ class SqlAlchemySiparisRepository(ISiparisRepository):
         orm.notlar = siparis.notlar
         orm.aktif = siparis.aktif
         orm.guncelleme_tarihi = siparis.guncelleme_tarihi
-        self._db.commit()
+        if auto_commit:
+            self._db.commit()
+        else:
+            self._db.flush()
         self._db.refresh(orm)
         return siparis_to_entity(orm)
 

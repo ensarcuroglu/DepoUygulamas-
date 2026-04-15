@@ -85,11 +85,13 @@ class SevkiyatPlaniOlusturUseCase:
         sevkiyat_repo: ISevkiyatPlaniRepository,
         siparis_repo: ISiparisRepository,
         log_repo: ISistemLogRepository,
+        db: Session,
         durum_orchestrator: SiparisDurumOrchestrator,
     ):
         self._repo = sevkiyat_repo
         self._siparis_repo = siparis_repo
         self._log_repo = log_repo
+        self._db = db
         self._orchestrator = durum_orchestrator
 
     def execute(
@@ -114,18 +116,28 @@ class SevkiyatPlaniOlusturUseCase:
             notlar=dto.notlar,
         )
 
-        kaydedilen = self._repo.olustur(plan)
+        try:
+            kaydedilen = self._repo.olustur(plan, auto_commit=False)
 
-        self._orchestrator.sevkiyat_planlandi(dto.siparis_id)
-
-        self._log_repo.olustur(
-            SistemLog.olustur(
+            self._orchestrator.sevkiyat_planlandi(
+                dto.siparis_id,
                 kullanici_id=kullanici_id,
-                islem_tipi=IslemTipi.CREATE,
-                modul="Sevkiyat Planlama",
-                detay=f"Yeni sevkiyat planı oluşturuldu - Sipariş ID: {dto.siparis_id}",
+                auto_commit=False,
             )
-        )
+
+            self._log_repo.olustur(
+                SistemLog.olustur(
+                    kullanici_id=kullanici_id,
+                    islem_tipi=IslemTipi.CREATE,
+                    modul="Sevkiyat Planlama",
+                    detay=f"Yeni sevkiyat planı oluşturuldu - Sipariş ID: {dto.siparis_id}",
+                ),
+                auto_commit=False,
+            )
+            self._db.commit()
+        except Exception:
+            self._db.rollback()
+            raise
 
         return SevkiyatPlaniResponseDTO.from_entity(kaydedilen)
 
@@ -149,10 +161,12 @@ class SevkiyatPlaniGuncelleUseCase:
         self,
         sevkiyat_repo: ISevkiyatPlaniRepository,
         log_repo: ISistemLogRepository,
+        db: Session,
         durum_orchestrator: SiparisDurumOrchestrator,
     ):
         self._repo = sevkiyat_repo
         self._log_repo = log_repo
+        self._db = db
         self._orchestrator = durum_orchestrator
 
     def execute(
@@ -373,10 +387,12 @@ class SevkiyatPlaniSilUseCase:
         self,
         sevkiyat_repo: ISevkiyatPlaniRepository,
         log_repo: ISistemLogRepository,
+        db: Session,
         durum_orchestrator: SiparisDurumOrchestrator,
     ):
         self._repo = sevkiyat_repo
         self._log_repo = log_repo
+        self._db = db
         self._orchestrator = durum_orchestrator
 
     def execute(self, plan_id: int, kullanici_id: int) -> None:
@@ -388,14 +404,24 @@ class SevkiyatPlaniSilUseCase:
             raise GecersizIslemError("Teslim edilmiş sevkiyat planları silinemez.")
 
         siparis_id = plan.siparis_id
-        self._repo.sil(plan_id)
-        self._orchestrator.sevkiyat_plani_iptal(siparis_id)
-
-        self._log_repo.olustur(
-            SistemLog.olustur(
+        try:
+            self._repo.sil(plan_id, auto_commit=False)
+            self._orchestrator.sevkiyat_plani_iptal(
+                siparis_id,
                 kullanici_id=kullanici_id,
-                islem_tipi=IslemTipi.DELETE,
-                modul="Sevkiyat Planlama",
-                detay=f"Sevkiyat planı silindi - Sipariş ID: {plan.siparis_id}",
+                auto_commit=False,
             )
-        )
+
+            self._log_repo.olustur(
+                SistemLog.olustur(
+                    kullanici_id=kullanici_id,
+                    islem_tipi=IslemTipi.DELETE,
+                    modul="Sevkiyat Planlama",
+                    detay=f"Sevkiyat planı silindi - Sipariş ID: {plan.siparis_id}",
+                ),
+                auto_commit=False,
+            )
+            self._db.commit()
+        except Exception:
+            self._db.rollback()
+            raise

@@ -160,7 +160,11 @@ class TestSevkiyatOlusturOrchestrasyon:
 
         uc.execute(dto, kullanici_id=3)
 
-        mocks["durum_orchestrator"].sevkiyat_planlandi.assert_called_once_with(1)
+        mocks["durum_orchestrator"].sevkiyat_planlandi.assert_called_once_with(
+            1,
+            kullanici_id=3,
+            auto_commit=False,
+        )
 
 
 class TestYuklemeOnaylaOrchestrasyon:
@@ -208,7 +212,11 @@ class TestSevkiyatSilOrchestrasyon:
 
         uc.execute(plan_id=55, kullanici_id=3)
 
-        mocks["durum_orchestrator"].sevkiyat_plani_iptal.assert_called_once_with(1)
+        mocks["durum_orchestrator"].sevkiyat_plani_iptal.assert_called_once_with(
+            1,
+            kullanici_id=3,
+            auto_commit=False,
+        )
 
 
 # ═══════════════════════════════════════════════════════
