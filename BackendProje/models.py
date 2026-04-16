@@ -9,6 +9,7 @@ from sqlalchemy import (
     Boolean,
     JSON,
     Integer,
+    Index,
     UniqueConstraint,
     PrimaryKeyConstraint,
 )
@@ -725,6 +726,16 @@ class YerlestirmeGorevi(Base):
 class ToplamaGorevi(Base):
     """Palet bazlı toplama (pick task) görevi."""
     __tablename__ = "toplama_gorevleri"
+    __table_args__ = (
+        Index(
+            "ix_toplama_gorevleri_queue_lookup",
+            "durum",
+            "depo_id",
+            "sira_no",
+            "olusturma_tarihi",
+            "id",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     sevkiyat_id: Mapped[int] = mapped_column(Integer, ForeignKey("sevkiyat_planlari.id"), nullable=False, index=True)

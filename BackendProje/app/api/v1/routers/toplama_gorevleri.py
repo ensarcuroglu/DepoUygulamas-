@@ -3,6 +3,7 @@ Toplama Görevi API Router — Clean Architecture (Thin Controller).
 """
 
 from fastapi import APIRouter, Depends, Header, Query
+from fastapi.responses import JSONResponse
 from typing import List, Optional
 from sqlalchemy.orm import Session
 
@@ -116,7 +117,7 @@ def gorev_uret(
     if idempotency_key:
         cached = idempotency_kontrol(db, idempotency_key, "gorev_uret")
         if cached is not None:
-            return cached
+            return JSONResponse(status_code=200, content=cached)
 
     sonuc = uc.execute(dto.sevkiyat_id, current_user.id)
 

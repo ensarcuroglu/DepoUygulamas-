@@ -107,12 +107,14 @@ class RezervasyonBaslatUseCase:
             if mevcut and mevcut.durum == RezervasyonDurum.AKTIF:
                 continue
 
-            # Halihazırda rezerve edilmiş palet ID'leri
-            rezerveli_ids = self._rezervasyon_repo.rezerve_palet_idleri(kalem.urun_id)
-
             # Ürüne ait aktif paletleri kilitleyerek al (FEFO ile sıralanmış).
             # FOR UPDATE: eşzamanlı iki siparişin aynı paleti çifte rezerve etmesini engeller.
+            # ÖNEMLİ: Kilit ÖNCE alınır, rezerve_palet_idleri() sonra çağrılır.
+            # Ters sırada kilit öncesi okunmuş stale rezerveli_ids, çifte rezervasyona yol açar.
             aktif_paletler = self._palet_repo.getir_fifo_sirayla_kilitli(kalem.urun_id)
+
+            # Kilit alındıktan sonra rezerve edilmiş palet ID'leri okunur — tutarlı snapshot.
+            rezerveli_ids = self._rezervasyon_repo.rezerve_palet_idleri(kalem.urun_id)
             uygun_paletler = self._fefo.uygun_ve_siralanmis(aktif_paletler, rezerveli_ids)
 
             if not uygun_paletler:

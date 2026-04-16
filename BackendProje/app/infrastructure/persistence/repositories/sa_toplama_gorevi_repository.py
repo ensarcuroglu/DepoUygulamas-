@@ -128,7 +128,11 @@ class SqlAlchemyToplamaGoreviRepository(IToplamaGoreviRepository):
             q = q.filter(ToplamaGoreviORM.atanan_kullanici_id == kullanici_id)
         if sevkiyat_id is not None:
             q = q.filter(ToplamaGoreviORM.sevkiyat_id == sevkiyat_id)
-        q = q.order_by(ToplamaGoreviORM.sira_no.asc(), ToplamaGoreviORM.olusturma_tarihi.asc())
+        q = q.order_by(
+            ToplamaGoreviORM.sira_no.asc(),
+            ToplamaGoreviORM.olusturma_tarihi.asc(),
+            ToplamaGoreviORM.id.asc(),
+        )
         return [_to_entity(o) for o in q.offset(skip).limit(limit).all()]
 
     def getir_next_bekleyen(
@@ -147,6 +151,7 @@ class SqlAlchemyToplamaGoreviRepository(IToplamaGoreviRepository):
         q = q.order_by(
             ToplamaGoreviORM.sira_no.asc(),
             ToplamaGoreviORM.olusturma_tarihi.asc(),
+            ToplamaGoreviORM.id.asc(),
         )
         if with_lock:
             q = q.with_for_update(skip_locked=True)
