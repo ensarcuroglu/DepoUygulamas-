@@ -80,6 +80,13 @@ class SqlAlchemyPaletRepository(IPaletRepository):
         orm.palet_kg = palet.palet_kg
         orm.vardiya = palet.vardiya
         orm.aktif = palet.aktif
+        orm.kaynak = palet.kaynak
+        orm.durum = palet.durum
+        orm.uretim_tarihi = palet.uretim_tarihi
+        orm.lot_no = palet.lot_no
+        orm.kabul_eden_kullanici_id = palet.kabul_eden_kullanici_id
+        orm.kabul_tarihi = palet.kabul_tarihi
+        orm.iptal_sebebi = palet.iptal_sebebi
         if auto_commit:
             self._db.commit()
         else:

@@ -84,11 +84,7 @@ ALLOWED_ENTITY_ONLY_FIELDS: dict[str, set[str]] = {
         "yerlestirme_gorev_tamamlanan",
         "yerlestirme_gorev_iptal",
     },
-    "Palet": {
-        "lot", "raf",
-        "kaynak", "durum", "uretim_tarihi", "lot_no",
-        "kabul_eden_kullanici_id", "kabul_tarihi", "iptal_sebebi",
-    },
+    "Palet": {"lot", "raf"},
     "Siparis": {"kalemler"},
     "SevkiyatPlani": {"kalemler"},
     "StokHareketi": {"palet_no"},

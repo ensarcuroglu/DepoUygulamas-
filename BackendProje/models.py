@@ -230,11 +230,55 @@ class Palet(Base):
     aktif: Mapped[bool] = mapped_column(Boolean, default=True)
     olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    # ── Üretim paleti alanları ──
+    kaynak: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    durum: Mapped[Optional[str]] = mapped_column(String(30), nullable=True, index=True)
+    uretim_tarihi: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    lot_no: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+
+    # ── Kabul audit alanları ──
+    kabul_eden_kullanici_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("kullanicilar.id"), nullable=True
+    )
+    kabul_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    iptal_sebebi: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
     # İlişkiler
     lot: Mapped["Lot"] = relationship("Lot", back_populates="paletler")
     raf: Mapped["Raf"] = relationship("Raf", back_populates="paletler")
     stok_hareketleri: Mapped[list["StokHareketi"]] = relationship(
         "StokHareketi", back_populates="palet")
+
+
+# ========================
+# ÜRETİM SERİ SAYACI
+# ========================
+
+class UretimSeriSayac(Base):
+    __tablename__ = "uretim_seri_sayac"
+
+    tarih: Mapped[date] = mapped_column(Date, primary_key=True)
+    son_seri_no: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
+# ========================
+# PALET DURUM LOGU
+# ========================
+
+class PaletDurumLog(Base):
+    __tablename__ = "palet_durum_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    palet_id: Mapped[int] = mapped_column(Integer, ForeignKey("paletler.id"), nullable=False)
+    eski_durum: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    yeni_durum: Mapped[str] = mapped_column(String(30), nullable=False)
+    degistiren_kullanici_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("kullanicilar.id"), nullable=True
+    )
+    degisim_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    sebep: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    palet: Mapped["Palet"] = relationship("Palet")
 
 
 # ========================
