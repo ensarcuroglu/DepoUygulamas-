@@ -12,3 +12,17 @@ class AuthConstants:
     ACCESS_TOKEN_TYPE = "access"    # nosec B105
     REFRESH_TOKEN_TYPE = "refresh"  # nosec B105
     BCRYPT_ALGORITHM = "bcrypt"     # nosec B105
+
+
+class PaletKaynakSabit:
+    """Palet kaynak tipleri."""
+    URETIM = "uretim"
+    IRSALIYE = "irsaliye"
+    ERP = "erp"
+    MANUEL = "manuel"
+
+    _KAYNAKLAR = {URETIM, IRSALIYE, ERP, MANUEL}
+
+    @classmethod
+    def gecerli_mi(cls, kaynak: str) -> bool:
+        return kaynak in cls._KAYNAKLAR

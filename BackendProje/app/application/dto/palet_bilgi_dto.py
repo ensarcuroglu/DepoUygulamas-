@@ -11,8 +11,17 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel
 
-PaletDurum = Literal["aktif", "pasif"]
-PaletKaynak = Literal["irsaliye", "erp", "sistem"]
+PaletDurumDTO = Literal[
+    "aktif", "pasif",
+    "olusturuldu", "kabul_bekliyor", "kabul_edildi",
+    "yerlestirme_bekliyor", "yerlestirildi",
+    "iptal_edildi", "karantina",
+]
+PaletKaynakDTO = Literal["irsaliye", "erp", "sistem", "uretim", "manuel"]
+
+# Geriye uyumluluk alias
+PaletDurum = PaletDurumDTO
+PaletKaynak = PaletKaynakDTO
 
 
 class PaletBilgiDTO(BaseModel):
@@ -30,8 +39,8 @@ class PaletBilgiDTO(BaseModel):
     depo_id: int
     depo_adi: str
     irsaliye_no: Optional[str] = None  # Paletin ait olduğu mal kabul irsaliye no
-    durum: PaletDurum
-    kaynak: PaletKaynak
+    durum: PaletDurumDTO
+    kaynak: PaletKaynakDTO
     son_kullanma_tarihi: Optional[date] = None
     giris_yapildi_mi: bool
 

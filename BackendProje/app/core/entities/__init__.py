@@ -6,7 +6,7 @@ from .raf import Raf
 from .tedarikci import Tedarikci
 from .urun import Urun
 from .lot import Lot
-from .palet import Palet
+from .palet import Palet, UretimPaletDurum
 from .stok_hareketi import StokHareketi
 from .kullanici import Kullanici
 from .sistem_log import SistemLog
@@ -22,7 +22,7 @@ from .palet_rezervasyonu import PaletRezervasyonu, RezervasyonDurum
 
 __all__ = [
     "Marka", "Kategori", "Depo", "Zon", "ZonTipi", "Raf", "Tedarikci",
-    "Urun", "Lot", "Palet", "StokHareketi",
+    "Urun", "Lot", "Palet", "UretimPaletDurum", "StokHareketi",
     "Kullanici", "SistemLog", "DestekTalebi",
     "Siparis", "SiparisKalemi", "SevkiyatPlani", "Irsaliye",
     "RaporSablonu", "RaporLogu", "RaporSchedule",
