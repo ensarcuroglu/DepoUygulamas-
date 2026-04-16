@@ -73,3 +73,10 @@ class TokenResponseDTO(BaseModel):
     refresh_token: str
     token_type: str
     user: TokenUserInfoDTO
+
+
+class RefreshResponseDTO(BaseModel):
+    """Token rotation yanıtı — yeni access + refresh token çifti."""
+    access_token: str
+    refresh_token: str
+    token_type: str

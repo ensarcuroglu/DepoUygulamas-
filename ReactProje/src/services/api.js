@@ -143,8 +143,12 @@ api.interceptors.response.use(
                 refresh_token: refreshToken,
             });
 
-            const { access_token } = response.data;
+            const { access_token, refresh_token: new_refresh_token } = response.data;
             localStorage.setItem('access_token', access_token);
+            // Rotation: backend her /refresh'te yeni refresh_token döndürür
+            if (new_refresh_token) {
+                localStorage.setItem('refresh_token', new_refresh_token);
+            }
             api.defaults.headers.common.Authorization = `Bearer ${access_token}`;
 
             processQueue(null, access_token);
@@ -152,6 +156,7 @@ api.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${access_token}`;
             return api(originalRequest);
         } catch (refreshError) {
+            // Replay tespiti veya süresi dolmuş token → zorla logout
             processQueue(refreshError, null);
             forceLogout();
             return Promise.reject(refreshError);

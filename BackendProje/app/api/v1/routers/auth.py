@@ -17,9 +17,9 @@ from app.core.auth import (
     verify_password,
     get_password_hash,
     hash_token,
+    verify_token,
     create_access_token,
     create_refresh_token,
-    verify_and_get_user_from_refresh_token,
     get_current_user,
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
@@ -31,6 +31,7 @@ from app.application.dto.auth_dto import (
     TokenResponseDTO as TokenResponse,
     KullaniciCreateDTO as KullaniciCreate,
     RefreshRequestDTO as RefreshRequest,
+    RefreshResponseDTO as RefreshResponse,
 )
 from app.application.dto.kullanici_dto import KullaniciResponseDTO as KullaniciResponse
 from limiter import limiter
@@ -96,18 +97,76 @@ def login(request: Request, login_request: LoginRequest, db: Session = Depends(g
     }
 
 
-@router.post("/refresh")
-def refresh_token(request: RefreshRequest, db: Session = Depends(get_db)):
+@router.post("/refresh", response_model=RefreshResponse)
+@limiter.limit("5/minute")
+def refresh_token(
+    request: Request,
+    body: RefreshRequest,
+    db: Session = Depends(get_db),
+):
     """
-    Geçerli bir refresh_token ile yeni access_token üretir.
-    Refresh token süresi dolmamışsa ve DB'de kayıtlıysa başarılı olur.
+    Geçerli refresh_token ile yeni access_token + refresh_token çifti üretir (rotation).
+
+    Güvenlik davranışları:
+    - Her başarılı /refresh çağrısında eski token geçersiz kılınır (rotation).
+    - Geçersiz kılınmış bir token tekrar gelirse replay saldırısı olarak değerlendirilir:
+      kullanıcının tüm oturumu sonlandırılır ve 401 döner.
     """
-    user = verify_and_get_user_from_refresh_token(request.refresh_token, db)
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Geçersiz veya süresi dolmuş oturum. Lütfen tekrar giriş yapın.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    # Token formatını parse et: "{kullanici_id}:{raw_token}"
+    try:
+        parts = body.refresh_token.split(":", 1)
+        if len(parts) != 2:
+            raise credentials_exception
+        kullanici_id = int(parts[0])
+        raw_token = parts[1]
+    except ValueError:
+        raise credentials_exception
+
+    # Kullanıcıyı ID ile bul (O(1))
+    user = db.query(Kullanici).filter(Kullanici.id == kullanici_id).first()
+    if not user:
+        raise credentials_exception
+
+    # Aktif session var ama hash eşleşmiyorsa → replay saldırısı
+    if user.refresh_token_hash and not verify_token(raw_token, user.refresh_token_hash):
+        user.refresh_token_hash = None
+        user.refresh_token_son_kullanim = None
+        db.add(SistemLog(
+            kullanici_id=user.id,
+            islem_tipi="LOGOUT",
+            modul="Oturum",
+            detay=f"{user.ad_soyad} — Geçersiz token replay tespiti, oturum sonlandırıldı.",
+        ))
+        db.commit()
+        raise credentials_exception
+
+    # Aktif session yok
+    if not user.refresh_token_hash or not user.refresh_token_son_kullanim:
+        raise credentials_exception
+
+    # Token süresi dolmuş
+    if datetime.utcnow() > user.refresh_token_son_kullanim:
+        raise credentials_exception
+
+    # Rotation: yeni refresh token üret, eskiyi geçersiz kıl
+    new_refresh_token = create_refresh_token(user.id)
+    _, new_raw = new_refresh_token.split(":", 1)
+    user.refresh_token_hash = hash_token(new_raw)
+    user.refresh_token_son_kullanim = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+
     new_access_token = create_access_token(data={"sub": user.kullanici_adi})
+    db.commit()
 
     return {
         "access_token": new_access_token,
-        "token_type": AuthConstants.BEARER_TOKEN_TYPE,  # DEĞİŞTİRİLDİ
+        "refresh_token": new_refresh_token,
+        "token_type": AuthConstants.BEARER_TOKEN_TYPE,
     }
 
 
