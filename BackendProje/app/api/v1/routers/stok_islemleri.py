@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 
 
 from app.core.exceptions import CakismaHatasi
+from app.core.idempotency import idempotency_kontrol, idempotency_kaydet
 
 from app.core.auth import require_role
 from database import get_db
@@ -62,22 +63,33 @@ def palet_giris(
     service: PaletBazliStokDomainService = Depends(get_palet_bazli_stok_service),
 ):
     """Palet numarasi ile stok girisi yapar."""
+    if idempotency_key:
+        cached = idempotency_kontrol(db, idempotency_key, "palet_giris")
+        if cached is not None:
+            return cached
+
     kullanici = kullanici_to_entity(current_user)
-    
     try:
         hareket = service.palet_giris(dto.palet_no, kullanici)
         db.commit()
-        return StokHareketiResponseDTO.from_entity(hareket)
+        sonuc = StokHareketiResponseDTO.from_entity(hareket)
+        if idempotency_key:
+            idempotency_kaydet(db, idempotency_key, "palet_giris",
+                               sonuc.model_dump(mode="json"))
+        return sonuc
     except IntegrityError:
-        # P1 Idempotency: Çakışma durumunda hata dönmek yerine, işlemi zaten 
-        # başarılı kabul edip mevcut kaydı dönüyoruz (Idempotent davranış)
+        # DB unique constraint çakışması: mükerrer giriş, önceki sonucu dön
         db.rollback()
-        logger.warning(f"Idempotency devrede: {dto.palet_no} için mükerrer giriş isteği yakalandı. Key: {idempotency_key}")
-        
+        logger.warning(
+            f"Idempotency devrede: {dto.palet_no} için mükerrer giriş isteği. Key: {idempotency_key}"
+        )
         mevcut_hareket = service.son_hareketi_getir_palet_ile(dto.palet_no)
         if mevcut_hareket:
-            return StokHareketiResponseDTO.from_entity(mevcut_hareket)
-            
+            sonuc = StokHareketiResponseDTO.from_entity(mevcut_hareket)
+            if idempotency_key:
+                idempotency_kaydet(db, idempotency_key, "palet_giris",
+                                   sonuc.model_dump(mode="json"))
+            return sonuc
         raise CakismaHatasi("Palet numarası", dto.palet_no)
 
 
@@ -86,13 +98,18 @@ def palet_giris(
 def palet_cikis(
     request: Request,
     dto: PaletCikisRequestDTO,
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
     db: Session = Depends(get_db),
     current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
     service: PaletBazliStokDomainService = Depends(get_palet_bazli_stok_service),
 ):
     """Palet numarasi ile stok cikisi yapar."""
+    if idempotency_key:
+        cached = idempotency_kontrol(db, idempotency_key, "palet_cikis")
+        if cached is not None:
+            return cached
+
     kullanici = kullanici_to_entity(current_user)
-    
     try:
         hareket = service.palet_cikis(
             palet_no=dto.palet_no,
@@ -102,9 +119,12 @@ def palet_cikis(
             aciklama=dto.aciklama,
         )
         db.commit()
-        return StokHareketiResponseDTO.from_entity(hareket)
+        sonuc = StokHareketiResponseDTO.from_entity(hareket)
+        if idempotency_key:
+            idempotency_kaydet(db, idempotency_key, "palet_cikis",
+                               sonuc.model_dump(mode="json"))
+        return sonuc
     except IntegrityError:
-        # Çıkış sırasında da yaşanabilecek bir veri tabanı kilidi çakışmasını engelle
         db.rollback()
         raise CakismaHatasi("Palet çıkış işlemi", dto.palet_no)
 

@@ -2,10 +2,13 @@
 Toplama Görevi API Router — Clean Architecture (Thin Controller).
 """
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Header, Query
 from typing import List, Optional
+from sqlalchemy.orm import Session
 
 from app.core.auth import require_role
+from app.core.idempotency import idempotency_kontrol, idempotency_kaydet
+from database import get_db
 from app.core.exceptions import GecersizIslemError, YetkisizIslemError
 from models import Kullanici
 
@@ -104,24 +107,49 @@ def gorev_getir(
 @router.post("/uret", response_model=List[ToplamaGoreviResponseDTO], status_code=201)
 def gorev_uret(
     dto: PickTaskUretRequestDTO,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     current_user: Kullanici = Depends(require_role("admin", "lojistik")),
     uc: PickTaskUretUseCase = Depends(get_pick_task_uret_uc),
+    db: Session = Depends(get_db),
 ):
     """Sevkiyat için palet bazlı toplama görevlerini üretir."""
-    return uc.execute(dto.sevkiyat_id, current_user.id)
+    if idempotency_key:
+        cached = idempotency_kontrol(db, idempotency_key, "gorev_uret")
+        if cached is not None:
+            return cached
+
+    sonuc = uc.execute(dto.sevkiyat_id, current_user.id)
+
+    if idempotency_key:
+        idempotency_kaydet(db, idempotency_key, "gorev_uret",
+                           [r.model_dump(mode="json") for r in sonuc])
+    return sonuc
 
 
 @router.post("/sira-al", response_model=Optional[ToplamaGoreviResponseDTO])
 def siradan_gorev_al(
     dto: SiradanGorevAlRequestDTO,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
     uc: SiradanGorevAlUseCase = Depends(get_siradan_gorev_al_uc),
+    db: Session = Depends(get_db),
 ):
     """Operatör sıradaki Beklemede görevi havuzdan çeker (pull-based)."""
+    if idempotency_key:
+        cached = idempotency_kontrol(db, idempotency_key, "siradan_gorev_al")
+        if cached is not None:
+            return cached
+
     hedef_depo_id = _depocu_depo_id(current_user)
     if hedef_depo_id is None:
         hedef_depo_id = dto.depo_id
-    return uc.execute(kullanici_id=current_user.id, depo_id=hedef_depo_id)
+    sonuc = uc.execute(kullanici_id=current_user.id, depo_id=hedef_depo_id)
+
+    # None yanıtı (görev yok) cache'lenmez — retry yeni görev bulabilmeli
+    if idempotency_key and sonuc is not None:
+        idempotency_kaydet(db, idempotency_key, "siradan_gorev_al",
+                           sonuc.model_dump(mode="json"))
+    return sonuc
 
 
 @router.post("/{gorev_id}/baslat", response_model=ToplamaGoreviResponseDTO)

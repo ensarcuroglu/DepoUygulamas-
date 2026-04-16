@@ -57,6 +57,16 @@ _scheduler = RaporScheduler()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _scheduler.start()
+    # Süresi dolmuş idempotency kayıtlarını temizle
+    try:
+        from database import SessionLocal
+        from app.core.idempotency import idempotency_temizle
+        with SessionLocal() as db:
+            silinen = idempotency_temizle(db)
+            if silinen:
+                logger.info(f"Startup: {silinen} süresi dolmuş idempotency kaydı temizlendi.")
+    except Exception as e:
+        logger.warning(f"Idempotency cleanup başarısız (kritik değil): {e}")
     yield
     _scheduler.shutdown()
 

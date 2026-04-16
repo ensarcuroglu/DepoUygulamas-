@@ -10,6 +10,7 @@ from sqlalchemy import (
     JSON,
     Integer,
     UniqueConstraint,
+    PrimaryKeyConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import date, datetime
@@ -772,6 +773,27 @@ class PaletRezervasyonu(Base):
     # İlişkiler
     palet: Mapped["Palet"] = relationship("Palet", foreign_keys=[palet_id])
     siparis: Mapped["Siparis"] = relationship("Siparis", foreign_keys=[siparis_id])
+
+
+# ========================
+# IDEMPOTENCY KAYDI
+# ========================
+
+class IdempotencyKaydi(Base):
+    """Kritik POST endpoint'leri için retry-safe idempotency tablosu.
+    Composite PK: (idempotency_key, endpoint) — aynı key farklı endpoint'lerde bağımsız.
+    TTL: 24 saat (son_kullanim_tarihi aşıldıktan sonra startup cleanup ile silinir).
+    """
+    __tablename__ = "idempotency_kayitlari"
+    __table_args__ = (
+        PrimaryKeyConstraint("idempotency_key", "endpoint"),
+    )
+
+    idempotency_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    endpoint: Mapped[str] = mapped_column(String(200), nullable=False)
+    response_body: Mapped[dict] = mapped_column(JSON, nullable=False)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    son_kullanim_tarihi: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
 
 
 from sqlalchemy import select, func # noqa: E402

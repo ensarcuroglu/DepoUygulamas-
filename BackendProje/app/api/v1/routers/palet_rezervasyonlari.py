@@ -2,10 +2,13 @@
 Palet Rezervasyonu API Router — Clean Architecture (Thin Controller).
 """
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Header, Query
 from typing import List, Optional
+from sqlalchemy.orm import Session
 
 from app.core.auth import require_role
+from app.core.idempotency import idempotency_kontrol, idempotency_kaydet
+from database import get_db
 from models import Kullanici
 
 from app.infrastructure.di.container import (
@@ -73,12 +76,24 @@ def rezervasyon_iptal(
 def rezervasyon_degistir(
     rezervasyon_id: int,
     dto: RezervasyonDegistirRequestDTO,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     current_user: Kullanici = Depends(require_role("admin")),
     uc: RezervasyonDegistirUseCase = Depends(get_rezervasyon_degistir_uc),
+    db: Session = Depends(get_db),
 ):
-    return uc.execute(
+    if idempotency_key:
+        cached = idempotency_kontrol(db, idempotency_key, "rezervasyon_degistir")
+        if cached is not None:
+            return cached
+
+    sonuc = uc.execute(
         rezervasyon_id=rezervasyon_id,
         yeni_palet_id=dto.yeni_palet_id,
         kullanici_id=current_user.id,
         neden=dto.neden,
     )
+
+    if idempotency_key:
+        idempotency_kaydet(db, idempotency_key, "rezervasyon_degistir",
+                           sonuc.model_dump(mode="json"))
+    return sonuc
