@@ -131,19 +131,26 @@ class SqlAlchemyToplamaGoreviRepository(IToplamaGoreviRepository):
         q = q.order_by(ToplamaGoreviORM.sira_no.asc(), ToplamaGoreviORM.olusturma_tarihi.asc())
         return [_to_entity(o) for o in q.offset(skip).limit(limit).all()]
 
-    def getir_next_bekleyen(self, depo_id: Optional[int] = None) -> Optional[ToplamaGorevi]:
+    def getir_next_bekleyen(
+        self,
+        depo_id: Optional[int] = None,
+        with_lock: bool = False,
+    ) -> Optional[ToplamaGorevi]:
         """Pull-based: sira_no ASC ilk Beklemede görevi döner.
-        # TODO Faz 2: .with_for_update(skip_locked=True) eklenecek
+        with_lock=True → FOR UPDATE SKIP LOCKED; kilitli satırı atlar, bir sonrakini döner.
         """
         q = self._db.query(ToplamaGoreviORM).filter(
             ToplamaGoreviORM.durum == ToplamaGoreviDurum.BEKLEMEDE
         )
         if depo_id is not None:
             q = q.filter(ToplamaGoreviORM.depo_id == depo_id)
-        orm = q.order_by(
+        q = q.order_by(
             ToplamaGoreviORM.sira_no.asc(),
             ToplamaGoreviORM.olusturma_tarihi.asc(),
-        ).first()
+        )
+        if with_lock:
+            q = q.with_for_update(skip_locked=True)
+        orm = q.first()
         if not orm:
             return None
         return _to_entity(orm)

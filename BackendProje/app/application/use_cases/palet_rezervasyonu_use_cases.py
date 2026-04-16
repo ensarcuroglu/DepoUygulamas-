@@ -110,8 +110,9 @@ class RezervasyonBaslatUseCase:
             # Halihazırda rezerve edilmiş palet ID'leri
             rezerveli_ids = self._rezervasyon_repo.rezerve_palet_idleri(kalem.urun_id)
 
-            # Ürüne ait aktif paletleri al (FEFO ile sıralanmış)
-            aktif_paletler = self._palet_repo.getir_fifo_sirayla(kalem.urun_id)
+            # Ürüne ait aktif paletleri kilitleyerek al (FEFO ile sıralanmış).
+            # FOR UPDATE: eşzamanlı iki siparişin aynı paleti çifte rezerve etmesini engeller.
+            aktif_paletler = self._palet_repo.getir_fifo_sirayla_kilitli(kalem.urun_id)
             uygun_paletler = self._fefo.uygun_ve_siralanmis(aktif_paletler, rezerveli_ids)
 
             if not uygun_paletler:

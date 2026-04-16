@@ -39,9 +39,13 @@ class IPaletRezervasyonuRepository(ABC):
         ...
 
     @abstractmethod
-    def getir_aktif_by_palet(self, palet_id: int) -> Optional[PaletRezervasyonu]:
+    def getir_aktif_by_palet(
+        self,
+        palet_id: int,
+        with_lock: bool = False,
+    ) -> Optional[PaletRezervasyonu]:
         """Palete atanmış Aktif rezervasyonu döner; yoksa None.
-        # TODO Faz 2: with_lock parametresi eklenecek (SELECT FOR UPDATE)
+        with_lock=True → SELECT FOR UPDATE (rezervasyon değişikliği öncesi güvenli okuma).
         """
         ...
 

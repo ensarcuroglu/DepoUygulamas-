@@ -158,8 +158,8 @@ class PickTaskUretUseCase:
 class SiradanGorevAlUseCase:
     """Operatör sıradaki Beklemede görevi havuzdan çeker.
 
-    # TODO Faz 2: getir_next_bekleyen içinde SELECT FOR UPDATE SKIP LOCKED uygulanacak.
-    MVP'de son-yazar-kazanır riski kabul edilmiştir.
+    SELECT FOR UPDATE SKIP LOCKED ile eşzamanlı iki operatörün aynı görevi
+    alması engellenir; kilitli satır atlanır, bir sonraki bekleyen görev döner.
     """
 
     def __init__(self, gorev_repo: IToplamaGoreviRepository):
@@ -170,7 +170,7 @@ class SiradanGorevAlUseCase:
         kullanici_id: int,
         depo_id: Optional[int] = None,
     ) -> Optional[ToplamaGoreviResponseDTO]:
-        gorev = self._repo.getir_next_bekleyen(depo_id=depo_id)
+        gorev = self._repo.getir_next_bekleyen(depo_id=depo_id, with_lock=True)
         if not gorev:
             return None
 

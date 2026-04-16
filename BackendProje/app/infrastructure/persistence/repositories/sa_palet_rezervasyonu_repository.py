@@ -116,12 +116,18 @@ class SqlAlchemyPaletRezervasyonuRepository(IPaletRezervasyonuRepository):
         ).all()
         return [_to_entity(o) for o in ormlar]
 
-    def getir_aktif_by_palet(self, palet_id: int) -> Optional[PaletRezervasyonu]:
-        # TODO Faz 2: with_lock parametresi eklenecek (SELECT FOR UPDATE)
-        orm = self._db.query(PaletRezervasyonuORM).filter(
+    def getir_aktif_by_palet(
+        self,
+        palet_id: int,
+        with_lock: bool = False,
+    ) -> Optional[PaletRezervasyonu]:
+        q = self._db.query(PaletRezervasyonuORM).filter(
             PaletRezervasyonuORM.palet_id == palet_id,
             PaletRezervasyonuORM.durum == RezervasyonDurum.AKTIF,
-        ).first()
+        )
+        if with_lock:
+            q = q.with_for_update()
+        orm = q.first()
         return _to_entity(orm) if orm else None
 
     def getir_by_sevkiyat_kalemi(self, sevkiyat_kalemi_id: int) -> Optional[PaletRezervasyonu]:

@@ -34,9 +34,11 @@ class IToplamaGoreviRepository(ABC):
     def getir_next_bekleyen(
         self,
         depo_id: Optional[int] = None,
-        # TODO Faz 2: with_lock: bool = False — SELECT FOR UPDATE SKIP LOCKED eklenecek
+        with_lock: bool = False,
     ) -> Optional[ToplamaGorevi]:
-        """Pull-based: sıra_no ASC, olusturma_tarihi ASC ilk Beklemede görevi döner."""
+        """Pull-based: sıra_no ASC, olusturma_tarihi ASC ilk Beklemede görevi döner.
+        with_lock=True → SELECT FOR UPDATE SKIP LOCKED (eşzamanlı operatör güvenliği).
+        """
         ...
 
     @abstractmethod
