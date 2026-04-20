@@ -19,6 +19,7 @@ from .stok_sayim import StokSayim, StokSayimKalemi
 from .mal_kabul_irsaliye import MalKabulIrsaliye, MalKabulKalemi
 from .toplama_gorevi import ToplamaGorevi, ToplamaGoreviDurum
 from .palet_rezervasyonu import PaletRezervasyonu, RezervasyonDurum
+from .palet_durum_log import PaletDurumLog
 
 __all__ = [
     "Marka", "Kategori", "Depo", "Zon", "ZonTipi", "Raf", "Tedarikci",
@@ -30,4 +31,5 @@ __all__ = [
     "MalKabulIrsaliye", "MalKabulKalemi",
     "ToplamaGorevi", "ToplamaGoreviDurum",
     "PaletRezervasyonu", "RezervasyonDurum",
+    "PaletDurumLog",
 ]

@@ -16,6 +16,7 @@ Modül grupları:
     kullanici_destek_di — Kullanıcı, Destek Talebi, Sistem Log
     siparis_lojistik_di — Sipariş, İrsaliye, Sevkiyat, Mal Kabul, Stok Çıkış, İrsaliye Onay+Görev
     rapor_dashboard_di  — Rapor, Dashboard
+    uretim_di           — Üretim Paleti (FAZ 3)
 """
 
 from app.infrastructure.di.modules.kullanici_destek_di import (  # noqa: F401
@@ -188,6 +189,21 @@ from app.infrastructure.di.modules.siparis_lojistik_di import (  # noqa: F401
     get_gorev_tamamla_uc,
     get_gorev_iptal_uc,
     get_fefo_override_uc,
+)
+
+from app.infrastructure.di.modules.uretim_di import (  # noqa: F401
+    get_uretim_seri_sayac_repo,
+    get_palet_durum_log_repo,
+    get_uretim_seri_no_uretici,
+    get_uretim_palet_service,
+    get_uretim_paleti_olustur_uc,
+    get_uretim_paleti_kabul_bekle_uc,
+    get_uretim_paleti_kabul_et_uc,
+    get_uretim_paleti_karantina_al_uc,
+    get_uretim_paleti_karantina_cikar_uc,
+    get_uretim_paleti_iptal_uc,
+    get_uretim_paleti_yerlestirme_bekle_uc,
+    get_uretim_paleti_yerlestir_uc,
 )
 
 from app.infrastructure.di.modules.rapor_dashboard_di import (  # noqa: F401

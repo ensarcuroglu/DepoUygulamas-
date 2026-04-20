@@ -26,6 +26,8 @@ from .sa_mal_kabul_irsaliye_repository import SqlAlchemyMalKabulIrsaliyeReposito
 from .sa_yerlestirme_gorevi_repository import SqlAlchemyYerlestirmeGoreviRepository
 from .sa_toplama_gorevi_repository import SqlAlchemyToplamaGoreviRepository
 from .sa_palet_rezervasyonu_repository import SqlAlchemyPaletRezervasyonuRepository
+from .sa_uretim_seri_sayac_repository import SqlAlchemyUretimSeriSayacRepository
+from .sa_palet_durum_log_repository import SqlAlchemyPaletDurumLogRepository
 
 __all__ = [
     "SqlAlchemyMarkaRepository",
@@ -54,4 +56,6 @@ __all__ = [
     "SqlAlchemyYerlestirmeGoreviRepository",
     "SqlAlchemyToplamaGoreviRepository",
     "SqlAlchemyPaletRezervasyonuRepository",
+    "SqlAlchemyUretimSeriSayacRepository",
+    "SqlAlchemyPaletDurumLogRepository",
 ]
