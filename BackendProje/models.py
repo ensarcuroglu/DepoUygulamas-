@@ -178,15 +178,13 @@ class Urun(Base):
     stok_hareketleri: Mapped[list["StokHareketi"]] = relationship("StokHareketi", back_populates="urun")
 
     @property
-    def durum(self):
-        """Stok durumunu otomatik hesaplar"""
-        miktar = self.stok_miktari
+    def durum(self) -> str:
+        miktar = getattr(self, "stok_miktari", 0) or 0
         if miktar <= 0:
             return "Stok Yok"
         elif miktar <= self.min_stok:
             return "Kritik Stok"
-        else:
-            return "Yeterli"
+        return "Yeterli"
 
 
 # ========================
@@ -248,6 +246,10 @@ class Palet(Base):
     raf: Mapped["Raf"] = relationship("Raf", back_populates="paletler")
     stok_hareketleri: Mapped[list["StokHareketi"]] = relationship(
         "StokHareketi", back_populates="palet")
+    kabul_eden_kullanici: Mapped[Optional["Kullanici"]] = relationship(
+    "Kullanici",
+    foreign_keys=[kabul_eden_kullanici_id],
+    )
 
 
 # ========================
@@ -278,7 +280,11 @@ class PaletDurumLog(Base):
     degisim_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     sebep: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
-    palet: Mapped["Palet"] = relationship("Palet")
+    palet: Mapped["Palet"] = relationship("Palet", foreign_keys=[palet_id])
+    degistiren_kullanici: Mapped[Optional["Kullanici"]] = relationship(
+        "Kullanici",
+        foreign_keys=[degistiren_kullanici_id],
+    )
 
 
 # ========================
@@ -302,7 +308,7 @@ class StokHareketi(Base):
     barkodlar: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     sofor_adi: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     tasiyici_firma: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    aciklama: Mapped[str] = mapped_column(Text, default="")
+    aciklama: Mapped[str] = mapped_column(Text, default="", nullable=False)
     kullanici_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
     tarih: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -361,9 +367,18 @@ class Kullanici(Base):
     olusturma_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
 
     # İlişkiler (Relationship yapısı eski halinde kalabilir, Pyright bunu çözer)
-    stok_hareketleri = relationship("StokHareketi", back_populates="kullanici")
-    destek_talepleri = relationship("DestekTalebi", back_populates="kullanici")
-    depo = relationship("Depo", foreign_keys=[depo_id])
+    stok_hareketleri: Mapped[list["StokHareketi"]] = relationship(
+    "StokHareketi",
+    back_populates="kullanici",
+    )
+    destek_talepleri: Mapped[list["DestekTalebi"]] = relationship(
+        "DestekTalebi",
+        back_populates="kullanici",
+    )
+    depo: Mapped[Optional["Depo"]] = relationship(
+        "Depo",
+        foreign_keys=[depo_id],
+    )
 
 
 # ========================
