@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import PlainTextResponse
 
 from app.core.auth import get_current_user
+from app.infrastructure.persistence.mappers.kullanici_destek_mapper import kullanici_to_entity
 from models import Kullanici
 from limiter import limiter
 
@@ -92,7 +93,7 @@ def uretim_paleti_olustur(
     current_user: Kullanici = Depends(get_current_user),
     uc: UretimPaletiOlusturUseCase = Depends(get_uretim_paleti_olustur_uc),
 ):
-    return uc.execute(dto, current_user)
+    return uc.execute(dto, kullanici_to_entity(current_user))
 
 
 # ── Kabul Bekle ───────────────────────────────────────────────────────────────

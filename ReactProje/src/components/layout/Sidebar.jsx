@@ -59,7 +59,7 @@ const menuGroups = [
         id: 'uretim',
         label: 'Üretim',
         items: [
-            { path: '/uretim-paletleri', label: 'Üretim Paletleri', icon: Factory, roles: ['admin', 'depocu'], badge: null },
+            { path: '/uretim-paletleri', label: 'Üretim Paletleri', icon: Factory, roles: ['admin', 'depocu'], departments: ['kalite'], badge: null },
             { path: '/uretim-paletleri/kabul', label: 'Palet Kabul', icon: Scan, roles: ['admin', 'depocu'], badge: null },
         ],
     },
@@ -118,6 +118,13 @@ const bottomItems = [
     { path: '/destek-masasi', label: 'Destek Masası', icon: HelpCircle, roles: ['admin', 'lojistik'], badge: null },
     { path: '/ayarlar', label: 'Sistem Tercihleri', icon: Settings, roles: ['admin'], badge: null },
 ];
+
+const canAccessItem = (item, userRole, userDepartment) => {
+    if (!item.roles && !item.departments) return true;
+    const roleAllowed = item.roles?.includes(userRole) ?? false;
+    const departmentAllowed = item.departments?.includes(userDepartment) ?? false;
+    return roleAllowed || departmentAllowed;
+};
 
 /* ───────────────────────────────────────────
    TOOLTIP — collapsed desktop only
@@ -232,14 +239,14 @@ function MenuItem({ item, showLabel, collapsed, isMobile }) {
 /* ───────────────────────────────────────────
    ACCORDION GROUP
    ─────────────────────────────────────────── */
-function AccordionGroup({ group, showLabel, collapsed, isMobile, userRole, openGroups, toggleGroup }) {
+function AccordionGroup({ group, showLabel, collapsed, isMobile, userRole, userDepartment, openGroups, toggleGroup }) {
     const location = useLocation();
     const contentRef = useRef(null);
     const [contentHeight, setContentHeight] = useState(0);
 
     const filteredItems = useMemo(
-        () => group.items.filter(item => !item.roles || item.roles.includes(userRole)),
-        [group.items, userRole]
+        () => group.items.filter(item => canAccessItem(item, userRole, userDepartment)),
+        [group.items, userRole, userDepartment]
     );
 
     const isOpen = openGroups.has(group.id);
@@ -333,8 +340,8 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
     }, [openGroups, activeGroupId]);
 
     const filteredBottomItems = useMemo(
-        () => bottomItems.filter(item => !item.roles || item.roles.includes(user?.rol)),
-        [user?.rol]
+        () => bottomItems.filter(item => canAccessItem(item, user?.rol, (user?.departman || '').trim().toLowerCase())),
+        [user?.rol, user?.departman]
     );
 
     useEffect(() => {
@@ -453,6 +460,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
                                 collapsed={collapsed}
                                 isMobile={isMobile}
                                 userRole={user?.rol}
+                                userDepartment={(user?.departman || '').trim().toLowerCase()}
                                 openGroups={visibleOpenGroups}
                                 toggleGroup={toggleGroup}
                             />

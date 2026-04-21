@@ -11,10 +11,15 @@ import { useAuth } from '../contexts/AuthContext';
  *     <Route path="/dashboard" element={<DashboardPage />} />
  *   </Route>
  */
-export default function RoleRoute({ allowedRoles = [] }) {
+export default function RoleRoute({ allowedRoles = [], allowedDepartments = [] }) {
     const { user } = useAuth();
+    const userDepartment = (user?.departman || '').trim().toLowerCase();
+    const departmentAllowed = allowedDepartments
+        .map((department) => department.toLowerCase())
+        .includes(userDepartment);
+    const roleAllowed = !!user && allowedRoles.includes(user.rol);
 
-    if (!user || !allowedRoles.includes(user.rol)) {
+    if (!user || (!roleAllowed && !departmentAllowed)) {
         // Yetkisiz erişim: rolüne göre uygun sayfaya yönlendir (login'e değil)
         const redirectTo = (user?.rol === 'depocu' || user?.rol === 'lojistik') 
             ? '/stok-hareketleri' 
@@ -22,7 +27,7 @@ export default function RoleRoute({ allowedRoles = [] }) {
             ? '/profil-ayarlari' 
             : '/login';
         return <Navigate to={redirectTo} replace />;
-        }
+    }
 
     return <Outlet />;
 }

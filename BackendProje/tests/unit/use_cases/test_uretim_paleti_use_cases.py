@@ -19,6 +19,8 @@ from app.application.use_cases.uretim_paleti_use_cases import (
     UretimPaletiKarantinaAlUseCase,
     UretimPaletiKarantinaCikarUseCase,
     UretimPaletiIptalUseCase,
+    UretimPaletleriListeleUseCase,
+    UretimPaletiGetirUseCase,
 )
 from app.application.dto.uretim_paleti_dto import UretimPaletiOlusturRequestDTO
 
@@ -52,6 +54,45 @@ def _mock_db():
 
 def _mock_log() -> PaletDurumLog:
     return PaletDurumLog(palet_id=10, yeni_durum=UretimPaletDurum.KABUL_EDILDI)
+
+
+# ── Listele/GetirUseCase ──────────────────────────────────────────────────────
+
+class TestUretimPaletiListeleGetir:
+    def test_liste_vardiya_filtresini_repo_seviyesine_tasir(self):
+        palet_repo = MagicMock()
+        palet_repo.getir_hepsi.return_value = [_uretim_palet()]
+        uc = UretimPaletleriListeleUseCase(palet_repo=palet_repo)
+
+        uc.execute(skip=10, limit=25, vardiya="A")
+
+        palet_repo.getir_hepsi.assert_called_once_with(
+            skip=10,
+            limit=25,
+            lot_id=None,
+            sadece_aktif=True,
+            kaynak="uretim",
+            durum=None,
+            vardiya="A",
+        )
+
+    def test_getir_uretim_kaynakli_olmayan_paleti_bulunamadi_sayar(self):
+        legacy_palet = Palet(
+            id=11,
+            palet_no="PLT-LEGACY-001",
+            lot_id=5,
+            raf_id=1,
+            koli_adedi=12,
+            kaynak="irsaliye",
+            durum=None,
+            aktif=True,
+        )
+        palet_repo = MagicMock()
+        palet_repo.getir_palet_no_ile.return_value = legacy_palet
+        uc = UretimPaletiGetirUseCase(palet_repo=palet_repo)
+
+        with pytest.raises(KayitBulunamadiError):
+            uc.execute("PLT-LEGACY-001")
 
 
 # ── OlusturUseCase ────────────────────────────────────────────────────────────

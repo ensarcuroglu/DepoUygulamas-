@@ -15,6 +15,7 @@ class IPaletRepository(ABC):
         sadece_aktif: bool = True,
         kaynak: Optional[str] = None,
         durum: Optional[str] = None,
+        vardiya: Optional[str] = None,
     ) -> List[Palet]:
         ...
 

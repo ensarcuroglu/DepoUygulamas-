@@ -169,8 +169,10 @@ function App() {
                   </Route>
 
                   {/* Üretim Paleti — Faz 4 */}
-                  <Route element={<RoleRoute allowedRoles={['admin', 'depocu']} />}>
+                  <Route element={<RoleRoute allowedRoles={['admin', 'depocu']} allowedDepartments={['kalite']} />}>
                     <Route path="/uretim-paletleri" element={<UretimPaletleriPage />} />
+                  </Route>
+                  <Route element={<RoleRoute allowedRoles={['admin', 'depocu']} />}>
                     <Route path="/uretim-paletleri/kabul" element={<UretimPaletiKabulPage />} />
                   </Route>
 

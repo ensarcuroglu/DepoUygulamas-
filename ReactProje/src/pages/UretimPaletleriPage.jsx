@@ -16,24 +16,34 @@ import {
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
 
+const DURUM = {
+    OLUSTURULDU: 'Olusturuldu',
+    KABUL_BEKLIYOR: 'KabulBekliyor',
+    KABUL_EDILDI: 'KabulEdildi',
+    YERLESTIRME_BEKLIYOR: 'YerlestirmeBekliyor',
+    YERLESTIRILDI: 'Yerlestirildi',
+    KARANTINA: 'Karantina',
+    IPTAL_EDILDI: 'IptalEdildi',
+};
+
 const DURUM_BADGE = {
-    OLUSTURULDU:          'bg-slate-100 text-slate-700',
-    KABUL_BEKLIYOR:       'bg-amber-100 text-amber-800',
-    KABUL_EDILDI:         'bg-emerald-100 text-emerald-800',
-    YERLESTIRME_BEKLIYOR: 'bg-blue-100 text-blue-800',
-    YERLESTIRILDI:        'bg-indigo-100 text-indigo-800',
-    KARANTINA:            'bg-red-100 text-red-700',
-    IPTAL_EDILDI:         'bg-gray-100 text-gray-500 line-through',
+    [DURUM.OLUSTURULDU]:          'bg-slate-100 text-slate-700',
+    [DURUM.KABUL_BEKLIYOR]:       'bg-amber-100 text-amber-800',
+    [DURUM.KABUL_EDILDI]:         'bg-emerald-100 text-emerald-800',
+    [DURUM.YERLESTIRME_BEKLIYOR]: 'bg-blue-100 text-blue-800',
+    [DURUM.YERLESTIRILDI]:        'bg-indigo-100 text-indigo-800',
+    [DURUM.KARANTINA]:            'bg-red-100 text-red-700',
+    [DURUM.IPTAL_EDILDI]:         'bg-gray-100 text-gray-500 line-through',
 };
 
 const DURUM_ETIKET = {
-    OLUSTURULDU:          'Oluşturuldu',
-    KABUL_BEKLIYOR:       'Kabul Bekliyor',
-    KABUL_EDILDI:         'Kabul Edildi',
-    YERLESTIRME_BEKLIYOR: 'Yrl. Bekliyor',
-    YERLESTIRILDI:        'Yerleştirildi',
-    KARANTINA:            'Karantina',
-    IPTAL_EDILDI:         'İptal',
+    [DURUM.OLUSTURULDU]:          'Oluşturuldu',
+    [DURUM.KABUL_BEKLIYOR]:       'Kabul Bekliyor',
+    [DURUM.KABUL_EDILDI]:         'Kabul Edildi',
+    [DURUM.YERLESTIRME_BEKLIYOR]: 'Yrl. Bekliyor',
+    [DURUM.YERLESTIRILDI]:        'Yerleştirildi',
+    [DURUM.KARANTINA]:            'Karantina',
+    [DURUM.IPTAL_EDILDI]:         'İptal',
 };
 
 // ── Yardımcılar ───────────────────────────────────────────────────────────────
@@ -269,7 +279,7 @@ export default function UretimPaletleriPage() {
                                                     {islem && <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />}
 
                                                     {/* Kabul Bekle */}
-                                                    {isDepocuOrAdmin && p.durum === 'OLUSTURULDU' && (
+                                                    {isDepocuOrAdmin && p.durum === DURUM.OLUSTURULDU && (
                                                         <AksiyonButon
                                                             onClick={() => kabulBekle(p.palet_no)}
                                                             icon={<ChevronDown className="w-3.5 h-3.5" />}
@@ -280,7 +290,7 @@ export default function UretimPaletleriPage() {
                                                     )}
 
                                                     {/* Kabul Et */}
-                                                    {isDepocuOrAdmin && p.durum === 'KABUL_BEKLIYOR' && (
+                                                    {isDepocuOrAdmin && p.durum === DURUM.KABUL_BEKLIYOR && (
                                                         <AksiyonButon
                                                             onClick={() => kabulEt(p.palet_no)}
                                                             icon={<CheckCircle className="w-3.5 h-3.5" />}
@@ -291,7 +301,7 @@ export default function UretimPaletleriPage() {
                                                     )}
 
                                                     {/* Karantinaya Al */}
-                                                    {isKaliteYetkili && p.durum === 'KABUL_EDILDI' && (
+                                                    {isKaliteYetkili && p.durum === DURUM.KABUL_EDILDI && (
                                                         <AksiyonButon
                                                             onClick={() => { setSebepModal({ tip: 'karantina', paletNo: p.palet_no }); setSebepText(''); }}
                                                             icon={<ShieldAlert className="w-3.5 h-3.5" />}
@@ -302,7 +312,7 @@ export default function UretimPaletleriPage() {
                                                     )}
 
                                                     {/* Karantinadan Çıkar */}
-                                                    {isKaliteYetkili && p.durum === 'KARANTINA' && (
+                                                    {isKaliteYetkili && p.durum === DURUM.KARANTINA && (
                                                         <AksiyonButon
                                                             onClick={() => { setSebepModal({ tip: 'karantina-cikar', paletNo: p.palet_no }); setSebepText(''); }}
                                                             icon={<ShieldCheck className="w-3.5 h-3.5" />}
@@ -313,7 +323,7 @@ export default function UretimPaletleriPage() {
                                                     )}
 
                                                     {/* İptal */}
-                                                    {isAdmin && ['OLUSTURULDU', 'KABUL_BEKLIYOR'].includes(p.durum) && (
+                                                    {isAdmin && [DURUM.OLUSTURULDU, DURUM.KABUL_BEKLIYOR].includes(p.durum) && (
                                                         <AksiyonButon
                                                             onClick={() => { setSebepModal({ tip: 'iptal', paletNo: p.palet_no }); setSebepText(''); }}
                                                             icon={<Ban className="w-3.5 h-3.5" />}

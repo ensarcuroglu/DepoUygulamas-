@@ -544,9 +544,8 @@ class UretimPaletleriListeleUseCase:
             sadece_aktif=sadece_aktif,
             kaynak="uretim",
             durum=durum,
+            vardiya=vardiya,
         )
-        if vardiya:
-            paletler = [p for p in paletler if p.vardiya == vardiya]
         return [UretimPaletiResponseDTO.from_entity(p) for p in paletler]
 
 
@@ -558,8 +557,8 @@ class UretimPaletiGetirUseCase:
 
     def execute(self, palet_no: str) -> UretimPaletiResponseDTO:
         palet = self._palet_repo.getir_palet_no_ile(palet_no)
-        if not palet:
-            raise KayitBulunamadiError("Palet", palet_no)
+        if not palet or not palet.uretim_paleti_mi:
+            raise KayitBulunamadiError("Üretim paleti", palet_no)
         return UretimPaletiResponseDTO.from_entity(palet)
 
 

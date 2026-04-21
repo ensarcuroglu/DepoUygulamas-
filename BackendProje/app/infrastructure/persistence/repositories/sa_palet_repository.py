@@ -21,6 +21,7 @@ class SqlAlchemyPaletRepository(IPaletRepository):
         sadece_aktif: bool = True,
         kaynak: Optional[str] = None,
         durum: Optional[str] = None,
+        vardiya: Optional[str] = None,
     ) -> List[Palet]:
         query = self._db.query(PaletORM).options(
             joinedload(PaletORM.lot).joinedload(LotORM.urun),
@@ -41,6 +42,8 @@ class SqlAlchemyPaletRepository(IPaletRepository):
             query = query.filter(PaletORM.kaynak == kaynak)
         if durum:
             query = query.filter(PaletORM.durum == durum)
+        if vardiya:
+            query = query.filter(PaletORM.vardiya == vardiya)
         orm_list = query.order_by(PaletORM.tarih.desc()).offset(skip).limit(limit).all()
         return [palet_to_entity(o) for o in orm_list]
 
