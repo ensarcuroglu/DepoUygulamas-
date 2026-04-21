@@ -14,6 +14,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker, Session
 
+from app.core.entities.palet import UretimPaletDurum
 from models import (
     Palet as PaletORM,
     Lot as LotORM,
@@ -237,7 +238,7 @@ class TestCiftKabulConcurrency:
             raf_id=raf_id,
             koli_adedi=48,
             kaynak="uretim",
-            durum="KABUL_BEKLIYOR",
+            durum=UretimPaletDurum.KABUL_BEKLIYOR,
             aktif=True,
         )
         session.add(palet)
@@ -261,8 +262,25 @@ class TestCiftKabulConcurrency:
 
         setup = _yeni_session(engine)
         _temizle(setup)
-        _, raf, lot = _seed(setup)
+        
+        # Depoyu seed'den çekiyoruz, kullanıcıya atamak için gerekli
+        depo, raf, lot = _seed(setup)
+        
+        # Foreign Key constraint hatasını çözmek için mock kullanıcı oluşturuyoruz
+        test_user = KullaniciORM(
+            kullanici_adi="conc_test_user",
+            sifre_hash="dummy_hash",
+            ad_soyad="Concurrency Test User",
+            rol="depocu",
+            depo_id=depo.id,        
+        )
+        setup.add(test_user)
+        setup.flush()
+        test_user_id = test_user.id  # Veritabanının verdiği ID'yi değişkene kaydediyoruz
+        
         palet_no = f"PRD-TC002-{datetime.utcnow().microsecond}"
+        
+        # _palet_olustur içinde commit olduğu için kullanıcı da veritabanına kalıcı yazılmış oluyor
         self._palet_olustur(setup, lot.id, raf.id, palet_no)
         setup.close()
 
@@ -273,8 +291,11 @@ class TestCiftKabulConcurrency:
             palet = repo.getir_palet_no_ile(palet_no, kilitli_mi=True)
             if not palet:
                 raise RuntimeError("Palet bulunamadı")
+            
             # Durum kontrolü — KABUL_BEKLIYOR değilse hata fırlatır
-            log = svc.kabul_et(palet, kullanici_id=1)
+            # Hardcoded 1 yerine, yukarıda yarattığımız kullanıcının ID'sini kullanıyoruz
+            log = svc.kabul_et(palet, kullanici_id=test_user_id)
+            
             # Sadece palet güncelle (basit concurrency testi)
             repo.guncelle(palet, auto_commit=False)
             session.commit()
@@ -282,15 +303,21 @@ class TestCiftKabulConcurrency:
 
         sonuclar = _calistir_paralel(engine, worker, thread_sayisi=2)
 
+        print("SONUCLAR:", sonuclar)
+        for i, sonuc in enumerate(sonuclar):
+            print(f"THREAD {i}: {sonuc}")
+
         basarili_sayisi = sum(1 for tip, _ in sonuclar if tip == "basarili")
         hata_sayisi = sum(1 for tip, _ in sonuclar if tip == "hata")
 
         # En az biri başarılı, en az biri hata vermiş olmalı
         assert basarili_sayisi >= 1
         assert basarili_sayisi + hata_sayisi == 2
+        
         # DB'de palet KABUL_EDILDI olmalı
         kontrol = _yeni_session(engine)
         try:
+            from models import Palet as PaletORM  # Gerekirse import
             db_palet = kontrol.query(PaletORM).filter_by(palet_no=palet_no).first()
             assert db_palet is not None
             assert db_palet.durum == UretimPaletDurum.KABUL_EDILDI

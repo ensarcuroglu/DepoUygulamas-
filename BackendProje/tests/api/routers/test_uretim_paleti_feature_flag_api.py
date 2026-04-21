@@ -14,6 +14,7 @@ from tests.factories import (
     PaletFactory,
 )
 from app.core.auth import create_access_token
+from app.core.entities.palet import UretimPaletDurum
 
 pytestmark = pytest.mark.api
 
@@ -96,7 +97,7 @@ def palet_mevcut(db_session):
         lot=lot,
         raf=raf,
         kaynak="uretim",
-        durum="OLUSTURULDU",
+        durum=UretimPaletDurum.OLUSTURULDU,
         aktif=True,
     )
 

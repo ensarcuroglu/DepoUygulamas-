@@ -29,11 +29,10 @@ class TestFeatureFlags:
         assert ff.uretim_paleti_aktif_mi(depo_id=99) is True
         assert ff.uretim_paleti_aktif_mi(depo_id=1) is True
 
-    def test_admin_bypass_depo_id_none(self):
-        """Admin kullanıcı (depo_id=None) pilot listesi boş olsa bile erişebilmeli."""
+    def test_depo_id_none_pilot_disinda(self):
+        """Admin bypass route guard'da yapılır; helper depo_id=None için kapalı döner."""
         ff = FeatureFlags(pilot_depo_ids=[1])
-        # depo_id=None → admin gibi davran (Kullanici entity'sindeki kontrolle uyumlu)
-        assert ff.uretim_paleti_aktif_mi(depo_id=None) is True
+        assert ff.uretim_paleti_aktif_mi(depo_id=None) is False
 
     def test_from_env_csv_parse(self, monkeypatch):
         monkeypatch.setenv("FEATURE_URETIM_PALET_PILOT_DEPO_IDS", "3,7,12")

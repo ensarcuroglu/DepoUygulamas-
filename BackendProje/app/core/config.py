@@ -36,7 +36,7 @@ class FeatureFlags:
     def uretim_paleti_aktif_mi(self, depo_id: int | None) -> bool:
         """Kullanıcının deposu pilot kapsamında mı?
 
-        - Admin (depo_id=None) → her zaman erişebilir
+        - depo_id=None → pilot depo belirlenemez, kapalı
         - Sentinel -1 → tam rollout, herkes erişebilir
         - pilot_depo_ids boş → hiç kimse erişemez
         """
@@ -45,7 +45,7 @@ class FeatureFlags:
         if -1 in self.pilot_depo_ids:  # TUMU sentinel
             return True
         if depo_id is None:
-            return True  # Admin bypass
+            return False
         return depo_id in self.pilot_depo_ids
 
 

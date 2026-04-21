@@ -22,10 +22,25 @@ from tests.factories import (
     UrunFactory,
 )
 from app.core.auth import create_access_token
+from app.core.entities.palet import UretimPaletDurum
 
 pytestmark = pytest.mark.api
 
 PRD_NO = "PRD-20250416-0001"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Feature flag izolasyonu
+# ─────────────────────────────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def _uretim_paleti_flag_tumu(monkeypatch):
+    """Genel API davranışı bu dosyada flag açıkken test edilir."""
+    from app.core.config import get_feature_flags
+    monkeypatch.setenv("FEATURE_URETIM_PALET_PILOT_DEPO_IDS", "TUMU")
+    get_feature_flags.cache_clear()
+    yield
+    get_feature_flags.cache_clear()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -66,7 +81,7 @@ def kalite_client(client, db_session):
 def staging_raf(db_session, depocu_user):
     """depocu kullanıcısının deposundaki staging rafı."""
     depocu, _ = depocu_user
-    return RafFactory.create(depo_id=depocu.depo_id, is_staging=True)
+    return RafFactory.create(depo=depocu.depo, is_staging=True)
 
 
 @pytest.fixture
@@ -78,7 +93,7 @@ def uretim_paleti_olusturuldu(db_session, staging_raf):
         lot=lot,
         raf=staging_raf,
         kaynak="uretim",
-        durum="OLUSTURULDU",
+        durum=UretimPaletDurum.OLUSTURULDU,
         aktif=True,
     )
 
@@ -91,7 +106,7 @@ def uretim_paleti_kabul_bekliyor(db_session, staging_raf):
         lot=lot,
         raf=staging_raf,
         kaynak="uretim",
-        durum="KABUL_BEKLIYOR",
+        durum=UretimPaletDurum.KABUL_BEKLIYOR,
         aktif=True,
     )
 
@@ -104,7 +119,7 @@ def uretim_paleti_kabul_edildi(db_session, staging_raf):
         lot=lot,
         raf=staging_raf,
         kaynak="uretim",
-        durum="KABUL_EDILDI",
+        durum=UretimPaletDurum.KABUL_EDILDI,
         aktif=True,
     )
 
@@ -117,7 +132,7 @@ def uretim_paleti_karantina(db_session, staging_raf):
         lot=lot,
         raf=staging_raf,
         kaynak="uretim",
-        durum="KARANTINA",
+        durum=UretimPaletDurum.KARANTINA,
         aktif=True,
     )
 
@@ -130,7 +145,7 @@ def uretim_paleti_yerlestirme_bekliyor(db_session, staging_raf):
         lot=lot,
         raf=staging_raf,
         kaynak="uretim",
-        durum="YERLESTIRME_BEKLIYOR",
+        durum=UretimPaletDurum.YERLESTIRME_BEKLIYOR,
         aktif=True,
     )
 
@@ -165,14 +180,14 @@ class TestUretimPaletleriListele:
             lot=lot,
             raf=staging_raf,
             kaynak="irsaliye",
-            durum="YERLESTIRILDI",
+            durum=UretimPaletDurum.YERLESTIRILDI,
         )
         PaletFactory.create(
             palet_no=PRD_NO,
             lot=lot,
             raf=staging_raf,
             kaynak="uretim",
-            durum="OLUSTURULDU",
+            durum=UretimPaletDurum.OLUSTURULDU,
         )
         r = admin_client.get("/api/uretim-paletleri/")
         assert r.status_code == 200
@@ -182,16 +197,24 @@ class TestUretimPaletleriListele:
     def test_durum_filtresi(self, admin_client, db_session, staging_raf):
         lot = LotFactory.create()
         PaletFactory.create(
-            palet_no="PRD-A", lot=lot, raf=staging_raf, kaynak="uretim", durum="OLUSTURULDU"
+            palet_no="PRD-A",
+            lot=lot,
+            raf=staging_raf,
+            kaynak="uretim",
+            durum=UretimPaletDurum.OLUSTURULDU,
         )
         PaletFactory.create(
-            palet_no="PRD-B", lot=lot, raf=staging_raf, kaynak="uretim", durum="KABUL_EDILDI"
+            palet_no="PRD-B",
+            lot=lot,
+            raf=staging_raf,
+            kaynak="uretim",
+            durum=UretimPaletDurum.KABUL_EDILDI,
         )
-        r = admin_client.get("/api/uretim-paletleri/?durum=OLUSTURULDU")
+        r = admin_client.get(f"/api/uretim-paletleri/?durum={UretimPaletDurum.OLUSTURULDU}")
         assert r.status_code == 200
         data = r.json()
         assert len(data) == 1
-        assert data[0]["durum"] == "OLUSTURULDU"
+        assert data[0]["durum"] == UretimPaletDurum.OLUSTURULDU
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -221,7 +244,7 @@ class TestUretimPaletiGetir:
             lot=lot,
             raf=staging_raf,
             kaynak="irsaliye",
-            durum="YERLESTIRILDI",
+            durum=UretimPaletDurum.YERLESTIRILDI,
         )
         r = admin_client.get("/api/uretim-paletleri/PLT-IRSALIYE-002")
         assert r.status_code == 404
@@ -250,7 +273,7 @@ class TestUretimPaletiOlustur:
         assert r.status_code == 201
         data = r.json()
         assert data["kaynak"] == "uretim"
-        assert data["durum"] == "OLUSTURULDU"
+        assert data["durum"] == UretimPaletDurum.OLUSTURULDU
         assert data["koli_adedi"] == 48
         assert data["palet_no"].startswith("PRD-")
 
@@ -309,7 +332,7 @@ class TestUretimPaletiKabulBekle:
     def test_admin_kabul_bekleye_alabilir(self, admin_client, uretim_paleti_olusturuldu):
         r = admin_client.post(f"/api/uretim-paletleri/{PRD_NO}/kabul-bekle")
         assert r.status_code == 200
-        assert r.json()["durum"] == "KABUL_BEKLIYOR"
+        assert r.json()["durum"] == UretimPaletDurum.KABUL_BEKLIYOR
 
     def test_depocu_kabul_bekleye_alabilir(self, depocu_client, uretim_paleti_olusturuldu):
         r = depocu_client.post(f"/api/uretim-paletleri/{PRD_NO}/kabul-bekle")
@@ -333,7 +356,7 @@ class TestUretimPaletiKabulEt:
         r = admin_client.post(f"/api/uretim-paletleri/{PRD_NO}/kabul-et")
         assert r.status_code == 200
         data = r.json()
-        assert data["durum"] == "KABUL_EDILDI"
+        assert data["durum"] == UretimPaletDurum.KABUL_EDILDI
         assert data["kabul_tarihi"] is not None
 
     def test_depocu_kabul_edebilir(self, depocu_client, uretim_paleti_kabul_bekliyor):
@@ -365,7 +388,7 @@ class TestUretimPaletiKarantinaAl:
             json={"palet_no": PRD_NO, "sebep": "Hasar tespit edildi"},
         )
         assert r.status_code == 200
-        assert r.json()["durum"] == "KARANTINA"
+        assert r.json()["durum"] == UretimPaletDurum.KARANTINA
 
     def test_depocu_karantinaya_alabilir(self, depocu_client, uretim_paleti_kabul_edildi):
         r = depocu_client.post(
@@ -412,7 +435,7 @@ class TestUretimPaletiKarantinaCikar:
             json={"palet_no": PRD_NO, "sebep": "QC onaylandı"},
         )
         assert r.status_code == 200
-        assert r.json()["durum"] == "KABUL_EDILDI"
+        assert r.json()["durum"] == UretimPaletDurum.KABUL_EDILDI
 
     def test_kalite_departmani_karantinadan_cikarabilir(
         self, kalite_client, uretim_paleti_karantina
@@ -453,7 +476,7 @@ class TestUretimPaletiIptal:
         )
         assert r.status_code == 200
         data = r.json()
-        assert data["durum"] == "IPTAL_EDILDI"
+        assert data["durum"] == UretimPaletDurum.IPTAL_EDILDI
         assert data["aktif"] is False
 
     def test_depocu_iptal_edemez(self, depocu_client, uretim_paleti_olusturuldu):
@@ -495,7 +518,7 @@ class TestUretimPaletiYerlestirmeBekle:
     ):
         r = admin_client.post(f"/api/uretim-paletleri/{PRD_NO}/yerlestirme-bekle")
         assert r.status_code == 200
-        assert r.json()["durum"] == "YERLESTIRME_BEKLIYOR"
+        assert r.json()["durum"] == UretimPaletDurum.YERLESTIRME_BEKLIYOR
 
     def test_depocu_yerlestirme_bekleye_alabilir(
         self, depocu_client, uretim_paleti_kabul_edildi
@@ -524,7 +547,7 @@ class TestUretimPaletiYerlestir:
             json={"palet_no": PRD_NO, "raf_id": hedef_raf.id},
         )
         assert r.status_code == 200
-        assert r.json()["durum"] == "YERLESTIRILDI"
+        assert r.json()["durum"] == UretimPaletDurum.YERLESTIRILDI
 
     def test_depocu_yerlestirme_yapabilir(
         self, depocu_client, uretim_paleti_yerlestirme_bekliyor, db_session

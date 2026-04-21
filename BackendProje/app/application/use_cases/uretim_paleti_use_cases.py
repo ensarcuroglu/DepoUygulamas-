@@ -72,6 +72,8 @@ class UretimPaletiOlusturUseCase:
         dto: UretimPaletiOlusturRequestDTO,
         kullanici: "Kullanici",
     ) -> UretimPaletiResponseDTO:
+        _yetki_dogrula(kullanici, {KullaniciRol.DEPOCU, KullaniciRol.ADMIN})
+
         lot = self._lot_repo.getir_id_ile(dto.lot_id)
         if not lot:
             raise KayitBulunamadiError("Lot", dto.lot_id)
