@@ -52,21 +52,36 @@ def _rollback_batch(conn, batch_size: int, dry_run: bool) -> int:
 
     toplam = 0
     while True:
-        sonuc = conn.execute(text(f"""
+        # 1. Adım: Güncellenecek ID'leri LIMIT ile bul (MySQL UPDATE JOIN LIMIT hatasını aşmak için)
+        satirlar = conn.execute(text(f"""
+            SELECT p.id
+            FROM paletler p
+            JOIN paletler_faz5_backup b ON b.id = p.id
+            WHERE (b.kaynak IS NULL AND p.kaynak IS NOT NULL)
+               OR (b.durum  IS NULL AND p.durum  IS NOT NULL)
+            LIMIT {batch_size}
+        """)).fetchall()
+
+        # Eğer güncellenecek satır kalmadıysa döngüden çık
+        if not satirlar:
+            break
+
+        # ID'leri SQL IN clause için uygun bir tuple formatına çevir
+        guncellenecek_idler = tuple(row[0] for row in satirlar)
+
+        # 2. Adım: Sadece bulduğumuz ID'leri içeren satırları UPDATE at
+        conn.execute(text("""
             UPDATE paletler p
             JOIN paletler_faz5_backup b ON b.id = p.id
             SET
                 p.kaynak = b.kaynak,
                 p.durum  = b.durum
-            WHERE (b.kaynak IS NULL AND p.kaynak IS NOT NULL)
-               OR (b.durum  IS NULL AND p.durum  IS NOT NULL)
-            LIMIT {batch_size}
-        """))
+            WHERE p.id IN :idler
+        """), {"idler": guncellenecek_idler})
         conn.commit()
-        etkilenen = sonuc.rowcount
+        
+        etkilenen = len(guncellenecek_idler)
         toplam += etkilenen
-        if etkilenen == 0:
-            break
         print(f"    batch: {etkilenen} satır geri alındı (toplam: {toplam})")
 
     return toplam

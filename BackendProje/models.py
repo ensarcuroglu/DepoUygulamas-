@@ -12,6 +12,8 @@ from sqlalchemy import (
     Index,
     UniqueConstraint,
     PrimaryKeyConstraint,
+    func,
+    select,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import date, datetime
@@ -30,7 +32,7 @@ class Marka(Base):
     isim: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     aciklama: Mapped[Optional[str]] = mapped_column(Text, default="")
     aktif: Mapped[bool] = mapped_column(Boolean, default=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
 
     # İlişki
     urunler: Mapped[list["Urun"]] = relationship("Urun", back_populates="marka")
@@ -45,10 +47,10 @@ class Kategori(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     isim: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    aciklama: Mapped[str] = mapped_column(Text, default="")
-    ikon: Mapped[str] = mapped_column(String(50), default="FolderOpen")
+    aciklama: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="")
+    ikon: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, default="FolderOpen")
     aktif: Mapped[bool] = mapped_column(Boolean, default=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
 
     # İlişki
     urunler: Mapped[list["Urun"]] = relationship("Urun", back_populates="kategori")
@@ -63,10 +65,10 @@ class Depo(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     isim: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    adres: Mapped[str] = mapped_column(Text, default="")
-    aciklama: Mapped[str] = mapped_column(Text, default="")
+    adres: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="")
+    aciklama: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="")
     aktif: Mapped[bool] = mapped_column(Boolean, default=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
 
     # İlişki
     zonlar: Mapped[list["Zon"]] = relationship("Zon", back_populates="depo")
@@ -88,7 +90,7 @@ class Zon(Base):
     aciklama: Mapped[str] = mapped_column(Text, default="")
     sira: Mapped[int] = mapped_column(Integer, default=0)
     aktif: Mapped[bool] = mapped_column(Boolean, default=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
 
     # Iliski
     depo: Mapped["Depo"] = relationship("Depo", back_populates="zonlar")
@@ -114,7 +116,7 @@ class Raf(Base):
     goz: Mapped[int] = mapped_column(Integer, default=0)
     aktif: Mapped[bool] = mapped_column(Boolean, default=True)
     is_staging: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
 
     # İlişkiler
     depo: Mapped["Depo"] = relationship("Depo", back_populates="raflar")
@@ -137,7 +139,7 @@ class Tedarikci(Base):
     adres: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     vergi_no: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     aktif: Mapped[bool] = mapped_column(Boolean, default=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
 
     # İlişki
     urunler: Mapped[list["Urun"]] = relationship("Urun", back_populates="tedarikci")
@@ -162,12 +164,16 @@ class Urun(Base):
     birim: Mapped[str] = mapped_column(String(20), default="Adet")
     fiyat: Mapped[float] = mapped_column(Float, default=0.0)
     min_stok: Mapped[int] = mapped_column(Integer, default=10)
-    aciklama: Mapped[str] = mapped_column(Text, default="")
-    depolama_tipi: Mapped[str] = mapped_column(String(20), default="Kuru")
+    aciklama: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="")
+    depolama_tipi: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, default="Kuru")
     aktif: Mapped[bool] = mapped_column(Boolean, default=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
     guncelleme_tarihi: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    DateTime, 
+    default=datetime.utcnow, 
+    onupdate=datetime.utcnow,
+    server_default=func.now(),       # DB'de ilk oluşurken atanacak default
+    server_onupdate=func.now()       # DB'de raw sql ile güncellenirse atanacak değer
     )
 
     # İlişkiler
@@ -200,9 +206,9 @@ class Lot(Base):
     parti_no: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     uretim_tarihi: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     son_kullanma_tarihi: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
-    aciklama: Mapped[str] = mapped_column(Text, default="")
+    aciklama: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="")
     aktif: Mapped[bool] = mapped_column(Boolean, default=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
 
     # İlişkiler
     urun: Mapped["Urun"] = relationship("Urun", back_populates="lotlar")
@@ -224,9 +230,9 @@ class Palet(Base):
     koli_adedi: Mapped[int] = mapped_column(Integer, nullable=False)
     palet_kg: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     vardiya: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
-    tarih: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    tarih: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
     aktif: Mapped[bool] = mapped_column(Boolean, default=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
 
     # ── Üretim paleti alanları ──
     kaynak: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
@@ -310,7 +316,7 @@ class StokHareketi(Base):
     tasiyici_firma: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     aciklama: Mapped[str] = mapped_column(Text, default="", nullable=False)
     kullanici_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
-    tarih: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    tarih: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
 
     # İlişkiler
     urun: Mapped["Urun"] = relationship("Urun", back_populates="stok_hareketleri")
@@ -334,7 +340,7 @@ class SistemLog(Base):
     detay: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     eski_veri: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     yeni_veri: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    tarih: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    tarih: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
 
     # İlişki
     kullanici: Mapped[Optional["Kullanici"]] = relationship("Kullanici")
@@ -396,10 +402,14 @@ class DestekTalebi(Base):
     durum: Mapped[str] = mapped_column(String(20), default="Açık")
     aciklama: Mapped[str] = mapped_column(Text, nullable=False)
     admin_cevabi: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
     guncelleme_tarihi: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    DateTime, 
+    default=datetime.utcnow, 
+    onupdate=datetime.utcnow,
+    server_default=func.now(),       # DB'de ilk oluşurken atanacak default
+    server_onupdate=func.now()       # DB'de raw sql ile güncellenirse atanacak değer
+    )    
 
     # İlişki
     kullanici: Mapped["Kullanici"] = relationship("Kullanici", back_populates="destek_talepleri")
@@ -423,9 +433,13 @@ class Siparis(Base):
     olusturan_kullanici_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("kullanicilar.id"), nullable=True
     )
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
     guncelleme_tarihi: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    DateTime, 
+    default=datetime.utcnow, 
+    onupdate=datetime.utcnow,
+    server_default=func.now(),       # DB'de ilk oluşurken atanacak default
+    server_onupdate=func.now()       # DB'de raw sql ile güncellenirse atanacak değer
     )
     aktif: Mapped[bool] = mapped_column(Boolean, default=True)
 
@@ -478,10 +492,14 @@ class SevkiyatPlani(Base):
     varis_saati: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
     durum: Mapped[str] = mapped_column(String(20), default="Planlandi")
     notlar: Mapped[str] = mapped_column(Text, default="")
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
     guncelleme_tarihi: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    DateTime, 
+    default=datetime.utcnow, 
+    onupdate=datetime.utcnow,
+    server_default=func.now(),       # DB'de ilk oluşurken atanacak default
+    server_onupdate=func.now()       # DB'de raw sql ile güncellenirse atanacak değer
+)
 
     # İlişkiler
     siparis: Mapped["Siparis"] = relationship("Siparis", back_populates="sevkiyat_plani")
@@ -537,10 +555,14 @@ class Irsaliye(Base):
     tir_plaka: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     sofor_adi: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     durum: Mapped[str] = mapped_column(String(20), default="Taslak")
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
     guncelleme_tarihi: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    DateTime, 
+    default=datetime.utcnow, 
+    onupdate=datetime.utcnow,
+    server_default=func.now(),       # DB'de ilk oluşurken atanacak default
+    server_onupdate=func.now()       # DB'de raw sql ile güncellenirse atanacak değer
+)
 
     # İlişkiler
     siparis: Mapped["Siparis"] = relationship("Siparis", back_populates="irsaliyeler")
@@ -561,9 +583,13 @@ class MalKabulIrsaliye(Base):
     sofor_adi: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     durum: Mapped[str] = mapped_column(String(20), default="Taslak")
     tarih: Mapped[date] = mapped_column(Date, nullable=False)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
     guncelleme_tarihi: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    DateTime, 
+    default=datetime.utcnow, 
+    onupdate=datetime.utcnow,
+    server_default=func.now(),       # DB'de ilk oluşurken atanacak default
+    server_onupdate=func.now()       # DB'de raw sql ile güncellenirse atanacak değer
     )
     kapanma_ozeti: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
@@ -594,7 +620,7 @@ class MalKabulKalemi(Base):
     durum: Mapped[str] = mapped_column(String(20), default="Bekliyor")
     uretim_tarihi: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     son_kullanma_tarihi: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
     istisna_tip: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     istisna_aciklama: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     gerceklesen_miktar: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -621,9 +647,13 @@ class RaporSablonu(Base):
         Integer, ForeignKey("kullanicilar.id"), nullable=True
     )
     is_aktif: Mapped[bool] = mapped_column(Boolean, default=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
     guncelleme_tarihi: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    DateTime, 
+    default=datetime.utcnow, 
+    onupdate=datetime.utcnow,
+    server_default=func.now(),       # DB'de ilk oluşurken atanacak default
+    server_onupdate=func.now()       # DB'de raw sql ile güncellenirse atanacak değer
     )
 
     # İlişkiler
@@ -644,7 +674,7 @@ class RaporLogu(Base):
     parametreler: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     durum: Mapped[str] = mapped_column(String(20), default="Basarili")
     hata_mesaji: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
     tamamlanma_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # İlişkiler
@@ -668,9 +698,13 @@ class RaporSchedule(Base):
     format: Mapped[str] = mapped_column(String(20), default="pdf")
     is_aktif: Mapped[bool] = mapped_column(Boolean, default=True)
     son_calistirilma: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
     guncelleme_tarihi: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    DateTime, 
+    default=datetime.utcnow, 
+    onupdate=datetime.utcnow,
+    server_default=func.now(),       # DB'de ilk oluşurken atanacak default
+    server_onupdate=func.now()       # DB'de raw sql ile güncellenirse atanacak değer
     )
 
     # İlişkiler
@@ -702,7 +736,7 @@ class StokSayim(Base):
     durum: Mapped[str] = mapped_column(String(20), default="oluşturuldu")
 
     aktif: Mapped[bool] = mapped_column(Boolean, default=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now())
 
     # İlişkiler
     sayim_kalemleri: Mapped[list["StokSayimKalemi"]] = relationship(
@@ -763,7 +797,7 @@ class YerlestirmeGorevi(Base):
         Integer, ForeignKey("kullanicilar.id"), nullable=True
     )
     override_neden: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now(), index=True)
     atanma_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
     baslama_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     tamamlanma_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -808,7 +842,7 @@ class ToplamaGorevi(Base):
     override_neden: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     override_kullanici_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("kullanicilar.id"), nullable=True)
     sira_no: Mapped[int] = mapped_column(Integer, default=0, nullable=False, index=True)
-    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now(), index=True)
     atanma_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     baslama_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     tamamlanma_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -866,7 +900,6 @@ class IdempotencyKaydi(Base):
     son_kullanim_tarihi: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
 
 
-from sqlalchemy import select, func # noqa: E402
 from sqlalchemy.orm import column_property  # noqa: E402
 
 # N+1 Problemini çözmek için column_property ile veritabanı seviyesinde toplama yapıyoruz.
