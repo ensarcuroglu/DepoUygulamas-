@@ -4,7 +4,7 @@ JWT Kimlik Doğrulama Modülü
 - Şifre hash / karşılaştırma
 - get_current_user dependency
 """
-
+import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -95,8 +95,13 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     """JWT access token oluşturur (kısa ömürlü, 30 dk)."""
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    # DEĞİŞTİRİLDİ: "access" stringi yerine sabit kullanıldı
-    to_encode.update({"exp": expire, "type": AuthConstants.ACCESS_TOKEN_TYPE})
+    
+    # DEĞİŞTİRİLDİ: "access" stringi yerine sabit kullanıldı ve jti (JWT ID) eklendi
+    to_encode.update({
+        "exp": expire, 
+        "type": AuthConstants.ACCESS_TOKEN_TYPE,
+        "jti": str(uuid.uuid4())  # Her token'ı benzersiz yapar
+    })
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
