@@ -204,6 +204,8 @@ from app.infrastructure.di.modules.uretim_di import (  # noqa: F401
     get_uretim_paleti_iptal_uc,
     get_uretim_paleti_yerlestirme_bekle_uc,
     get_uretim_paleti_yerlestir_uc,
+    get_uretim_paletleri_listele_uc,
+    get_uretim_paleti_getir_uc,
 )
 
 from app.infrastructure.di.modules.rapor_dashboard_di import (  # noqa: F401

@@ -13,6 +13,8 @@ class IPaletRepository(ABC):
         raf_id: Optional[int] = None,
         ean: Optional[str] = None,
         sadece_aktif: bool = True,
+        kaynak: Optional[str] = None,
+        durum: Optional[str] = None,
     ) -> List[Palet]:
         ...
 

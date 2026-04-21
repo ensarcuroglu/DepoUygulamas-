@@ -30,6 +30,7 @@ from app.application.dto.uretim_paleti_dto import (
     UretimPaletiOlusturRequestDTO,
     UretimPaletiResponseDTO,
 )
+from typing import List
 
 if TYPE_CHECKING:
     from app.core.entities.kullanici import Kullanici
@@ -516,6 +517,49 @@ class UretimPaletiYerlestirUseCase:
             self._db.rollback()
             raise
 
+        return UretimPaletiResponseDTO.from_entity(palet)
+
+
+# ── Listele / Getir (salt okunur) ─────────────────────────────────────────────
+
+class UretimPaletleriListeleUseCase:
+    """Üretim kaynaklı paletleri sayfalı listeler."""
+
+    def __init__(self, palet_repo: "IPaletRepository"):
+        self._palet_repo = palet_repo
+
+    def execute(
+        self,
+        skip: int = 0,
+        limit: int = 50,
+        lot_id: Optional[int] = None,
+        durum: Optional[str] = None,
+        vardiya: Optional[str] = None,
+        sadece_aktif: bool = True,
+    ) -> List[UretimPaletiResponseDTO]:
+        paletler = self._palet_repo.getir_hepsi(
+            skip=skip,
+            limit=limit,
+            lot_id=lot_id,
+            sadece_aktif=sadece_aktif,
+            kaynak="uretim",
+            durum=durum,
+        )
+        if vardiya:
+            paletler = [p for p in paletler if p.vardiya == vardiya]
+        return [UretimPaletiResponseDTO.from_entity(p) for p in paletler]
+
+
+class UretimPaletiGetirUseCase:
+    """Palet numarasına göre tekil üretim paleti döner."""
+
+    def __init__(self, palet_repo: "IPaletRepository"):
+        self._palet_repo = palet_repo
+
+    def execute(self, palet_no: str) -> UretimPaletiResponseDTO:
+        palet = self._palet_repo.getir_palet_no_ile(palet_no)
+        if not palet:
+            raise KayitBulunamadiError("Palet", palet_no)
         return UretimPaletiResponseDTO.from_entity(palet)
 
 

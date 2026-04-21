@@ -29,6 +29,7 @@ import {
     TrendingUp,
     Smartphone,
     Scan,
+    Factory,
 } from 'lucide-react';
 
 /* ───────────────────────────────────────────
@@ -52,6 +53,14 @@ const menuGroups = [
             { path: '/paletler', label: 'Palet Yönetimi', icon: Container, roles: ['admin'], badge: null },
             { path: '/stok-hareketleri', label: 'Stok İşlemleri', icon: ArrowLeftRight, roles: ['admin', 'lojistik'], badge: null },
             { path: '/stok-sayim', label: 'Stok Sayımı', icon: ClipboardCheck, roles: ['admin'], badge: null },
+        ],
+    },
+    {
+        id: 'uretim',
+        label: 'Üretim',
+        items: [
+            { path: '/uretim-paletleri', label: 'Üretim Paletleri', icon: Factory, roles: ['admin', 'depocu'], badge: null },
+            { path: '/uretim-paletleri/kabul', label: 'Palet Kabul', icon: Scan, roles: ['admin', 'depocu'], badge: null },
         ],
     },
     {

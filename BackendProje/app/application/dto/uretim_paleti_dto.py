@@ -10,6 +10,9 @@ from pydantic import BaseModel, Field
 from app.core.entities.palet import Palet
 
 
+
+
+
 class UretimPaletiOlusturRequestDTO(BaseModel):
     lot_id: int
     depo_id: Optional[int] = Field(default=None, gt=0)
@@ -60,9 +63,17 @@ class UretimPaletiResponseDTO(BaseModel):
     iptal_sebebi: Optional[str]
     aktif: bool
     olusturma_tarihi: datetime
+    urun_isim: Optional[str] = None
+    lot_skt: Optional[date] = None
 
     @classmethod
     def from_entity(cls, p: Palet) -> "UretimPaletiResponseDTO":
+        urun_isim = None
+        lot_skt = None
+        if p.lot:
+            lot_skt = p.lot.son_kullanma_tarihi
+            if p.lot.urun:
+                urun_isim = p.lot.urun.isim
         return cls(
             id=p.id,
             palet_no=p.palet_no,
@@ -79,4 +90,6 @@ class UretimPaletiResponseDTO(BaseModel):
             iptal_sebebi=p.iptal_sebebi,
             aktif=p.aktif,
             olusturma_tarihi=p.olusturma_tarihi,
+            urun_isim=urun_isim,
+            lot_skt=lot_skt,
         )

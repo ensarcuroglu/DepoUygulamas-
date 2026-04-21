@@ -21,6 +21,8 @@ from app.application.use_cases.uretim_paleti_use_cases import (
     UretimPaletiIptalUseCase,
     UretimPaletiYerlestirmeBekleUseCase,
     UretimPaletiYerlestirUseCase,
+    UretimPaletleriListeleUseCase,
+    UretimPaletiGetirUseCase,
 )
 from app.infrastructure.di.modules.kullanici_destek_di import get_log_repo
 from app.infrastructure.di.modules.depo_envanter_di import (
@@ -191,3 +193,11 @@ def get_uretim_paleti_yerlestir_uc(
         sistem_log_repo=log_repo,
         db=db,
     )
+
+
+def get_uretim_paletleri_listele_uc(palet_repo=Depends(get_palet_repo)):
+    return UretimPaletleriListeleUseCase(palet_repo=palet_repo)
+
+
+def get_uretim_paleti_getir_uc(palet_repo=Depends(get_palet_repo)):
+    return UretimPaletiGetirUseCase(palet_repo=palet_repo)

@@ -428,4 +428,20 @@ export const getYerlestirmePerformansRaporu = (params = {}) =>
 export const getBilinmeyenKonumRaporu = (depo_id) =>
   api.get('/raporlar/bilinmeyen-konum', { params: { depo_id } });
 
+// ========================
+// ÜRETİM PALETLERİ
+// ========================
+export const getUretimPaletleri = (params = {}) => api.get('/uretim-paletleri/', { params });
+export const getUretimPaleti = (paletNo) => api.get(`/uretim-paletleri/${paletNo}`);
+export const createUretimPaleti = (data) => api.post('/uretim-paletleri/', data);
+export const uretimPaletiKabulBekle = (paletNo) => api.post(`/uretim-paletleri/${paletNo}/kabul-bekle`);
+export const uretimPaletiKabulEt = (paletNo) => api.post(`/uretim-paletleri/${paletNo}/kabul-et`);
+export const uretimPaletiKarantinaAl = (paletNo, data) => api.post(`/uretim-paletleri/${paletNo}/karantina`, data);
+export const uretimPaletiKarantinaCikar = (paletNo, data) => api.post(`/uretim-paletleri/${paletNo}/karantina-cikar`, data);
+export const uretimPaletiIptal = (paletNo, data) => api.post(`/uretim-paletleri/${paletNo}/iptal`, data);
+export const uretimPaletiYerlestirmeBekle = (paletNo) => api.post(`/uretim-paletleri/${paletNo}/yerlestirme-bekle`);
+export const uretimPaletiYerlestir = (paletNo, data) => api.post(`/uretim-paletleri/${paletNo}/yerlestir`, data);
+export const getUretimPaletiEtiket = (paletNo) =>
+  api.get(`/uretim-paletleri/${paletNo}/etiket`, { responseType: 'blob' });
+
 export default api;

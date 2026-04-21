@@ -46,6 +46,8 @@ const YerlestirmeGorevleriPage = lazy(() => import('./pages/YerlestirmeGorevleri
 const ToplamaGorevleriPage = lazy(() => import('./pages/ToplamaGorevleriPage'));
 const ToplamaGoreviDetayPage = lazy(() => import('./pages/ToplamaGoreviDetayPage'));
 const DepocuAnaSayfasi = lazy(() => import('./pages/depocu/DepocuAnaSayfasi'));
+const UretimPaletleriPage = lazy(() => import('./pages/UretimPaletleriPage'));
+const UretimPaletiKabulPage = lazy(() => import('./pages/UretimPaletiKabulPage'));
 
 // Terminal Sayfaları
 const GorevListesiPage = lazy(() => import('./pages/terminal/GorevListesiPage'));
@@ -164,6 +166,12 @@ function App() {
                   <Route element={<RoleRoute allowedRoles={['admin', 'depocu', 'lojistik']} />}>
                     <Route path="/toplama-gorevleri" element={<ToplamaGorevleriPage />} />
                     <Route path="/toplama-gorevleri/:id" element={<ToplamaGoreviDetayPage />} />
+                  </Route>
+
+                  {/* Üretim Paleti — Faz 4 */}
+                  <Route element={<RoleRoute allowedRoles={['admin', 'depocu']} />}>
+                    <Route path="/uretim-paletleri" element={<UretimPaletleriPage />} />
+                    <Route path="/uretim-paletleri/kabul" element={<UretimPaletiKabulPage />} />
                   </Route>
 
                   {/* Herkesin erişebildiği korumalı alanlar */}
