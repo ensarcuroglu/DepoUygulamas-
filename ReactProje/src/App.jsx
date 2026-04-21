@@ -168,13 +168,15 @@ function App() {
                     <Route path="/toplama-gorevleri/:id" element={<ToplamaGoreviDetayPage />} />
                   </Route>
 
-                  {/* Üretim Paleti — Faz 4 */}
-                  <Route element={<RoleRoute allowedRoles={['admin', 'depocu']} allowedDepartments={['kalite']} />}>
-                    <Route path="/uretim-paletleri" element={<UretimPaletleriPage />} />
-                  </Route>
-                  <Route element={<RoleRoute allowedRoles={['admin', 'depocu']} />}>
-                    <Route path="/uretim-paletleri/kabul" element={<UretimPaletiKabulPage />} />
-                  </Route>
+                  {/* Üretim Paleti — Faz 4 + Feature Flag (FAZ 5) */}
+                  {import.meta.env.VITE_FEATURE_URETIM_PALET_ENABLED === 'true' && <>
+                    <Route element={<RoleRoute allowedRoles={['admin', 'depocu']} allowedDepartments={['kalite']} />}>
+                      <Route path="/uretim-paletleri" element={<UretimPaletleriPage />} />
+                    </Route>
+                    <Route element={<RoleRoute allowedRoles={['admin', 'depocu']} />}>
+                      <Route path="/uretim-paletleri/kabul" element={<UretimPaletiKabulPage />} />
+                    </Route>
+                  </>}
 
                   {/* Herkesin erişebildiği korumalı alanlar */}
                   <Route path="/stok-hareketleri" element={<StokHareketleriPage />} />

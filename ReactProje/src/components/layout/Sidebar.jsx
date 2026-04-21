@@ -55,14 +55,14 @@ const menuGroups = [
             { path: '/stok-sayim', label: 'Stok Sayımı', icon: ClipboardCheck, roles: ['admin'], badge: null },
         ],
     },
-    {
+    ...(import.meta.env.VITE_FEATURE_URETIM_PALET_ENABLED === 'true' ? [{
         id: 'uretim',
         label: 'Üretim',
         items: [
             { path: '/uretim-paletleri', label: 'Üretim Paletleri', icon: Factory, roles: ['admin', 'depocu'], departments: ['kalite'], badge: null },
             { path: '/uretim-paletleri/kabul', label: 'Palet Kabul', icon: Scan, roles: ['admin', 'depocu'], badge: null },
         ],
-    },
+    }] : []),
     {
         id: 'lojistik',
         label: 'Lojistik & Sevkiyat',

@@ -1,14 +1,17 @@
-"""Üretim Paleti API Router — FAZ 4.
+"""Üretim Paleti API Router — FAZ 4 + FAZ 5 (Feature Flag).
 
 Thin controller: yetki kontrolü use case katmanında yapılır.
+Pilot depo kontrolü feature flag ile yönetilir.
 """
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import PlainTextResponse
 
 from app.core.auth import get_current_user
+from app.core.config import get_feature_flags
+from app.core.entities.kullanici import KullaniciRol
 from app.infrastructure.persistence.mappers.kullanici_destek_mapper import kullanici_to_entity
 from models import Kullanici
 from limiter import limiter
@@ -47,6 +50,26 @@ from app.application.use_cases.uretim_paleti_use_cases import (
     UretimPaletiYerlestirUseCase,
 )
 router = APIRouter(prefix="/api/uretim-paletleri", tags=["Üretim Paletleri"])
+
+
+# ── Feature Flag Guard ────────────────────────────────────────────────────────
+
+def _pilot_kontrol(current_user: Kullanici) -> None:
+    """Kullanıcının pilot kapsamında olup olmadığını kontrol eder.
+
+    Admin rolü her zaman erişebilir (ops/debug için bypass).
+    """
+    if current_user.rol == KullaniciRol.ADMIN:
+        return
+    flags = get_feature_flags()
+    if not flags.uretim_paleti_aktif_mi(current_user.depo_id):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "OZELLIK_PILOTA_KAPALI",
+                "message": "Üretim paleti özelliği şu anda yalnızca pilot depolar için aktiftir.",
+            },
+        )
 
 
 # ── Listele ───────────────────────────────────────────────────────────────────
@@ -93,6 +116,7 @@ def uretim_paleti_olustur(
     current_user: Kullanici = Depends(get_current_user),
     uc: UretimPaletiOlusturUseCase = Depends(get_uretim_paleti_olustur_uc),
 ):
+    _pilot_kontrol(current_user)
     return uc.execute(dto, kullanici_to_entity(current_user))
 
 
@@ -106,6 +130,7 @@ def uretim_paleti_kabul_bekle(
     current_user: Kullanici = Depends(get_current_user),
     uc: UretimPaletiKabulBekleUseCase = Depends(get_uretim_paleti_kabul_bekle_uc),
 ):
+    _pilot_kontrol(current_user)
     return uc.execute(palet_no, current_user)
 
 
@@ -119,6 +144,7 @@ def uretim_paleti_kabul_et(
     current_user: Kullanici = Depends(get_current_user),
     uc: UretimPaletiKabulEtUseCase = Depends(get_uretim_paleti_kabul_et_uc),
 ):
+    _pilot_kontrol(current_user)
     return uc.execute(palet_no, current_user)
 
 
@@ -133,6 +159,7 @@ def uretim_paleti_karantina_al(
     current_user: Kullanici = Depends(get_current_user),
     uc: UretimPaletiKarantinaAlUseCase = Depends(get_uretim_paleti_karantina_al_uc),
 ):
+    _pilot_kontrol(current_user)
     return uc.execute(palet_no, current_user, sebep=dto.sebep)
 
 
@@ -147,6 +174,7 @@ def uretim_paleti_karantina_cikar(
     current_user: Kullanici = Depends(get_current_user),
     uc: UretimPaletiKarantinaCikarUseCase = Depends(get_uretim_paleti_karantina_cikar_uc),
 ):
+    _pilot_kontrol(current_user)
     return uc.execute(palet_no, current_user, sebep=dto.sebep)
 
 
@@ -161,6 +189,7 @@ def uretim_paleti_iptal(
     current_user: Kullanici = Depends(get_current_user),
     uc: UretimPaletiIptalUseCase = Depends(get_uretim_paleti_iptal_uc),
 ):
+    _pilot_kontrol(current_user)
     return uc.execute(palet_no, current_user, sebep=dto.sebep)
 
 
@@ -174,6 +203,7 @@ def uretim_paleti_yerlestirme_bekle(
     current_user: Kullanici = Depends(get_current_user),
     uc: UretimPaletiYerlestirmeBekleUseCase = Depends(get_uretim_paleti_yerlestirme_bekle_uc),
 ):
+    _pilot_kontrol(current_user)
     return uc.execute(palet_no, current_user)
 
 
@@ -188,6 +218,7 @@ def uretim_paleti_yerlestir(
     current_user: Kullanici = Depends(get_current_user),
     uc: UretimPaletiYerlestirUseCase = Depends(get_uretim_paleti_yerlestir_uc),
 ):
+    _pilot_kontrol(current_user)
     return uc.execute(palet_no, dto.raf_id, current_user)
 
 
