@@ -54,6 +54,7 @@ const UretimPaletiKabulPage = lazy(() => import('./pages/UretimPaletiKabulPage')
 const GorevListesiPage = lazy(() => import('./pages/terminal/GorevListesiPage'));
 const YerlestirmePage = lazy(() => import('./pages/terminal/YerlestirmePage'));
 const TerminalOzetPage = lazy(() => import('./pages/terminal/TerminalOzetPage'));
+const TerminalUretimKabulPage = lazy(() => import('./pages/terminal/TerminalUretimKabulPage'));
 
 /**
  * Varsayılan yönlendirme: Depocu → /depocu, Lojistik → /stok-hareketleri, Admin → /dashboard
@@ -205,6 +206,9 @@ function App() {
                 <Route element={<TerminalLayout />}>
                   <Route element={<RoleRoute allowedRoles={['admin', 'depocu', 'lojistik']} />}>
                     <Route path="/terminal/gorevler" element={<GorevListesiPage />} />
+                    {import.meta.env.VITE_FEATURE_URETIM_PALET_ENABLED === 'true' && (
+                      <Route path="/terminal/uretim-kabul" element={<TerminalUretimKabulPage />} />
+                    )}
                     <Route path="/terminal/yerlestirme" element={<YerlestirmePage />} />
                     <Route path="/terminal/ozet" element={<TerminalOzetPage />} />
                   </Route>

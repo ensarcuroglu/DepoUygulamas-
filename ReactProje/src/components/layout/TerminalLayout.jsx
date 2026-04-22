@@ -3,13 +3,14 @@
  * Scroll kilidi çözüldü, Native App hissi ve Zinc/Emerald uyumu eklendi.
  */
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { ClipboardList, BarChart2, LogOut, ChevronLeft, ScanLine } from 'lucide-react';
+import { ClipboardList, BarChart2, LogOut, ChevronLeft, ScanLine, Factory } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NAV_ITEMS = [
   { to: '/terminal/gorevler', icon: ClipboardList, label: 'Görevler' },
+  { to: '/terminal/uretim-kabul', icon: Factory, label: 'Ürt. Kabul' },
   { to: '/terminal/yerlestirme', icon: ScanLine, label: 'Yerleştir' },
   { to: '/terminal/ozet', icon: BarChart2, label: 'Özet' },
 ];
