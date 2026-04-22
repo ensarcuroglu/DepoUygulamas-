@@ -150,3 +150,5 @@ Ek olarak DepocuAnaSayfasi `ANA_ISLEMLER` grid'ine `Üretimden Kabul` kutucuğu 
 | Depocunun üretim paleti kabulüne ulaşmak için tıklama sayısı | DepocuLayout'tan imkânsız (admin layout'a geçmek zorunda) | 2 tıklama (alt menü → Üretimden) veya 1 tıklama (ana sayfa kutucuğu) |
 | "Kabul" kelimesinin ayrı iki konumda ve anlamda görünmesi | Var (sidebar "Palet Kabul" + "Mal Kabul") | Aynı grup altında, net alt isimlerle ayrışmış |
 | Yeni operatörün eğitime ihtiyacı | Orta | Düşük (seçim ekranı self-explanatory) |
+
+# **TAMAMLANDI**

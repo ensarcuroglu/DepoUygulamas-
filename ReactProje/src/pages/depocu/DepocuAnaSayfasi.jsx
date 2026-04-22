@@ -8,6 +8,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
     AlertTriangle,
     PackageCheck,
@@ -30,15 +31,15 @@ import { hataMetni } from '../../utils/hata';
 
 // Operatörün en sık kullandığı ana işlemler (Büyük Grid)
 const ANA_ISLEMLER = [
-    { label: 'Görevler',   icon: ClipboardList, to: '/terminal/gorevler',          color: 'text-blue-700',    bg: 'bg-blue-50'    },
-    { label: 'Yerleştir',  icon: Scan,          to: '/terminal/yerlestirme',        color: 'text-indigo-700',  bg: 'bg-indigo-50'  },
-    { label: 'İrsaliyeli', icon: PackageCheck,  to: '/depocu/kabul/irsaliyeli',     color: 'text-emerald-700', bg: 'bg-emerald-50' },
+    { label: 'Görevler',   icon: ClipboardList, to: '/terminal/gorevler',          color: 'text-blue-700 dark:text-blue-400',       bg: 'bg-blue-50 dark:bg-blue-500/10'    },
+    { label: 'Yerleştir',  icon: Scan,          to: '/terminal/yerlestirme',        color: 'text-indigo-700 dark:text-indigo-400',  bg: 'bg-indigo-50 dark:bg-indigo-500/10'  },
+    { label: 'İrsaliyeli', icon: PackageCheck,  to: '/depocu/kabul/irsaliyeli',     color: 'text-emerald-700 dark:text-emerald-400',bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
     ...(import.meta.env.VITE_FEATURE_URETIM_PALET_ENABLED === 'true' ? [
-        { label: 'Üretimden', icon: Factory,    to: '/depocu/kabul/uretimden',      color: 'text-amber-700',   bg: 'bg-amber-50'   },
+        { label: 'Üretimden', icon: Factory,    to: '/depocu/kabul/uretimden',      color: 'text-amber-700 dark:text-amber-400',    bg: 'bg-amber-50 dark:bg-amber-500/10'   },
     ] : []),
-    { label: 'Sevkiyat',   icon: Truck,         to: '/depocu/sevkiyat',             color: 'text-cyan-700',    bg: 'bg-cyan-50'    },
-    { label: 'Sayım',      icon: ClipboardCheck, to: '/depocu/stok-sayim',          color: 'text-violet-700',  bg: 'bg-violet-50'  },
-    { label: 'Transfer',   icon: ArrowLeftRight, to: '/depocu/stok',                color: 'text-sky-700',     bg: 'bg-sky-50'     },
+    { label: 'Sevkiyat',   icon: Truck,         to: '/depocu/sevkiyat',             color: 'text-cyan-700 dark:text-cyan-400',      bg: 'bg-cyan-50 dark:bg-cyan-500/10'    },
+    { label: 'Sayım',      icon: ClipboardCheck, to: '/depocu/stok-sayim',          color: 'text-violet-700 dark:text-violet-400',  bg: 'bg-violet-50 dark:bg-violet-500/10'  },
+    { label: 'Transfer',   icon: ArrowLeftRight, to: '/depocu/stok',                color: 'text-sky-700 dark:text-sky-400',        bg: 'bg-sky-50 dark:bg-sky-500/10'     },
 ];
 
 // Daha az sıklıkla kullanılan veya izleme amaçlı ekranlar (Liste Görünümü)
@@ -46,6 +47,21 @@ const ALT_ISLEMLER = [
     { label: 'İrsaliye ve Belgeler', icon: FileText, to: '/depocu/irsaliyeler' },
     { label: 'Destek / Arıza Bildir', icon: HelpCircle, to: '/depocu/destek' },
 ];
+
+const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.08
+        }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 30 } }
+};
 
 export default function DepocuAnaSayfasi() {
     const { user } = useAuth();
@@ -78,110 +94,136 @@ export default function DepocuAnaSayfasi() {
             : 'Sırada bekleyen görev yok.';
 
     return (
-        <div className="mx-auto max-w-md space-y-6 p-4 sm:max-w-2xl sm:p-6 pb-24">
+        <motion.div 
+            className="mx-auto max-w-md space-y-6 p-4 sm:max-w-2xl sm:p-6 pb-32"
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+        >
             
             {/* ÜST BİLGİ ALANI: Sadece kim olduğu ve saat */}
-            <header className="flex items-center justify-between">
+            <motion.header variants={itemVariants} className="flex items-center justify-between px-2">
                 <div>
-                    <p className="text-sm font-bold tracking-wider text-slate-400 uppercase">
+                    <p className="text-sm font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
                         Kullanıcı
                     </p>
-                    <h1 className="text-2xl font-black tracking-tight text-slate-900">
+                    <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                         {operatorAdi}
                     </h1>
                 </div>
                 <div className="flex flex-col items-end">
-                    <p className="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-1">
+                    <p className="text-sm font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" /> Saat
                     </p>
-                    <p className="text-xl font-black tracking-tight text-slate-900">
+                    <p className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
                         {new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }).format(new Date())}
                     </p>
                 </div>
-            </header>
+            </motion.header>
 
-            {/* ANA AKSİYON ALANI (HERO) - Operatörün bakacağı ilk yer */}
-            <section 
+            {/* ANA AKSİYON ALANI (Status Orb) - Operatörün bakacağı ilk yer */}
+            <motion.section 
+                variants={itemVariants}
                 onClick={() => navigate('/terminal/gorevler')}
-                className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-[24px] p-6 shadow-sm transition-all active:scale-[0.98] ${durumRengi}`}
+                className={`group relative overflow-hidden rounded-[32px] p-1 cursor-pointer transition-transform active:scale-[0.97]`}
             >
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <DurumIcon className="h-6 w-6" strokeWidth={2.5} />
-                            <h2 className="text-xl font-bold tracking-tight">
+                {/* Animated Gradient Border */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${hasAcil ? 'from-rose-500 to-rose-700' : 'from-blue-500 to-blue-700'} opacity-80`} />
+                
+                <div className="relative bg-white/10 dark:bg-black/20 backdrop-blur-xl h-full w-full rounded-[28px] border border-white/20 dark:border-white/10 p-6 flex items-center justify-between overflow-hidden">
+                    
+                    {/* Breathing Orb Effect */}
+                    <motion.div 
+                        className={`absolute -left-10 -top-10 w-48 h-48 rounded-full blur-3xl opacity-50 ${hasAcil ? 'bg-rose-500' : 'bg-blue-500'}`}
+                        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    />
+
+                    <div className="relative z-10 w-full">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-2xl bg-white/20 dark:bg-black/20 backdrop-blur-md`}>
+                                <DurumIcon className="h-7 w-7 text-white" strokeWidth={2.5} />
+                            </div>
+                            <h2 className="text-2xl font-black tracking-tight text-white drop-shadow-sm">
                                 {durumBasligi}
                             </h2>
                         </div>
-                        <p className="mt-2 text-sm font-medium opacity-90">
+                        <p className="mt-2 text-sm font-medium text-white/90">
                             {durumAltMetni}
                         </p>
+                        
+                        <div className="mt-8 flex items-center justify-between rounded-xl bg-black/20 dark:bg-white/10 px-4 py-3 backdrop-blur-md text-white border border-white/10">
+                            <span className="font-bold tracking-wide">
+                                {hasAcil ? "HEMEN BAŞLA" : "GÖREV LİSTESİNİ AÇ"}
+                            </span>
+                            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
+                        </div>
+                    </div>
+                    
+                    {/* Watermark Icon */}
+                    <div className="absolute -right-6 -bottom-6 opacity-10 pointer-events-none">
+                        <DurumIcon className="w-48 h-48 text-white" />
                     </div>
                 </div>
+            </motion.section>
 
-                <div className="mt-8 flex items-center justify-between rounded-xl bg-black/10 px-4 py-3 backdrop-blur-sm">
-                    <span className="font-bold tracking-wide">
-                        {hasAcil ? "HEMEN BAŞLA" : "GÖREV LİSTESİNİ AÇ"}
-                    </span>
-                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
-                </div>
-            </section>
-
-            {/* HIZLI ERİŞİM GRİDİ (Büyük Dokunma Alanları) */}
-            <section>
-                <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 px-1">
+            {/* HIZLI ERİŞİM GRİDİ (Glassmorphic Buttonlar) */}
+            <motion.section variants={itemVariants}>
+                <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 px-2">
                     Saha İşlemleri
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {ANA_ISLEMLER.map((islem) => {
                         const IconComponent = islem.icon;
                         return (
-                            <button
+                            <motion.button
                                 key={islem.to}
+                                whileTap={{ scale: 0.95 }}
                                 onClick={() => navigate(islem.to)}
-                                className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 active:scale-95"
+                                className="group relative flex flex-col items-center justify-center gap-3 rounded-[24px] border border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-all hover:bg-white dark:hover:bg-[#1A1C20]"
                             >
-                                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${islem.bg} ${islem.color}`}>
-                                    <IconComponent className="h-7 w-7" strokeWidth={2} />
+                                <div className={`flex h-14 w-14 items-center justify-center rounded-[18px] transition-transform duration-300 group-hover:scale-110 ${islem.bg} ${islem.color}`}>
+                                    <IconComponent className="h-7 w-7" strokeWidth={2.5} />
                                 </div>
-                                <span className="text-[13px] font-bold text-slate-700">
+                                <span className="text-[13px] font-bold text-slate-700 dark:text-slate-300">
                                     {islem.label}
                                 </span>
-                            </button>
+                            </motion.button>
                         );
                     })}
                 </div>
-            </section>
+            </motion.section>
 
             {/* ALT LİSTE (Destek ve Belgeler) */}
-            <section>
-                <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 px-1">
+            <motion.section variants={itemVariants}>
+                <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 px-2">
                     Sistem & Destek
                 </p>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-3">
                     {ALT_ISLEMLER.map((islem) => {
                         const IconComponent = islem.icon;
                         return (
-                            <button
+                            <motion.button
                                 key={islem.to}
+                                whileTap={{ scale: 0.97 }}
                                 onClick={() => navigate(islem.to)}
-                                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98]"
+                                className="group flex items-center justify-between rounded-[20px] border border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-all hover:bg-white dark:hover:bg-[#1A1C20]"
                             >
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                                        <IconComponent className="h-5 w-5" strokeWidth={2} />
+                                <div className="flex items-center gap-4">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 transition-colors group-hover:bg-blue-50 dark:group-hover:bg-blue-500/10 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                                        <IconComponent className="h-6 w-6" strokeWidth={2} />
                                     </div>
-                                    <span className="text-sm font-bold text-slate-700">
+                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
                                         {islem.label}
                                     </span>
                                 </div>
-                                <ArrowRight className="h-5 w-5 text-slate-300" />
-                            </button>
+                                <ArrowRight className="h-5 w-5 text-slate-300 dark:text-slate-600 transition-transform group-hover:translate-x-1 group-hover:text-blue-500" />
+                            </motion.button>
                         );
                     })}
                 </div>
-            </section>
+            </motion.section>
 
-        </div>
+        </motion.div>
     );
 }

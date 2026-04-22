@@ -8,6 +8,7 @@
  * - Pürüzsüz donanım ivmeli tıklama hissi (active:scale)
  */
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
     Home,
     PackageCheck,
@@ -45,7 +46,7 @@ export default function DepocuLayout() {
     };
 
     return (
-        <div className="min-h-[100dvh] bg-slate-50 flex flex-col font-sans selection:bg-blue-200">
+        <div className="min-h-[100dvh] bg-slate-50 dark:bg-[#0A0B0D] flex flex-col font-sans selection:bg-blue-500/30 transition-colors duration-300">
             {/* WMS Standartlarında Optimize Edilmiş Toaster */}
             <Toaster
                 position="top-center"
@@ -66,17 +67,17 @@ export default function DepocuLayout() {
                 }}
             />
 
-            {/* ÜST BİLGİ ÇUBUĞU - Düz, Net ve Kurumsal */}
-            <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+            {/* ÜST BİLGİ ÇUBUĞU - Floating Glassmorphism */}
+            <header className="sticky top-0 z-40 bg-white/70 dark:bg-[#121316]/70 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50 px-4 py-3 flex items-center justify-between transition-colors duration-300">
                 <div className="flex items-center gap-3.5">
-                    <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center">
+                    <div className="w-11 h-11 rounded-xl bg-blue-600 dark:bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-600/20">
                         <Warehouse className="w-6 h-6 text-white" strokeWidth={2} />
                     </div>
                     <div className="flex flex-col justify-center">
-                        <p className="text-[11px] text-slate-500 uppercase tracking-widest font-bold mb-0.5">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-bold mb-0.5">
                             Depo Operatörü
                         </p>
-                        <p className="text-base font-black text-slate-900 leading-none">
+                        <p className="text-base font-black text-slate-900 dark:text-white leading-none">
                             {user?.ad_soyad || user?.kullanici_adi || 'Aktif Kullanıcı'}
                         </p>
                     </div>
@@ -84,7 +85,7 @@ export default function DepocuLayout() {
 
                 <button
                     onClick={handleLogout}
-                    className="flex items-center justify-center w-11 h-11 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors active:scale-95"
+                    className="flex items-center justify-center w-11 h-11 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors active:scale-95"
                     aria-label="Çıkış Yap"
                 >
                     <LogOut className="w-5 h-5" strokeWidth={2.5} />
@@ -92,13 +93,13 @@ export default function DepocuLayout() {
             </header>
 
             {/* İÇERİK ALANI - Alt menü boşluğu ve safe-area hesaplamalı */}
-            <main className="flex-1 overflow-y-auto pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+            <main className="flex-1 overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))] relative z-10">
                 <Outlet />
             </main>
 
-            {/* ALT NAVİGASYON - Mobile-first Thumb-zone */}
-            <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 z-40 pb-[env(safe-area-inset-bottom)]">
-                <div className="flex justify-around items-end h20 px-1 relative">
+            {/* ALT NAVİGASYON - Floating Glassmorphism Mobile-first Thumb-zone */}
+            <nav className="fixed bottom-4 inset-x-4 z-40 pb-[env(safe-area-inset-bottom)] pointer-events-none">
+                <div className="pointer-events-auto bg-white/80 dark:bg-[#1A1C20]/80 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] rounded-[28px] flex justify-around items-end h-20 px-2 relative transition-colors duration-300">
                     {TAB_ITEMS.map((tab) => {
                         const TabIcon = tab.icon;
                         const active = isTabActive(tab.to, location.pathname);
@@ -109,12 +110,16 @@ export default function DepocuLayout() {
                                 <NavLink
                                     key={tab.to}
                                     to={tab.to}
-                                    className="group flex flex-col items-center justify-center w-[72px] -mt-7 mb-2 transition-transform active:scale-95 z-50"
+                                    className="group flex flex-col items-center justify-center w-[76px] -mt-8 mb-3 transition-transform active:scale-95 z-50"
                                 >
-                                    <div className="w-16 h-16 rounded-2xl bg-blue-600 border-[6px] border-slate-50 flex items-center justify-center shadow-lg shadow-blue-600/20">
-                                        <TabIcon className="w-7 h-7 text-white" strokeWidth={2.5} />
+                                    <div className="relative w-16 h-16 rounded-[22px] bg-gradient-to-br from-blue-500 to-blue-700 p-[3px] shadow-lg shadow-blue-600/30">
+                                        <div className="w-full h-full rounded-[19px] bg-blue-600 dark:bg-blue-600 flex items-center justify-center relative overflow-hidden">
+                                            {/* Parlama efekti */}
+                                            <div className="absolute inset-0 bg-white/20 dark:bg-white/10 rotate-45 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                                            <TabIcon className="w-7 h-7 text-white" strokeWidth={2.5} />
+                                        </div>
                                     </div>
-                                    <span className="text-[11px] font-bold text-blue-700 mt-1">
+                                    <span className="text-[11px] font-extrabold text-blue-700 dark:text-blue-400 mt-1.5 tracking-wide">
                                         {tab.label}
                                     </span>
                                 </NavLink>
@@ -126,10 +131,18 @@ export default function DepocuLayout() {
                             <NavLink
                                 key={tab.to}
                                 to={tab.to}
-                                className={`flex-1 flex flex-col items-center justify-center py-3 gap-1.5 transition-all active:scale-95
-                                    ${active ? 'text-blue-700' : 'text-slate-400 hover:text-slate-600'}`}
+                                className={`flex-1 flex flex-col items-center justify-center py-2 mb-1 gap-1 transition-all active:scale-95 relative
+                                    ${active ? 'text-blue-700 dark:text-blue-400' : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'}`}
                             >
-                                <div className={`flex items-center justify-center w-10 h-8 rounded-full transition-colors ${active ? 'bg-blue-50' : 'bg-transparent'}`}>
+                                <div className="relative flex items-center justify-center w-12 h-10 rounded-2xl z-10">
+                                    {active && (
+                                        <motion.div
+                                            layoutId="activeTabIndicator"
+                                            className="absolute inset-0 bg-blue-50 dark:bg-blue-500/15 rounded-2xl -z-10"
+                                            initial={false}
+                                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                                        />
+                                    )}
                                     <TabIcon className="w-[22px] h-[22px]" strokeWidth={active ? 2.5 : 2} />
                                 </div>
                                 <span className={`text-[10px] leading-none tracking-wide ${active ? 'font-bold' : 'font-semibold'}`}>
