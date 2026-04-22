@@ -29,6 +29,7 @@ import {
     TrendingUp,
     Scan,
     Factory,
+    Tag,
 } from 'lucide-react';
 
 /* ───────────────────────────────────────────
@@ -110,6 +111,7 @@ const menuGroups = [
             { path: '/tedarikciler', label: 'Tedarikçi Yönetimi', icon: Truck, roles: ['admin'], badge: null },
             { path: '/depolar', label: 'Depo & Raf', icon: Warehouse, roles: ['admin', 'lojistik'], badge: null },
             { path: '/depo-kroki', label: 'Depo Kroki', icon: LayoutDashboard, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/etiket-sablonlari', label: 'Etiket Şablonları', icon: Tag, roles: ['admin'], badge: null },
         ],
     },
 ];

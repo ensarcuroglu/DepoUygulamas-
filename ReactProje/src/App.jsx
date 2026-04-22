@@ -49,6 +49,7 @@ const DepocuAnaSayfasi = lazy(() => import('./pages/depocu/DepocuAnaSayfasi'));
 const KabulSecimPage = lazy(() => import('./pages/depocu/KabulSecimPage'));
 const UretimPaletleriPage = lazy(() => import('./pages/UretimPaletleriPage'));
 const UretimPaletiKabulPage = lazy(() => import('./pages/UretimPaletiKabulPage'));
+const EtiketSablonlariPage = lazy(() => import('./pages/EtiketSablonlariPage'));
 
 // Terminal Sayfaları
 const GorevListesiPage = lazy(() => import('./pages/terminal/GorevListesiPage'));
@@ -130,6 +131,7 @@ function App() {
                     <Route path="/ayarlar" element={<AyarlarPage />} />
                     <Route path="/tedarikciler" element={<TedarikcilerPage />} />
                     <Route path="/sistem-loglari" element={<SistemLoglariPage />} />
+                    <Route path="/etiket-sablonlari" element={<EtiketSablonlariPage />} />
                   </Route>
 
                   {/* Depo Yönetimi (Admin + Lojistik) */}

@@ -208,6 +208,20 @@ from app.infrastructure.di.modules.uretim_di import (  # noqa: F401
     get_uretim_paleti_getir_uc,
 )
 
+from app.infrastructure.di.modules.etiket_di import (  # noqa: F401
+    get_etiket_sablonu_repo,
+    get_palet_etiket_repo,
+    get_etiket_render_service,
+    get_etiket_sablonlari_listele_uc,
+    get_etiket_sablonu_getir_uc,
+    get_etiket_sablonu_olustur_uc,
+    get_etiket_sablonu_guncelle_uc,
+    get_etiket_sablonu_sil_uc,
+    get_palet_etiket_olustur_uc,
+    get_palet_etiketleri_listele_uc,
+    get_palet_etiket_yazdir_uc,
+)
+
 from app.infrastructure.di.modules.rapor_dashboard_di import (  # noqa: F401
     get_rapor_sablon_repo,
     get_rapor_log_repo,

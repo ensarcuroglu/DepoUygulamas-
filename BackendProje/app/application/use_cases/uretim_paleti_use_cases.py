@@ -79,12 +79,7 @@ class UretimPaletiOlusturUseCase:
             raise KayitBulunamadiError("Lot", dto.lot_id)
 
         uretim_tarihi = dto.uretim_tarihi or date.today()
-        hedef_depo_id = dto.depo_id or kullanici.depo_id
-        if hedef_depo_id is None:
-            raise GecersizIslemError(
-                "Üretim paleti oluşturmak için depo bağlamı gerekli. "
-                "Kullanıcıya depo atayın veya istekte depo_id gönderin."
-            )
+        hedef_depo_id = dto.depo_id  # DTO'da zorunlu; pydantic valide eder.
         if not kullanici.depo_erisim_var(hedef_depo_id):
             raise DepoErisimHatasi(kullanici.depo_id, hedef_depo_id)
 
@@ -107,6 +102,11 @@ class UretimPaletiOlusturUseCase:
             palet_kg=dto.palet_kg,
             vardiya=dto.vardiya,
             kullanici_id=kullanici.id,
+            uretim_hatti=dto.uretim_hatti,
+            makine_kodu=dto.makine_kodu,
+            operator_kullanici_id=dto.operator_kullanici_id,
+            brut_kg=dto.brut_kg,
+            net_kg=dto.net_kg,
         )
 
         try:

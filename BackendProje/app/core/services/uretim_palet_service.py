@@ -31,6 +31,11 @@ class UretimPaletService:
         palet_kg: Optional[float] = None,
         vardiya: Optional[str] = None,
         kullanici_id: Optional[int] = None,
+        uretim_hatti: Optional[str] = None,
+        makine_kodu: Optional[str] = None,
+        operator_kullanici_id: Optional[int] = None,
+        brut_kg: Optional[float] = None,
+        net_kg: Optional[float] = None,
     ) -> tuple[Palet, PaletDurumLog]:
         palet = Palet(
             palet_no=palet_no,
@@ -43,6 +48,11 @@ class UretimPaletService:
             durum=UretimPaletDurum.OLUSTURULDU,
             uretim_tarihi=uretim_tarihi,
             lot_no=lot_no,
+            uretim_hatti=uretim_hatti,
+            makine_kodu=makine_kodu,
+            operator_kullanici_id=operator_kullanici_id,
+            brut_kg=brut_kg,
+            net_kg=net_kg,
         )
         log = self._log_olustur(
             palet=palet,

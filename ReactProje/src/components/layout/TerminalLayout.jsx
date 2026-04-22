@@ -28,7 +28,7 @@ export default function TerminalLayout() {
   return (
     // ÇÖZÜM: min-h-[100dvh] yerine fixed inset-0 kullanılarak cihazın kendi scroll'u kilitlendi.
     // Artık sadece içerideki main alanı kendi içinde özgürce kayabilecek.
-    <div className="fixed inset-0 bg-zinc-950 text-zinc-100 flex flex-col select-none overflow-hidden overscroll-none">
+    <div className="fixed inset-0 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col select-none overflow-hidden overscroll-none">
       
       {/* Performanslı Ambient Glow (Yalnızca üst kısımda hafif bir derinlik) */}
       <div 
@@ -57,14 +57,14 @@ export default function TerminalLayout() {
       />
 
       {/* Header: Mobil Odaklı, Sabit Yükseklikli (flex-none) */}
-      <header className="flex-none relative z-40 bg-zinc-950/80 backdrop-blur-xl border-b border-white/[0.03] pt-[env(safe-area-inset-top)] shadow-sm shadow-black/20">
+      <header className="flex-none relative z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-200 dark:border-white/[0.03] pt-[env(safe-area-inset-top)] shadow-sm shadow-black/5 dark:shadow-black/20">
         <div className="flex items-center justify-between px-4 py-3 h-16">
           <div className="flex items-center gap-3">
             
             {user?.rol === 'depocu' && (
               <button
                 onClick={() => navigate('/depocu')}
-                className="flex items-center justify-center w-10 h-10 text-zinc-400 bg-zinc-900/80 hover:bg-zinc-800 hover:text-emerald-400 active:scale-90 transition-all rounded-[14px] border border-white/[0.02]"
+                className="flex items-center justify-center w-10 h-10 text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-emerald-500 dark:hover:text-emerald-400 active:scale-90 transition-all rounded-[14px] border border-zinc-200 dark:border-white/[0.02]"
                 aria-label="Panele Dön"
               >
                 <ChevronLeft className="w-5 h-5" />
@@ -72,11 +72,11 @@ export default function TerminalLayout() {
             )}
 
             <div className="flex flex-col justify-center">
-              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-0.5 flex items-center gap-1.5">
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest mb-0.5 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Terminal
               </span>
-              <span className="text-sm font-bold text-zinc-100 truncate max-w-[150px] sm:max-w-[200px]">
+              <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate max-w-[150px] sm:max-w-[200px]">
                 {user?.ad_soyad || user?.kullanici_adi || 'Operatör'}
               </span>
             </div>
@@ -84,7 +84,7 @@ export default function TerminalLayout() {
 
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center w-10 h-10 text-zinc-500 hover:text-rose-400 bg-transparent hover:bg-rose-500/10 active:scale-90 transition-all rounded-[14px]"
+            className="flex items-center justify-center w-10 h-10 text-zinc-500 hover:text-rose-500 dark:hover:text-rose-400 bg-transparent hover:bg-rose-500/10 active:scale-90 transition-all rounded-[14px]"
             aria-label="Çıkış Yap"
           >
             <LogOut className="w-5 h-5" />
@@ -112,7 +112,7 @@ export default function TerminalLayout() {
 
       {/* Bottom Navigation: Absolute konumlandırma ile her zaman en altta sabit */}
       <nav className="absolute bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)] px-4 mb-4 pointer-events-none">
-        <div className="max-w-md mx-auto bg-zinc-900/95 backdrop-blur-2xl border border-white/[0.06] shadow-2xl shadow-black/80 rounded-[24px] p-1.5 flex pointer-events-auto relative">
+        <div className="max-w-md mx-auto bg-white/90 dark:bg-zinc-900/95 backdrop-blur-2xl border border-zinc-200 dark:border-white/[0.06] shadow-2xl shadow-zinc-200/50 dark:shadow-black/80 rounded-[24px] p-1.5 flex pointer-events-auto relative">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
@@ -131,7 +131,7 @@ export default function TerminalLayout() {
                   
                   <motion.div 
                     className={`relative z-10 flex flex-col items-center gap-1.5 ${
-                      isActive ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
+                      isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                     }`}
                     animate={{ scale: isActive ? 1 : 0.95 }}
                     transition={{ duration: 0.2 }}

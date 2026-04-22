@@ -194,6 +194,11 @@ def palet_to_entity(orm: PaletORM) -> Palet:
         kabul_eden_kullanici_id=orm.kabul_eden_kullanici_id,
         kabul_tarihi=orm.kabul_tarihi,
         iptal_sebebi=orm.iptal_sebebi,
+        uretim_hatti=getattr(orm, "uretim_hatti", None),
+        makine_kodu=getattr(orm, "makine_kodu", None),
+        operator_kullanici_id=getattr(orm, "operator_kullanici_id", None),
+        brut_kg=getattr(orm, "brut_kg", None),
+        net_kg=getattr(orm, "net_kg", None),
         lot=_build_lot_bilgi(orm),
         raf=_build_raf_bilgi(orm),
     )
@@ -218,4 +223,9 @@ def palet_to_orm(entity: Palet) -> PaletORM:
         kabul_eden_kullanici_id=entity.kabul_eden_kullanici_id,
         kabul_tarihi=entity.kabul_tarihi,
         iptal_sebebi=entity.iptal_sebebi,
+        uretim_hatti=entity.uretim_hatti,
+        makine_kodu=entity.makine_kodu,
+        operator_kullanici_id=entity.operator_kullanici_id,
+        brut_kg=entity.brut_kg,
+        net_kg=entity.net_kg,
     )

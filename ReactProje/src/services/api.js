@@ -444,4 +444,24 @@ export const uretimPaletiYerlestir = (paletNo, data) => api.post(`/uretim-paletl
 export const getUretimPaletiEtiket = (paletNo) =>
   api.get(`/uretim-paletleri/${paletNo}/etiket`, { responseType: 'blob' });
 
+// ========================
+// ETİKET ŞABLONLARI
+// ========================
+export const getEtiketSablonlari = (params = {}) =>
+  api.get('/etiket-sablonlari/', { params });
+export const getEtiketSablonu = (id) => api.get(`/etiket-sablonlari/${id}`);
+export const createEtiketSablonu = (data) => api.post('/etiket-sablonlari/', data);
+export const updateEtiketSablonu = (id, data) => api.put(`/etiket-sablonlari/${id}`, data);
+export const deleteEtiketSablonu = (id) => api.delete(`/etiket-sablonlari/${id}`);
+
+// ========================
+// PALET ETİKETLERİ (şablon bazlı)
+// ========================
+export const getPaletEtiketleri = (paletNo) =>
+  api.get(`/uretim-paletleri/${paletNo}/etiketler`);
+export const createPaletEtiketi = (paletNo, data) =>
+  api.post(`/uretim-paletleri/${paletNo}/etiketler`, data);
+export const yazdirPaletEtiketi = (etiketId) =>
+  api.post(`/uretim-paletleri/etiketler/${etiketId}/yazdir`);
+
 export default api;

@@ -247,6 +247,15 @@ class Palet(Base):
     kabul_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     iptal_sebebi: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
+    # ── Üretim meta alanları ──
+    uretim_hatti: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    makine_kodu: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    operator_kullanici_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("kullanicilar.id"), nullable=True
+    )
+    brut_kg: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    net_kg: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
     # İlişkiler
     lot: Mapped["Lot"] = relationship("Lot", back_populates="paletler")
     raf: Mapped["Raf"] = relationship("Raf", back_populates="paletler")
@@ -898,6 +907,59 @@ class IdempotencyKaydi(Base):
     response_body: Mapped[dict] = mapped_column(JSON, nullable=False)
     olusturma_tarihi: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     son_kullanim_tarihi: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+
+
+# ========================
+# ETİKET ŞABLONU
+# ========================
+
+class EtiketSablonu(Base):
+    __tablename__ = "etiket_sablonlari"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    ad: Mapped[str] = mapped_column(String(100), nullable=False)
+    boyut: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    zpl_template: Mapped[str] = mapped_column(Text, nullable=False)
+    html_template: Mapped[str] = mapped_column(Text, nullable=False)
+    default_mi: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    aktif: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+    olusturan_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("kullanicilar.id"), nullable=True
+    )
+    olusturma_tarihi: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False
+    )
+
+
+# ========================
+# PALET ETİKET
+# ========================
+
+class PaletEtiket(Base):
+    __tablename__ = "palet_etiketleri"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    palet_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("paletler.id"), nullable=False, index=True
+    )
+    sablon_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("etiket_sablonlari.id"), nullable=False, index=True
+    )
+    render_edilmis_zpl: Mapped[str] = mapped_column(Text, nullable=False)
+    render_edilmis_html: Mapped[str] = mapped_column(Text, nullable=False)
+    barkod_deger: Mapped[str] = mapped_column(String(100), nullable=False)
+    qr_deger: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    basim_sayisi: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    son_basim_tarihi: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    kullanici_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("kullanicilar.id"), nullable=True
+    )
+    olusturma_tarihi: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False
+    )
+
+    palet: Mapped["Palet"] = relationship("Palet", foreign_keys=[palet_id])
+    sablon: Mapped["EtiketSablonu"] = relationship("EtiketSablonu", foreign_keys=[sablon_id])
 
 
 from sqlalchemy.orm import column_property  # noqa: E402

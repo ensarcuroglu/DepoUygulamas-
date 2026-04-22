@@ -135,13 +135,13 @@ class TestUretimPaletiOlustur:
     def test_lot_bulunamazsa_hata(self):
         uc, m = self._make_uc()
         m["lot_repo"].getir_id_ile.return_value = None
-        dto = UretimPaletiOlusturRequestDTO(lot_id=99, koli_adedi=10)
+        dto = UretimPaletiOlusturRequestDTO(lot_id=99, depo_id=3, koli_adedi=10)
         with pytest.raises(KayitBulunamadiError):
             uc.execute(dto, _kullanici())
 
     def test_palet_ve_durum_log_persist_edilir(self):
         uc, m = self._make_uc()
-        dto = UretimPaletiOlusturRequestDTO(lot_id=5, koli_adedi=48)
+        dto = UretimPaletiOlusturRequestDTO(lot_id=5, depo_id=3, koli_adedi=48)
         kullanici = _kullanici()
         kullanici.depo_id = 3
         uc.execute(dto, kullanici)
@@ -150,7 +150,7 @@ class TestUretimPaletiOlustur:
 
     def test_db_commit_cagirilir(self):
         uc, m = self._make_uc()
-        dto = UretimPaletiOlusturRequestDTO(lot_id=5, koli_adedi=48)
+        dto = UretimPaletiOlusturRequestDTO(lot_id=5, depo_id=3, koli_adedi=48)
         kullanici = _kullanici()
         kullanici.depo_id = 3
         uc.execute(dto, kullanici)
@@ -159,7 +159,7 @@ class TestUretimPaletiOlustur:
     def test_hata_durumunda_rollback(self):
         uc, m = self._make_uc()
         m["palet_repo"].olustur.side_effect = RuntimeError("DB error")
-        dto = UretimPaletiOlusturRequestDTO(lot_id=5, koli_adedi=48)
+        dto = UretimPaletiOlusturRequestDTO(lot_id=5, depo_id=3, koli_adedi=48)
         kullanici = _kullanici()
         kullanici.depo_id = 3
         with pytest.raises(RuntimeError):
@@ -168,7 +168,7 @@ class TestUretimPaletiOlustur:
 
     def test_staging_rafi_ve_cozumlenen_tarihi_entityye_yazar(self):
         uc, m = self._make_uc()
-        dto = UretimPaletiOlusturRequestDTO(lot_id=5, koli_adedi=48)
+        dto = UretimPaletiOlusturRequestDTO(lot_id=5, depo_id=3, koli_adedi=48)
         kullanici = _kullanici()
         kullanici.depo_id = 3
 
@@ -183,19 +183,45 @@ class TestUretimPaletiOlustur:
     def test_staging_rafi_bulunamazsa_hata(self):
         uc, m = self._make_uc()
         m["raf_repo"].getir_staging_raf.return_value = None
-        dto = UretimPaletiOlusturRequestDTO(lot_id=5, koli_adedi=48)
+        dto = UretimPaletiOlusturRequestDTO(lot_id=5, depo_id=3, koli_adedi=48)
         kullanici = _kullanici()
         kullanici.depo_id = 3
 
         with pytest.raises(GecersizIslemError, match="MIGRATION_STAGING"):
             uc.execute(dto, kullanici)
 
-    def test_depo_baglamiyoksa_hata(self):
-        uc, _ = self._make_uc()
-        dto = UretimPaletiOlusturRequestDTO(lot_id=5, koli_adedi=48)
+    def test_depo_id_zorunlu_dto_validasyonu(self):
+        """DTO depo_id'siz oluşturulamamalı (pydantic zorunlu tutar)."""
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            UretimPaletiOlusturRequestDTO(lot_id=5, koli_adedi=48)
 
-        with pytest.raises(GecersizIslemError, match="depo bağlamı"):
-            uc.execute(dto, _kullanici())
+    def test_meta_alanlari_palete_atanir(self):
+        """uretim_hatti/makine_kodu/operator/brut_kg/net_kg palete taşınır."""
+        uc, m = self._make_uc()
+        dto = UretimPaletiOlusturRequestDTO(
+            lot_id=5, depo_id=3, koli_adedi=48,
+            uretim_hatti="HAT-1", makine_kodu="M-07",
+            operator_kullanici_id=42, brut_kg=12.5, net_kg=10.0,
+        )
+        kullanici = _kullanici()
+        kullanici.depo_id = 3
+        uc.execute(dto, kullanici)
+
+        palet_arg = m["palet_repo"].olustur.call_args[0][0]
+        assert palet_arg.uretim_hatti == "HAT-1"
+        assert palet_arg.makine_kodu == "M-07"
+        assert palet_arg.operator_kullanici_id == 42
+        assert palet_arg.brut_kg == 12.5
+        assert palet_arg.net_kg == 10.0
+
+    def test_admin_depo_erisimi_varsayilan_olarak_acik(self):
+        """Admin kullanıcının depo_id=None olsa bile DTO depo_id ile akış çalışır."""
+        uc, m = self._make_uc()
+        dto = UretimPaletiOlusturRequestDTO(lot_id=5, depo_id=3, koli_adedi=48)
+        admin = _kullanici(KullaniciRol.ADMIN)  # depo_id=None
+        uc.execute(dto, admin)
+        m["palet_repo"].olustur.assert_called_once()
 
 
 # ── KabulEtUseCase ────────────────────────────────────────────────────────────

@@ -109,6 +109,13 @@ class Palet:
     kabul_tarihi: Optional[datetime] = None
     iptal_sebebi: Optional[str] = None
 
+    # ── Üretim meta alanları (opsiyonel; endüstri standardı izlenebilirlik) ──
+    uretim_hatti: Optional[str] = None
+    makine_kodu: Optional[str] = None
+    operator_kullanici_id: Optional[int] = None
+    brut_kg: Optional[float] = None
+    net_kg: Optional[float] = None
+
     # Opsiyonel nested bilgi — mapper tarafından doldurulur
     lot: Optional[LotBilgi] = None
     raf: Optional[RafBilgi] = None

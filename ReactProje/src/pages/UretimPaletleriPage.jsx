@@ -7,11 +7,12 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
+import EtiketOlusturModal from '../components/palet/EtiketOlusturModal';
 import {
-    getUretimPaletleri, createUretimPaleti, getLotlar,
+    getUretimPaletleri, createUretimPaleti, getLotlar, getDepolar, getKullanicilar,
     uretimPaletiKabulBekle, uretimPaletiKabulEt,
     uretimPaletiKarantinaAl, uretimPaletiKarantinaCikar,
-    uretimPaletiIptal, getUretimPaletiEtiket,
+    uretimPaletiIptal,
 } from '../services/api';
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
@@ -59,6 +60,8 @@ export default function UretimPaletleriPage() {
 
     const [paletler, setPaletler] = useState([]);
     const [lotlar, setLotlar] = useState([]);
+    const [depolar, setDepolar] = useState([]);
+    const [operatorler, setOperatorler] = useState([]);
     const [aramaMetni, setAramaMetni] = useState('');
     const [durumFiltre, setDurumFiltre] = useState('');
 
@@ -67,24 +70,39 @@ export default function UretimPaletleriPage() {
 
     const [formData, setFormData] = useState({
         lot_id: '',
+        depo_id: '',
         koli_adedi: '',
         vardiya: '',
         palet_kg: '',
         uretim_tarihi: new Date().toISOString().split('T')[0],
+        uretim_hatti: '',
+        makine_kodu: '',
+        operator_kullanici_id: '',
+        brut_kg: '',
+        net_kg: '',
     });
 
     // Sebep modal (karantina / iptal)
     const [sebepModal, setSebepModal] = useState(null); // { tip, paletNo }
     const [sebepText, setSebepText] = useState('');
 
+    // Etiket modalı
+    const [etiketModalPaletNo, setEtiketModalPaletNo] = useState(null);
+
     const veriYukle = useCallback(async () => {
         await run(async () => {
-            const [paletRes, lotRes] = await Promise.all([
+            const [paletRes, lotRes, depoRes, kullaniciRes] = await Promise.all([
                 getUretimPaletleri({ sadece_aktif: false }),
                 getLotlar(),
+                getDepolar().catch(() => ({ data: [] })),
+                getKullanicilar().catch(() => ({ data: [] })),
             ]);
             setPaletler(paletRes.data);
             setLotlar(lotRes.data);
+            setDepolar(depoRes.data || []);
+            setOperatorler((kullaniciRes.data || []).filter(
+                (k) => k.rol === 'depocu' || k.rol === 'admin',
+            ));
         });
     }, [run]);
 
@@ -101,19 +119,47 @@ export default function UretimPaletleriPage() {
     // ── Form ──────────────────────────────────────────────────────────────────
 
     const formuSifirla = () => setFormData({
-        lot_id: '', koli_adedi: '', vardiya: '', palet_kg: '',
+        lot_id: '',
+        depo_id: user?.depo_id ? String(user.depo_id) : '',
+        koli_adedi: '',
+        vardiya: '',
+        palet_kg: '',
         uretim_tarihi: new Date().toISOString().split('T')[0],
+        uretim_hatti: '',
+        makine_kodu: '',
+        operator_kullanici_id: '',
+        brut_kg: '',
+        net_kg: '',
     });
+
+    const modaliAc = () => {
+        setFormData((f) => ({
+            ...f,
+            depo_id: user?.depo_id ? String(user.depo_id) : f.depo_id,
+        }));
+        setYeniModal(true);
+    };
 
     const paletOlustur = async (e) => {
         e.preventDefault();
+        if (!formData.depo_id) {
+            toast.error('Depo seçimi zorunludur');
+            return;
+        }
         try {
             await createUretimPaleti({
                 lot_id: parseInt(formData.lot_id),
+                depo_id: parseInt(formData.depo_id),
                 koli_adedi: parseInt(formData.koli_adedi),
                 vardiya: formData.vardiya || undefined,
                 palet_kg: formData.palet_kg ? parseFloat(formData.palet_kg) : undefined,
                 uretim_tarihi: formData.uretim_tarihi || undefined,
+                uretim_hatti: formData.uretim_hatti || undefined,
+                makine_kodu: formData.makine_kodu || undefined,
+                operator_kullanici_id: formData.operator_kullanici_id
+                    ? parseInt(formData.operator_kullanici_id) : undefined,
+                brut_kg: formData.brut_kg ? parseFloat(formData.brut_kg) : undefined,
+                net_kg: formData.net_kg ? parseFloat(formData.net_kg) : undefined,
             });
             toast.success('Üretim paleti oluşturuldu');
             setYeniModal(false);
@@ -156,20 +202,6 @@ export default function UretimPaletleriPage() {
         setSebepText('');
     };
 
-    const etiketIndir = async (pn) => {
-        try {
-            const res = await getUretimPaletiEtiket(pn);
-            const url = URL.createObjectURL(new Blob([res.data], { type: 'text/plain' }));
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${pn}.zpl`;
-            a.click();
-            URL.revokeObjectURL(url);
-        } catch (err) {
-            toast.error(hataMetni(err, 'Etiket indirilemedi'));
-        }
-    };
-
     // ── Render ────────────────────────────────────────────────────────────────
 
     const isAdmin = user?.rol === 'admin';
@@ -199,7 +231,7 @@ export default function UretimPaletleriPage() {
                     </button>
                     {isDepocuOrAdmin && (
                         <button
-                            onClick={() => setYeniModal(true)}
+                            onClick={modaliAc}
                             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
                         >
                             <Plus className="w-4 h-4" />
@@ -333,9 +365,9 @@ export default function UretimPaletleriPage() {
                                                         />
                                                     )}
 
-                                                    {/* ZPL Etiket */}
+                                                    {/* Etiket Oluştur (şablon bazlı) */}
                                                     <AksiyonButon
-                                                        onClick={() => etiketIndir(p.palet_no)}
+                                                        onClick={() => setEtiketModalPaletNo(p.palet_no)}
                                                         icon={<Download className="w-3.5 h-3.5" />}
                                                         label="Etiket"
                                                         renk="slate"
@@ -354,27 +386,52 @@ export default function UretimPaletleriPage() {
 
             {/* Yeni Palet Modalı */}
             {yeniModal && (
-                <Modal baslik="Yeni Üretim Paleti" onKapat={() => { setYeniModal(false); formuSifirla(); }}>
+                <Modal baslik="Yeni Üretim Paleti" onKapat={() => { setYeniModal(false); formuSifirla(); }} genisMi>
                     <form onSubmit={paletOlustur} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Lot <span className="text-red-500">*</span></label>
-                            <select
-                                value={formData.lot_id}
-                                onChange={(e) => setFormData({ ...formData, lot_id: e.target.value })}
-                                required
-                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            >
-                                <option value="">Lot seçin...</option>
-                                {lotlar.map((l) => (
-                                    <option key={l.id} value={l.id}>{l.lot_no || `#${l.id}`}</option>
-                                ))}
-                            </select>
+                        {/* Zorunlu alanlar */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Depo <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={formData.depo_id}
+                                    onChange={(e) => setFormData({ ...formData, depo_id: e.target.value })}
+                                    required
+                                    disabled={!isAdmin && !!user?.depo_id}
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-50 disabled:text-gray-600"
+                                >
+                                    <option value="">Depo seçin...</option>
+                                    {depolar.map((d) => (
+                                        <option key={d.id} value={d.id}>{d.isim || `Depo #${d.id}`}</option>
+                                    ))}
+                                </select>
+                                {!isAdmin && user?.depo_id && (
+                                    <p className="text-xs text-gray-400 mt-1">Atanmış depo — değiştirilemez</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Lot <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={formData.lot_id}
+                                    onChange={(e) => setFormData({ ...formData, lot_id: e.target.value })}
+                                    required
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                >
+                                    <option value="">Lot seçin...</option>
+                                    {lotlar.map((l) => (
+                                        <option key={l.id} value={l.id}>{l.lot_no || `#${l.id}`}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <FormField label="Koli Adedi *" type="number" min="1" required
                                 value={formData.koli_adedi}
                                 onChange={(v) => setFormData({ ...formData, koli_adedi: v })} />
-                            <FormField label="Ağırlık (kg)" type="number" min="0.1" step="0.1"
+                            <FormField label="Palet Ağırlığı (kg)" type="number" min="0.1" step="0.1"
                                 value={formData.palet_kg}
                                 onChange={(v) => setFormData({ ...formData, palet_kg: v })} />
                         </div>
@@ -386,6 +443,45 @@ export default function UretimPaletleriPage() {
                                 value={formData.uretim_tarihi}
                                 onChange={(v) => setFormData({ ...formData, uretim_tarihi: v })} />
                         </div>
+
+                        {/* Üretim meta — opsiyonel */}
+                        <div className="pt-2 border-t border-gray-100">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                                İzlenebilirlik (opsiyonel)
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <FormField label="Üretim Hattı" type="text" placeholder="HAT-1"
+                                    value={formData.uretim_hatti}
+                                    onChange={(v) => setFormData({ ...formData, uretim_hatti: v })} />
+                                <FormField label="Makine Kodu" type="text" placeholder="M-07"
+                                    value={formData.makine_kodu}
+                                    onChange={(v) => setFormData({ ...formData, makine_kodu: v })} />
+                            </div>
+                            <div className="grid grid-cols-3 gap-3 mt-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Operatör</label>
+                                    <select
+                                        value={formData.operator_kullanici_id}
+                                        onChange={(e) => setFormData({ ...formData, operator_kullanici_id: e.target.value })}
+                                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    >
+                                        <option value="">—</option>
+                                        {operatorler.map((o) => (
+                                            <option key={o.id} value={o.id}>
+                                                {o.ad_soyad || o.kullanici_adi}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <FormField label="Brüt (kg)" type="number" min="0.1" step="0.1"
+                                    value={formData.brut_kg}
+                                    onChange={(v) => setFormData({ ...formData, brut_kg: v })} />
+                                <FormField label="Net (kg)" type="number" min="0.1" step="0.1"
+                                    value={formData.net_kg}
+                                    onChange={(v) => setFormData({ ...formData, net_kg: v })} />
+                            </div>
+                        </div>
+
                         <div className="flex justify-end gap-2 pt-2">
                             <button type="button" onClick={() => { setYeniModal(false); formuSifirla(); }}
                                 className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">
@@ -398,6 +494,14 @@ export default function UretimPaletleriPage() {
                         </div>
                     </form>
                 </Modal>
+            )}
+
+            {/* Etiket Oluşturma Modalı */}
+            {etiketModalPaletNo && (
+                <EtiketOlusturModal
+                    paletNo={etiketModalPaletNo}
+                    onKapat={() => setEtiketModalPaletNo(null)}
+                />
             )}
 
             {/* Sebep Modalı (karantina / iptal) */}
@@ -464,17 +568,17 @@ function AksiyonButon({ onClick, icon, label, renk, disabled }) {
     );
 }
 
-function Modal({ baslik, onKapat, children }) {
+function Modal({ baslik, onKapat, children, genisMi }) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className={`bg-white rounded-2xl shadow-xl w-full ${genisMi ? 'max-w-2xl' : 'max-w-md'} max-h-[90vh] flex flex-col`}>
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
                     <h2 className="font-semibold text-gray-900">{baslik}</h2>
                     <button onClick={onKapat} className="p-1 rounded-lg hover:bg-gray-100">
                         <X className="w-5 h-5 text-gray-500" />
                     </button>
                 </div>
-                <div className="px-6 py-5">{children}</div>
+                <div className="px-6 py-5 overflow-y-auto">{children}</div>
             </div>
         </div>
     );

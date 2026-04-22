@@ -15,12 +15,18 @@ from app.core.entities.palet import Palet
 
 class UretimPaletiOlusturRequestDTO(BaseModel):
     lot_id: int
-    depo_id: Optional[int] = Field(default=None, gt=0)
+    depo_id: int = Field(gt=0, description="Paletin oluşturulacağı hedef depo (zorunlu).")
     koli_adedi: int = Field(gt=0)
     uretim_tarihi: Optional[date] = None
     lot_no: Optional[str] = None
     palet_kg: Optional[float] = Field(default=None, gt=0)
     vardiya: Optional[str] = None
+    # ── Endüstri standardı üretim meta alanları (opsiyonel) ──
+    uretim_hatti: Optional[str] = Field(default=None, max_length=50)
+    makine_kodu: Optional[str] = Field(default=None, max_length=50)
+    operator_kullanici_id: Optional[int] = Field(default=None, gt=0)
+    brut_kg: Optional[float] = Field(default=None, gt=0)
+    net_kg: Optional[float] = Field(default=None, gt=0)
 
 
 class UretimPaletiKabulRequestDTO(BaseModel):
@@ -65,6 +71,12 @@ class UretimPaletiResponseDTO(BaseModel):
     olusturma_tarihi: datetime
     urun_isim: Optional[str] = None
     lot_skt: Optional[date] = None
+    # ── Üretim meta alanları ──
+    uretim_hatti: Optional[str] = None
+    makine_kodu: Optional[str] = None
+    operator_kullanici_id: Optional[int] = None
+    brut_kg: Optional[float] = None
+    net_kg: Optional[float] = None
 
     @classmethod
     def from_entity(cls, p: Palet) -> "UretimPaletiResponseDTO":
@@ -92,4 +104,9 @@ class UretimPaletiResponseDTO(BaseModel):
             olusturma_tarihi=p.olusturma_tarihi,
             urun_isim=urun_isim,
             lot_skt=lot_skt,
+            uretim_hatti=getattr(p, "uretim_hatti", None),
+            makine_kodu=getattr(p, "makine_kodu", None),
+            operator_kullanici_id=getattr(p, "operator_kullanici_id", None),
+            brut_kg=getattr(p, "brut_kg", None),
+            net_kg=getattr(p, "net_kg", None),
         )

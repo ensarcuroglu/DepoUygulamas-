@@ -20,6 +20,8 @@ from .mal_kabul_irsaliye import MalKabulIrsaliye, MalKabulKalemi
 from .toplama_gorevi import ToplamaGorevi, ToplamaGoreviDurum
 from .palet_rezervasyonu import PaletRezervasyonu, RezervasyonDurum
 from .palet_durum_log import PaletDurumLog
+from .etiket_sablonu import EtiketSablonu
+from .palet_etiket import PaletEtiket
 
 __all__ = [
     "Marka", "Kategori", "Depo", "Zon", "ZonTipi", "Raf", "Tedarikci",
@@ -32,4 +34,5 @@ __all__ = [
     "ToplamaGorevi", "ToplamaGoreviDurum",
     "PaletRezervasyonu", "RezervasyonDurum",
     "PaletDurumLog",
+    "EtiketSablonu", "PaletEtiket",
 ]

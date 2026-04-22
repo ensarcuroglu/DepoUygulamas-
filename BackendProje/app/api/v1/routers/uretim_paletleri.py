@@ -27,6 +27,9 @@ from app.infrastructure.di.container import (
     get_uretim_paleti_iptal_uc,
     get_uretim_paleti_yerlestirme_bekle_uc,
     get_uretim_paleti_yerlestir_uc,
+    get_palet_etiket_olustur_uc,
+    get_palet_etiketleri_listele_uc,
+    get_palet_etiket_yazdir_uc,
 )
 from app.application.dto.uretim_paleti_dto import (
     UretimPaletiOlusturRequestDTO,
@@ -36,6 +39,10 @@ from app.application.dto.uretim_paleti_dto import (
     UretimPaletiIptalRequestDTO,
     UretimPaletiYerlestirRequestDTO,
     UretimPaletiResponseDTO,
+)
+from app.application.dto.etiket_dto import (
+    PaletEtiketOlusturDTO,
+    PaletEtiketResponseDTO,
 )
 from app.application.use_cases.uretim_paleti_use_cases import (
     UretimPaletleriListeleUseCase,
@@ -48,6 +55,11 @@ from app.application.use_cases.uretim_paleti_use_cases import (
     UretimPaletiIptalUseCase,
     UretimPaletiYerlestirmeBekleUseCase,
     UretimPaletiYerlestirUseCase,
+)
+from app.application.use_cases.palet_etiket_use_cases import (
+    PaletEtiketOlusturUseCase,
+    PaletEtiketleriListeleUseCase,
+    PaletEtiketYazdirUseCase,
 )
 router = APIRouter(prefix="/api/uretim-paletleri", tags=["Üretim Paletleri"])
 
@@ -235,6 +247,42 @@ def uretim_paleti_etiket(
     dto = uc.execute(palet_no)
     zpl = _zpl_olustur(dto)
     return PlainTextResponse(content=zpl, media_type="text/plain")
+
+
+# ── Palet Etiket (Şablon Bazlı) ───────────────────────────────────────────────
+
+@router.get("/{palet_no}/etiketler", response_model=List[PaletEtiketResponseDTO])
+@limiter.limit("100/minute")
+def palet_etiketlerini_listele(
+    request: Request,
+    palet_no: str,
+    current_user: Kullanici = Depends(get_current_user),
+    uc: PaletEtiketleriListeleUseCase = Depends(get_palet_etiketleri_listele_uc),
+):
+    return uc.execute(palet_no)
+
+
+@router.post("/{palet_no}/etiketler", response_model=PaletEtiketResponseDTO, status_code=201)
+@limiter.limit("50/minute")
+def palet_etiketi_olustur(
+    request: Request,
+    palet_no: str,
+    dto: PaletEtiketOlusturDTO,
+    current_user: Kullanici = Depends(get_current_user),
+    uc: PaletEtiketOlusturUseCase = Depends(get_palet_etiket_olustur_uc),
+):
+    return uc.execute(palet_no, dto, kullanici_to_entity(current_user))
+
+
+@router.post("/etiketler/{etiket_id}/yazdir", response_model=PaletEtiketResponseDTO)
+@limiter.limit("100/minute")
+def palet_etiketi_yazdir(
+    request: Request,
+    etiket_id: int,
+    current_user: Kullanici = Depends(get_current_user),
+    uc: PaletEtiketYazdirUseCase = Depends(get_palet_etiket_yazdir_uc),
+):
+    return uc.execute(etiket_id, kullanici_to_entity(current_user))
 
 
 def _zpl_olustur(dto: UretimPaletiResponseDTO) -> str:
