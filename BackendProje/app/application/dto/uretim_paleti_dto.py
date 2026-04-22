@@ -77,6 +77,8 @@ class UretimPaletiResponseDTO(BaseModel):
     operator_kullanici_id: Optional[int] = None
     brut_kg: Optional[float] = None
     net_kg: Optional[float] = None
+    # Saha akışı: kabul sonrası otomatik yerleştirme bekliyor mu?
+    yerlestirme_bekliyor: bool = False
 
     @classmethod
     def from_entity(cls, p: Palet) -> "UretimPaletiResponseDTO":

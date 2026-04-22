@@ -284,6 +284,7 @@ class TestUretimPaletiOlustur:
         r = depocu_client.post("/api/uretim-paletleri/", json={
             "lot_id": lot.id,
             "koli_adedi": 24,
+            "depo_id": depocu.depo_id,
         })
 
         assert r.status_code == 201
@@ -356,8 +357,10 @@ class TestUretimPaletiKabulEt:
         r = admin_client.post(f"/api/uretim-paletleri/{PRD_NO}/kabul-et")
         assert r.status_code == 200
         data = r.json()
-        assert data["durum"] == UretimPaletDurum.KABUL_EDILDI
+        # Otomatik geçiş: KABUL_EDILDI → YERLESTIRME_BEKLIYOR
+        assert data["durum"] == UretimPaletDurum.YERLESTIRME_BEKLIYOR
         assert data["kabul_tarihi"] is not None
+        assert data["yerlestirme_bekliyor"] is True
 
     def test_depocu_kabul_edebilir(self, depocu_client, uretim_paleti_kabul_bekliyor):
         r = depocu_client.post(f"/api/uretim-paletleri/{PRD_NO}/kabul-et")

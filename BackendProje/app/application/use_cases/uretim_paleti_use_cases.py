@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from app.core.entities.kullanici import Kullanici
     from app.core.services.uretim_palet_service import UretimPaletService
     from app.core.services.uretim_seri_no_uretici import IUretimSeriNoUretici
+    from app.core.services.kapasite_dogrulama_servisi import KapasiteDogrulamaServisi
     from app.core.repositories.palet_repository import IPaletRepository
     from app.core.repositories.lot_repository import ILotRepository
     from app.core.repositories.raf_repository import IRafRepository
@@ -182,7 +183,10 @@ class UretimPaletiKabulBekleUseCase:
 # ── Kabul Et ──────────────────────────────────────────────────────────────────
 
 class UretimPaletiKabulEtUseCase:
-    """KABUL_BEKLIYOR → KABUL_EDILDI + StokHareketi.GIRIS. Depocu veya admin."""
+    """OLUSTURULDU/KABUL_BEKLIYOR → KABUL_EDILDI → YERLESTIRME_BEKLIYOR + StokHareketi.GIRIS.
+
+    Saha akışı: Tek barkod okutma ile kabul + otomatik yerleştirme bekle.
+    """
 
     def __init__(
         self,
@@ -215,6 +219,9 @@ class UretimPaletiKabulEtUseCase:
 
         log = self._svc.kabul_et(palet, kullanici.id)
 
+        # Otomatik: KABUL_EDILDI → YERLESTIRME_BEKLIYOR (saha 2-tarama modeli)
+        log_yerlestirme = self._svc.yerlestirme_bekle(palet, kullanici.id)
+
         hareket = StokHareketi(
             urun_id=lot.urun_id,
             lot_id=lot.id,
@@ -231,13 +238,15 @@ class UretimPaletiKabulEtUseCase:
             palet = self._palet_repo.guncelle(palet, auto_commit=False)
             log.palet_id = palet.id  # type: ignore[assignment]
             self._durum_log_repo.olustur(log, auto_commit=False)
+            log_yerlestirme.palet_id = palet.id  # type: ignore[assignment]
+            self._durum_log_repo.olustur(log_yerlestirme, auto_commit=False)
             self._hareket_repo.olustur(hareket, auto_commit=False)
             self._log_repo.olustur(
                 SistemLog.olustur(
                     kullanici_id=kullanici.id,
                     islem_tipi=IslemTipi.UPDATE,
                     modul="Üretim Paleti",
-                    detay=f"Üretim paleti kabul edildi: {palet_no} ({palet.koli_adedi} koli)",
+                    detay=f"Üretim paleti kabul edildi ve yerleştirme bekliyor: {palet_no} ({palet.koli_adedi} koli)",
                 ),
                 auto_commit=False,
             )
@@ -246,7 +255,9 @@ class UretimPaletiKabulEtUseCase:
             self._db.rollback()
             raise
 
-        return UretimPaletiResponseDTO.from_entity(palet)
+        dto = UretimPaletiResponseDTO.from_entity(palet)
+        dto.yerlestirme_bekliyor = True
+        return dto
 
 
 # ── Karantinaya Al ────────────────────────────────────────────────────────────
@@ -471,18 +482,22 @@ class UretimPaletiYerlestirmeBekleUseCase:
 # ── Yerleştir ─────────────────────────────────────────────────────────────────
 
 class UretimPaletiYerlestirUseCase:
-    """YERLESTIRME_BEKLIYOR → YERLESTIRILDI. Depocu veya admin."""
+    """YERLESTIRME_BEKLIYOR → YERLESTIRILDI + raf kapasite kontrolü. Depocu veya admin."""
 
     def __init__(
         self,
         domain_service: "UretimPaletService",
         palet_repo: "IPaletRepository",
+        raf_repo: "IRafRepository",
+        kapasite_servisi: "KapasiteDogrulamaServisi",
         durum_log_repo: "IPaletDurumLogRepository",
         sistem_log_repo: "ISistemLogRepository",
         db: Session,
     ):
         self._svc = domain_service
         self._palet_repo = palet_repo
+        self._raf_repo = raf_repo
+        self._kapasite = kapasite_servisi
         self._durum_log_repo = durum_log_repo
         self._log_repo = sistem_log_repo
         self._db = db
@@ -499,6 +514,17 @@ class UretimPaletiYerlestirUseCase:
         if not palet:
             raise KayitBulunamadiError("Palet", palet_no)
 
+        # ── Raf kapasite kontrolü ──
+        raf = self._raf_repo.getir_id_ile(raf_id)
+        if not raf:
+            raise KayitBulunamadiError("Raf", raf_id)
+
+        kapasite_sonuc = self._kapasite.dogrula(raf, palet.palet_kg or 0.0)
+        if not kapasite_sonuc.yeterli:
+            raise GecersizIslemError(
+                f"Hedef raf kapasitesi yetersiz: {kapasite_sonuc.neden}"
+            )
+
         log = self._svc.yerlestir(palet, raf_id, kullanici.id)
 
         try:
@@ -510,7 +536,7 @@ class UretimPaletiYerlestirUseCase:
                     kullanici_id=kullanici.id,
                     islem_tipi=IslemTipi.UPDATE,
                     modul="Üretim Paleti",
-                    detay=f"Yerleştirildi: {palet_no} → raf {raf_id}",
+                    detay=f"Yerleştirildi: {palet_no} → raf {raf.kod} (ID: {raf_id})",
                 ),
                 auto_commit=False,
             )

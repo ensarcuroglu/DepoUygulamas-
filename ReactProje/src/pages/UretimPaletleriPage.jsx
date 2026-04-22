@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Package, Plus, Search, X, RefreshCw, CheckCircle, AlertTriangle,
-    Ban, Download, ShieldAlert, ShieldCheck, Loader2, ChevronDown,
+    Ban, Download, ShieldAlert, ShieldCheck, Loader2, ChevronDown, MapPin,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -310,24 +310,24 @@ export default function UretimPaletleriPage() {
                                                 <div className="flex items-center gap-1 flex-wrap">
                                                     {islem && <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />}
 
-                                                    {/* Kabul Bekle */}
-                                                    {isDepocuOrAdmin && p.durum === DURUM.OLUSTURULDU && (
-                                                        <AksiyonButon
-                                                            onClick={() => kabulBekle(p.palet_no)}
-                                                            icon={<ChevronDown className="w-3.5 h-3.5" />}
-                                                            label="Kabul Bekle"
-                                                            renk="amber"
-                                                            disabled={islem}
-                                                        />
-                                                    )}
-
-                                                    {/* Kabul Et */}
-                                                    {isDepocuOrAdmin && p.durum === DURUM.KABUL_BEKLIYOR && (
+                                                    {/* Kabul Et (OLUSTURULDU veya KABUL_BEKLIYOR) */}
+                                                    {isDepocuOrAdmin && [DURUM.OLUSTURULDU, DURUM.KABUL_BEKLIYOR].includes(p.durum) && (
                                                         <AksiyonButon
                                                             onClick={() => kabulEt(p.palet_no)}
                                                             icon={<CheckCircle className="w-3.5 h-3.5" />}
                                                             label="Kabul Et"
                                                             renk="emerald"
+                                                            disabled={islem}
+                                                        />
+                                                    )}
+
+                                                    {/* Yerleştirme sayfasına yönlendir (YERLESTIRME_BEKLIYOR) */}
+                                                    {isDepocuOrAdmin && p.durum === DURUM.YERLESTIRME_BEKLIYOR && (
+                                                        <AksiyonButon
+                                                            onClick={() => toast('Yerleştirme için Üretimden Kabul sayfasından raf barkodu okutun', { icon: '📍' })}
+                                                            icon={<MapPin className="w-3.5 h-3.5" />}
+                                                            label="Yerleştir"
+                                                            renk="blue"
                                                             disabled={islem}
                                                         />
                                                     )}
@@ -551,6 +551,7 @@ function AksiyonButon({ onClick, icon, label, renk, disabled }) {
     const renkler = {
         amber:   'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200',
         emerald: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200',
+        blue:    'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200',
         red:     'bg-red-50 text-red-700 hover:bg-red-100 border-red-200',
         gray:    'bg-gray-50 text-gray-600 hover:bg-gray-100 border-gray-200',
         slate:   'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200',

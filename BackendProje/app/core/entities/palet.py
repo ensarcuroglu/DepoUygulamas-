@@ -32,6 +32,7 @@ class UretimPaletDurum:
 UretimPaletDurum._GECISLER = {
     UretimPaletDurum.OLUSTURULDU: {
         UretimPaletDurum.KABUL_BEKLIYOR,
+        UretimPaletDurum.KABUL_EDILDI,      # Saha hızlı kabul: barkod okutma ile doğrudan kabul
         UretimPaletDurum.IPTAL_EDILDI,
     },
     UretimPaletDurum.KABUL_BEKLIYOR: {
@@ -174,7 +175,11 @@ class Palet:
         self._uretim_durum_gecisi(UretimPaletDurum.KABUL_BEKLIYOR)
 
     def kabul_et(self, kullanici_id: int) -> None:
-        """KABUL_BEKLIYOR → KABUL_EDILDI (stok artışı tetiklenir)."""
+        """OLUSTURULDU veya KABUL_BEKLIYOR → KABUL_EDILDI (stok artışı tetiklenir).
+
+        Saha akışı: Barkod okutma ile OLUSTURULDU'dan doğrudan kabul.
+        Yönetim akışı: KABUL_BEKLIYOR'dan kabul (geriye dönük uyumlu).
+        """
         if self.durum == UretimPaletDurum.KABUL_EDILDI:
             raise GecersizIslemError("Bu palet zaten kabul edilmiş.")
         if self.durum == UretimPaletDurum.IPTAL_EDILDI:

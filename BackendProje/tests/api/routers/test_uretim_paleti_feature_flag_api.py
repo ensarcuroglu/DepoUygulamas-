@@ -195,6 +195,7 @@ class TestPilotIcinde200:
         r = client.post("/api/uretim-paletleri/", json={
             "lot_id": lot.id,
             "koli_adedi": 10,
+            "depo_id": depo.id,
         })
 
         assert r.status_code == 201
@@ -211,6 +212,7 @@ class TestPilotIcinde200:
         r = client.post("/api/uretim-paletleri/", json={
             "lot_id": lot.id,
             "koli_adedi": 10,
+            "depo_id": depo.id,
         })
 
         assert r.status_code == 201

@@ -30,6 +30,7 @@ from app.infrastructure.di.modules.depo_envanter_di import (
     get_lot_repo,
     get_raf_repo,
     get_hareket_repo,
+    get_kapasite_dogrulama_servisi,
 )
 
 
@@ -182,6 +183,8 @@ def get_uretim_paleti_yerlestirme_bekle_uc(
 def get_uretim_paleti_yerlestir_uc(
     db: Session = Depends(get_db),
     palet_repo=Depends(get_palet_repo),
+    raf_repo=Depends(get_raf_repo),
+    kapasite=Depends(get_kapasite_dogrulama_servisi),
     durum_log_repo=Depends(get_palet_durum_log_repo),
     log_repo=Depends(get_log_repo),
     domain_svc=Depends(get_uretim_palet_service),
@@ -189,6 +192,8 @@ def get_uretim_paleti_yerlestir_uc(
     return UretimPaletiYerlestirUseCase(
         domain_service=domain_svc,
         palet_repo=palet_repo,
+        raf_repo=raf_repo,
+        kapasite_servisi=kapasite,
         durum_log_repo=durum_log_repo,
         sistem_log_repo=log_repo,
         db=db,
