@@ -46,6 +46,7 @@ const YerlestirmeGorevleriPage = lazy(() => import('./pages/YerlestirmeGorevleri
 const ToplamaGorevleriPage = lazy(() => import('./pages/ToplamaGorevleriPage'));
 const ToplamaGoreviDetayPage = lazy(() => import('./pages/ToplamaGoreviDetayPage'));
 const DepocuAnaSayfasi = lazy(() => import('./pages/depocu/DepocuAnaSayfasi'));
+const KabulSecimPage = lazy(() => import('./pages/depocu/KabulSecimPage'));
 const UretimPaletleriPage = lazy(() => import('./pages/UretimPaletleriPage'));
 const UretimPaletiKabulPage = lazy(() => import('./pages/UretimPaletiKabulPage'));
 
@@ -95,7 +96,14 @@ function App() {
                 <Route element={<RoleRoute allowedRoles={['depocu']} />}>
                   <Route element={<DepocuLayout />}>
                     <Route path="/depocu" element={<DepocuAnaSayfasi />} />
-                    <Route path="/depocu/mal-kabul" element={<MalKabulIrsaliyeleriPage />} />
+                    {/* Eski bookmark redirect */}
+                    <Route path="/depocu/mal-kabul" element={<Navigate to="/depocu/kabul" replace />} />
+                    {/* Kabul seçim ekranı ve alt rotalar */}
+                    <Route path="/depocu/kabul" element={<KabulSecimPage />} />
+                    <Route path="/depocu/kabul/irsaliyeli" element={<MalKabulIrsaliyeleriPage />} />
+                    {import.meta.env.VITE_FEATURE_URETIM_PALET_ENABLED === 'true' && (
+                      <Route path="/depocu/kabul/uretimden" element={<UretimPaletiKabulPage />} />
+                    )}
                     <Route path="/depocu/stok" element={<StokHareketleriPage />} />
                     <Route path="/depocu/stok-sayim" element={<StokSayimPage />} />
                     <Route path="/depocu/sevkiyat" element={<SevkiyatlarPage />} />
@@ -131,10 +139,13 @@ function App() {
                     <Route path="/sevkiyat-planlama" element={<SevkiyatPlanlamaPage />} />
                   </Route>
 
-                  {/* İrsaliye Yönetimi */}
+                  {/* İrsaliye Yönetimi + Gelen Mal rotaları */}
                   <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
                     <Route path="/irsaliyeler" element={<IrsaliyelerPage />} />
-                    <Route path="/mal-kabul-irsaliyeleri" element={<MalKabulIrsaliyeleriPage />} />
+                    {/* Yeni canonical path */}
+                    <Route path="/gelen-mal/irsaliyeli" element={<MalKabulIrsaliyeleriPage />} />
+                    {/* Eski path redirect */}
+                    <Route path="/mal-kabul-irsaliyeleri" element={<Navigate to="/gelen-mal/irsaliyeli" replace />} />
                   </Route>
 
                   {/* Inbound Dashboard + KPI */}
@@ -168,13 +179,15 @@ function App() {
                     <Route path="/toplama-gorevleri/:id" element={<ToplamaGoreviDetayPage />} />
                   </Route>
 
-                  {/* Üretim Paleti — Faz 4 + Feature Flag (FAZ 5) */}
+                  {/* Gelen Mal — Üretim (Feature Flag) */}
                   {import.meta.env.VITE_FEATURE_URETIM_PALET_ENABLED === 'true' && <>
-                    <Route element={<RoleRoute allowedRoles={['admin', 'depocu']} allowedDepartments={['kalite']} />}>
-                      <Route path="/uretim-paletleri" element={<UretimPaletleriPage />} />
-                    </Route>
-                    <Route element={<RoleRoute allowedRoles={['admin', 'depocu']} />}>
-                      <Route path="/uretim-paletleri/kabul" element={<UretimPaletiKabulPage />} />
+                    <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
+                      {/* Yeni canonical path'ler */}
+                      <Route path="/gelen-mal/uretimden" element={<UretimPaletiKabulPage />} />
+                      <Route path="/gelen-mal/uretim-palet-yonetimi" element={<UretimPaletleriPage />} />
+                      {/* Eski path redirect'leri */}
+                      <Route path="/uretim-paletleri" element={<Navigate to="/gelen-mal/uretim-palet-yonetimi" replace />} />
+                      <Route path="/uretim-paletleri/kabul" element={<Navigate to="/gelen-mal/uretimden" replace />} />
                     </Route>
                   </>}
 
