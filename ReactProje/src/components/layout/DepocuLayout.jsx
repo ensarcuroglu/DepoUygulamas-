@@ -22,7 +22,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const TAB_ITEMS = [
     { to: '/depocu',            label: 'Ana Sayfa', icon: Home,           terminal: false },
-    { to: '/depocu/mal-kabul',  label: 'Kabul',     icon: PackageCheck,   terminal: false },
+    { to: '/depocu/kabul',      label: 'Kabul',     icon: PackageCheck,   terminal: false },
     { to: '/terminal/gorevler', label: 'Terminal',  icon: Scan,           terminal: true  },
     { to: '/depocu/stok',       label: 'Stok',      icon: ArrowLeftRight, terminal: false },
     { to: '/depocu/profil',     label: 'Profil',    icon: UserCircle,     terminal: false },

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { FileText, Factory } from 'lucide-react';
+import { FileText, Factory, ArrowRight } from 'lucide-react';
 
 const SECENEKLER = [
     {
@@ -7,18 +7,20 @@ const SECENEKLER = [
         label: 'İrsaliyeli Kabul',
         aciklama: 'Tedarikçi irsaliyesi ile gelen mal',
         icon: FileText,
-        renk: 'text-emerald-700',
-        bg: 'bg-emerald-50',
-        border: 'border-emerald-200',
+        iconRenk: 'text-emerald-700',
+        iconBg: 'bg-emerald-100',
+        borderAktif: 'border-emerald-300',
+        bgHover: 'hover:bg-emerald-50',
     },
     ...(import.meta.env.VITE_FEATURE_URETIM_PALET_ENABLED === 'true' ? [{
         to: '/depocu/kabul/uretimden',
         label: 'Üretimden Kabul',
         aciklama: 'Üretim hattından barkod ile kabul',
         icon: Factory,
-        renk: 'text-amber-700',
-        bg: 'bg-amber-50',
-        border: 'border-amber-200',
+        iconRenk: 'text-amber-700',
+        iconBg: 'bg-amber-100',
+        borderAktif: 'border-amber-300',
+        bgHover: 'hover:bg-amber-50',
     }] : []),
 ];
 
@@ -26,28 +28,41 @@ export default function KabulSecimPage() {
     const navigate = useNavigate();
 
     return (
-        <div className="p-4 max-w-md mx-auto space-y-4 pt-6">
-            <div>
-                <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-1">Kabul İşlemi</p>
-                <h1 className="text-2xl font-black text-slate-900">Kabul Tipi Seç</h1>
-            </div>
-            <div className="space-y-3">
-                {SECENEKLER.map(({ to, label, aciklama, icon: Icon, renk, bg, border }) => (
+        <div className="mx-auto max-w-md space-y-6 p-4 sm:max-w-2xl sm:p-6 pb-24">
+
+            <header>
+                <p className="text-sm font-bold tracking-wider text-slate-400 uppercase">
+                    Kabul İşlemi
+                </p>
+                <h1 className="text-2xl font-black tracking-tight text-slate-900">
+                    Kabul Tipi Seç
+                </h1>
+            </header>
+
+            <section className="flex flex-col gap-4">
+                {SECENEKLER.map(({ to, label, aciklama, icon: Icon, iconRenk, iconBg, borderAktif, bgHover }) => (
                     <button
                         key={to}
                         onClick={() => navigate(to)}
-                        className={`w-full flex items-center gap-4 p-5 rounded-2xl border-2 ${border} ${bg} active:scale-[0.98] transition-transform text-left`}
+                        className={`group flex w-full items-center gap-5 rounded-2xl border-2 ${borderAktif} bg-white p-5 shadow-sm transition-all active:scale-[0.97] ${bgHover}`}
                     >
-                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 bg-white border ${border}`}>
-                            <Icon className={`w-7 h-7 ${renk}`} strokeWidth={2} />
+                        <div className={`flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl ${iconBg}`}>
+                            <Icon className={`h-8 w-8 ${iconRenk}`} strokeWidth={2} />
                         </div>
-                        <div>
-                            <p className={`text-base font-black ${renk}`}>{label}</p>
-                            <p className="text-sm text-slate-500 mt-0.5">{aciklama}</p>
+
+                        <div className="min-w-0 flex-1 text-left">
+                            <p className="text-base font-black text-slate-900">{label}</p>
+                            <p className="mt-0.5 text-sm font-medium text-slate-500">{aciklama}</p>
                         </div>
+
+                        <ArrowRight
+                            className="h-5 w-5 flex-shrink-0 text-slate-300 transition-transform group-hover:translate-x-1"
+                            strokeWidth={2.5}
+                        />
                     </button>
                 ))}
-            </div>
+            </section>
+
         </div>
     );
 }
