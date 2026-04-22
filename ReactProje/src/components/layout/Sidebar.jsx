@@ -27,7 +27,6 @@ import {
     ClipboardCheck,
     ChevronDown,
     TrendingUp,
-    Smartphone,
     Scan,
     Factory,
 } from 'lucide-react';
@@ -55,25 +54,27 @@ const menuGroups = [
             { path: '/stok-sayim', label: 'Stok Sayımı', icon: ClipboardCheck, roles: ['admin'], badge: null },
         ],
     },
-    ...(import.meta.env.VITE_FEATURE_URETIM_PALET_ENABLED === 'true' ? [{
-        id: 'uretim',
-        label: 'Üretim',
-        items: [
-            { path: '/uretim-paletleri', label: 'Üretim Paletleri', icon: Factory, roles: ['admin', 'depocu'], departments: ['kalite'], badge: null },
-            { path: '/uretim-paletleri/kabul', label: 'Palet Kabul', icon: Scan, roles: ['admin', 'depocu'], badge: null },
-        ],
-    }] : []),
     {
-        id: 'lojistik',
-        label: 'Lojistik & Sevkiyat',
+        id: 'gelen-mal',
+        label: 'Gelen Mal',
+        items: [
+            { path: '/gelen-mal/irsaliyeli', label: 'İrsaliyeli Kabul', icon: ClipboardCheck, roles: ['admin', 'lojistik'], badge: null },
+            ...(import.meta.env.VITE_FEATURE_URETIM_PALET_ENABLED === 'true' ? [
+                { path: '/gelen-mal/uretimden', label: 'Üretimden Kabul', icon: Scan, roles: ['admin', 'lojistik'], badge: null },
+                { path: '/gelen-mal/uretim-palet-yonetimi', label: 'Üretim Palet Yönetimi', icon: Factory, roles: ['admin', 'lojistik'], badge: null },
+            ] : []),
+            { path: '/inbound-dashboard', label: 'Inbound Panel', icon: BarChart3, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/kpi-dashboard', label: 'KPI Paneli', icon: TrendingUp, roles: ['admin', 'lojistik'], badge: null },
+        ],
+    },
+    {
+        id: 'sevkiyat',
+        label: 'Sevkiyat & Dağıtım',
         items: [
             { path: '/sevkiyatlar', label: 'Sevkiyatlar (Çıkış)', icon: ArrowUpFromLine, roles: ['admin', 'lojistik'], badge: null },
             { path: '/siparisler', label: 'Siparişler', icon: ClipboardList, roles: ['admin', 'lojistik'], badge: null },
             { path: '/sevkiyat-planlama', label: 'Sevkiyat Planlama', icon: Route, roles: ['admin', 'lojistik'], badge: null },
-            { path: '/irsaliyeler', label: 'İrsaliyeler', icon: FileText, roles: ['admin', 'lojistik'], badge: null },
-            { path: '/mal-kabul-irsaliyeleri', label: 'Mal Kabul', icon: ClipboardCheck, roles: ['admin', 'lojistik'], badge: null },
-            { path: '/inbound-dashboard', label: 'Inbound Panel', icon: BarChart3, roles: ['admin', 'lojistik'], badge: null },
-            { path: '/kpi-dashboard', label: 'KPI Paneli', icon: TrendingUp, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/irsaliyeler', label: 'İrsaliyeler (Çıkış)', icon: FileText, roles: ['admin', 'lojistik'], badge: null },
         ],
     },
     {
