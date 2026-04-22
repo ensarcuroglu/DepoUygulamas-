@@ -40,27 +40,30 @@ export default function KabulSecimPage() {
             </header>
 
             <section className="flex flex-col gap-4">
-                {SECENEKLER.map(({ to, label, aciklama, icon: Icon, iconRenk, iconBg, borderAktif, bgHover }) => (
-                    <button
-                        key={to}
-                        onClick={() => navigate(to)}
-                        className={`group flex w-full items-center gap-5 rounded-2xl border-2 ${borderAktif} bg-white p-5 shadow-sm transition-all active:scale-[0.97] ${bgHover}`}
-                    >
-                        <div className={`flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl ${iconBg}`}>
-                            <Icon className={`h-8 w-8 ${iconRenk}`} strokeWidth={2} />
-                        </div>
+                {SECENEKLER.map((secenek) => {
+                    const Icon = secenek.icon;
+                    return (
+                        <button
+                            key={secenek.to}
+                            onClick={() => navigate(secenek.to)}
+                            className={`group flex w-full items-center gap-5 rounded-2xl border-2 ${secenek.borderAktif} bg-white p-5 shadow-sm transition-all active:scale-[0.97] ${secenek.bgHover}`}
+                        >
+                            <div className={`flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl ${secenek.iconBg}`}>
+                                <Icon className={`h-8 w-8 ${secenek.iconRenk}`} strokeWidth={2} />
+                            </div>
 
-                        <div className="min-w-0 flex-1 text-left">
-                            <p className="text-base font-black text-slate-900">{label}</p>
-                            <p className="mt-0.5 text-sm font-medium text-slate-500">{aciklama}</p>
-                        </div>
+                            <div className="min-w-0 flex-1 text-left">
+                                <p className="text-base font-black text-slate-900">{secenek.label}</p>
+                                <p className="mt-0.5 text-sm font-medium text-slate-500">{secenek.aciklama}</p>
+                            </div>
 
-                        <ArrowRight
-                            className="h-5 w-5 flex-shrink-0 text-slate-300 transition-transform group-hover:translate-x-1"
-                            strokeWidth={2.5}
-                        />
-                    </button>
-                ))}
+                            <ArrowRight
+                                className="h-5 w-5 flex-shrink-0 text-slate-300 transition-transform group-hover:translate-x-1"
+                                strokeWidth={2.5}
+                            />
+                        </button>
+                    );
+                })}
             </section>
 
         </div>

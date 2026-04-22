@@ -20,6 +20,7 @@ import {
     CheckCircle2,
     Truck,
     FileText,
+    Factory,
     Clock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -29,12 +30,15 @@ import { hataMetni } from '../../utils/hata';
 
 // Operatörün en sık kullandığı ana işlemler (Büyük Grid)
 const ANA_ISLEMLER = [
-    { label: 'Görevler', icon: ClipboardList, to: '/terminal/gorevler', color: 'text-blue-700', bg: 'bg-blue-50' },
-    { label: 'Yerleştir', icon: Scan, to: '/terminal/yerlestirme', color: 'text-indigo-700', bg: 'bg-indigo-50' },
-    { label: 'Mal Kabul', icon: PackageCheck, to: '/depocu/mal-kabul', color: 'text-emerald-700', bg: 'bg-emerald-50' },
-    { label: 'Sevkiyat', icon: Truck, to: '/depocu/sevkiyat', color: 'text-cyan-700', bg: 'bg-cyan-50' },
-    { label: 'Sayım', icon: ClipboardCheck, to: '/depocu/stok-sayim', color: 'text-violet-700', bg: 'bg-violet-50' },
-    { label: 'Transfer', icon: ArrowLeftRight, to: '/depocu/stok', color: 'text-sky-700', bg: 'bg-sky-50' },
+    { label: 'Görevler',   icon: ClipboardList, to: '/terminal/gorevler',          color: 'text-blue-700',    bg: 'bg-blue-50'    },
+    { label: 'Yerleştir',  icon: Scan,          to: '/terminal/yerlestirme',        color: 'text-indigo-700',  bg: 'bg-indigo-50'  },
+    { label: 'İrsaliyeli', icon: PackageCheck,  to: '/depocu/kabul/irsaliyeli',     color: 'text-emerald-700', bg: 'bg-emerald-50' },
+    ...(import.meta.env.VITE_FEATURE_URETIM_PALET_ENABLED === 'true' ? [
+        { label: 'Üretimden', icon: Factory,    to: '/depocu/kabul/uretimden',      color: 'text-amber-700',   bg: 'bg-amber-50'   },
+    ] : []),
+    { label: 'Sevkiyat',   icon: Truck,         to: '/depocu/sevkiyat',             color: 'text-cyan-700',    bg: 'bg-cyan-50'    },
+    { label: 'Sayım',      icon: ClipboardCheck, to: '/depocu/stok-sayim',          color: 'text-violet-700',  bg: 'bg-violet-50'  },
+    { label: 'Transfer',   icon: ArrowLeftRight, to: '/depocu/stok',                color: 'text-sky-700',     bg: 'bg-sky-50'     },
 ];
 
 // Daha az sıklıkla kullanılan veya izleme amaçlı ekranlar (Liste Görünümü)

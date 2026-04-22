@@ -71,7 +71,7 @@ export default function UretimPaletiKabulPage() {
                     <Scan className="w-6 h-6 text-blue-700" />
                 </div>
                 <div>
-                    <h1 className="text-xl font-bold text-gray-900">Üretim Paleti Kabul</h1>
+                    <h1 className="text-xl font-bold text-gray-900">Üretimden Kabul</h1>
                     <p className="text-sm text-gray-500">Barkod okutun veya palet numarası girin</p>
                 </div>
             </div>

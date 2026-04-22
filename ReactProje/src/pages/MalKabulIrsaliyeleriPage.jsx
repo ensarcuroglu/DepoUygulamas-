@@ -334,7 +334,7 @@ export default function MalKabulIrsaliyeleriPage() {
                 {/* BAŞLIK + YENİ BUTONU */}
                 <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Mal Kabul İrsaliyeleri</h1>
+                        <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">İrsaliyeli Kabul</h1>
                         <p className="text-sm md:text-base text-slate-500 mt-1">Tedarikçilerden gelen irsaliyeleri ve depo girişlerini yönetin</p>
                     </div>
                     {canCreateOrApprove && (

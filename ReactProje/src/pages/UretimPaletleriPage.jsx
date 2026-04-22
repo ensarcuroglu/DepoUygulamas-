@@ -185,7 +185,7 @@ export default function UretimPaletleriPage() {
                         <Package className="w-6 h-6 text-emerald-700" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-gray-900">Üretim Paletleri</h1>
+                        <h1 className="text-xl font-bold text-gray-900">Üretim Palet Yönetimi</h1>
                         <p className="text-sm text-gray-500">Üretimden gelen palet girişlerini yönetin</p>
                     </div>
                 </div>
