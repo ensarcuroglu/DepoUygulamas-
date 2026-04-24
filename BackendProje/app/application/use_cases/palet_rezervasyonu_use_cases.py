@@ -119,8 +119,9 @@ class RezervasyonBaslatUseCase:
 
             if not uygun_paletler:
                 raise YetersizStokError(
-                    f"Sipariş kalemi için uygun palet bulunamadı "
-                    f"(urun_id={kalem.urun_id}, kalem_id={kalem.id})"
+                    urun_ismi=f"urun_id={kalem.urun_id} (kalem_id={kalem.id})",
+                    mevcut=0,
+                    istenen=1,
                 )
 
             palet = uygun_paletler[0]
