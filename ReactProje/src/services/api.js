@@ -1,4 +1,5 @@
 import axios from 'axios';
+import queryClient from '../lib/queryClient';
 
 const API_BASE_URL = '/api';
 
@@ -95,6 +96,7 @@ const forceLogout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
+    queryClient.clear();
     if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
     }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { loginUser as apiLogin, getCurrentUser, logoutUser as apiLogout } from '../services/api';
+import queryClient from '../lib/queryClient';
 import AuthContext from './AuthContext';
 
 export function AuthProvider({ children }) {
@@ -34,6 +35,7 @@ export function AuthProvider({ children }) {
                 localStorage.removeItem('access_token');
                 localStorage.removeItem('refresh_token');
                 localStorage.removeItem('user');
+                queryClient.clear();
                 setUser(null);
             })
             .finally(() => setLoading(false));
@@ -46,6 +48,7 @@ export function AuthProvider({ children }) {
         localStorage.setItem('access_token', access_token);
         localStorage.setItem('refresh_token', refresh_token);
         localStorage.setItem('user', JSON.stringify(userData));
+        queryClient.clear();
         setUser(userData);
 
         return userData;
@@ -64,6 +67,7 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
+        queryClient.clear();
         setUser(null);
     };
 

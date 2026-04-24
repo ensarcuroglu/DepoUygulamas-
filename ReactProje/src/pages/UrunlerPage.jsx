@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
     Package, Search, Plus, Edit3, Trash2, ChevronLeft, ChevronRight,
@@ -10,8 +10,16 @@ import toast from 'react-hot-toast';
 import { hataMetni } from '../utils/hata';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
-import { getUrunler, deleteUrun, getKategoriler, createUrun, updateUrun, getUrunByBarkod, getMarkalar, checkBarkodUniqueness } from '../services/api';
-import { urunStokDetayApi } from '../services/paletRezervasyonlariApi';
+import { getUrunByBarkod, checkBarkodUniqueness } from '../services/api';
+import {
+    useCreateUrunMutation,
+    useDeleteUrunMutation,
+    useKategorilerQuery,
+    useMarkalarQuery,
+    useUpdateUrunMutation,
+    useUrunlerQuery,
+    useUrunStokDetayQuery,
+} from '../queries/productQueries';
 import useBarcodeScanner from '../hooks/useBarcodeScanner';
 import ZXingBarcodeScanner from '../components/common/ZXingBarcodeScanner';
 
@@ -434,25 +442,11 @@ function stokDurumu(urun) {
 
 // Uygun/Rezerve stok bilgisini talep üzerine yükleyen chip
 function StokDetayChip({ urunId }) {
-    const [detay, setDetay] = useState(null);
-    const [yukleniyor, setYukleniyor] = useState(false);
     const [acik, setAcik] = useState(false);
-
-    useEffect(() => {
-        if (!acik || detay) return;
-        let cancelled = false;
-        urunStokDetayApi.getir(urunId)
-            .then(data => { if (!cancelled) setDetay(data); })
-            .catch(() => { if (!cancelled) setDetay(null); })
-            .finally(() => { if (!cancelled) setYukleniyor(false); });
-        return () => { cancelled = true; };
-    }, [acik, detay, urunId]);
+    const { data: detay, isFetching: yukleniyor } = useUrunStokDetayQuery(urunId, acik);
 
     const toggle = (e) => {
         e.stopPropagation();
-        if (!acik && !detay) {
-            setYukleniyor(true);
-        }   
         setAcik(prev => !prev);
     };
 
@@ -493,10 +487,6 @@ function StokDetayChip({ urunId }) {
 
 // Ana Sayfa Bileşeni
 export default function App() {
-    const [urunler, setUrunler] = useState([]);
-    const [kategoriler, setKategoriler] = useState([]);
-    const [markalar, setMarkalar] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [filterKategori, setFilterKategori] = useState('');
     const [filterMarka, setFilterMarka] = useState('');
@@ -506,6 +496,32 @@ export default function App() {
     const [cameraScannerOpen, setCameraScannerOpen] = useState(false);
     const [exportMenuOpen, setExportMenuOpen] = useState(false);
     const limit = 10;
+    const urunlerParams = useMemo(() => {
+        const params = { skip: page * limit, limit };
+        if (search) params.search = search;
+        if (filterKategori) params.kategori_id = filterKategori;
+        if (filterMarka) params.marka_id = filterMarka;
+        return params;
+    }, [filterKategori, filterMarka, limit, page, search]);
+
+    const urunlerQuery = useUrunlerQuery(urunlerParams);
+    const kategorilerQuery = useKategorilerQuery();
+    const markalarQuery = useMarkalarQuery();
+    const createUrunMutation = useCreateUrunMutation();
+    const updateUrunMutation = useUpdateUrunMutation();
+    const deleteUrunMutation = useDeleteUrunMutation();
+
+    const urunler = urunlerQuery.data ?? [];
+    const kategoriler = kategorilerQuery.data ?? [];
+    const markalar = markalarQuery.data ?? [];
+    const loading = urunlerQuery.isLoading || kategorilerQuery.isLoading || markalarQuery.isLoading;
+    const hasDataError = urunlerQuery.isError || kategorilerQuery.isError || markalarQuery.isError;
+
+    useEffect(() => {
+        if (hasDataError) {
+            toast.error('Veri tabanına ulaşılamadı. Sunucu bağlantısını kontrol edin.');
+        }
+    }, [hasDataError]);
 
     // Excel ve PDF'e dönüştürülecek verinin formatı
     const getFormattedExportData = () => {
@@ -551,37 +567,11 @@ export default function App() {
         }
     });
 
-    const fetchData = useCallback(() => {
-        setLoading(true);
-        const params = { skip: page * limit, limit };
-        if (search) params.search = search;
-        if (filterKategori) params.kategori_id = filterKategori;
-        if (filterMarka) params.marka_id = filterMarka;
-
-        Promise.all([getUrunler(params), getKategoriler(), getMarkalar()])
-            .then(([urunRes, katRes, markaRes]) => {
-                setUrunler(urunRes.data);
-                setKategoriler(katRes.data);
-                setMarkalar(markaRes.data);
-            })
-            .catch(() => toast.error('Veri tabanına ulaşılamadı. Sunucu bağlantısını kontrol edin.'))
-            .finally(() => setLoading(false));
-    }, [page, limit, search, filterKategori, filterMarka]);
-
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            void fetchData();
-        }, 0);
-
-        return () => clearTimeout(timeoutId);
-    }, [fetchData]);
-
     const handleDelete = async (id, isim) => {
         if (!confirm(`"${isim}" ürününü pasife almak istediğinize emin misiniz? (Stok geçmişi korunur)`)) return;
         try {
-            await deleteUrun(id);
+            await deleteUrunMutation.mutateAsync(id);
             toast.success('Ürün başarıyla pasife alındı');
-            fetchData();
         } catch (err) {
             toast.error(hataMetni(err, 'İşlem reddedildi. Ürün bir siparişe veya harekete bağlı olabilir.'));
         }
@@ -590,15 +580,14 @@ export default function App() {
     const handleSave = async (data) => {
         try {
             if (editUrun) {
-                await updateUrun(editUrun.id, data);
+                await updateUrunMutation.mutateAsync({ id: editUrun.id, data });
                 toast.success('Değişiklikler kaydedildi');
             } else {
-                await createUrun(data);
+                await createUrunMutation.mutateAsync(data);
                 toast.success('Yeni ürün oluşturuldu');
             }
             setModalOpen(false);
             setEditUrun(null);
-            fetchData();
         } catch (err) {
             toast.error(hataMetni(err, 'İşlem başarısız'));
         }

@@ -1,12 +1,17 @@
 import { useState, useEffect, useRef, useCallback, createElement } from 'react';
-import { useAsync } from '../hooks/useAsync';
+import { useQueryClient } from '@tanstack/react-query';
 import {
     Package, AlertTriangle, ArrowLeftRight, DollarSign,
     TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight,
     MoreVertical, Zap, Box, CheckCircle2, RefreshCcw
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { getDashboardStats, getKritikUrunler, getStokHareketleri } from '../services/api';
+import {
+    useDashboardStatsQuery,
+    useKritikUrunlerQuery,
+    useRecentStokHareketleriQuery,
+} from '../queries/dashboardQueries';
+import { queryKeys } from '../queries/queryKeys';
 
 /* ─────────────────────────────────────────────
    CSS-in-JS Style Block (injected once)
@@ -571,29 +576,24 @@ function DashboardSkeleton() {
    MAIN DASHBOARD PAGE
    ═════════════════════════════════════════════ */
 export default function DashboardPage() {
-    const [stats, setStats] = useState(null);
-    const [kritikler, setKritikler] = useState([]);
-    const [hareketler, setHareketler] = useState([]);
-    const { loading, run } = useAsync(true);
+    const queryClient = useQueryClient();
+    const statsQuery = useDashboardStatsQuery();
+    const kritikUrunlerQuery = useKritikUrunlerQuery();
+    const hareketlerQuery = useRecentStokHareketleriQuery({ limit: 4 });
+
+    const stats = statsQuery.data ?? null;
+    const kritikler = kritikUrunlerQuery.data ?? [];
+    const hareketler = hareketlerQuery.data ?? [];
+    const loading = statsQuery.isLoading || kritikUrunlerQuery.isLoading || hareketlerQuery.isLoading;
+    const isFetching = statsQuery.isFetching || kritikUrunlerQuery.isFetching || hareketlerQuery.isFetching;
 
     // Inject styles once
     useEffect(() => { injectStyles(); }, []);
 
     const fetchData = useCallback(() => {
-        run(() => Promise.all([
-            getDashboardStats(),
-            getKritikUrunler(),
-            getStokHareketleri({ limit: 4 }),
-        ])).then(([statsRes, kritikRes, hareketRes]) => {
-            setStats(statsRes.data);
-            setKritikler(kritikRes.data);
-            setHareketler(hareketRes.data);
-        }).catch(() => {});
-    }, [run]);
-
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.urunler.critical() });
+    }, [queryClient]);
 
     // Greeting based on time of day
     const getGreeting = useCallback(() => {
@@ -624,8 +624,8 @@ export default function DashboardPage() {
                 
                 <button
                     onClick={fetchData}
-                    disabled={loading}
-                    className={`dsh-btn-refresh ${loading ? 'is-loading' : ''}`}
+                    disabled={isFetching}
+                    className={`dsh-btn-refresh ${isFetching ? 'is-loading' : ''}`}
                 >
                     <RefreshCcw className="dsh-btn-icon" strokeWidth={2.5} />
                     <span className="hidden sm:inline">Verileri Yenile</span>
