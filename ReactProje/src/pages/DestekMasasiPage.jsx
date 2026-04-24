@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
-    getDestekTalepleri,
-    createDestekTalebi,
-    updateDestekTalebi
-} from '../services/api';
+    useCreateDestekTalebiMutation,
+    useDestekTalepleriQuery,
+    useUpdateDestekTalebiMutation,
+} from '../queries/supportQueries';
 import toast from 'react-hot-toast';
 import { hataMetni } from '../utils/hata';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
@@ -12,6 +12,9 @@ import {
     HelpCircle, Plus, Search, Filter, RefreshCw, Clock,
     CheckCircle2, X, MessageCircle, AlertTriangle
 } from 'lucide-react';
+
+// JSX member usage (motion.div) is not counted by this lint setup.
+void motion;
 
 // ========================
 // YARDIMCI FONKSİYONLAR
@@ -164,17 +167,20 @@ function CreateModal({ isOpen, onClose, fetchTalepler }) {
     const [yeniKategori, setYeniKategori] = useState('Hata Bildirimi');
     const [yeniOncelik, setYeniOncelik] = useState('Normal');
     const [yeniAciklama, setYeniAciklama] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const createDestekTalebiMutation = useCreateDestekTalebiMutation();
+    const isSubmitting = createDestekTalebiMutation.isPending;
 
-    // Modal kapandığında formu temizle
-    useEffect(() => {
-        if (!isOpen) {
-            setYeniKonu('');
-            setYeniKategori('Hata Bildirimi');
-            setYeniOncelik('Normal');
-            setYeniAciklama('');
-        }
-    }, [isOpen]);
+    const resetForm = () => {
+        setYeniKonu('');
+        setYeniKategori('Hata Bildirimi');
+        setYeniOncelik('Normal');
+        setYeniAciklama('');
+    };
+
+    const handleClose = () => {
+        resetForm();
+        onClose();
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -182,30 +188,27 @@ function CreateModal({ isOpen, onClose, fetchTalepler }) {
             return toast.error("Lütfen konu ve açıklama alanlarını doldurun.");
         }
 
-        setIsSubmitting(true);
         try {
-            await createDestekTalebi({ 
+            await createDestekTalebiMutation.mutateAsync({
                 konu: yeniKonu.trim(), 
                 kategori: yeniKategori, 
                 oncelik: yeniOncelik, 
                 aciklama: yeniAciklama.trim() 
             });
             toast.success("Talebiniz başarıyla oluşturuldu.");
-            fetchTalepler();
-            onClose();
+            void fetchTalepler();
+            handleClose();
         } catch (err) { 
             toast.error(hataMetni(err, 'Talep oluşturulamadı.')); 
-        } finally { 
-            setIsSubmitting(false); 
         }
     };
 
     return (
-        <ModalWrapper isOpen={isOpen} onClose={onClose}>
+        <ModalWrapper isOpen={isOpen} onClose={handleClose}>
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
                 <h2 className="text-lg font-bold text-slate-900">Yeni Destek Talebi</h2>
                 <button 
-                    onClick={onClose} 
+                    onClick={handleClose} 
                     className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors outline-none focus:ring-2 focus:ring-slate-200"
                     aria-label="Kapat"
                 >
@@ -268,7 +271,7 @@ function CreateModal({ isOpen, onClose, fetchTalepler }) {
                 <div className="shrink-0 px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                     <button 
                         type="button" 
-                        onClick={onClose} 
+                        onClick={handleClose} 
                         className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors hidden sm:block outline-none focus:ring-2 focus:ring-slate-300"
                     >
                         İptal
@@ -291,33 +294,26 @@ function CreateModal({ isOpen, onClose, fetchTalepler }) {
 // ========================
 
 function DetailModal({ isOpen, onClose, talep, isAdmin, fetchTalepler }) {
-    const [cevapMetni, setCevapMetni] = useState('');
-    const [updateDurum, setUpdateDurum] = useState('Açık');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Talep değiştiğinde state'leri senkronize et
-    useEffect(() => {
-        if (talep && isOpen) {
-            setCevapMetni(talep.admin_cevabi || '');
-            setUpdateDurum(talep.durum || 'Açık');
-        }
-    }, [talep, isOpen]);
+    const [cevapMetni, setCevapMetni] = useState(() => talep?.admin_cevabi || '');
+    const [updateDurum, setUpdateDurum] = useState(() => talep?.durum || 'Açık');
+    const updateDestekTalebiMutation = useUpdateDestekTalebiMutation();
+    const isSubmitting = updateDestekTalebiMutation.isPending;
 
     const handleUpdate = async () => {
         if (!talep || !isAdmin) return;
-        setIsSubmitting(true);
         try {
-            await updateDestekTalebi(talep.id, { 
-                durum: updateDurum, 
-                admin_cevabi: cevapMetni.trim() 
+            await updateDestekTalebiMutation.mutateAsync({
+                id: talep.id,
+                data: {
+                    durum: updateDurum,
+                    admin_cevabi: cevapMetni.trim(),
+                },
             });
             toast.success("Talep başarıyla güncellendi.");
-            fetchTalepler();
+            void fetchTalepler();
             onClose();
         } catch (err) { 
             toast.error(hataMetni(err, 'Talep güncellenemedi.')); 
-        } finally { 
-            setIsSubmitting(false); 
         }
     };
 
@@ -421,9 +417,6 @@ export default function DestekMasasiPage() {
     const { user } = useAuth();
     const isAdmin = user?.rol === 'admin';
 
-    const [talepler, setTalepler] = useState([]);
-    const [loading, setLoading] = useState(true);
-    
     // Filtre State'leri
     const [aramaGirdisi, setAramaGirdisi] = useState('');
     const [filtreDurum, setFiltreDurum] = useState('');
@@ -432,25 +425,23 @@ export default function DestekMasasiPage() {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [selectedTalep, setSelectedTalep] = useState(null);
+    const destekParams = useMemo(
+        () => (filtreDurum ? { durum: filtreDurum } : {}),
+        [filtreDurum],
+    );
+    const {
+        data: talepler = [],
+        isError: taleplerError,
+        isFetching,
+        isLoading: loading,
+        refetch: fetchTalepler,
+    } = useDestekTalepleriQuery(destekParams);
 
-    const fetchTalepler = async () => {
-        setLoading(true);
-        try {
-            const params = filtreDurum ? { durum: filtreDurum } : {};
-            const res = await getDestekTalepleri(params);
-            setTalepler(res.data || []);
-        } catch (error) {
-            toast.error(hataMetni(error, 'Talepler yüklenirken bir sorun oluştu.'));
-        } finally {
-            setLoading(false);
+    useEffect(() => {
+        if (taleplerError) {
+            toast.error('Talepler yüklenirken bir sorun oluştu.');
         }
-    };
-
-    // Filtre durumu değiştiğinde API'den veriyi tekrar çek
-    useEffect(() => { 
-        fetchTalepler(); 
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filtreDurum]);
+    }, [taleplerError]);
 
     // Modallar açıkken arkaplan scroll'unu kapat
     useEffect(() => {
@@ -490,12 +481,12 @@ export default function DestekMasasiPage() {
                 {/* Desktop Aksiyon Butonları */}
                 <div className="hidden sm:flex items-center gap-3">
                     <button 
-                        onClick={fetchTalepler} 
-                        disabled={loading}
+                        onClick={() => fetchTalepler()} 
+                        disabled={isFetching}
                         className="p-2.5 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-slate-300 disabled:opacity-50"
                         aria-label="Talepleri Yenile"
                     >
-                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`w-5 h-5 ${isFetching ? 'animate-spin' : ''}`} />
                     </button>
                     <button 
                         onClick={() => setIsCreateOpen(true)} 
@@ -609,6 +600,7 @@ export default function DestekMasasiPage() {
             />
 
             <DetailModal
+                key={`${selectedTalep?.id ?? 'empty'}-${isDetailOpen ? 'open' : 'closed'}`}
                 isOpen={isDetailOpen} 
                 onClose={() => setIsDetailOpen(false)}
                 talep={selectedTalep} 

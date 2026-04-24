@@ -4,9 +4,13 @@ import {
     Hash, Calendar, Trash2, SlidersHorizontal, RotateCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getLotlar, deleteLot, getSktYaklasanLotlar, getMarkalar } from '../services/api';
-import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
+import { useMarkalarQuery } from '../queries/productQueries';
+import {
+    useDeleteLotMutation,
+    useLotlarQuery,
+    useSktYaklasanLotlarQuery,
+} from '../queries/lotQueries';
 
 /* ─── Animations (injected once) ─── */
 const STYLE_ID = 'lotlar-v2-styles';
@@ -251,11 +255,6 @@ function ActiveFilterChip({ label, onRemove }) {
 
 /* ─── Main Page ─── */
 export default function LotlarPage() {
-    const [lotlar, setLotlar] = useState([]);
-    const [markalar, setMarkalar] = useState([]);
-    const [totalCount, setTotalCount] = useState(0);
-    const { loading, run } = useAsync(true);
-    const [sktLotlar, setSktLotlar] = useState([]);
     const [page, setPage] = useState(0);
     const limit = 20;
 
@@ -271,57 +270,53 @@ export default function LotlarPage() {
 
     const searchRef = useRef(null);
 
+    const lotQueryParams = useMemo(() => ({ skip: page * limit, limit }), [page, limit]);
+    const {
+        data: lotlarResult,
+        isError: lotlarError,
+        isLoading: lotlarLoading,
+        refetch: refetchLotlar,
+    } = useLotlarQuery(lotQueryParams);
+    const {
+        data: sktLotlar = [],
+        isError: sktLotlarError,
+        isLoading: sktLotlarLoading,
+        refetch: refetchSktLotlar,
+    } = useSktYaklasanLotlarQuery(60);
+    const {
+        data: markalar = [],
+        isError: markalarError,
+    } = useMarkalarQuery();
+    const { mutateAsync: deleteLotMutation } = useDeleteLotMutation();
+    const lotlar = lotlarResult?.data ?? [];
+    const totalCount = lotlarResult?.totalCount ?? 0;
+    const loading = lotlarLoading || sktLotlarLoading;
+
     const refreshData = useCallback(async () => {
-        try {
-            const [lotRes, sktRes] = await run(() => Promise.all([
-                getLotlar({ skip: page * limit, limit }),
-                getSktYaklasanLotlar(60)
-            ]));
-            setLotlar(lotRes.data);
-            setTotalCount(Number(lotRes.headers?.['x-total-count'] || 0));
-            setSktLotlar(sktRes.data);
-        } catch {
-            toast.error('Veriler yüklenemedi');
-        }
-    }, [run, page, limit]);
+        await Promise.all([refetchLotlar(), refetchSktLotlar()]);
+    }, [refetchLotlar, refetchSktLotlar]);
 
     useEffect(() => {
-        let aktif = true;
-        run(() => Promise.all([
-            getLotlar({ skip: page * limit, limit }),
-            getSktYaklasanLotlar(60)
-        ]))
-            .then(([lotRes, sktRes]) => {
-                if (!aktif) return;
-                setLotlar(lotRes.data);
-                setTotalCount(Number(lotRes.headers?.['x-total-count'] || 0));
-                setSktLotlar(sktRes.data);
-            })
-            .catch(() => {
-                if (aktif) {
-                    toast.error('Veriler yüklenemedi');
-                }
-            });
-        return () => {
-            aktif = false;
-        };
-    }, [run, page, limit]);
+        if (lotlarError || sktLotlarError) {
+            toast.error('Veriler yüklenemedi');
+        }
+    }, [lotlarError, sktLotlarError]);
+
     useEffect(() => {
-        getMarkalar()
-            .then(res => setMarkalar(res.data))
-            .catch(() => {
-                toast.error('Marka listesi yüklenemedi');
-            });
-    }, []);
+        if (markalarError) {
+            toast.error('Marka listesi yüklenemedi');
+        }
+    }, [markalarError]);
+
     useEffect(() => {
         if (filterOpen && searchRef.current) searchRef.current.focus();
     }, [filterOpen]);
 
     const handleDelete = useCallback(async (id) => {
         if (!confirm('Bu LOT kaydını pasife almak istiyor musunuz?')) return;
-        try { await deleteLot(id); toast.success('LOT pasife alındı'); refreshData(); }
+        try { await deleteLotMutation(id); toast.success('LOT pasife alındı'); void refreshData(); }
         catch (err) { toast.error(hataMetni(err, 'LOT pasife alınamadı')); }
-    }, [refreshData]);
+    }, [deleteLotMutation, refreshData]);
 
     const formatDate = useCallback((d) => d ? new Date(d).toLocaleDateString('tr-TR') : '—', []);
 

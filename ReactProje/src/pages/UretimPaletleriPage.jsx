@@ -1,19 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
     Package, Plus, Search, X, RefreshCw, CheckCircle, AlertTriangle,
     Ban, Download, ShieldAlert, ShieldCheck, Loader2, ChevronDown, MapPin,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
-import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
 import EtiketOlusturModal from '../components/palet/EtiketOlusturModal';
+import { useDepolarQuery } from '../queries/locationQueries';
+import { useLotlarQuery } from '../queries/lotQueries';
 import {
-    getUretimPaletleri, createUretimPaleti, getLotlar, getDepolar, getKullanicilar,
-    uretimPaletiKabulBekle, uretimPaletiKabulEt,
-    uretimPaletiKarantinaAl, uretimPaletiKarantinaCikar,
-    uretimPaletiIptal,
-} from '../services/api';
+    useCreateUretimPaletiMutation,
+    useUretimPaletleriQuery,
+    useUretimPaletiIptalMutation,
+    useUretimPaletiKabulEtMutation,
+    useUretimPaletiKarantinaAlMutation,
+    useUretimPaletiKarantinaCikarMutation,
+} from '../queries/productionPalletQueries';
+import { useKullanicilarQuery } from '../queries/userQueries';
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
 
@@ -56,12 +60,7 @@ const kaliteyetkisi = (user) =>
 
 export default function UretimPaletleriPage() {
     const { user } = useAuth();
-    const { loading, run } = useAsync(true);
 
-    const [paletler, setPaletler] = useState([]);
-    const [lotlar, setLotlar] = useState([]);
-    const [depolar, setDepolar] = useState([]);
-    const [operatorler, setOperatorler] = useState([]);
     const [aramaMetni, setAramaMetni] = useState('');
     const [durumFiltre, setDurumFiltre] = useState('');
 
@@ -88,25 +87,37 @@ export default function UretimPaletleriPage() {
 
     // Etiket modalı
     const [etiketModalPaletNo, setEtiketModalPaletNo] = useState(null);
+    const {
+        data: paletler = [],
+        isLoading: loading,
+        refetch: refetchPaletler,
+    } = useUretimPaletleriQuery({ sadece_aktif: false });
+    const {
+        data: lotlarResult,
+        refetch: refetchLotlar,
+    } = useLotlarQuery();
+    const {
+        data: depolar = [],
+        refetch: refetchDepolar,
+    } = useDepolarQuery();
+    const {
+        data: kullanicilar = [],
+        refetch: refetchKullanicilar,
+    } = useKullanicilarQuery();
+    const createUretimPaletiMutation = useCreateUretimPaletiMutation();
+    const kabulEtMutation = useUretimPaletiKabulEtMutation();
+    const karantinaAlMutation = useUretimPaletiKarantinaAlMutation();
+    const karantinaCikarMutation = useUretimPaletiKarantinaCikarMutation();
+    const iptalMutation = useUretimPaletiIptalMutation();
+    const lotlar = lotlarResult?.data ?? [];
+    const operatorler = useMemo(
+        () => kullanicilar.filter((k) => k.rol === 'depocu' || k.rol === 'admin'),
+        [kullanicilar],
+    );
 
     const veriYukle = useCallback(async () => {
-        await run(async () => {
-            const [paletRes, lotRes, depoRes, kullaniciRes] = await Promise.all([
-                getUretimPaletleri({ sadece_aktif: false }),
-                getLotlar(),
-                getDepolar().catch(() => ({ data: [] })),
-                getKullanicilar().catch(() => ({ data: [] })),
-            ]);
-            setPaletler(paletRes.data);
-            setLotlar(lotRes.data);
-            setDepolar(depoRes.data || []);
-            setOperatorler((kullaniciRes.data || []).filter(
-                (k) => k.rol === 'depocu' || k.rol === 'admin',
-            ));
-        });
-    }, [run]);
-
-    useEffect(() => { veriYukle(); }, [veriYukle]);
+        await Promise.all([refetchPaletler(), refetchLotlar(), refetchDepolar(), refetchKullanicilar()]);
+    }, [refetchDepolar, refetchKullanicilar, refetchLotlar, refetchPaletler]);
 
     // ── Filtre ────────────────────────────────────────────────────────────────
 
@@ -147,7 +158,7 @@ export default function UretimPaletleriPage() {
             return;
         }
         try {
-            await createUretimPaleti({
+            await createUretimPaletiMutation.mutateAsync({
                 lot_id: parseInt(formData.lot_id),
                 depo_id: parseInt(formData.depo_id),
                 koli_adedi: parseInt(formData.koli_adedi),
@@ -164,7 +175,7 @@ export default function UretimPaletleriPage() {
             toast.success('Üretim paleti oluşturuldu');
             setYeniModal(false);
             formuSifirla();
-            veriYukle();
+            void veriYukle();
         } catch (err) {
             toast.error(hataMetni(err, 'Palet oluşturulamadı'));
         }
@@ -172,12 +183,12 @@ export default function UretimPaletleriPage() {
 
     // ── Aksiyon yardımcıları ──────────────────────────────────────────────────
 
-    const aksiyon = async (apiFn, paletNo, basariMesaji, arg) => {
+    const aksiyon = async (mutateAsync, paletNo, basariMesaji, arg) => {
         setIslemPaletNo(paletNo);
         try {
-            await apiFn(paletNo, arg);
+            await mutateAsync(arg === undefined ? paletNo : { paletNo, data: arg });
             toast.success(basariMesaji);
-            veriYukle();
+            void veriYukle();
         } catch (err) {
             toast.error(hataMetni(err, 'İşlem başarısız'));
         } finally {
@@ -185,18 +196,17 @@ export default function UretimPaletleriPage() {
         }
     };
 
-    const kabulBekle = (pn) => aksiyon(uretimPaletiKabulBekle, pn, 'Kabul beklemeye alındı');
-    const kabulEt    = (pn) => aksiyon(uretimPaletiKabulEt, pn, 'Palet kabul edildi');
+    const kabulEt    = (pn) => aksiyon(kabulEtMutation.mutateAsync, pn, 'Palet kabul edildi');
 
     const sebepliIslem = async () => {
         if (!sebepModal) return;
         const { tip, paletNo } = sebepModal;
         if (tip === 'karantina') {
-            await aksiyon(uretimPaletiKarantinaAl, paletNo, 'Karantinaya alındı', { palet_no: paletNo, sebep: sebepText });
+            await aksiyon(karantinaAlMutation.mutateAsync, paletNo, 'Karantinaya alındı', { palet_no: paletNo, sebep: sebepText });
         } else if (tip === 'karantina-cikar') {
-            await aksiyon(uretimPaletiKarantinaCikar, paletNo, 'Karantinadan çıkarıldı', { palet_no: paletNo, sebep: sebepText });
+            await aksiyon(karantinaCikarMutation.mutateAsync, paletNo, 'Karantinadan çıkarıldı', { palet_no: paletNo, sebep: sebepText });
         } else if (tip === 'iptal') {
-            await aksiyon(uretimPaletiIptal, paletNo, 'Palet iptal edildi', { palet_no: paletNo, sebep: sebepText });
+            await aksiyon(iptalMutation.mutateAsync, paletNo, 'Palet iptal edildi', { palet_no: paletNo, sebep: sebepText });
         }
         setSebepModal(null);
         setSebepText('');

@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     createUrun,
     deleteUrun,
-    getKategoriler,
     getMarkalar,
     getUrunler,
     updateUrun,
@@ -10,6 +9,8 @@ import {
 import { urunStokDetayApi } from '../services/paletRezervasyonlariApi';
 import { queryKeys } from './queryKeys';
 import { responseData } from './queryUtils';
+
+export { useKategorilerQuery } from './categoryQueries';
 
 const invalidateProductData = (queryClient) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.urunler.all });
@@ -21,14 +22,6 @@ export function useUrunlerQuery(params) {
         queryKey: queryKeys.urunler.list(params),
         queryFn: () => getUrunler(params).then(responseData),
         placeholderData: (previousData) => previousData,
-    });
-}
-
-export function useKategorilerQuery() {
-    return useQuery({
-        queryKey: queryKeys.kategoriler.list(),
-        queryFn: () => getKategoriler().then(responseData),
-        staleTime: 0,
     });
 }
 

@@ -1,16 +1,27 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Warehouse, Plus, X, MapPin, Building, Calendar, LayoutGrid, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getDepolar, createDepo, createRaf } from '../services/api';
-import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
+import {
+    useCreateDepoMutation,
+    useCreateRafMutation,
+    useDepolarQuery,
+} from '../queries/locationQueries';
+
+// JSX member usage (motion.div) is not counted by this lint setup.
+void motion;
 
 // Mobil dostu, modern Depo ve Raf yönetim sayfası (Sleek Industrial & Glassmorphism)
 export default function DepolarPage() {
-    const [depolar, setDepolar] = useState([]);
-    const { loading, run } = useAsync(true);
+    const {
+        data: depolar = [],
+        isError: depolarError,
+        isLoading: loading,
+    } = useDepolarQuery();
+    const createDepoMutation = useCreateDepoMutation();
+    const createRafMutation = useCreateRafMutation();
     
     // Depo Modal State'leri
     const [depoModalOpen, setDepoModalOpen] = useState(false);
@@ -20,42 +31,19 @@ export default function DepolarPage() {
     const [rafModalOpen, setRafModalOpen] = useState(false);
     const [rafForm, setRafForm] = useState({ depo_id: '', kod: '', bolge: '', kapasite: 100 });
 
-    const fetchData = useCallback(async () => {
-        try {
-            const res = await run(() => getDepolar());
-            setDepolar(res.data);
-        } catch {
+    useEffect(() => {
+        if (depolarError) {
             toast.error('Depolar yüklenemedi');
         }
-    }, [run]);
-
-    useEffect(() => {
-        let aktif = true;
-        run(() => getDepolar())
-            .then((res) => {
-                if (aktif) {
-                    setDepolar(res.data);
-                }
-            })
-            .catch(() => {
-                if (aktif) {
-                    toast.error('Depolar yüklenemedi');
-                }
-            });
-
-        return () => {
-            aktif = false;
-        };
-    }, [run]);
+    }, [depolarError]);
 
     const handleDepoSave = async (e) => {
         e.preventDefault();
         try {
-            await createDepo(depoForm);
+            await createDepoMutation.mutateAsync(depoForm);
             toast.success('Depo başarıyla oluşturuldu');
             setDepoModalOpen(false);
             setDepoForm({ isim: '', adres: '', aciklama: '' });
-            await fetchData();
         } catch (err) {
             toast.error(hataMetni(err, 'Depo oluşturulamadı'));
         }
@@ -64,7 +52,7 @@ export default function DepolarPage() {
     const handleRafSave = async (e) => {
         e.preventDefault();
         try {
-            await createRaf(rafForm);
+            await createRafMutation.mutateAsync(rafForm);
             toast.success('Raf başarıyla oluşturuldu');
             setRafModalOpen(false);
             setRafForm({ depo_id: '', kod: '', bolge: '', kapasite: 100 });

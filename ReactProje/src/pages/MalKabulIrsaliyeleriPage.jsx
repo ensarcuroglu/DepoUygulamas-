@@ -1,19 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Plus, Search, Loader2, X, Truck, Package, CheckCircle, Clock,
     ChevronDown, Trash2, FileCheck, Calendar, MapPin, User,
     ArrowRight, Lock, AlertTriangle, Info
 } from 'lucide-react';
-import {
-    getMalKabulIrsaliyeleri, createMalKabulIrsaliye,
-    deleteMalKabulIrsaliye, getTedarikciler, getDepolar, getUrunler, getRaflar,
-    onaylaMalKabulIrsaliye, malKabulKalemiIstisnaGuncelle, updateMalKabulIrsaliye
-} from '../services/api';
-import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import { useDepolarQuery, useRaflarQuery } from '../queries/locationQueries';
+import {
+    useCreateMalKabulIrsaliyeMutation,
+    useDeleteMalKabulIrsaliyeMutation,
+    useMalKabulIrsaliyeleriQuery,
+    useMalKabulKalemiIstisnaGuncelleMutation,
+    useOnaylaMalKabulIrsaliyeMutation,
+    useTedarikcilerQuery,
+    useUpdateMalKabulIrsaliyeMutation,
+} from '../queries/malKabulQueries';
+import { useUrunlerQuery } from '../queries/productQueries';
 
 const durumRenkleri = {
     'Taslak': 'bg-slate-100 text-slate-700 border-slate-200/60',
@@ -28,14 +33,8 @@ const durumEtiketleri = {
 };
 
 export default function MalKabulIrsaliyeleriPage() {
-    const { loading, run } = useAsync(true);
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [irsaliyeler, setIrsaliyeler] = useState([]);
-    const [tedarikciler, setTedarikciler] = useState([]);
-    const [depolar, setDepolar] = useState([]);
-    const [urunler, setUrunler] = useState([]);
-    const [raflar, setRaflar] = useState([]);
 
     const [aramaMetni, setAramaMetni] = useState('');
     const [durumFiltre, setDurumFiltre] = useState('');
@@ -44,7 +43,6 @@ export default function MalKabulIrsaliyeleriPage() {
     const [duzenlemeSnapshot, setDuzenlemeSnapshot] = useState(null);
     const [expandedId, setExpandedId] = useState(null);
     const [onayOzet, setOnayOzet] = useState(null);
-    const aramaMetniRef = useRef(aramaMetni);
     const [istisnaAcikKalem, setIstisnaAcikKalem] = useState(null);
     const [istisnaForm, setIstisnaForm] = useState({ istisna_tip: '', istisna_aciklama: '', gerceklesen_miktar: '' });
 
@@ -56,6 +54,38 @@ export default function MalKabulIrsaliyeleriPage() {
         sofor_adi: '',
         kalemler: [],
     });
+    const irsaliyeParams = useMemo(() => ({
+        limit: 100,
+        durum: durumFiltre || undefined,
+        arama: aramaMetni || undefined,
+    }), [aramaMetni, durumFiltre]);
+    const {
+        data: irsaliyeler = [],
+        isError: irsaliyelerError,
+        isLoading: loading,
+        refetch: refetchIrsaliyeler,
+    } = useMalKabulIrsaliyeleriQuery(irsaliyeParams);
+    const {
+        data: tedarikciler = [],
+        isError: tedarikcilerError,
+    } = useTedarikcilerQuery({ limit: 500 });
+    const {
+        data: depolar = [],
+        isError: depolarError,
+    } = useDepolarQuery({ limit: 500 });
+    const {
+        data: urunler = [],
+        isError: urunlerError,
+    } = useUrunlerQuery({ limit: 500 });
+    const {
+        data: raflar = [],
+        isError: raflarError,
+    } = useRaflarQuery({ limit: 1000 });
+    const createMalKabulMutation = useCreateMalKabulIrsaliyeMutation();
+    const updateMalKabulMutation = useUpdateMalKabulIrsaliyeMutation();
+    const deleteMalKabulMutation = useDeleteMalKabulIrsaliyeMutation();
+    const onaylaMalKabulMutation = useOnaylaMalKabulIrsaliyeMutation();
+    const istisnaGuncelleMutation = useMalKabulKalemiIstisnaGuncelleMutation();
 
     const bosKalem = { palet_no: '', urun_id: '', lot_no: '', miktar: '', raf_id: '', uretim_tarihi: '', son_kullanma_tarihi: '' };
     const kullaniciRolu = user?.rol;
@@ -131,67 +161,22 @@ export default function MalKabulIrsaliyeleriPage() {
     const degisenAlanSinifi = (degisti) =>
         degisti ? 'border-amber-300 ring-2 ring-amber-200 bg-amber-50/40' : '';
 
-    // ===== REFERANS VERİLERİ =====
-    useEffect(() => {
-        const referansYukle = async () => {
-            try {
-                const [tedRes, depRes, urnRes, rafRes] = await Promise.all([
-                    getTedarikciler({ limit: 500 }),
-                    getDepolar({ limit: 500 }),
-                    getUrunler({ limit: 500 }),
-                    getRaflar({ limit: 1000 }),
-                ]);
-                setTedarikciler(tedRes?.data || []);
-                setDepolar(depRes?.data || []);
-                setUrunler(urnRes?.data || []);
-                setRaflar(rafRes?.data || []);
-            } catch {
-                toast.error('Referans verileri yüklenemedi');
-            }
-        };
-        referansYukle();
-    }, []);
-
     // ===== İRSALİYE LİSTESİ =====
-    const yukle = async () => {
-        try {
-            const irsRes = await run(() =>
-                getMalKabulIrsaliyeleri({ limit: 100, durum: durumFiltre || undefined, arama: aramaMetni || undefined })
-            );
-            setIrsaliyeler(irsRes?.data || []);
-        } catch {
+    const yukle = useCallback(async () => {
+        await refetchIrsaliyeler();
+    }, [refetchIrsaliyeler]);
+
+    useEffect(() => {
+        if (irsaliyelerError) {
             toast.error('İrsaliyeler yüklenemedi');
         }
-    };
+    }, [irsaliyelerError]);
 
     useEffect(() => {
-        aramaMetniRef.current = aramaMetni;
-    }, [aramaMetni]);
-
-    useEffect(() => {
-        let aktif = true;
-        run(() =>
-            getMalKabulIrsaliyeleri({
-                limit: 100,
-                durum: durumFiltre || undefined,
-                arama: aramaMetniRef.current || undefined,
-            })
-        )
-            .then((irsRes) => {
-                if (aktif) {
-                    setIrsaliyeler(irsRes?.data || []);
-                }
-            })
-            .catch(() => {
-                if (aktif) {
-                    toast.error('İrsaliyeler yüklenemedi');
-                }
-            });
-
-        return () => {
-            aktif = false;
-        };
-    }, [durumFiltre, run]);
+        if (tedarikcilerError || depolarError || urunlerError || raflarError) {
+            toast.error('Referans verileri yüklenemedi');
+        }
+    }, [depolarError, raflarError, tedarikcilerError, urunlerError]);
 
     // ===== KALEM YÖNETİMİ =====
     const kalemEkle = () => {
@@ -246,14 +231,14 @@ export default function MalKabulIrsaliyeleriPage() {
             };
 
             if (aktifIrsaliyeId) {
-                await updateMalKabulIrsaliye(aktifIrsaliyeId, payload);
+                await updateMalKabulMutation.mutateAsync({ id: aktifIrsaliyeId, data: payload });
                 toast.success('Mal kabul irsaliyesi güncellendi');
             } else {
-                await createMalKabulIrsaliye(payload);
+                await createMalKabulMutation.mutateAsync(payload);
                 toast.success('Mal kabul irsaliyesi oluşturuldu');
             }
             modalKapat();
-            yukle();
+            void yukle();
         } catch (err) {
             toast.error(hataMetni(err, aktifIrsaliyeId ? 'İrsaliye güncellenemedi' : 'İrsaliye oluşturulamadı'));
         }
@@ -266,14 +251,14 @@ export default function MalKabulIrsaliyeleriPage() {
             return;
         }
         try {
-            const res = await onaylaMalKabulIrsaliye(irs.id);
+            const res = await onaylaMalKabulMutation.mutateAsync(irs.id);
             const veri = res?.data ?? {};
             setOnayOzet({
                 irsaliye_no: veri.irsaliye_no ?? irs.irsaliye_no,
                 palet_sayisi: veri.kalemler?.length ?? irs.kalemler?.length ?? 0,
                 gorev_sayisi: veri.olusturulan_gorev_sayisi ?? veri.kalemler?.length ?? 0,
             });
-            yukle();
+            void yukle();
         } catch (err) {
             toast.error(hataMetni(err, 'İrsaliye onaylanamadı'));
         }
@@ -290,15 +275,19 @@ export default function MalKabulIrsaliyeleriPage() {
             return;
         }
         try {
-            await malKabulKalemiIstisnaGuncelle(irsaliyeId, kalemId, {
-                istisna_tip: istisnaForm.istisna_tip,
-                istisna_aciklama: istisnaForm.istisna_aciklama || null,
-                gerceklesen_miktar: istisnaForm.gerceklesen_miktar ? Number(istisnaForm.gerceklesen_miktar) : null,
+            await istisnaGuncelleMutation.mutateAsync({
+                irsaliyeId,
+                kalemId,
+                data: {
+                    istisna_tip: istisnaForm.istisna_tip,
+                    istisna_aciklama: istisnaForm.istisna_aciklama || null,
+                    gerceklesen_miktar: istisnaForm.gerceklesen_miktar ? Number(istisnaForm.gerceklesen_miktar) : null,
+                },
             });
             toast.success('Fark/hasar kaydedildi');
             setIstisnaAcikKalem(null);
             setIstisnaForm({ istisna_tip: '', istisna_aciklama: '', gerceklesen_miktar: '' });
-            yukle();
+            void yukle();
         } catch (err) {
             toast.error(hataMetni(err, 'İstisna kaydedilemedi'));
         }
@@ -312,9 +301,9 @@ export default function MalKabulIrsaliyeleriPage() {
         }
         if (!window.confirm('Bu irsaliyeyi silmek istediğinize emin misiniz?')) return;
         try {
-            await deleteMalKabulIrsaliye(id);
+            await deleteMalKabulMutation.mutateAsync(id);
             toast.success('İrsaliye silindi');
-            yukle();
+            void yukle();
         } catch (err) {
             toast.error(hataMetni(err, 'İrsaliye silinemedi'));
         }

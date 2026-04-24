@@ -1,4 +1,4 @@
-import { cloneElement, createElement, useCallback, useEffect, useRef, useState } from 'react';
+import { cloneElement, createElement, useEffect, useRef, useState } from 'react';
 import {
     FolderOpen, Plus, Edit3, Trash2, X, Package, Search,
     ChevronDown, Sparkles, Tag, Box, Layers, Archive,
@@ -9,10 +9,14 @@ import {
     Crown, Diamond, Gem, Key, Lock, Map, Award, Target,
     TrendingUp, Users, AlertCircle
 } from 'lucide-react';
-import { getKategoriler, createKategori, updateKategori, deleteKategori } from '../services/api';
 import toast from 'react-hot-toast';
-import { useAsync } from '../hooks/useAsync';
 import { hataMetni } from '../utils/hata';
+import {
+    useCreateKategoriMutation,
+    useDeleteKategoriMutation,
+    useKategorilerQuery,
+    useUpdateKategoriMutation,
+} from '../queries/categoryQueries';
 
 /* ─── İkon Kütüphanesi ─── */
 const ICON_MAP = {
@@ -217,41 +221,24 @@ function KategoriModal({ onClose, onSave, kategori }) {
 
 /* ─── Ana Sayfa ─── */
 export default function KategorilerPage() {
-    const [kategoriler, setKategoriler] = useState([]);
-    const { loading, run } = useAsync(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editKategori, setEditKategori] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [deleteTarget, setDeleteTarget] = useState(null);
-
-    const fetchData = useCallback(async () => {
-        try {
-            const res = await run(() => getKategoriler());
-            setKategoriler(res.data);
-        } catch {
-            toast.error('Kategoriler yüklenemedi');
-        }
-    }, [run]);
+    const {
+        data: kategoriler = [],
+        isError: kategorilerError,
+        isLoading: loading,
+    } = useKategorilerQuery();
+    const createKategoriMutation = useCreateKategoriMutation();
+    const updateKategoriMutation = useUpdateKategoriMutation();
+    const deleteKategoriMutation = useDeleteKategoriMutation();
 
     useEffect(() => {
-        let aktif = true;
-
-        run(() => getKategoriler())
-            .then((res) => {
-                if (aktif) {
-                    setKategoriler(res.data);
-                }
-            })
-            .catch(() => {
-                if (aktif) {
-                    toast.error('Kategoriler yüklenemedi');
-                }
-            });
-
-        return () => {
-            aktif = false;
-        };
-    }, [run]);
+        if (kategorilerError) {
+            toast.error('Kategoriler yüklenemedi');
+        }
+    }, [kategorilerError]);
 
     const handleDelete = (id, isim) => {
         setDeleteTarget({ id, isim });
@@ -260,10 +247,9 @@ export default function KategorilerPage() {
     const confirmDelete = async () => {
         if (!deleteTarget) return;
         try {
-            await deleteKategori(deleteTarget.id);
+            await deleteKategoriMutation.mutateAsync(deleteTarget.id);
             toast.success('Kategori silindi.');
             setDeleteTarget(null);
-            fetchData();
         } catch (err) {
             toast.error(hataMetni(err, 'İçerisinde ürün bulunan kategoriler silinemez'));
             setDeleteTarget(null);
@@ -273,15 +259,14 @@ export default function KategorilerPage() {
     const handleSave = async (data) => {
         try {
             if (editKategori) {
-                await updateKategori(editKategori.id, data);
+                await updateKategoriMutation.mutateAsync({ id: editKategori.id, data });
                 toast.success('Kategori güncellendi.');
             } else {
-                await createKategori(data);
+                await createKategoriMutation.mutateAsync(data);
                 toast.success('Yeni kategori oluşturuldu.');
             }
             setModalOpen(false);
             setEditKategori(null);
-            fetchData();
         } catch (err) {
             toast.error(hataMetni(err, 'İşlem başarısız'));
         }

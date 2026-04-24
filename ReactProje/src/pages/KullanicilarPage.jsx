@@ -1,19 +1,19 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Users, Plus, Edit3, Trash2, X, Shield, ShieldCheck, Eye,
     User, Lock, Mail, ChevronRight, Loader2,
     Truck, Phone, Building, Briefcase, CreditCard
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import {
-    getKullanicilar,
-    getDepolar,
-    createKullanici,
-    updateKullanici,
-    deleteKullanici
-} from '../services/api';
 import { hataMetni } from '../utils/hata';
 import { useAuth } from '../contexts/AuthContext';
+import { useDepolarQuery } from '../queries/locationQueries';
+import {
+    useCreateKullaniciMutation,
+    useDeleteKullaniciMutation,
+    useKullanicilarQuery,
+    useUpdateKullaniciMutation,
+} from '../queries/userQueries';
 
 const ROL_CONFIG = {
     admin: { label: 'Yönetici', color: 'bg-red-50 text-red-700 border-red-200', icon: ShieldCheck },
@@ -388,32 +388,29 @@ function KullaniciModal({ isOpen, onClose, onSave, kullanici, depolar = [] }) {
 
 // Ana Sayfa
 export default function KullanicilarPage() {
-    const [kullanicilar, setKullanicilar] = useState([]);
-    const [depolar, setDepolar] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editKullanici, setEditKullanici] = useState(null);
     const { user: currentUser } = useAuth();
-
-    const fetchData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const [kullanicilarRes, depolarRes] = await Promise.all([
-                getKullanicilar(),
-                getDepolar(),
-            ]);
-            setKullanicilar(kullanicilarRes.data);
-            setDepolar(depolarRes.data);
-        } catch {
-            toast.error('Kullanıcı veya depo verileri yüklenemedi.');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+    const {
+        data: kullanicilar = [],
+        isError: kullanicilarError,
+        isLoading: kullanicilarLoading,
+    } = useKullanicilarQuery();
+    const {
+        data: depolar = [],
+        isError: depolarError,
+        isLoading: depolarLoading,
+    } = useDepolarQuery();
+    const createKullaniciMutation = useCreateKullaniciMutation();
+    const updateKullaniciMutation = useUpdateKullaniciMutation();
+    const deleteKullaniciMutation = useDeleteKullaniciMutation();
+    const loading = kullanicilarLoading || depolarLoading;
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        if (kullanicilarError || depolarError) {
+            toast.error('Kullanıcı veya depo verileri yüklenemedi.');
+        }
+    }, [kullanicilarError, depolarError]);
 
     const getDepoEtiketi = (kullanici) => {
         if (kullanici.depo_erisimi_yok) {
@@ -433,9 +430,8 @@ export default function KullanicilarPage() {
         }
         if (!confirm(`"${isim}" kullanıcısını kalıcı olarak silmek istediğinize emin misiniz?`)) return;
         try {
-            await deleteKullanici(id);
+            await deleteKullaniciMutation.mutateAsync(id);
             toast.success('Kullanıcı silindi');
-            fetchData();
         } catch (err) {
             toast.error(hataMetni(err, 'Silme işlemi başarısız'));
         }
@@ -444,15 +440,14 @@ export default function KullanicilarPage() {
     const handleSave = async (data) => {
         try {
             if (editKullanici) {
-                await updateKullanici(editKullanici.id, data);
+                await updateKullaniciMutation.mutateAsync({ id: editKullanici.id, data });
                 toast.success('Kullanıcı güncellendi');
             } else {
-                await createKullanici(data);
+                await createKullaniciMutation.mutateAsync(data);
                 toast.success('Yeni kullanıcı oluşturuldu');
             }
             setModalOpen(false);
             setEditKullanici(null);
-            fetchData();
         } catch (err) {
             toast.error(hataMetni(err, 'İşlem başarısız'));
         }

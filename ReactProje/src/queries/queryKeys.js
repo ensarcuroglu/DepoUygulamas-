@@ -26,4 +26,59 @@ export const queryKeys = {
         all: ['markalar'],
         list: () => ['markalar', 'list'],
     },
+    depolar: {
+        all: ['depolar'],
+        lists: () => ['depolar', 'list'],
+        list: (params = {}) => ['depolar', 'list', params],
+    },
+    raflar: {
+        all: ['raflar'],
+        lists: () => ['raflar', 'list'],
+        list: (params = {}) => ['raflar', 'list', params],
+    },
+    kullanicilar: {
+        all: ['kullanicilar'],
+        list: () => ['kullanicilar', 'list'],
+    },
+    lotlar: {
+        all: ['lotlar'],
+        lists: () => ['lotlar', 'list'],
+        list: (params = {}) => ['lotlar', 'list', params],
+        sktYaklasan: (gun = 30) => ['lotlar', 'sktYaklasan', gun],
+    },
+    tedarikciler: {
+        all: ['tedarikciler'],
+        lists: () => ['tedarikciler', 'list'],
+        list: (params = {}) => ['tedarikciler', 'list', params],
+    },
+    siparisler: {
+        all: ['siparisler'],
+        lists: () => ['siparisler', 'list'],
+        list: (params = {}) => ['siparisler', 'list', params],
+    },
+    sevkiyatPlanlari: {
+        all: ['sevkiyatPlanlari'],
+        lists: () => ['sevkiyatPlanlari', 'list'],
+        list: (params = {}) => ['sevkiyatPlanlari', 'list', params],
+    },
+    irsaliyeler: {
+        all: ['irsaliyeler'],
+        lists: () => ['irsaliyeler', 'list'],
+        list: (params = {}) => ['irsaliyeler', 'list', params],
+    },
+    malKabulIrsaliyeleri: {
+        all: ['malKabulIrsaliyeleri'],
+        lists: () => ['malKabulIrsaliyeleri', 'list'],
+        list: (params = {}) => ['malKabulIrsaliyeleri', 'list', params],
+    },
+    destek: {
+        all: ['destek'],
+        lists: () => ['destek', 'list'],
+        list: (params = {}) => ['destek', 'list', params],
+    },
+    uretimPaletleri: {
+        all: ['uretimPaletleri'],
+        lists: () => ['uretimPaletleri', 'list'],
+        list: (params = {}) => ['uretimPaletleri', 'list', params],
+    },
 };

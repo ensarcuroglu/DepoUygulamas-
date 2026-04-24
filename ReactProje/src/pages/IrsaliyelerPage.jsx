@@ -5,11 +5,17 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  getIrsaliyeler, createIrsaliye, updateIrsaliye, getSiparisler, getSevkiyatPlanlari
-} from '../services/api';
-import { useAsync } from '../hooks/useAsync';
+  useCreateIrsaliyeMutation,
+  useIrsaliyelerQuery,
+  useSevkiyatPlanlariQuery,
+  useSiparislerQuery,
+  useUpdateIrsaliyeMutation,
+} from '../queries/irsaliyeQueries';
 import { hataMetni } from '../utils/hata';
 import toast from 'react-hot-toast';
+
+// JSX member usage (motion.div) is not counted by this lint setup.
+void motion;
 
 const durumRozetleri = {
   'Taslak': 'bg-slate-100 text-slate-700 ring-1 ring-slate-600/20',
@@ -47,16 +53,38 @@ const modalVariants = {
 };
 
 export default function IrsaliyelerPage() {
-  const { loading, run } = useAsync(true);
-  const [irsaliyeler, setIrsaliyeler] = useState([]);
-  const [siparisler, setSiparisler] = useState([]);
-  const [sevkiyatPlanlari, setSevkiyatPlanlari] = useState([]);
   const [aramaMetni, setAramaMetni] = useState('');
   const [durumFiltre, setDurumFiltre] = useState('');
   
   const [yeniIrsaliyeModal, setYeniIrsaliyeModal] = useState(false);
   const [detayModal, setDetayModal] = useState(null);
   const [formData, setFormData] = useState(bosFormData);
+  const irsaliyeParams = useMemo(() => ({
+    limit: 100,
+    durum: durumFiltre || undefined,
+    arama: aramaMetni || undefined,
+  }), [durumFiltre, aramaMetni]);
+  const {
+    data: irsaliyeler = [],
+    isError: irsaliyelerError,
+    isLoading: irsaliyelerLoading,
+    refetch: refetchIrsaliyeler,
+  } = useIrsaliyelerQuery(irsaliyeParams);
+  const {
+    data: siparisler = [],
+    isError: siparislerError,
+    isLoading: siparislerLoading,
+    refetch: refetchSiparisler,
+  } = useSiparislerQuery({ limit: 500 });
+  const {
+    data: sevkiyatPlanlari = [],
+    isError: planlarError,
+    isLoading: planlarLoading,
+    refetch: refetchPlanlar,
+  } = useSevkiyatPlanlariQuery({ limit: 500 });
+  const createIrsaliyeMutation = useCreateIrsaliyeMutation();
+  const updateIrsaliyeMutation = useUpdateIrsaliyeMutation();
+  const loading = irsaliyelerLoading || siparislerLoading || planlarLoading;
 
   const siparisSozlugu = useMemo(() => {
     const map = new Map();
@@ -70,36 +98,15 @@ export default function IrsaliyelerPage() {
     return map;
   }, [sevkiyatPlanlari]);
 
-  const verileriGetir = useCallback(async () => {
-    return await run(() =>
-      Promise.all([
-        getIrsaliyeler({ limit: 100, durum: durumFiltre || undefined, arama: aramaMetni }),
-        getSiparisler({ limit: 500 }),
-        getSevkiyatPlanlari({ limit: 500 }),
-      ])
-    );
-  }, [run, durumFiltre, aramaMetni]);
-
   const yukle = useCallback(async () => {
-    const [irsRes, sipRes, planRes] = await verileriGetir();
-    setIrsaliyeler(irsRes?.data || []);
-    setSiparisler(sipRes?.data || []);
-    setSevkiyatPlanlari(planRes?.data || []);
-  }, [verileriGetir]);
+    await Promise.all([refetchIrsaliyeler(), refetchSiparisler(), refetchPlanlar()]);
+  }, [refetchIrsaliyeler, refetchPlanlar, refetchSiparisler]);
 
   useEffect(() => {
-    let isMounted = true;
-    const baslangicYuklemesi = async () => {
-      const [irsRes, sipRes, planRes] = await verileriGetir();
-      if (isMounted) {
-        setIrsaliyeler(irsRes?.data || []);
-        setSiparisler(sipRes?.data || []);
-        setSevkiyatPlanlari(planRes?.data || []);
-      }
-    };
-    void baslangicYuklemesi();
-    return () => { isMounted = false; };
-  }, [verileriGetir]);
+    if (irsaliyelerError || siparislerError || planlarError) {
+      toast.error('İrsaliye verileri yüklenemedi');
+    }
+  }, [irsaliyelerError, planlarError, siparislerError]);
 
   const handlePlanSecimi = (planIdDegeri) => {
     const planId = parseInt(planIdDegeri, 10);
@@ -124,7 +131,7 @@ export default function IrsaliyelerPage() {
     }
 
     try {
-      await createIrsaliye({
+      await createIrsaliyeMutation.mutateAsync({
         siparis_id: Number(formData.siparis_id),
         sevkiyat_id: Number(formData.sevkiyat_id),
         irsaliye_tarihi: formData.irsaliye_tarihi,
@@ -148,7 +155,7 @@ export default function IrsaliyelerPage() {
 
   const handleDurumDegis = async (irsaliyeId, yeniDurum) => {
     try {
-      await updateIrsaliye(irsaliyeId, { durum: yeniDurum });
+      await updateIrsaliyeMutation.mutateAsync({ id: irsaliyeId, data: { durum: yeniDurum } });
       toast.success('İrsaliye durumu güncellendi');
       void yukle();
       setDetayModal(null);
