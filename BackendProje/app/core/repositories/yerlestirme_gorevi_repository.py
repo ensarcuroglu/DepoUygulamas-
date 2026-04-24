@@ -19,7 +19,11 @@ class IYerlestirmeGoreviRepository(ABC):
         ...
 
     @abstractmethod
-    def getir_id_ile(self, gorev_id: int) -> Optional[YerlestirmeGorevi]:
+    def getir_id_ile(
+        self,
+        gorev_id: int,
+        kilitli_mi: bool = False,
+    ) -> Optional[YerlestirmeGorevi]:
         ...
 
     @abstractmethod

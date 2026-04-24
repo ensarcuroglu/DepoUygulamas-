@@ -51,6 +51,7 @@ def _irsaliye_otomatik_kapat(
     gorev: YerlestirmeGorevi,
     gorev_repo: IYerlestirmeGoreviRepository,
     mal_kabul_repo: IMalKabulIrsaliyeRepository,
+    auto_commit: bool = True,
 ) -> None:
     """Son görev tamamlandığında irsaliyeyi otomatik kapatır ve kapanma_ozeti oluşturur."""
     if not gorev.mal_kabul_irsaliye_id:
@@ -63,7 +64,7 @@ def _irsaliye_otomatik_kapat(
         if irsaliye and irsaliye.durum == MalKabulDurum.ONAYLANDI:
             irsaliye.kapanma_ozeti = _kapanma_ozeti_olustur(irsaliye, irsaliye_gorevleri)
             irsaliye.kapat()
-            mal_kabul_repo.guncelle(irsaliye)
+            mal_kabul_repo.guncelle(irsaliye, auto_commit=auto_commit)
 
 
 def _gorev_depo_id_belirle(gorev: YerlestirmeGorevi, raf_repo: IRafRepository) -> Optional[int]:
@@ -438,6 +439,7 @@ class YerlestirmeOnaylaUseCase:
         kapasite: "KapasiteDogrulamaServisi",
         log_repo: ISistemLogRepository,
         mal_kabul_repo: IMalKabulIrsaliyeRepository,
+        db=None,
     ):
         self._repo = repo
         self._palet_repo = palet_repo
@@ -449,11 +451,12 @@ class YerlestirmeOnaylaUseCase:
         self._kapasite = kapasite
         self._log_repo = log_repo
         self._mal_kabul_repo = mal_kabul_repo
+        self._db = db
 
     def execute(
         self, gorev_id: int, dto: YerlestirmeOnaylaRequestDTO, kullanici_id: int
     ) -> YerlestirmeOnaylaSonucDTO:
-        gorev = self._repo.getir_id_ile(gorev_id)
+        gorev = self._repo.getir_id_ile(gorev_id, kilitli_mi=True)
         if not gorev:
             raise KayitBulunamadiError("YerlestirmeGorevi", gorev_id)
 
@@ -470,7 +473,7 @@ class YerlestirmeOnaylaUseCase:
         if not hedef_raf:
             raise KayitBulunamadiError("Raf", dto.okutulan_raf_kodu)
 
-        palet = self._palet_repo.getir_id_ile(gorev.palet_id)
+        palet = self._palet_repo.getir_id_ile(gorev.palet_id, kilitli_mi=True)
         if not palet:
             raise KayitBulunamadiError("Palet", gorev.palet_id)
 
@@ -478,6 +481,19 @@ class YerlestirmeOnaylaUseCase:
         urun = self._urun_repo.getir_id_ile(lot.urun_id) if lot else None
 
         onerilen_raf = self._raf_repo.getir_id_ile(gorev.onerilen_raf_id)
+
+        if gorev.durum == GorevDurum.TAMAMLANDI:
+            if gorev.gerceklesen_raf_id == hedef_raf.id and palet.raf_id == hedef_raf.id:
+                return YerlestirmeOnaylaSonucDTO(
+                    basarili=True,
+                    durum="TAMAMLANDI",
+                    palet_no=palet.palet_no,
+                    raf_kod=hedef_raf.kod,
+                    onerilen_raf_kod=onerilen_raf.kod if onerilen_raf else None,
+                    mesaj="Bu işlem az önce tamamlandı; tekrar okuma yok sayıldı.",
+                    gorev=YerlestirmeGoreviResponseDTO.from_entity(gorev),
+                )
+            raise GecersizIslemError("Bu görev zaten farklı bir rafa tamamlanmış.")
 
         # Zon uyumluluk kontrolü
         if urun and hedef_raf.zon_id:
@@ -504,23 +520,35 @@ class YerlestirmeOnaylaUseCase:
             )
 
         # Başarılı — palet + görev güncelle
-        palet.raf_ata(hedef_raf.id)
-        self._palet_repo.guncelle(palet)
+        try:
+            palet.raf_ata(hedef_raf.id)
+            self._palet_repo.guncelle(palet, auto_commit=False)
 
-        gorev.tamamla(hedef_raf.id)
-        self._repo.guncelle(gorev)
+            gorev.tamamla(hedef_raf.id)
+            self._repo.guncelle(gorev, auto_commit=False)
 
-        self._log_repo.olustur(
-            SistemLog.olustur(
-                kullanici_id=kullanici_id,
-                islem_tipi=IslemTipi.UPDATE,
-                modul="Yerleştirme",
-                detay=f"Scan-to-verify tamamlandı: Görev {gorev_id} → Raf {hedef_raf.kod}",
-                yeni_veri={"gerceklesen_raf_id": hedef_raf.id},
+            self._log_repo.olustur(
+                SistemLog.olustur(
+                    kullanici_id=kullanici_id,
+                    islem_tipi=IslemTipi.UPDATE,
+                    modul="Yerleştirme",
+                    detay=f"Scan-to-verify tamamlandı: Görev {gorev_id} → Raf {hedef_raf.kod}",
+                    yeni_veri={"gerceklesen_raf_id": hedef_raf.id},
+                ),
+                auto_commit=False,
             )
-        )
-
-        _irsaliye_otomatik_kapat(gorev, self._repo, self._mal_kabul_repo)
+            _irsaliye_otomatik_kapat(
+                gorev,
+                self._repo,
+                self._mal_kabul_repo,
+                auto_commit=False,
+            )
+            if self._db is not None:
+                self._db.commit()
+        except Exception:
+            if self._db is not None:
+                self._db.rollback()
+            raise
 
         return YerlestirmeOnaylaSonucDTO(
             basarili=True,

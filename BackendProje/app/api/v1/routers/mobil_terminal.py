@@ -7,12 +7,16 @@ Tüm endpoint'ler depocu rolü gerektirir.
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, Header, Request
+from pydantic import BaseModel, Field, field_validator
+from sqlalchemy.orm import Session
 
+from database import get_db
 from app.core.auth import require_role
+from app.core.barcode import sanitize_barkod, validate_palet_barkod, validate_raf_barkod
 from app.core.entities.sistem_log import SistemLog, OlayTipi
 from app.core.exceptions import GecersizIslemError, KayitBulunamadiError
+from app.core.idempotency import idempotency_kaydet, idempotency_kontrol
 from app.infrastructure.di.container import (
     get_log_repo,
     get_kapasite_dogrulama_servisi,
@@ -98,10 +102,20 @@ class PaletScanRequestDTO(BaseModel):
     palet_barkod: str = Field(..., min_length=1, max_length=100)
     depo_id: Optional[int] = Field(None, gt=0)
 
+    @field_validator("palet_barkod", mode="before")
+    @classmethod
+    def _palet_barkod_dogrula(cls, value):
+        return validate_palet_barkod(value)
+
 
 class RafScanRequestDTO(BaseModel):
     raf_barkod: str = Field(..., min_length=1, max_length=100)
     depo_id: Optional[int] = Field(None, gt=0)
+
+    @field_validator("raf_barkod", mode="before")
+    @classmethod
+    def _raf_barkod_dogrula(cls, value):
+        return validate_raf_barkod(value)
 
 
 class YerlestirRequestDTO(BaseModel):
@@ -109,6 +123,16 @@ class YerlestirRequestDTO(BaseModel):
     palet_barkod: str = Field(..., min_length=1, max_length=100)
     raf_barkod: str = Field(..., min_length=1, max_length=100)
     depo_id: Optional[int] = Field(None, gt=0)
+
+    @field_validator("palet_barkod", mode="before")
+    @classmethod
+    def _palet_barkod_dogrula(cls, value):
+        return validate_palet_barkod(value)
+
+    @field_validator("raf_barkod", mode="before")
+    @classmethod
+    def _raf_barkod_dogrula(cls, value):
+        return validate_raf_barkod(value)
 
 
 class AlternatifRafRequestDTO(BaseModel):
@@ -243,10 +267,12 @@ def raf_barkod_scan(
 def yerlestir(
     request: Request,
     dto: YerlestirRequestDTO,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
     uc: YerlestirmeOnaylaUseCase = Depends(get_yerlestirme_onayla_uc),
     gorev_repo=Depends(get_yerlestirme_gorevi_repo),
     palet_repo=Depends(get_palet_repo),
+    db: Session = Depends(get_db),
 ):
     """
     Ana scan-to-verify yerleştirme akışı.
@@ -256,6 +282,11 @@ def yerlestir(
     2. Başarılı ise → palet rafına atanır, görev TAMAMLANDI'ya geçer.
     3. Başarısız ise → hata tipi + alternatif raflar döner.
     """
+    if idempotency_key:
+        cached = idempotency_kontrol(db, idempotency_key, "terminal_yerlestir")
+        if cached is not None:
+            return cached
+
     # Palet barkodunu gorev_id ile çapraz doğrula
     gorev = gorev_repo.getir_id_ile(dto.gorev_id)
     if not gorev:
@@ -274,7 +305,15 @@ def yerlestir(
     onayla_dto = YerlestirmeOnaylaRequestDTO(
         okutulan_raf_kodu=dto.raf_barkod,
     )
-    return uc.execute(dto.gorev_id, onayla_dto, kullanici_id=current_user.id)
+    sonuc = uc.execute(dto.gorev_id, onayla_dto, kullanici_id=current_user.id)
+    if idempotency_key:
+        idempotency_kaydet(
+            db,
+            idempotency_key,
+            "terminal_yerlestir",
+            sonuc.model_dump(mode="json"),
+        )
+    return sonuc
 
 
 @router.get("/gorevlerim", response_model=List[YerlestirmeGoreviResponseDTO])
@@ -354,6 +393,16 @@ class PaletHataLogRequestDTO(BaseModel):
     palet_barkod: str = Field(..., min_length=1, max_length=100)
     beklenen_palet_barkod: Optional[str] = Field(None, max_length=100)
     gorev_id: Optional[int] = None
+
+    @field_validator("palet_barkod", mode="before")
+    @classmethod
+    def _palet_barkod_temizle(cls, value):
+        return sanitize_barkod(value)
+
+    @field_validator("beklenen_palet_barkod", mode="before")
+    @classmethod
+    def _beklenen_palet_barkod_temizle(cls, value):
+        return sanitize_barkod(value) if value is not None else None
 
 
 @router.post("/log-palet-hata", status_code=204)

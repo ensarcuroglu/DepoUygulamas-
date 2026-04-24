@@ -20,7 +20,7 @@ class IPaletRepository(ABC):
         ...
 
     @abstractmethod
-    def getir_id_ile(self, palet_id: int) -> Optional[Palet]:
+    def getir_id_ile(self, palet_id: int, kilitli_mi: bool = False) -> Optional[Palet]:
         ...
 
     @abstractmethod

@@ -184,3 +184,6 @@ def ana_sayfa():
 
 # PYRIGHT HATALARI KODU
 # pyright > pyright-hatalari.log
+
+# Sadeleştirilmiş Terminal Çıktısı ile Hızlı Kod Kapsamı Analizi (coverage.py)
+# pytest --cov=app --cov-report=term --disable-warnings -q --tb=short

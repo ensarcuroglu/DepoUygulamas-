@@ -6,12 +6,15 @@ Pilot depo kontrolü feature flag ile yönetilir.
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from fastapi.responses import PlainTextResponse
+from sqlalchemy.orm import Session
 
+from database import get_db
 from app.core.auth import get_current_user
 from app.core.config import get_feature_flags
 from app.core.entities.kullanici import KullaniciRol
+from app.core.idempotency import idempotency_kaydet, idempotency_kontrol
 from app.infrastructure.persistence.mappers.kullanici_destek_mapper import kullanici_to_entity
 from models import Kullanici
 from limiter import limiter
@@ -153,11 +156,26 @@ def uretim_paleti_kabul_bekle(
 def uretim_paleti_kabul_et(
     request: Request,
     palet_no: str,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     current_user: Kullanici = Depends(get_current_user),
     uc: UretimPaletiKabulEtUseCase = Depends(get_uretim_paleti_kabul_et_uc),
+    db: Session = Depends(get_db),
 ):
     _pilot_kontrol(current_user)
-    return uc.execute(palet_no, current_user)
+    if idempotency_key:
+        cached = idempotency_kontrol(db, idempotency_key, "uretim_paleti_kabul_et")
+        if cached is not None:
+            return cached
+
+    sonuc = uc.execute(palet_no, current_user)
+    if idempotency_key:
+        idempotency_kaydet(
+            db,
+            idempotency_key,
+            "uretim_paleti_kabul_et",
+            sonuc.model_dump(mode="json"),
+        )
+    return sonuc
 
 
 # ── Karantinaya Al ────────────────────────────────────────────────────────────
@@ -227,11 +245,26 @@ def uretim_paleti_yerlestir(
     request: Request,
     palet_no: str,
     dto: UretimPaletiYerlestirRequestDTO,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     current_user: Kullanici = Depends(get_current_user),
     uc: UretimPaletiYerlestirUseCase = Depends(get_uretim_paleti_yerlestir_uc),
+    db: Session = Depends(get_db),
 ):
     _pilot_kontrol(current_user)
-    return uc.execute(palet_no, dto.raf_id, current_user)
+    if idempotency_key:
+        cached = idempotency_kontrol(db, idempotency_key, "uretim_paleti_yerlestir")
+        if cached is not None:
+            return cached
+
+    sonuc = uc.execute(palet_no, dto.raf_id, current_user)
+    if idempotency_key:
+        idempotency_kaydet(
+            db,
+            idempotency_key,
+            "uretim_paleti_yerlestir",
+            sonuc.model_dump(mode="json"),
+        )
+    return sonuc
 
 
 # ── ZPL Etiket ────────────────────────────────────────────────────────────────

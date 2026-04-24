@@ -73,8 +73,15 @@ class SqlAlchemyYerlestirmeGoreviRepository(IYerlestirmeGoreviRepository):
         )
         return [_zenginlestir(o, yerlestirme_gorevi_to_entity(o)) for o in q.offset(skip).limit(limit).all()]
 
-    def getir_id_ile(self, gorev_id: int) -> Optional[YerlestirmeGorevi]:
-        orm = _joinli_query(self._db).filter(YerlestirmeGoreviORM.id == gorev_id).first()
+    def getir_id_ile(
+        self,
+        gorev_id: int,
+        kilitli_mi: bool = False,
+    ) -> Optional[YerlestirmeGorevi]:
+        query = _joinli_query(self._db).filter(YerlestirmeGoreviORM.id == gorev_id)
+        if kilitli_mi:
+            query = query.with_for_update()
+        orm = query.first()
         return _zenginlestir(orm, yerlestirme_gorevi_to_entity(orm)) if orm else None
 
     def olustur(self, gorev: YerlestirmeGorevi, auto_commit: bool = True) -> YerlestirmeGorevi:

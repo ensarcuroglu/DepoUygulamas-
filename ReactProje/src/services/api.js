@@ -417,7 +417,7 @@ export const bilinmeyenKonumGorevleriOlustur = (depo_id) =>
 // ========================
 export const terminalPaletScan = (data) => api.post('/terminal/scan/palet', data);
 export const terminalRafScan = (data) => api.post('/terminal/scan/raf', data);
-export const terminalYerlestir = (data) => api.post('/terminal/yerlestir', data);
+export const terminalYerlestir = (data, config = {}) => api.post('/terminal/yerlestir', data, config);
 export const terminalGorevlerim = () => api.get('/terminal/gorevlerim');
 export const terminalOzet = () => api.get('/terminal/ozet');
 export const terminalAlternatifRaf = (data) => api.post('/terminal/alternatif-raf', data);
@@ -437,12 +437,12 @@ export const getUretimPaletleri = (params = {}) => api.get('/uretim-paletleri/',
 export const getUretimPaleti = (paletNo) => api.get(`/uretim-paletleri/${paletNo}`);
 export const createUretimPaleti = (data) => api.post('/uretim-paletleri/', data);
 export const uretimPaletiKabulBekle = (paletNo) => api.post(`/uretim-paletleri/${paletNo}/kabul-bekle`);
-export const uretimPaletiKabulEt = (paletNo) => api.post(`/uretim-paletleri/${paletNo}/kabul-et`);
+export const uretimPaletiKabulEt = (paletNo, config = {}) => api.post(`/uretim-paletleri/${paletNo}/kabul-et`, null, config);
 export const uretimPaletiKarantinaAl = (paletNo, data) => api.post(`/uretim-paletleri/${paletNo}/karantina`, data);
 export const uretimPaletiKarantinaCikar = (paletNo, data) => api.post(`/uretim-paletleri/${paletNo}/karantina-cikar`, data);
 export const uretimPaletiIptal = (paletNo, data) => api.post(`/uretim-paletleri/${paletNo}/iptal`, data);
 export const uretimPaletiYerlestirmeBekle = (paletNo) => api.post(`/uretim-paletleri/${paletNo}/yerlestirme-bekle`);
-export const uretimPaletiYerlestir = (paletNo, data) => api.post(`/uretim-paletleri/${paletNo}/yerlestir`, data);
+export const uretimPaletiYerlestir = (paletNo, data, config = {}) => api.post(`/uretim-paletleri/${paletNo}/yerlestir`, data, config);
 export const getUretimPaletiEtiket = (paletNo) =>
   api.get(`/uretim-paletleri/${paletNo}/etiket`, { responseType: 'blob' });
 

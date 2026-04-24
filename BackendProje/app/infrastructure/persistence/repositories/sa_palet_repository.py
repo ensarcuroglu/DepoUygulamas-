@@ -47,11 +47,14 @@ class SqlAlchemyPaletRepository(IPaletRepository):
         orm_list = query.order_by(PaletORM.tarih.desc()).offset(skip).limit(limit).all()
         return [palet_to_entity(o) for o in orm_list]
 
-    def getir_id_ile(self, palet_id: int) -> Optional[Palet]:
-        orm = self._db.query(PaletORM).options(
+    def getir_id_ile(self, palet_id: int, kilitli_mi: bool = False) -> Optional[Palet]:
+        query = self._db.query(PaletORM).options(
             joinedload(PaletORM.lot).joinedload(LotORM.urun),
             joinedload(PaletORM.raf),
-        ).filter(PaletORM.id == palet_id).first()
+        ).filter(PaletORM.id == palet_id)
+        if kilitli_mi:
+            query = query.with_for_update()
+        orm = query.first()
         return palet_to_entity(orm) if orm else None
 
     def getir_palet_no_ile(self, palet_no: str, kilitli_mi: bool = False) -> Optional[Palet]:

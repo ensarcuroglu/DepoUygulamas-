@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Scan, CheckCircle, AlertTriangle, X, Loader2, Package, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { hataMetni } from '../utils/hata';
+import useTerminalScanInput from '../hooks/useTerminalScanInput';
+import { sanitizeBarkod } from '../utils/barcode';
 import { uretimPaletiKabulEt, uretimPaletiYerlestir, getRaflar, getUretimPaleti } from '../services/api';
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
@@ -15,6 +17,10 @@ const SONUC = {
     BASARI: 'basari',
     HATA: 'hata',
 };
+
+const idempotencyConfig = (idempotencyKey) => (
+    idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}
+);
 
 // ── Bileşen ───────────────────────────────────────────────────────────────────
 
@@ -64,15 +70,20 @@ export default function UretimPaletiKabulPage() {
 
     // ── Raf kodu → raf_id çözümleme ──
     const rafKoduCozumle = (kod) => {
-        const normalKod = kod.trim().toUpperCase();
+        const normalKod = sanitizeBarkod(kod, 'raf');
         const raf = raflar.find(
-            (r) => (r.kod || '').toUpperCase() === normalKod
+            (r) => [r.kod, r.raf_kodu, r.barkod, String(r.id)]
+                .filter(Boolean)
+                .some((aday) => String(aday).toUpperCase() === normalKod)
         );
         return raf || null;
     };
 
     // ── Faz 1: Palet barkod okut ──
-    const paletOkut = async (barkod) => {
+    const paletOkut = async (barkod, meta = {}) => {
+        const paletBarkod = sanitizeBarkod(barkod, 'palet');
+        if (!paletBarkod) return false;
+
         setYukleniyor(true);
         setSonuc(null);
 
@@ -80,7 +91,7 @@ export default function UretimPaletiKabulPage() {
             // Önce palet durumunu kontrol et
             let palet;
             try {
-                const durumRes = await getUretimPaleti(barkod);
+                const durumRes = await getUretimPaleti(paletBarkod);
                 palet = durumRes.data;
             } catch {
                 // Palet bulunamadı veya ağ hatası — kabul-et dene
@@ -96,12 +107,12 @@ export default function UretimPaletiKabulPage() {
                     mesaj: `Palet zaten kabul edilmiş — ${palet.koli_adedi} koli — Raf barkodunu okutun`,
                     palet,
                 });
-                toast.success(`${barkod} zaten kabul edilmiş — raf barkodunu okutun`);
-                return;
+                toast.success(`${paletBarkod} zaten kabul edilmiş — raf barkodunu okutun`);
+                return true;
             }
 
             // Normal akış: kabul-et çağrısı
-            const res = await uretimPaletiKabulEt(barkod);
+            const res = await uretimPaletiKabulEt(paletBarkod, idempotencyConfig(meta.idempotencyKey));
             palet = res.data;
             const yeniSonuc = {
                 tip: SONUC.BASARI,
@@ -111,16 +122,18 @@ export default function UretimPaletiKabulPage() {
             setSonuc(yeniSonuc);
             setKabulBilgi(palet);
             setFaz(FAZ.RAF_BEKLIYOR);
-            toast.success(`${barkod} kabul edildi — raf barkodunu okutun`);
+            toast.success(`${paletBarkod} kabul edildi — raf barkodunu okutun`);
+            return true;
         } catch (err) {
             const mesaj = hataMetni(err, 'Kabul işlemi başarısız');
             const yeniSonuc = { tip: SONUC.HATA, mesaj };
             setSonuc(yeniSonuc);
             setGecmis((prev) => [
-                { ...yeniSonuc, paletNo: barkod, rafKod: null, zaman: new Date().toLocaleTimeString('tr-TR') },
+                { ...yeniSonuc, paletNo: paletBarkod, rafKod: null, zaman: new Date().toLocaleTimeString('tr-TR') },
                 ...prev.slice(0, 19),
             ]);
             toast.error(mesaj);
+            return false;
         } finally {
             setYukleniyor(false);
             setBarkodInput('');
@@ -129,50 +142,53 @@ export default function UretimPaletiKabulPage() {
     };
 
     // ── Faz 2: Raf barkod okut ──
-    const rafOkut = async (barkod) => {
-        if (!kabulBilgi) return;
+    const rafOkut = async (barkod, meta = {}) => {
+        const rafBarkod = sanitizeBarkod(barkod, 'raf');
+        if (!kabulBilgi || !rafBarkod) return false;
 
         setYukleniyor(true);
         setSonuc(null);
 
         // Raf kodu → raf_id çözümle
-        const raf = rafKoduCozumle(barkod);
+        const raf = rafKoduCozumle(rafBarkod);
         if (!raf) {
-            const mesaj = `Raf bulunamadı: "${barkod}" — geçerli bir raf kodu okutun`;
+            const mesaj = `Raf bulunamadı: "${rafBarkod}" — geçerli bir raf kodu okutun`;
             setSonuc({ tip: SONUC.HATA, mesaj });
             toast.error(mesaj);
             setYukleniyor(false);
             setBarkodInput('');
             setTimeout(() => inputRef.current?.focus(), 50);
-            return;
+            return false;
         }
 
         try {
             await uretimPaletiYerlestir(kabulBilgi.palet_no, {
                 palet_no: kabulBilgi.palet_no,
                 raf_id: raf.id,
-            });
+            }, idempotencyConfig(meta.idempotencyKey));
 
+            const rafKod = raf.kod || raf.raf_kodu || rafBarkod;
             const yeniSonuc = {
                 tip: SONUC.BASARI,
-                mesaj: `Yerleştirildi — Raf ${raf.kod}`,
+                mesaj: `Yerleştirildi — Raf ${rafKod}`,
                 palet: kabulBilgi,
-                rafKod: raf.kod,
+                rafKod,
             };
             setSonuc(yeniSonuc);
             setGecmis((prev) => [
                 {
                     ...yeniSonuc,
                     paletNo: kabulBilgi.palet_no,
-                    rafKod: raf.kod,
+                    rafKod,
                     zaman: new Date().toLocaleTimeString('tr-TR'),
                 },
                 ...prev.slice(0, 19),
             ]);
-            toast.success(`${kabulBilgi.palet_no} → ${raf.kod} yerleştirildi`);
+            toast.success(`${kabulBilgi.palet_no} → ${rafKod} yerleştirildi`);
 
             // 3 saniye sonra otomatik sıfırla
             otomatikSifirla();
+            return true;
         } catch (err) {
             const mesaj = hataMetni(err, 'Yerleştirme başarısız');
             const yeniSonuc = { tip: SONUC.HATA, mesaj };
@@ -181,12 +197,13 @@ export default function UretimPaletiKabulPage() {
                 {
                     ...yeniSonuc,
                     paletNo: kabulBilgi.palet_no,
-                    rafKod: raf.kod,
+                    rafKod: raf.kod || raf.raf_kodu || rafBarkod,
                     zaman: new Date().toLocaleTimeString('tr-TR'),
                 },
                 ...prev.slice(0, 19),
             ]);
             toast.error(mesaj);
+            return false;
         } finally {
             setYukleniyor(false);
             setBarkodInput('');
@@ -195,16 +212,25 @@ export default function UretimPaletiKabulPage() {
     };
 
     // ── Form gönder ──
+    const scanMode = faz === FAZ.PALET_BEKLIYOR ? 'palet' : 'raf';
+    const scanInput = useTerminalScanInput({
+        mode: scanMode,
+        value: barkodInput,
+        setValue: setBarkodInput,
+        inputRef,
+        contextKey: scanMode === 'palet'
+            ? 'uretim-paleti-kabul:palet'
+            : `uretim-paleti-kabul:${kabulBilgi?.palet_no || 'yok'}:raf`,
+        disabled: yukleniyor,
+        isEnabled: !yukleniyor,
+        onSubmit: async (code, meta) => (scanMode === 'palet'
+            ? paletOkut(code, meta)
+            : rafOkut(code, meta)),
+    });
+
     const okut = async (e) => {
         e.preventDefault();
-        const no = barkodInput.trim();
-        if (!no) return;
-
-        if (faz === FAZ.PALET_BEKLIYOR) {
-            await paletOkut(no);
-        } else {
-            await rafOkut(no);
-        }
+        await scanInput.submitScan();
     };
 
     // ── Faz bazlı UI değerleri ──
@@ -284,10 +310,11 @@ export default function UretimPaletiKabulPage() {
                             : <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
                         }
                         <input
-                            ref={inputRef}
+                            ref={scanInput.inputRef}
                             type="text"
                             value={barkodInput}
                             onChange={(e) => setBarkodInput(e.target.value)}
+                            onKeyDown={scanInput.handleKeyDown}
                             placeholder={config.placeholder}
                             disabled={yukleniyor}
                             className={`w-full pl-12 pr-4 py-4 text-xl font-mono border-2 ${config.borderRenk} rounded-xl focus:outline-none focus:ring-2 transition-all disabled:opacity-50`}

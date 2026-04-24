@@ -483,6 +483,7 @@ def get_yerlestirme_algoritmasi(
 # ── Faz 2 — İş Akışı Entegrasyonu factory'leri ──
 
 def get_yerlestirme_onayla_uc(
+    db: Session = Depends(get_db),
     repo=Depends(get_yerlestirme_gorevi_repo),
     palet_repo=Depends(get_palet_repo),
     raf_repo=Depends(get_raf_repo),
@@ -496,7 +497,7 @@ def get_yerlestirme_onayla_uc(
 ):
     return YerlestirmeOnaylaUseCase(
         repo, palet_repo, raf_repo, lot_repo, urun_repo,
-        zon_repo, zon_uyumluluk, kapasite, log_repo, mal_kabul_repo,
+        zon_repo, zon_uyumluluk, kapasite, log_repo, mal_kabul_repo, db,
     )
 
 

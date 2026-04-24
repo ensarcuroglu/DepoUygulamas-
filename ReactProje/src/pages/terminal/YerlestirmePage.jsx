@@ -2,17 +2,20 @@
  * YerlestirmePage — 4 adımlı scan-to-verify yerleştirme akışı.
  * Sleek Industrial & Glassmorphism UI (Light & Dark Mode)
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Package, Camera, CheckCircle, XCircle, ArrowRight,
-  RefreshCw, ChevronLeft, ScanLine, CornerDownRight, AlertTriangle,
+  Package, CheckCircle, XCircle, ArrowRight,
+  RefreshCw, ChevronLeft, ScanLine, CornerDownRight,
   AlertCircle, MapPin, ShieldAlert,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { useAsync } from '../../hooks/useAsync';
 import { useAuth } from '../../contexts/AuthContext';
+import useTerminalScanInput from '../../hooks/useTerminalScanInput';
+import { sanitizeBarkod } from '../../utils/barcode';
+import { hataMetni } from '../../utils/hata';
 import ZXingBarcodeScanner from '../../components/common/ZXingBarcodeScanner';
 import {
   siradakiGorevisiniAl,
@@ -23,9 +26,14 @@ import {
   getBekleyenGorevOzet,
   goreviOverride,
   karantinayaAl,
+  terminalLogPaletHata,
 } from '../../services/api';
 
 const ADIM = { GOREV: 1, PALET: 2, RAF: 3, SONUC: 4 };
+
+const idempotencyConfig = (idempotencyKey) => (
+  idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}
+);
 
 // Ortak Animasyon Varyantı (Adımlar arası sağdan sola kayma)
 const stepVariants = {
@@ -46,7 +54,6 @@ export default function YerlestirmePage() {
   const [gorev, setGorev] = useState(location.state?.gorev || null);
   const [bekleyenSayisi, setBekleyenSayisi] = useState(null);
   const [paletBarkod, setPaletBarkod] = useState('');
-  const [rafBarkod, setRafBarkod] = useState(''); // Kullanımı düzeltildi
   const [sonuc, setSonuc] = useState(null);
   const [kameraAcik, setKameraAcik] = useState(false);
   const [kameraMod, setKameraMod] = useState('palet');
@@ -125,37 +132,47 @@ export default function YerlestirmePage() {
     }
   };
 
-  const paletDogrula = (barkod) => {
-    const b = barkod.trim();
-    if (!b) return;
-    const beklenen = gorev?.palet_barkodu;
+  const paletDogrula = useCallback((barkod) => {
+    const b = sanitizeBarkod(barkod, 'palet');
+    if (!b) return false;
+    const beklenen = sanitizeBarkod(gorev?.palet_barkodu, 'palet');
     if (beklenen && b !== beklenen) {
-      toast.error(`Yanlış palet! Beklenen: ${beklenen}`);
-      return;
+      toast.error(`Yanlış palet. Beklenen: ${beklenen}`);
+      if (gorev?.id) {
+        void terminalLogPaletHata({
+          palet_barkod: b,
+          beklenen_palet_barkod: beklenen,
+          gorev_id: gorev.id,
+        }).catch(() => {});
+      }
+      return false;
     }
     setPaletBarkod(b);
+    setManuelPalet('');
     setAdim(ADIM.RAF);
-    toast.success('Palet doğrulandı!');
-  };
+    toast.success('Palet doğrulandı. Raf barkodunu okutun.');
+    return true;
+  }, [gorev]);
 
-  const yerlestir = async (rafKod) => {
-    const r = rafKod.trim();
-    if (!r) return;
-    setRafBarkod(r);
+  const yerlestir = useCallback(async (rafKod, meta = {}) => {
+    const r = sanitizeBarkod(rafKod, 'raf');
+    if (!r) return false;
     try {
       await run(async () => {
         const res = await terminalYerlestir({
           gorev_id: gorev.id,
           palet_barkod: paletBarkod,
           raf_barkod: r,
-        });
+        }, idempotencyConfig(meta.idempotencyKey));
         setSonuc(res.data);
         setAdim(ADIM.SONUC);
       });
-    } catch {
-      toast.error('Yerleştirme doğrulaması başarısız.');
+      return true;
+    } catch (err) {
+      toast.error(hataMetni(err, 'Yerleştirme doğrulaması başarısız.'));
+      return false;
     }
-  };
+  }, [gorev, paletBarkod, run]);
 
   const overrideYap = async () => {
     if (!overrideRafSec) return toast.error('Lütfen önce bir alternatif raf seçin.');
@@ -201,7 +218,6 @@ export default function YerlestirmePage() {
   const sifirla = () => {
     setGorev(null);
     setPaletBarkod('');
-    setRafBarkod('');
     setSonuc(null);
     setManuelPalet('');
     setManuelRaf('');
@@ -212,29 +228,60 @@ export default function YerlestirmePage() {
     void bekleyenYukle();
   };
 
+  const scanDisabled = loading || kameraAcik || overrideModal || sorunSheet;
+  const {
+    inputRef: paletInputRef,
+    zebraDetected: paletZebraDetected,
+    handleKeyDown: handlePaletKeyDown,
+    submitScan: submitPaletScan,
+  } = useTerminalScanInput({
+    mode: 'palet',
+    value: manuelPalet,
+    setValue: setManuelPalet,
+    contextKey: `yerlestirme:${gorev?.id || 'yok'}:palet`,
+    disabled: scanDisabled,
+    isEnabled: adim === ADIM.PALET && !!gorev && !scanDisabled,
+    onSubmit: paletDogrula,
+  });
+  const {
+    inputRef: rafInputRef,
+    zebraDetected: rafZebraDetected,
+    handleKeyDown: handleRafKeyDown,
+    submitScan: submitRafScan,
+  } = useTerminalScanInput({
+    mode: 'raf',
+    value: manuelRaf,
+    setValue: setManuelRaf,
+    contextKey: `yerlestirme:${gorev?.id || 'yok'}:raf`,
+    disabled: scanDisabled,
+    isEnabled: adim === ADIM.RAF && !!gorev && !scanDisabled,
+    onSubmit: yerlestir,
+  });
+  const zebraDetected = paletZebraDetected || rafZebraDetected;
+
   // --- Render Area ---
   return (
     <div className="w-full h-full relative overflow-hidden pb-6">
       <AnimatePresence mode="wait">
         {/* ─── Adım 1: Görev ─────────────────────────────────────────── */}
         {adim === ADIM.GOREV && (
-          <motion.div key="adim1" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-2">
+          <Motion.div key="adim1" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-2">
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Yerleştirme</h1>
             </div>
 
             {bekleyenSayisi !== null && !gorev && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md rounded-[28px] p-6 border border-slate-200/60 dark:border-slate-800/60 text-center relative overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] mt-4">
+              <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md rounded-[28px] p-6 border border-slate-200/60 dark:border-slate-800/60 text-center relative overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] mt-4">
                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px]" />
                 <p className="text-5xl font-black text-blue-600 dark:text-blue-400 drop-shadow-sm tracking-tighter">{bekleyenSayisi}</p>
                 <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-2 tracking-widest uppercase">Havuzda Bekleyen</p>
-              </motion.div>
+              </Motion.div>
             )}
 
             {!gorev ? (
               <div className="relative mt-8">
                 <div className="absolute -inset-[2px] bg-gradient-to-r from-blue-600 via-blue-400 to-indigo-600 rounded-[28px] blur-[12px] opacity-25 animate-pulse" />
-                <motion.button
+                <Motion.button
                   whileTap={!loading ? { scale: 0.97 } : {}}
                   onClick={goreviAl}
                   disabled={loading}
@@ -247,10 +294,10 @@ export default function YerlestirmePage() {
                       <ArrowRight className="w-7 h-7 relative z-10 drop-shadow-sm" strokeWidth={2.5} />
                     </>
                   )}
-                </motion.button>
+                </Motion.button>
               </div>
             ) : (
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative mt-2">
+              <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative mt-2">
                 <div className="bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 rounded-[24px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
                   <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500 shadow-[2px_0_15px_rgba(59,130,246,0.3)]" />
                   <div className="p-5 space-y-4">
@@ -295,7 +342,7 @@ export default function YerlestirmePage() {
                     >
                       Bırak
                     </button>
-                    <motion.button
+                    <Motion.button
                       whileTap={!loading ? { scale: 0.95 } : {}}
                       onClick={goreviBaslatAction}
                       disabled={loading}
@@ -304,17 +351,17 @@ export default function YerlestirmePage() {
                       {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : (
                         <><span className="mt-0.5">{gorev.durum === 'DevamEdiyor' ? 'DEVAM ET' : 'BAŞLAT'}</span> <ArrowRight className="w-5 h-5" strokeWidth={2.5} /></>
                       )}
-                    </motion.button>
+                    </Motion.button>
                   </div>
                 </div>
-              </motion.div>
+              </Motion.div>
             )}
-          </motion.div>
+          </Motion.div>
         )}
 
         {/* ─── Adım 2: Palet Scan ─────────────────────────────────────────── */}
         {adim === ADIM.PALET && (
-          <motion.div key="adim2" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-2">
+          <Motion.div key="adim2" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-2">
             <AdimHeader adim={2} toplam={3} baslik="Paleti Tara" onGeri={() => setAdim(ADIM.GOREV)} />
 
             <div className="bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md rounded-[24px] p-5 border border-slate-200/60 dark:border-slate-800/60 space-y-2 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
@@ -324,31 +371,34 @@ export default function YerlestirmePage() {
               {gorev.miktar != null && <InfoRow label="Miktar" value={`${gorev.miktar} koli`} />}
             </div>
 
-            <ScanButton onClick={() => { setKameraMod('palet'); setKameraAcik(true); }} text="PALET BARKODUNU OKUT" />
+            {!zebraDetected && (
+              <ScanButton onClick={() => { setKameraMod('palet'); setKameraAcik(true); }} text="KAMERA İLE OKUT" />
+            )}
 
             <div className="space-y-3">
               <Divider text="Manuel Gir" />
               <div className="flex gap-2">
                 <input
+                  ref={paletInputRef}
                   className="flex-1 bg-white dark:bg-[#121316] border border-slate-200/60 dark:border-slate-800/60 rounded-[20px] px-5 py-4 text-slate-900 dark:text-white text-[15px] font-mono tracking-wide placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
-                  placeholder="PLT-2026-XXXXX"
+                  placeholder="PRD-20260424-001"
                   value={manuelPalet}
                   onChange={(e) => setManuelPalet(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && paletDogrula(manuelPalet)}
+                  onKeyDown={handlePaletKeyDown}
                 />
-                <motion.button whileTap={{ scale: 0.9 }} onClick={() => paletDogrula(manuelPalet)} className="bg-blue-600 dark:bg-blue-500 text-white w-14 rounded-[20px] flex items-center justify-center tap-highlight-transparent shadow-lg shadow-blue-500/20">
+                <Motion.button whileTap={{ scale: 0.9 }} onClick={() => void submitPaletScan()} disabled={scanDisabled || !manuelPalet.trim()} className="bg-blue-600 dark:bg-blue-500 disabled:opacity-50 text-white w-14 rounded-[20px] flex items-center justify-center tap-highlight-transparent shadow-lg shadow-blue-500/20">
                   <CornerDownRight className="w-5 h-5" strokeWidth={2.5} />
-                </motion.button>
+                </Motion.button>
               </div>
             </div>
 
             <ProblemButton onClick={() => setSorunSheet(true)} />
-          </motion.div>
+          </Motion.div>
         )}
 
         {/* ─── Adım 3: Raf Scan ─────────────────────────────────────────── */}
         {adim === ADIM.RAF && (
-          <motion.div key="adim3" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-2">
+          <Motion.div key="adim3" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-2">
             <AdimHeader adim={3} toplam={3} baslik="Rafa Yerleştir" onGeri={() => setAdim(ADIM.PALET)} />
 
             <div className="bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md rounded-[24px] p-5 border border-slate-200/60 dark:border-slate-800/60 space-y-2 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
@@ -366,43 +416,46 @@ export default function YerlestirmePage() {
               <p className="text-[13px] text-sky-800 dark:text-sky-200/90 font-medium leading-snug">Hedef raf barkodunu okutun ya da farklı uygun bir raf seçin.</p>
             </div>
 
-            <ScanButton onClick={() => { setKameraMod('raf'); setKameraAcik(true); }} text="RAF BARKODUNU OKUT" />
+            {!zebraDetected && (
+              <ScanButton onClick={() => { setKameraMod('raf'); setKameraAcik(true); }} text="KAMERA İLE OKUT" />
+            )}
 
             <div className="space-y-3">
               <Divider text="Manuel Gir" />
               <div className="flex gap-2">
                 <input
+                  ref={rafInputRef}
                   className="flex-1 bg-white dark:bg-[#121316] border border-slate-200/60 dark:border-slate-800/60 rounded-[20px] px-5 py-4 text-slate-900 dark:text-white text-[15px] font-mono tracking-wide placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
                   placeholder="GNL-A-01-01-01"
                   value={manuelRaf}
                   onChange={(e) => setManuelRaf(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && yerlestir(manuelRaf)}
+                  onKeyDown={handleRafKeyDown}
                 />
-                <motion.button whileTap={{ scale: 0.9 }} disabled={loading} onClick={() => yerlestir(manuelRaf)} className="bg-blue-600 dark:bg-blue-500 disabled:opacity-50 text-white w-14 rounded-[20px] flex items-center justify-center tap-highlight-transparent shadow-lg shadow-blue-500/20">
+                <Motion.button whileTap={{ scale: 0.9 }} disabled={scanDisabled || loading || !manuelRaf.trim()} onClick={() => void submitRafScan()} className="bg-blue-600 dark:bg-blue-500 disabled:opacity-50 text-white w-14 rounded-[20px] flex items-center justify-center tap-highlight-transparent shadow-lg shadow-blue-500/20">
                   {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CornerDownRight className="w-5 h-5" strokeWidth={2.5} />}
-                </motion.button>
+                </Motion.button>
               </div>
             </div>
 
             <ProblemButton onClick={() => setSorunSheet(true)} />
-          </motion.div>
+          </Motion.div>
         )}
 
         {/* ─── Adım 4: Sonuç ─────────────────────────────────────────── */}
         {adim === ADIM.SONUC && sonuc && (
-          <motion.div key="adim4" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-6">
+          <Motion.div key="adim4" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-6">
             <div className={`rounded-[32px] p-8 text-center border relative overflow-hidden shadow-2xl backdrop-blur-md ${sonuc.basarili ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-500/20' : 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-500/20'}`}>
               <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 blur-[50px] rounded-full pointer-events-none ${sonuc.basarili ? 'bg-emerald-400/20 dark:bg-emerald-500/20' : 'bg-rose-400/20 dark:bg-rose-500/20'}`} />
               
               <div className="relative z-10 flex flex-col items-center">
                 {sonuc.basarili ? (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 15 }} className="bg-emerald-100 dark:bg-emerald-500/10 w-24 h-24 rounded-full flex items-center justify-center mb-5 border border-emerald-300 dark:border-emerald-500/30">
+                  <Motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 15 }} className="bg-emerald-100 dark:bg-emerald-500/10 w-24 h-24 rounded-full flex items-center justify-center mb-5 border border-emerald-300 dark:border-emerald-500/30">
                     <CheckCircle className="w-12 h-12 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
-                  </motion.div>
+                  </Motion.div>
                 ) : (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 15 }} className="bg-rose-100 dark:bg-rose-500/10 w-24 h-24 rounded-full flex items-center justify-center mb-5 border border-rose-300 dark:border-rose-500/30">
+                  <Motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 15 }} className="bg-rose-100 dark:bg-rose-500/10 w-24 h-24 rounded-full flex items-center justify-center mb-5 border border-rose-300 dark:border-rose-500/30">
                     <XCircle className="w-12 h-12 text-rose-600 dark:text-rose-400" strokeWidth={2} />
-                  </motion.div>
+                  </Motion.div>
                 )}
                 <h2 className={`text-2xl font-black tracking-tight ${sonuc.basarili ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
                   {sonuc.basarili ? 'İşlem Başarılı!' : 'Doğrulama Hatası'}
@@ -426,10 +479,10 @@ export default function YerlestirmePage() {
                     <Divider text="Alternatif Raflar" />
                     <div className="space-y-2">
                       {sonuc.alternatifler.map((alt) => (
-                        <motion.button
+                        <Motion.button
                           whileTap={{ scale: 0.98 }}
                           key={alt.raf_id}
-                          onClick={() => { setOverrideRafSec(alt); setRafBarkod(alt.raf_kod); setOverrideModal(true); }}
+                          onClick={() => { setOverrideRafSec(alt); setOverrideModal(true); }}
                           className="w-full bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-4 text-left hover:border-orange-400/50 dark:hover:border-orange-500/30 transition-colors relative overflow-hidden group shadow-sm"
                         >
                           <div className="flex justify-between items-center">
@@ -441,20 +494,20 @@ export default function YerlestirmePage() {
                             <div className="w-px bg-slate-200 dark:bg-slate-700" />
                             <span>Skor: {alt.skor}</span>
                           </div>
-                        </motion.button>
+                        </Motion.button>
                       ))}
                     </div>
                   </div>
                 )}
 
                 {sonuc.override_gerekli && overrideYetkisiVar && (
-                  <motion.button
+                  <Motion.button
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setOverrideModal(true)}
                     className="w-full bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/30 text-orange-600 dark:text-orange-400 font-bold rounded-[20px] py-4 flex items-center justify-center gap-2"
                   >
                     <ShieldAlert className="w-5 h-5" /> SÜPERVİZÖR OVERRIDE
-                  </motion.button>
+                  </Motion.button>
                 )}
               </div>
             )}
@@ -463,16 +516,23 @@ export default function YerlestirmePage() {
               <button onClick={() => navigate('/terminal/gorevler')} className="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-[14px] rounded-[20px] py-4 transition-colors tap-highlight-transparent">
                 Listeye Dön
               </button>
-              <motion.button whileTap={{ scale: 0.98 }} onClick={sifirla} className="flex-[2] bg-blue-600 dark:bg-blue-500 text-white font-black rounded-[20px] py-4 flex items-center justify-center gap-2 tap-highlight-transparent">
+              <Motion.button whileTap={{ scale: 0.98 }} onClick={sifirla} className="flex-[2] bg-blue-600 dark:bg-blue-500 text-white font-black rounded-[20px] py-4 flex items-center justify-center gap-2 tap-highlight-transparent">
                 <span className="mt-0.5">SONRAKİ GÖREV</span> <ArrowRight className="w-5 h-5" strokeWidth={2.5} />
-              </motion.button>
+              </Motion.button>
             </div>
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
 
       {/* Global Modallar (Override & Kamera & Sorun) */}
-      <ZXingBarcodeScanner isOpen={kameraAcik} onClose={() => setKameraAcik(false)} onScanSuccess={(code) => { setKameraAcik(false); adim === ADIM.PALET ? paletDogrula(code) : yerlestir(code); }} />
+      <ZXingBarcodeScanner
+        isOpen={kameraAcik}
+        onClose={() => setKameraAcik(false)}
+        onScanSuccess={(code) => {
+          setKameraAcik(false);
+          void (kameraMod === 'palet' ? submitPaletScan : submitRafScan)(code, { force: true });
+        }}
+      />
 
       <SorunSheet open={sorunSheet} onClose={() => { setSorunSheet(false); setSorunTip(null); setSorunNeden(''); }} sorunTip={sorunTip} setSorunTip={setSorunTip} sorunNeden={sorunNeden} setSorunNeden={setSorunNeden} onGonder={sorunGonder} loading={loading} sorunIslemYetkisiVar={sorunIslemYetkisiVar} />
       
@@ -521,12 +581,12 @@ function OncelikBadge({ oncelik }) {
 
 function ScanButton({ onClick, text }) {
   return (
-    <motion.button whileTap={{ scale: 0.98 }} onClick={onClick} className="w-full bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 hover:border-blue-400/50 dark:hover:border-blue-500/50 rounded-[28px] py-10 flex flex-col items-center gap-3 transition-colors group shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
+    <Motion.button whileTap={{ scale: 0.98 }} onClick={onClick} className="w-full bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 hover:border-blue-400/50 dark:hover:border-blue-500/50 rounded-[28px] py-10 flex flex-col items-center gap-3 transition-colors group shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
       <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-[20px] group-hover:bg-blue-50 dark:group-hover:bg-blue-500/10 transition-colors">
         <ScanLine className="w-10 h-10 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" strokeWidth={1.5} />
       </div>
       <span className="text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 font-black text-[13px] tracking-widest">{text}</span>
-    </motion.button>
+    </Motion.button>
   );
 }
 
@@ -556,8 +616,8 @@ function SorunSheet({ open, onClose, sorunTip, setSorunTip, sorunNeden, setSorun
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" />
-          <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 300 }} className="w-full max-w-md bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-white/[0.05] rounded-t-[32px] p-6 pb-[calc(24px+env(safe-area-inset-bottom))] relative z-10 space-y-5 shadow-2xl">
+          <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" />
+          <Motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 300 }} className="w-full max-w-md bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-white/[0.05] rounded-t-[32px] p-6 pb-[calc(24px+env(safe-area-inset-bottom))] relative z-10 space-y-5 shadow-2xl">
             <div className="w-12 h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full mx-auto mb-4" />
             <h3 className="font-bold text-xl text-slate-900 dark:text-zinc-100 flex items-center gap-2"><AlertCircle className="w-6 h-6 text-rose-500" /> Sorun Bildir</h3>
             
@@ -573,14 +633,14 @@ function SorunSheet({ open, onClose, sorunTip, setSorunTip, sorunNeden, setSorun
             </div>
 
             {sorunTip && sorunIslemYetkisiVar && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
+              <Motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
                 <textarea className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/[0.05] rounded-2xl p-4 text-[14px] text-slate-900 dark:text-zinc-100 outline-none focus:border-blue-500/50 resize-none h-24" placeholder="Sorunu açıklayın..." value={sorunNeden} onChange={(e) => setSorunNeden(e.target.value)} />
                 <button onClick={onGonder} disabled={loading || !sorunNeden.trim()} className="w-full bg-blue-600 dark:bg-blue-500 text-white font-black rounded-[20px] py-4 disabled:opacity-50 flex justify-center shadow-lg shadow-blue-500/20">
                   {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : 'İşlemi Onayla'}
                 </button>
-              </motion.div>
+              </Motion.div>
             )}
-          </motion.div>
+          </Motion.div>
         </div>
       )}
     </AnimatePresence>
@@ -592,8 +652,8 @@ function OverrideModal({ open, onClose, overrideRafSec, overrideNeden, setOverri
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm" />
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-white dark:bg-zinc-950 border border-slate-200 dark:border-white/[0.05] rounded-[32px] p-6 relative z-10 space-y-5 shadow-2xl">
+          <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm" />
+          <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm bg-white dark:bg-zinc-950 border border-slate-200 dark:border-white/[0.05] rounded-[32px] p-6 relative z-10 space-y-5 shadow-2xl">
             <h3 className="font-bold text-xl text-slate-900 dark:text-zinc-100 flex items-center gap-2"><ShieldAlert className="w-6 h-6 text-orange-500" /> Override</h3>
             {overrideRafSec && (
               <div className="bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-2xl p-4">
@@ -607,7 +667,7 @@ function OverrideModal({ open, onClose, overrideRafSec, overrideNeden, setOverri
                 {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : 'Onayla'}
               </button>
             </div>
-          </motion.div>
+          </Motion.div>
         </div>
       )}
     </AnimatePresence>

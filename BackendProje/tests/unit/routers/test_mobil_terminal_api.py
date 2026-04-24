@@ -12,6 +12,7 @@ from types import SimpleNamespace
 import pytest
 from unittest.mock import MagicMock
 
+from app.api.v1.routers import mobil_terminal as mobil_terminal_router
 from app.application.dto.yerlestirme_gorevi_dto import (
     AlternatifRafDTO,
     YerlestirmeGoreviResponseDTO,
@@ -44,7 +45,7 @@ def _set_override(dep, value):
     app.dependency_overrides[dep] = lambda: value
 
 
-def _palet_stub(*, id=1, palet_no="P-001", aktif=True, lot_id=10, raf_id=20, koli_adedi=50, palet_kg=120.0):
+def _palet_stub(*, id=1, palet_no="PRD-20260424-001", aktif=True, lot_id=10, raf_id=20, koli_adedi=50, palet_kg=120.0):
     return SimpleNamespace(
         id=id, palet_no=palet_no, aktif=aktif, lot_id=lot_id,
         raf_id=raf_id, koli_adedi=koli_adedi, palet_kg=palet_kg,
@@ -87,11 +88,11 @@ def _gorev_dto(
 
 class TestScanPalet:
     def test_anonim_401(self, anon_client):
-        resp = anon_client.post("/api/terminal/scan/palet", json={"palet_barkod": "P-1"})
+        resp = anon_client.post("/api/terminal/scan/palet", json={"palet_barkod": "PRD-20260424-001"})
         assert resp.status_code == 401
 
     def test_happy_path_lot_ve_raf_zenginlestirir(self, client, depocu_user):
-        palet = _palet_stub(palet_no="P-001")
+        palet = _palet_stub(palet_no="PRD-20260424-001")
         uc = MagicMock()
         uc.execute.return_value = palet
         lot_repo = MagicMock()
@@ -99,34 +100,34 @@ class TestScanPalet:
         urun_repo = MagicMock()
         urun_repo.getir_id_ile.return_value = SimpleNamespace(ad="Süt 1L")
         raf_repo = MagicMock()
-        raf_repo.getir_id_ile.return_value = SimpleNamespace(kod="A-01-01")
+        raf_repo.getir_id_ile.return_value = SimpleNamespace(kod="GNL-A-01-01-01")
 
         _set_override(get_palet_barkod_ile_getir_uc, uc)
         _set_override(get_lot_repo, lot_repo)
         _set_override(get_urun_repo, urun_repo)
         _set_override(get_raf_repo, raf_repo)
 
-        resp = client.post("/api/terminal/scan/palet", json={"palet_barkod": "P-001"})
+        resp = client.post("/api/terminal/scan/palet", json={"palet_barkod": "PRD-20260424-001"})
 
         assert resp.status_code == 200, resp.text
         data = resp.json()
-        assert data["palet_no"] == "P-001"
+        assert data["palet_no"] == "PRD-20260424-001"
         assert data["lot_no"] == "LOT-1"
         assert data["urun_adi"] == "Süt 1L"
-        assert data["raf_kod"] == "A-01-01"
-        uc.execute.assert_called_once_with("P-001")
+        assert data["raf_kod"] == "GNL-A-01-01-01"
+        uc.execute.assert_called_once_with("PRD-20260424-001")
 
     def test_palet_yok_404(self, client, depocu_user):
         from app.core.exceptions import KayitBulunamadiError
 
         uc = MagicMock()
-        uc.execute.side_effect = KayitBulunamadiError("Palet", "P-YOK")
+        uc.execute.side_effect = KayitBulunamadiError("Palet", "PRD-20260424-999")
         _set_override(get_palet_barkod_ile_getir_uc, uc)
         _set_override(get_lot_repo, MagicMock())
         _set_override(get_urun_repo, MagicMock())
         _set_override(get_raf_repo, MagicMock())
 
-        resp = client.post("/api/terminal/scan/palet", json={"palet_barkod": "P-YOK"})
+        resp = client.post("/api/terminal/scan/palet", json={"palet_barkod": "PRD-20260424-999"})
         assert resp.status_code == 404
 
     def test_bos_barkod_422(self, client, depocu_user):
@@ -145,7 +146,7 @@ class TestScanPalet:
 class TestScanRaf:
     def _setup_ok(self, *, raf_kapasite=10, palet_sayisi=3):
         raf = SimpleNamespace(
-            id=20, kod="A-01-01", zon_id=55, kapasite=raf_kapasite, max_agirlik_kg=1000.0,
+            id=20, kod="GNL-A-01-01-01", zon_id=55, kapasite=raf_kapasite, max_agirlik_kg=1000.0,
         )
         raf_repo = MagicMock()
         raf_repo.getir_kod_ile.return_value = raf
@@ -163,7 +164,7 @@ class TestScanRaf:
     def test_depocu_kendi_deposuyla_sorgular(self, client, depocu_user):
         raf_repo, *_ = self._setup_ok(raf_kapasite=10, palet_sayisi=3)
 
-        resp = client.post("/api/terminal/scan/raf", json={"raf_barkod": "A-01-01"})
+        resp = client.post("/api/terminal/scan/raf", json={"raf_barkod": "GNL-A-01-01-01"})
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert data["raf_id"] == 20
@@ -171,26 +172,26 @@ class TestScanRaf:
         assert data["bos_slot"] == 7
         assert data["mevcut_agirlik_kg"] == 300.0
         # Depocu'nun depo_id'si (7) iletildi
-        raf_repo.getir_kod_ile.assert_called_once_with("A-01-01", 7)
+        raf_repo.getir_kod_ile.assert_called_once_with("GNL-A-01-01-01", 7)
 
     def test_depocu_depo_id_override_edemez(self, client, depocu_user):
         """Depocu body'de depo_id gönderse de kendi deposu kullanılır."""
         raf_repo, *_ = self._setup_ok()
         resp = client.post(
             "/api/terminal/scan/raf",
-            json={"raf_barkod": "A-01-01", "depo_id": 999},
+            json={"raf_barkod": "GNL-A-01-01-01", "depo_id": 999},
         )
         assert resp.status_code == 200
-        raf_repo.getir_kod_ile.assert_called_once_with("A-01-01", 7)
+        raf_repo.getir_kod_ile.assert_called_once_with("GNL-A-01-01-01", 7)
 
     def test_admin_body_depo_id_kullanilir(self, client, admin_user):
         raf_repo, *_ = self._setup_ok()
         resp = client.post(
             "/api/terminal/scan/raf",
-            json={"raf_barkod": "A-01-01", "depo_id": 42},
+            json={"raf_barkod": "GNL-A-01-01-01", "depo_id": 42},
         )
         assert resp.status_code == 200
-        raf_repo.getir_kod_ile.assert_called_once_with("A-01-01", 42)
+        raf_repo.getir_kod_ile.assert_called_once_with("GNL-A-01-01-01", 42)
 
     def test_raf_yok_404(self, client, depocu_user):
         raf_repo = MagicMock(); raf_repo.getir_kod_ile.return_value = None
@@ -198,7 +199,7 @@ class TestScanRaf:
         _set_override(get_zon_repo, MagicMock())
         _set_override(get_palet_repo, MagicMock())
 
-        resp = client.post("/api/terminal/scan/raf", json={"raf_barkod": "YOK"})
+        resp = client.post("/api/terminal/scan/raf", json={"raf_barkod": "GNL-A-99-99-99"})
         assert resp.status_code == 404
 
     def test_depocu_depo_atanmamis_400(self, client, override_user):
@@ -214,7 +215,7 @@ class TestScanRaf:
         _set_override(get_zon_repo, MagicMock())
         _set_override(get_palet_repo, MagicMock())
 
-        resp = client.post("/api/terminal/scan/raf", json={"raf_barkod": "A-01"})
+        resp = client.post("/api/terminal/scan/raf", json={"raf_barkod": "GNL-A-01-01-01"})
         assert resp.status_code == 400
         assert "depo" in resp.json()["error"].lower()
 
@@ -224,7 +225,7 @@ class TestScanRaf:
 # ─────────────────────────────────────────
 
 class TestYerlestir:
-    def _base_setup(self, palet_no="P-001", depo_id=7):
+    def _base_setup(self, palet_no="PRD-20260424-001", depo_id=7):
         gorev_orm = SimpleNamespace(id=5, palet_id=1, depo_id=depo_id)
         palet = _palet_stub(id=1, palet_no=palet_no)
         gorev_repo = MagicMock(); gorev_repo.getir_id_ile.return_value = gorev_orm
@@ -232,7 +233,7 @@ class TestYerlestir:
         uc = MagicMock()
         uc.execute.return_value = YerlestirmeOnaylaSonucDTO(
             basarili=True, durum="TAMAMLANDI", palet_no=palet_no,
-            raf_kod="A-01-01", mesaj="ok", gorev=_gorev_dto(id=5, durum=GorevDurum.TAMAMLANDI),
+            raf_kod="GNL-A-01-01-01", mesaj="ok", gorev=_gorev_dto(id=5, durum=GorevDurum.TAMAMLANDI),
         )
         _set_override(get_yerlestirme_gorevi_repo, gorev_repo)
         _set_override(get_palet_repo, palet_repo)
@@ -240,8 +241,8 @@ class TestYerlestir:
         return gorev_repo, palet_repo, uc
 
     def test_happy_path_use_case_dogru_parametrelerle_cagrilir(self, client, depocu_user):
-        _, _, uc = self._base_setup(palet_no="P-001")
-        body = {"gorev_id": 5, "palet_barkod": "P-001", "raf_barkod": "A-01-01"}
+        _, _, uc = self._base_setup(palet_no="PRD-20260424-001")
+        body = {"gorev_id": 5, "palet_barkod": "PRD-20260424-001", "raf_barkod": "GNL-A-01-01-01"}
 
         resp = client.post("/api/terminal/yerlestir", json=body)
 
@@ -252,8 +253,39 @@ class TestYerlestir:
         # kullanici_id depocu id'si 2 olacak
         call_args = uc.execute.call_args
         assert call_args.args[0] == 5
-        assert call_args.args[1].okutulan_raf_kodu == "A-01-01"
+        assert call_args.args[1].okutulan_raf_kodu == "GNL-A-01-01-01"
         assert call_args.kwargs["kullanici_id"] == 2
+
+    def test_idempotency_cache_hit_use_case_cagrilmaz(self, client, depocu_user, monkeypatch):
+        gorev_repo, palet_repo, uc = self._base_setup(palet_no="PRD-20260424-001")
+        cached = {
+            "basarili": True,
+            "durum": "TAMAMLANDI",
+            "palet_no": "PRD-20260424-001",
+            "raf_kod": "GNL-A-01-01-01",
+            "mesaj": "cached",
+        }
+        monkeypatch.setattr(
+            mobil_terminal_router,
+            "idempotency_kontrol",
+            lambda db, key, endpoint: cached,
+        )
+
+        resp = client.post(
+            "/api/terminal/yerlestir",
+            headers={"Idempotency-Key": "scan-test"},
+            json={
+                "gorev_id": 5,
+                "palet_barkod": "PRD-20260424-001",
+                "raf_barkod": "GNL-A-01-01-01",
+            },
+        )
+
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["mesaj"] == "cached"
+        gorev_repo.getir_id_ile.assert_not_called()
+        palet_repo.getir_id_ile.assert_not_called()
+        uc.execute.assert_not_called()
 
     def test_gorev_yok_404(self, client, depocu_user):
         gorev_repo = MagicMock(); gorev_repo.getir_id_ile.return_value = None
@@ -263,25 +295,25 @@ class TestYerlestir:
 
         resp = client.post(
             "/api/terminal/yerlestir",
-            json={"gorev_id": 9, "palet_barkod": "P-1", "raf_barkod": "A-01"},
+            json={"gorev_id": 9, "palet_barkod": "PRD-20260424-001", "raf_barkod": "GNL-A-01-01-01"},
         )
         assert resp.status_code == 404
 
     def test_palet_barkod_eslesmezse_400(self, client, depocu_user):
-        self._base_setup(palet_no="P-001")
+        self._base_setup(palet_no="PRD-20260424-001")
         resp = client.post(
             "/api/terminal/yerlestir",
-            json={"gorev_id": 5, "palet_barkod": "P-YANLIS", "raf_barkod": "A-01"},
+            json={"gorev_id": 5, "palet_barkod": "PRD-20260424-002", "raf_barkod": "GNL-A-01-01-01"},
         )
         assert resp.status_code == 400
         assert "eşleşmiyor" in resp.json()["error"]
 
     def test_depocu_farkli_depoya_gorev_reddedilir(self, client, depocu_user):
         # Görev farklı depoda (999), depocu 7'de
-        self._base_setup(palet_no="P-001", depo_id=999)
+        self._base_setup(palet_no="PRD-20260424-001", depo_id=999)
         resp = client.post(
             "/api/terminal/yerlestir",
-            json={"gorev_id": 5, "palet_barkod": "P-001", "raf_barkod": "A-01"},
+            json={"gorev_id": 5, "palet_barkod": "PRD-20260424-001", "raf_barkod": "GNL-A-01-01-01"},
         )
         assert resp.status_code == 400
         assert "farklı" in resp.json()["error"]
@@ -446,5 +478,5 @@ class TestRolKontrolu:
         _set_override(get_urun_repo, MagicMock())
         _set_override(get_raf_repo, MagicMock())
 
-        resp = client.post("/api/terminal/scan/palet", json={"palet_barkod": "P-1"})
+        resp = client.post("/api/terminal/scan/palet", json={"palet_barkod": "PRD-20260424-001"})
         assert resp.status_code == 200

@@ -11,8 +11,10 @@ import {
   RefreshCw, ScanLine, CornerDownRight, Package, Inbox, AlertTriangle, MapPin
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { hataMetni } from '../../utils/hata';
+import useTerminalScanInput from '../../hooks/useTerminalScanInput';
+import { sanitizeBarkod } from '../../utils/barcode';
 import { uretimPaletiKabulEt, uretimPaletiYerlestir, getRaflar, getUretimPaleti } from '../../services/api';
 import ZXingBarcodeScanner from '../../components/common/ZXingBarcodeScanner';
 
@@ -20,6 +22,10 @@ import ZXingBarcodeScanner from '../../components/common/ZXingBarcodeScanner';
 const ADIM = { PALET: 1, RAF: 2, SONUC: 3 };
 const ZATEN_YERLESTIRME = ['YerlestirmeBekliyor'];
 const ZATEN_BITMIS = ['Yerlestirildi'];
+
+const idempotencyConfig = (idempotencyKey) => (
+  idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}
+);
 
 const stepVariants = {
   initial: { opacity: 0, x: 20 },
@@ -36,7 +42,6 @@ export default function TerminalUretimKabulPage() {
   const [sonuc, setSonuc] = useState(null);
   const [kabulBilgi, setKabulBilgi] = useState(null); // kabul edilen palet
   const [kameraAcik, setKameraAcik] = useState(false);
-  const [kameraMod, setKameraMod] = useState('palet'); // 'palet' | 'raf'
   const [gecmis, setGecmis] = useState([]);
   const [rafListesi, setRafListesi] = useState([]);
 
@@ -47,17 +52,10 @@ export default function TerminalUretimKabulPage() {
     getRaflar().then((r) => setRafListesi(r.data || [])).catch(() => {});
   }, []);
 
-  // Her adım değişiminde inputa odaklan
-  useEffect(() => {
-    if (adim === ADIM.PALET || adim === ADIM.RAF) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [adim]);
-
   // ── Faz 1: Palet Okut ──────────────────────────────────────────────────────
-  const paletOkut = useCallback(async (barkod) => {
-    const no = barkod?.trim() || barkodInput.trim();
-    if (!no) return;
+  const paletOkut = useCallback(async (barkod, meta = {}) => {
+    const no = sanitizeBarkod(barkod ?? barkodInput, 'palet');
+    if (!no) return false;
 
     setYukleniyor(true);
     setSonuc(null);
@@ -74,7 +72,7 @@ export default function TerminalUretimKabulPage() {
       if (palet && ZATEN_BITMIS.includes(palet.durum)) {
         setSonuc({ basarili: true, mesaj: 'Bu palet zaten yerleştirilmiş.', palet });
         setAdim(ADIM.SONUC);
-        return;
+        return true;
       }
 
       // Zaten YERLESTIRME_BEKLIYOR → kabul adımını atla, direkt raf taramaya geç
@@ -82,15 +80,16 @@ export default function TerminalUretimKabulPage() {
         setKabulBilgi(palet);
         setAdim(ADIM.RAF);
         toast.success(`${no} zaten kabul edilmiş — raf barkodunu okutun`);
-        return;
+        return true;
       }
 
       // Normal akış: kabul-et
-      const res = await uretimPaletiKabulEt(no);
+      const res = await uretimPaletiKabulEt(no, idempotencyConfig(meta.idempotencyKey));
       palet = res.data;
       setKabulBilgi(palet);
       setAdim(ADIM.RAF);
       toast.success(`${no} kabul edildi — şimdi raf barkodunu okutun`);
+      return true;
     } catch (err) {
       const mesaj = hataMetni(err, 'Kabul işlemi başarısız');
       setSonuc({ basarili: false, mesaj });
@@ -99,6 +98,7 @@ export default function TerminalUretimKabulPage() {
         ...prev.slice(0, 9),
       ]);
       setAdim(ADIM.SONUC);
+      return false;
     } finally {
       setYukleniyor(false);
       setBarkodInput('');
@@ -106,29 +106,35 @@ export default function TerminalUretimKabulPage() {
   }, [barkodInput]);
 
   // ── Faz 2: Raf Okut + Yerleştir ────────────────────────────────────────────
-  const rafOkut = useCallback(async (barkod) => {
-    const kod = barkod?.trim() || barkodInput.trim();
-    if (!kod || !kabulBilgi) return;
+  const rafOkut = useCallback(async (barkod, meta = {}) => {
+    const kod = sanitizeBarkod(barkod ?? barkodInput, 'raf');
+    if (!kod || !kabulBilgi) return false;
 
     // Raf kodu → raf_id çözümleme
     const raf = rafListesi.find(
-      (r) => r.raf_kodu === kod || r.barkod === kod || String(r.id) === kod
+      (r) => [r.kod, r.raf_kodu, r.barkod, String(r.id)]
+        .filter(Boolean)
+        .some((aday) => String(aday).toUpperCase() === kod)
     );
     if (!raf) {
       toast.error(`"${kod}" ile eşleşen raf bulunamadı`);
       setBarkodInput('');
       setTimeout(() => inputRef.current?.focus(), 50);
-      return;
+      return false;
     }
 
     setYukleniyor(true);
     try {
-      await uretimPaletiYerlestir(kabulBilgi.palet_no, raf.id);
+      await uretimPaletiYerlestir(kabulBilgi.palet_no, {
+        palet_no: kabulBilgi.palet_no,
+        raf_id: raf.id,
+      }, idempotencyConfig(meta.idempotencyKey));
+      const rafKod = raf.kod || raf.raf_kodu || kod;
       const yeniSonuc = {
         basarili: true,
-        mesaj: `Palet ${raf.raf_kodu} rafına yerleştirildi.`,
+        mesaj: `Palet ${rafKod} rafına yerleştirildi.`,
         palet: kabulBilgi,
-        rafKod: raf.raf_kodu,
+        rafKod,
       };
       setSonuc(yeniSonuc);
       setGecmis((prev) => [
@@ -136,7 +142,8 @@ export default function TerminalUretimKabulPage() {
         ...prev.slice(0, 9),
       ]);
       setAdim(ADIM.SONUC);
-      toast.success(`${kabulBilgi.palet_no} → ${raf.raf_kodu} yerleştirildi`);
+      toast.success(`${kabulBilgi.palet_no} → ${rafKod} yerleştirildi`);
+      return true;
     } catch (err) {
       const mesaj = hataMetni(err, 'Yerleştirme başarısız');
       setSonuc({ basarili: false, mesaj, palet: kabulBilgi });
@@ -146,6 +153,7 @@ export default function TerminalUretimKabulPage() {
       ]);
       setAdim(ADIM.SONUC);
       toast.error(mesaj);
+      return false;
     } finally {
       setYukleniyor(false);
       setBarkodInput('');
@@ -160,9 +168,28 @@ export default function TerminalUretimKabulPage() {
     setAdim(ADIM.PALET);
   };
 
-  // Aktif işlem fonksiyonu
-  const aktifIslem = adim === ADIM.PALET ? paletOkut : rafOkut;
-  const kameraIslem = (code) => { setKameraAcik(false); aktifIslem(code); };
+  // DataWedge Keyboard Wedge: odaklı input + ENTER tek tarama hattı
+  const scanMode = adim === ADIM.RAF ? 'raf' : 'palet';
+  const scanDisabled = yukleniyor || kameraAcik;
+  const scanInput = useTerminalScanInput({
+    mode: scanMode,
+    value: barkodInput,
+    setValue: setBarkodInput,
+    inputRef,
+    contextKey: scanMode === 'palet'
+      ? 'terminal-uretim:palet'
+      : `terminal-uretim:${kabulBilgi?.palet_no || 'yok'}:raf`,
+    disabled: scanDisabled,
+    isEnabled: (adim === ADIM.PALET || adim === ADIM.RAF) && !scanDisabled,
+    onSubmit: async (code, meta) => (scanMode === 'palet'
+      ? paletOkut(code, meta)
+      : rafOkut(code, meta)),
+  });
+  const zebraDetected = scanInput.zebraDetected;
+  const kameraIslem = (code) => {
+    setKameraAcik(false);
+    void scanInput.submitScan(code, { force: true });
+  };
 
   // Adım bilgileri
   const adimBilgi = {
@@ -212,30 +239,32 @@ export default function TerminalUretimKabulPage() {
       <AnimatePresence mode="wait">
         {/* ─── Adım 1 & 2: Barkod Girişi ──────────────────────────────────── */}
         {(adim === ADIM.PALET || adim === ADIM.RAF) && (
-          <motion.div key={`input-${adim}`} variants={stepVariants} initial="initial" animate="animate" exit="exit" className="px-4 space-y-5 max-w-md mx-auto relative z-10">
+          <Motion.div key={`input-${adim}`} variants={stepVariants} initial="initial" animate="animate" exit="exit" className="px-4 space-y-5 max-w-md mx-auto relative z-10">
             
-            <ScanButton onClick={() => setKameraAcik(true)} text={info.scanText} emerald={isEmerald} />
+            {!zebraDetected && (
+              <ScanButton onClick={() => setKameraAcik(true)} text="KAMERA İLE OKUT" emerald={isEmerald} />
+            )}
 
             <div className="space-y-3">
               <Divider text="Manuel Gir Veya Cihazla Oku" />
               <div className="flex gap-2">
                 <input
-                  ref={inputRef}
+                  ref={scanInput.inputRef}
                   className={`flex-1 bg-white dark:bg-[#121316] border rounded-[20px] px-5 py-4 text-slate-900 dark:text-white text-[15px] font-mono tracking-wide placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-1 transition-all shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${isEmerald ? 'border-emerald-200/60 dark:border-emerald-800/60 focus:border-emerald-500/50 focus:ring-emerald-500/30' : 'border-slate-200/60 dark:border-slate-800/60 focus:border-amber-500/50 focus:ring-amber-500/30'}`}
                   placeholder={info.placeholder}
                   value={barkodInput}
                   onChange={(e) => setBarkodInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && aktifIslem()}
-                  disabled={yukleniyor}
+                  onKeyDown={scanInput.handleKeyDown}
+                  disabled={scanDisabled}
                 />
-                <motion.button 
+                <Motion.button 
                   whileTap={{ scale: 0.9 }} 
-                  onClick={() => aktifIslem()} 
-                  disabled={yukleniyor || !barkodInput.trim()}
+                  onClick={() => void scanInput.submitScan()} 
+                  disabled={scanDisabled || !barkodInput.trim()}
                   className={`disabled:opacity-50 text-white w-14 rounded-[20px] flex items-center justify-center tap-highlight-transparent shadow-lg ${isEmerald ? 'bg-emerald-600 dark:bg-emerald-500 shadow-emerald-500/20' : 'bg-amber-600 dark:bg-amber-500 shadow-amber-500/20'}`}
                 >
                   {yukleniyor ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CornerDownRight className="w-5 h-5" strokeWidth={2.5} />}
-                </motion.button>
+                </Motion.button>
               </div>
             </div>
 
@@ -253,7 +282,7 @@ export default function TerminalUretimKabulPage() {
                 ) : (
                   <div className="space-y-2">
                     {gecmis.map((g, i) => (
-                      <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                      <Motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                         className="bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 rounded-[16px] p-3 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           {g.basarili ? <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" /> : <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0" />}
@@ -263,29 +292,29 @@ export default function TerminalUretimKabulPage() {
                           </div>
                         </div>
                         <span className="text-[10px] font-mono font-medium text-slate-400 dark:text-slate-500">{g.zaman}</span>
-                      </motion.div>
+                      </Motion.div>
                     ))}
                   </div>
                 )}
               </div>
             )}
-          </motion.div>
+          </Motion.div>
         )}
 
         {/* ─── Adım 3: Sonuç ─────────────────────────────────────────── */}
         {adim === ADIM.SONUC && sonuc && (
-          <motion.div key="sonuc" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-4 relative z-10">
+          <Motion.div key="sonuc" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-4 relative z-10">
             <div className={`rounded-[32px] p-8 text-center border relative overflow-hidden shadow-2xl backdrop-blur-md ${sonuc.basarili ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-500/20' : 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-500/20'}`}>
               <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 blur-[50px] rounded-full pointer-events-none ${sonuc.basarili ? 'bg-emerald-400/20 dark:bg-emerald-500/20' : 'bg-rose-400/20 dark:bg-rose-500/20'}`} />
               <div className="relative z-10 flex flex-col items-center">
                 {sonuc.basarili ? (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 15 }} className="bg-emerald-100 dark:bg-emerald-500/10 w-24 h-24 rounded-full flex items-center justify-center mb-5 border border-emerald-300 dark:border-emerald-500/30">
+                  <Motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 15 }} className="bg-emerald-100 dark:bg-emerald-500/10 w-24 h-24 rounded-full flex items-center justify-center mb-5 border border-emerald-300 dark:border-emerald-500/30">
                     <CheckCircle className="w-12 h-12 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
-                  </motion.div>
+                  </Motion.div>
                 ) : (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 15 }} className="bg-rose-100 dark:bg-rose-500/10 w-24 h-24 rounded-full flex items-center justify-center mb-5 border border-rose-300 dark:border-rose-500/30">
+                  <Motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 15 }} className="bg-rose-100 dark:bg-rose-500/10 w-24 h-24 rounded-full flex items-center justify-center mb-5 border border-rose-300 dark:border-rose-500/30">
                     <XCircle className="w-12 h-12 text-rose-600 dark:text-rose-400" strokeWidth={2} />
-                  </motion.div>
+                  </Motion.div>
                 )}
                 <h2 className={`text-2xl font-black tracking-tight ${sonuc.basarili ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
                   {sonuc.basarili ? 'Yerleştirildi!' : 'İşlem Hatası'}
@@ -307,11 +336,11 @@ export default function TerminalUretimKabulPage() {
               <button onClick={() => navigate('/terminal/ozet')} className="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-[14px] rounded-[20px] py-4 transition-colors tap-highlight-transparent">
                 Özete Dön
               </button>
-              <motion.button whileTap={{ scale: 0.98 }} onClick={sifirla} className="flex-[2] bg-amber-600 dark:bg-amber-500 text-white font-black rounded-[20px] py-4 flex items-center justify-center gap-2 tap-highlight-transparent">
+              <Motion.button whileTap={{ scale: 0.98 }} onClick={sifirla} className="flex-[2] bg-amber-600 dark:bg-amber-500 text-white font-black rounded-[20px] py-4 flex items-center justify-center gap-2 tap-highlight-transparent">
                 <span className="mt-0.5">YENİ OKUTMA</span> <ArrowRight className="w-5 h-5" strokeWidth={2.5} />
-              </motion.button>
+              </Motion.button>
             </div>
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
 
@@ -332,12 +361,12 @@ function ScanButton({ onClick, text, emerald }) {
   const iconHover = emerald ? 'group-hover:bg-emerald-50 dark:group-hover:bg-emerald-500/10' : 'group-hover:bg-amber-50 dark:group-hover:bg-amber-500/10';
   const textHover = emerald ? 'group-hover:text-emerald-600 dark:group-hover:text-emerald-400' : 'group-hover:text-amber-600 dark:group-hover:text-amber-400';
   return (
-    <motion.button whileTap={{ scale: 0.98 }} onClick={onClick} className={`${base} ${border}`}>
+    <Motion.button whileTap={{ scale: 0.98 }} onClick={onClick} className={`${base} ${border}`}>
       <div className={`bg-slate-50 dark:bg-slate-800 p-4 rounded-[20px] ${iconHover} transition-colors`}>
         <ScanLine className={`w-10 h-10 text-slate-400 ${textHover} transition-colors`} strokeWidth={1.5} />
       </div>
       <span className={`text-slate-500 dark:text-slate-400 ${textHover} font-black text-[13px] tracking-widest`}>{text}</span>
-    </motion.button>
+    </Motion.button>
   );
 }
 
