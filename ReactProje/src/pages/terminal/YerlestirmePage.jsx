@@ -14,7 +14,7 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { useAsync } from '../../hooks/useAsync';
 import { useAuth } from '../../contexts/AuthContext';
 import useTerminalScanInput from '../../hooks/useTerminalScanInput';
-import { sanitizeBarkod } from '../../utils/barcode';
+import { sanitizeBarkod, scanFeedback } from '../../utils/barcode';
 import { hataMetni } from '../../utils/hata';
 import ZXingBarcodeScanner from '../../components/common/ZXingBarcodeScanner';
 import {
@@ -65,6 +65,8 @@ export default function YerlestirmePage() {
   const [sorunSheet, setSorunSheet] = useState(false);
   const [sorunTip, setSorunTip] = useState(null);
   const [sorunNeden, setSorunNeden] = useState('');
+  // Inline scan hata banner'ı — toast yerine kalıcı, ekrana sabitli, ses + titreşim ile birlikte.
+  const [scanHata, setScanHata] = useState(null); // { baslik, detay, beklenen?, okutulan? }
 
   useEffect(() => {
     if (gorev) return undefined;
@@ -137,7 +139,13 @@ export default function YerlestirmePage() {
     if (!b) return false;
     const beklenen = sanitizeBarkod(gorev?.palet_barkodu, 'palet');
     if (beklenen && b !== beklenen) {
-      toast.error(`Yanlış palet. Beklenen: ${beklenen}`);
+      scanFeedback('error');
+      setScanHata({
+        baslik: 'Yanlış palet',
+        detay: 'Beklenen palet ile okutulan barkod eşleşmiyor. Görevdeki paleti okutun.',
+        beklenen,
+        okutulan: b,
+      });
       if (gorev?.id) {
         void terminalLogPaletHata({
           palet_barkod: b,
@@ -147,6 +155,7 @@ export default function YerlestirmePage() {
       }
       return false;
     }
+    setScanHata(null);
     setPaletBarkod(b);
     setManuelPalet('');
     setAdim(ADIM.RAF);
@@ -164,12 +173,18 @@ export default function YerlestirmePage() {
           palet_barkod: paletBarkod,
           raf_barkod: r,
         }, idempotencyConfig(meta.idempotencyKey));
+        setScanHata(null);
         setSonuc(res.data);
         setAdim(ADIM.SONUC);
       });
       return true;
     } catch (err) {
-      toast.error(hataMetni(err, 'Yerleştirme doğrulaması başarısız.'));
+      scanFeedback('error');
+      setScanHata({
+        baslik: 'Raf doğrulaması başarısız',
+        detay: hataMetni(err, 'Yerleştirme doğrulaması başarısız.'),
+        okutulan: r,
+      });
       return false;
     }
   }, [gorev, paletBarkod, run]);
@@ -224,6 +239,7 @@ export default function YerlestirmePage() {
     setOverrideModal(false);
     setOverrideNeden('');
     setOverrideRafSec(null);
+    setScanHata(null);
     setAdim(ADIM.GOREV);
     void bekleyenYukle();
   };
@@ -265,6 +281,7 @@ export default function YerlestirmePage() {
   const adimDegistir = useCallback((yeniAdim) => {
     if (yeniAdim !== ADIM.PALET) setManuelPalet('');
     if (yeniAdim !== ADIM.RAF) setManuelRaf('');
+    setScanHata(null);
     setAdim(yeniAdim);
   }, []);
 
@@ -373,6 +390,8 @@ export default function YerlestirmePage() {
           <Motion.div key="adim2" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-2">
             <AdimHeader adim={2} toplam={3} baslik="Paleti Tara" onGeri={() => adimDegistir(ADIM.GOREV)} />
 
+            <ScanErrorBanner hata={scanHata} onClose={() => setScanHata(null)} />
+
             <div className="bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md rounded-[24px] p-5 border border-slate-200/60 dark:border-slate-800/60 space-y-2 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
               {gorev.urun_adi && <InfoRow label="Ürün" value={gorev.urun_adi} strong />}
               <InfoRow label="Beklenen Palet" value={gorev.palet_barkodu || `#${gorev.palet_id}`} mono highlight />
@@ -410,6 +429,8 @@ export default function YerlestirmePage() {
         {adim === ADIM.RAF && (
           <Motion.div key="adim3" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-2">
             <AdimHeader adim={3} toplam={3} baslik="Rafa Yerleştir" onGeri={() => adimDegistir(ADIM.PALET)} />
+
+            <ScanErrorBanner hata={scanHata} onClose={() => setScanHata(null)} />
 
             <div className="bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md rounded-[24px] p-5 border border-slate-200/60 dark:border-slate-800/60 space-y-2 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
               <InfoRow label="Palet" value={paletBarkod} mono strong />
@@ -598,6 +619,51 @@ function ScanButton({ onClick, text }) {
       </div>
       <span className="text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 font-black text-[13px] tracking-widest">{text}</span>
     </Motion.button>
+  );
+}
+
+function ScanErrorBanner({ hata, onClose }) {
+  return (
+    <AnimatePresence>
+      {hata && (
+        <Motion.div
+          initial={{ opacity: 0, y: -8, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -8, scale: 0.98 }}
+          transition={{ duration: 0.18 }}
+          role="alert"
+          aria-live="assertive"
+          onClick={onClose}
+          className="cursor-pointer bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/30 rounded-2xl px-4 py-3 flex items-start gap-3 shadow-[0_4px_20px_rgba(244,63,94,0.12)]"
+        >
+          <div className="bg-rose-100 dark:bg-rose-500/20 p-1.5 rounded-lg shrink-0 border border-rose-300 dark:border-rose-500/30 mt-0.5">
+            <XCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-bold text-rose-700 dark:text-rose-300">{hata.baslik}</p>
+            {hata.detay && (
+              <p className="text-[12px] text-rose-700/80 dark:text-rose-200/80 mt-0.5 leading-snug">{hata.detay}</p>
+            )}
+            {(hata.beklenen || hata.okutulan) && (
+              <div className="mt-2 grid grid-cols-1 gap-1 font-mono text-[12px]">
+                {hata.beklenen && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[10px] uppercase tracking-widest text-rose-600/70 dark:text-rose-300/70 font-bold">Beklenen</span>
+                    <span className="font-bold text-rose-800 dark:text-rose-200 truncate">{hata.beklenen}</span>
+                  </div>
+                )}
+                {hata.okutulan && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[10px] uppercase tracking-widest text-rose-600/70 dark:text-rose-300/70 font-bold">Okutulan</span>
+                    <span className="font-bold text-rose-800 dark:text-rose-200 truncate">{hata.okutulan}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </Motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
