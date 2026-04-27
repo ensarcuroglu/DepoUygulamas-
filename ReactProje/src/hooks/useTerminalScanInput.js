@@ -12,6 +12,10 @@ import {
 const INPUT_FOCUS_DELAY_MS = 220;
 const BLUR_REFOCUS_DELAY_MS = 250;
 const DEFAULT_DUPLICATE_COOLDOWN_MS = 3000;
+// Idle-flush: scanner ENTER suffix göndermediğinde son karakterden sonra otomatik submit eşiği.
+// İnsan yazımı tipik olarak 100ms+ aralıklı; scanner < 30ms. 250ms her iki cepheyi de güvenli ayırır.
+const DEFAULT_FLUSH_ON_IDLE_MS = 250;
+const FLUSH_ON_IDLE_MIN_LENGTH = 4;
 
 /**
  * Terminal ekranlari icin input-primary Zebra Keyboard Wedge akisi.
@@ -33,6 +37,11 @@ export default function useTerminalScanInput({
     validateFormat = true,
     clearOnSuccess = true,
     clearOnError = true,
+    // Idle-flush sigortası: DataWedge "Send ENTER" kapalıysa veya yeni cihazda profil yoksa
+    // hızlı karakter girişi sonrası belirli ms boyunca yeni karakter gelmezse otomatik submit.
+    // 0/false → kapalı (default). Sayı (ms) → o eşik kadar, true → DEFAULT_FLUSH_ON_IDLE_MS.
+    flushOnIdleMs = 0,
+    flushOnIdleMinLength = FLUSH_ON_IDLE_MIN_LENGTH,
 }) {
     const ownInputRef = useRef(null);
     const inputRef = providedInputRef || ownInputRef;
@@ -42,7 +51,16 @@ export default function useTerminalScanInput({
     const valueRef = useRef(value);
     const firstFocusRef = useRef(true);
     const blurTimerRef = useRef(null);
+    const idleFlushTimerRef = useRef(null);
+    const lastKeyTimeRef = useRef(0);
+    const isFlushingRef = useRef(false);
     const zebraDetected = useMemo(() => isZebraDevice(), []);
+
+    const idleFlushDelayMs = useMemo(() => {
+        if (flushOnIdleMs === true) return DEFAULT_FLUSH_ON_IDLE_MS;
+        if (typeof flushOnIdleMs === 'number' && flushOnIdleMs > 0) return flushOnIdleMs;
+        return 0;
+    }, [flushOnIdleMs]);
 
     if (!guardRef.current) {
         guardRef.current = new DuplicateScanGuard(duplicateCooldownMs);
@@ -97,11 +115,27 @@ export default function useTerminalScanInput({
             window.clearTimeout(blurTimerRef.current);
             blurTimerRef.current = null;
         }
+        if (idleFlushTimerRef.current) {
+            window.clearTimeout(idleFlushTimerRef.current);
+            idleFlushTimerRef.current = null;
+        }
+    }, []);
+
+    const clearIdleFlush = useCallback(() => {
+        if (idleFlushTimerRef.current) {
+            window.clearTimeout(idleFlushTimerRef.current);
+            idleFlushTimerRef.current = null;
+        }
     }, []);
 
     const submitScan = useCallback(async (rawValue, options = {}) => {
         const { force = false } = options;
         if (!force && (!isEnabled || disabled)) return false;
+        // Idle-flush timer'ı varsa iptal — submit zaten başladı
+        if (idleFlushTimerRef.current) {
+            window.clearTimeout(idleFlushTimerRef.current);
+            idleFlushTimerRef.current = null;
+        }
 
         const raw = rawValue ?? valueRef.current;
         const sanitized = sanitizeBarkod(raw, mode);
@@ -175,12 +209,39 @@ export default function useTerminalScanInput({
         validateFormat,
     ]);
 
+    const scheduleIdleFlush = useCallback(() => {
+        if (!idleFlushDelayMs) return;
+        if (!isEnabled || disabled) return;
+        clearIdleFlush();
+        idleFlushTimerRef.current = window.setTimeout(() => {
+            idleFlushTimerRef.current = null;
+            const pending = (valueRef.current || '').trim();
+            // Çok kısa girişlerde insan yazımı varsayımı; flush etme
+            if (pending.length < flushOnIdleMinLength) return;
+            // Enter zaten geldiyse veya submit zaten in-flight ise yarış yok
+            if (isFlushingRef.current) return;
+            isFlushingRef.current = true;
+            Promise.resolve(submitScan())
+                .catch(() => {})
+                .finally(() => { isFlushingRef.current = false; });
+        }, idleFlushDelayMs);
+    }, [clearIdleFlush, disabled, flushOnIdleMinLength, idleFlushDelayMs, isEnabled, submitScan]);
+
     const handleKeyDown = useCallback((event) => {
-        if (event.key !== 'Enter') return;
-        event.preventDefault();
-        event.stopPropagation();
-        void submitScan();
-    }, [submitScan]);
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            event.stopPropagation();
+            clearIdleFlush();
+            lastKeyTimeRef.current = 0;
+            void submitScan();
+            return;
+        }
+        // Idle-flush sigortası — sadece tek karakter üreten tuşlarda timer'ı yenile
+        if (idleFlushDelayMs && event.key.length === 1) {
+            lastKeyTimeRef.current = Date.now();
+            scheduleIdleFlush();
+        }
+    }, [clearIdleFlush, idleFlushDelayMs, scheduleIdleFlush, submitScan]);
 
     const handleBlur = useCallback(() => {
         if (!autoFocus || !isEnabled || disabled) return;

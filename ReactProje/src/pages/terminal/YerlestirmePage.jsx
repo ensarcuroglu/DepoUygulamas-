@@ -259,6 +259,9 @@ export default function YerlestirmePage() {
     disabled: scanDisabled,
     isEnabled: adim === ADIM.PALET && !!gorev && !scanDisabled,
     onSubmit: paletDogrula,
+    // Sigorta: DataWedge "Send ENTER" kapalıysa veya yeni cihazda profil yoksa
+    // 250 ms inaktivite sonrası otomatik submit. Manuel klavye girişinde de güvenli (insan ≥ 100 ms).
+    flushOnIdleMs: 250,
   });
   const {
     inputRef: rafInputRef,
@@ -274,6 +277,7 @@ export default function YerlestirmePage() {
     disabled: scanDisabled,
     isEnabled: adim === ADIM.RAF && !!gorev && !scanDisabled,
     onSubmit: yerlestir,
+    flushOnIdleMs: 250,
   });
   const zebraDetected = paletZebraDetected || rafZebraDetected;
 
