@@ -25,7 +25,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-from dotenv import load_dotenv
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Connection
 
@@ -52,8 +51,12 @@ def _resolve_env_file_from_argv(argv: list[str]) -> Path:
 
 
 LOADED_ENV_FILE = _resolve_env_file_from_argv(sys.argv[1:])
-load_dotenv(LOADED_ENV_FILE, override=True)
 sys.path.insert(0, str(BASE_DIR))
+
+from app.core.config import ENV_FILE_ENV_VAR, get_settings  # noqa: E402
+
+os.environ[ENV_FILE_ENV_VAR] = str(LOADED_ENV_FILE)
+get_settings.cache_clear()
 
 import models  # noqa: E402,F401  # Load all SQLAlchemy models into Base.metadata.
 from database import Base, engine  # noqa: E402
@@ -177,8 +180,7 @@ def _validate_database_name(db_name: str, confirm_db_name: str | None, execute: 
         )
 
     allowed = {name.lower() for name in ALLOWED_DB_NAMES}
-    env_allowed = os.getenv("CLEAN_TEST_DATA_ALLOWED_DBS", "")
-    allowed.update(name.strip().lower() for name in env_allowed.split(",") if name.strip())
+    allowed.update(get_settings(LOADED_ENV_FILE).clean_test_data_allowed_db_names)
     if lowered not in allowed:
         raise RuntimeError(
             f"Database {db_name!r} is not in the allowed cleanup list. "

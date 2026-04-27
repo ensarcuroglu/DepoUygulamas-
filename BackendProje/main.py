@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi import Request
 
 from limiter import limiter
+from app.core.config import get_settings
 from app.infrastructure.scheduler import RaporScheduler
 
 # ── Birleşik exception yapısı ──
@@ -20,6 +21,7 @@ from core import (
 # Başlangıçta key yapılandırmasını logla
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 # ── YENİ Clean Architecture Router'ları ──
 from app.api.v1.routers import ( # noqa: E402
@@ -110,7 +112,7 @@ async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
 app.add_middleware(
     CORSMiddleware,
     # BURASI GÜNCELLENDİ: http yerine https yazmalısın
-    allow_origins=["https://localhost:5173", "http://localhost:3000"], 
+    allow_origins=settings.cors_allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

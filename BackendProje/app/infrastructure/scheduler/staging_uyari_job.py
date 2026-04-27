@@ -7,19 +7,16 @@ Eşik süresi STAGING_UYARI_ESIK_SAAT ortam değişkeniyle (varsayılan: 24) aya
 """
 
 import logging
-import os
 from datetime import datetime, timedelta
 
 from database import SessionLocal
+from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-_VARSAYILAN_ESIK_SAAT = 24
-
-
 def staging_uyari_kontrol() -> None:
     """Staging'de esik_saat'ten uzun bekleyen paletleri SistemLog'a kaydeder."""
-    esik_saat = int(os.getenv("STAGING_UYARI_ESIK_SAAT", str(_VARSAYILAN_ESIK_SAAT)))
+    esik_saat = get_settings().staging_uyari_esik_saat
     esik_tarih = datetime.utcnow() - timedelta(hours=esik_saat)
 
     db = SessionLocal()

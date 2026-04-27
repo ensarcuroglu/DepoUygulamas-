@@ -12,47 +12,12 @@ Usage:
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
-
-from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Connection
+from app.core.config import get_settings
 
 
 COLUMN_NAME = "olusturma_tarihi"
-
-
-def load_environment() -> None:
-    base_dir = Path(__file__).resolve().parent
-    env_path = base_dir / ".env"
-    if env_path.exists():
-        load_dotenv(env_path)
-    else:
-        load_dotenv()
-
-
-def build_db_url() -> str:
-    user = os.getenv("DB_USER")
-    password = os.getenv("DB_PASSWORD", "")
-    host = os.getenv("DB_HOST")
-    port = os.getenv("DB_PORT")
-    name = os.getenv("DB_NAME")
-
-    missing = [
-        k
-        for k, v in {
-            "DB_USER": user,
-            "DB_HOST": host,
-            "DB_PORT": port,
-            "DB_NAME": name,
-        }.items()
-        if not v
-    ]
-    if missing:
-        raise RuntimeError(f"Missing env vars: {', '.join(missing)}")
-
-    return f"mysql+pymysql://{user}:{password}@{host}:{port}/{name}?charset=utf8mb4"
 
 
 def fetch_target_tables(conn: Connection, db_name: str) -> list[str]:
@@ -118,12 +83,10 @@ def fetch_column_state(conn: Connection, db_name: str, table_name: str) -> tuple
 
 
 def main() -> None:
-    load_environment()
-    db_name = os.getenv("DB_NAME")
-    if not db_name:
-        raise RuntimeError("DB_NAME is not defined")
+    settings = get_settings()
+    db_name = settings.db_name
 
-    engine = create_engine(build_db_url(), pool_pre_ping=True)
+    engine = create_engine(settings.sqlalchemy_database_url, pool_pre_ping=True)
     print(f"[INFO] Target database: {db_name}")
 
     with engine.begin() as conn:

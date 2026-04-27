@@ -68,11 +68,12 @@ from app.core.services.yerlestirme_algoritmasi import YerlestirmeAlgoritmasi
 from app.infrastructure.services.irsaliye_palet_veri_kaynagi_service import IrsaliyePaletVeriKaynagiService
 from app.infrastructure.services.palet_sorgulama_service import PaletSorgulamaService
 from app.infrastructure.config.erp_config import ErpConfig, PaletVeriKaynagi
+from app.core.config import get_settings
 
 from app.infrastructure.di.modules.kullanici_destek_di import get_log_repo
 from app.infrastructure.di.modules.urun_di import get_urun_repo
 
-_erp_config = ErpConfig.from_env()
+_erp_config = ErpConfig.from_settings(get_settings())
 _mock_erp_adapter = None
 
 
@@ -450,8 +451,7 @@ def get_yerlestirme_gorevi_bekleyen_ozet_uc(
 def get_zaman_asimi_birak_uc(
     repo=Depends(get_yerlestirme_gorevi_repo),
 ):
-    import os
-    timeout_dk = int(os.getenv("PUTAWAY_TIMEOUT", "60"))
+    timeout_dk = get_settings().putaway_timeout
     return ZamanAsimiBirakUseCase(repo, timeout_dk=timeout_dk)
 
 

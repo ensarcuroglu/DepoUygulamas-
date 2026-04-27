@@ -6,7 +6,6 @@ kayıtlarını tetikler ve isteğe bağlı SMTP e-postası gönderir.
 """
 
 import logging
-import os
 import smtplib
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
@@ -14,6 +13,7 @@ from email.mime.text import MIMEText
 
 from database import SessionLocal
 from models import RaporSchedule
+from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,8 @@ def zamanlama_kontrol() -> None:
 
 def _zamanlama_email_gonder(schedule: RaporSchedule) -> None:
     """Zamanlı rapor e-postası gönderir (SMTP yapılandırılmışsa)."""
-    smtp_host = os.getenv("SMTP_HOST")
+    settings = get_settings()
+    smtp_host = settings.smtp_host
     if not smtp_host:
         return
 
@@ -78,10 +79,10 @@ def _zamanlama_email_gonder(schedule: RaporSchedule) -> None:
         return
 
     try:
-        smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        smtp_user = os.getenv("SMTP_USER", "")
-        smtp_pass = os.getenv("SMTP_PASSWORD", "")
-        smtp_from = os.getenv("SMTP_FROM", smtp_user)
+        smtp_port = settings.smtp_port
+        smtp_user = settings.smtp_user or ""
+        smtp_pass = settings.smtp_password or ""
+        smtp_from = settings.smtp_from or smtp_user
 
         msg = MIMEMultipart()
         msg["From"] = smtp_from

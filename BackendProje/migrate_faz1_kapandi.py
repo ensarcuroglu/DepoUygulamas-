@@ -8,19 +8,11 @@ Mevcut kayıtlardaki 'Tamamlandi' değerini 'Kapandi' olarak günceller.
     python migrate_faz1_kapandi.py
 """
 
-import os
 from sqlalchemy import create_engine, text
-from dotenv import load_dotenv
+from app.core.config import get_settings
 
-load_dotenv()
-
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "3306")
-DB_NAME = os.getenv("DB_NAME", "depo_db")
-
-DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+settings = get_settings()
+DATABASE_URL = settings.sqlalchemy_database_url
 
 engine = create_engine(DATABASE_URL)
 

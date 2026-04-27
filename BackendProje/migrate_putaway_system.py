@@ -26,18 +26,13 @@ olarak alır; ek depolar {depo_id}GNL, {depo_id}MKB, ... kodlarını alır. Bu s
 ilk deponun mevcut raf kodları (GNL-A-12-01-01 formatı) tutarlı kalır.
 """
 
-import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
-from dotenv import load_dotenv
+from app.core.config import get_settings
 
-load_dotenv()
+settings = get_settings()
 
-SQLALCHEMY_DATABASE_URL = (
-    f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
-    f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-    "?charset=utf8mb4"
-)
+SQLALCHEMY_DATABASE_URL = settings.sqlalchemy_database_url
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 

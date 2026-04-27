@@ -7,16 +7,15 @@ Merkezi Test Altyapısı
 
 import os
 import pytest
-from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
 # Test ortam değişkenlerini yükle (ana .env'den önce)
 _env_test_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env.test")
-if os.path.exists(_env_test_path):
-    load_dotenv(_env_test_path, override=True)
+os.environ["DEPO_APP_ENV_FILE"] = _env_test_path
 
+from app.core.config import get_settings # noqa: E402
 from database import Base, get_db # noqa: E402
 from app.core.auth import create_access_token # noqa: E402
 from limiter import limiter # noqa: E402
@@ -42,12 +41,9 @@ def get_test_password_hash() -> str:
 @pytest.fixture(scope="session")
 def engine():
     """Test DB'ye bağlanan engine — tüm test session boyunca tek instance."""
-    db_name = os.getenv("DB_NAME", "")
-    db_url = (
-        f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
-        f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{db_name}"
-        "?charset=utf8mb4"
-    )
+    settings = get_settings(_env_test_path)
+    db_name = settings.db_name
+    db_url = settings.sqlalchemy_database_url
     if not db_name or "test" not in db_name.lower():
         raise RuntimeError(
             f"Güvenlik nedeniyle test olmayan veritabanı üzerinde çalışılamaz: {db_name!r}"
