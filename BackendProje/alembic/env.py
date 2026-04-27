@@ -13,7 +13,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 # Modellerimizi ve Base sınıfımızı projemizden içeri aktarıyoruz
 from database import Base
-import models  # Alembic'in tabloları algılaması için bu şarttır
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

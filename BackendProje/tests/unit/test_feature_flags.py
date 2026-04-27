@@ -3,8 +3,6 @@
 Pilot depo ID kontrolü, TUMU sentinel, admin bypass.
 """
 
-import os
-import pytest
 from app.core.config import FeatureFlags
 
 

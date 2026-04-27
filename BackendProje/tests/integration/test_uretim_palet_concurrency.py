@@ -24,7 +24,6 @@ from models import (
     Marka as MarkaORM,
     Kategori as KategoriORM,
     Kullanici as KullaniciORM,
-    UretimSeriSayac,
 )
 
 pytestmark = [pytest.mark.integration, pytest.mark.concurrency]
@@ -254,7 +253,6 @@ class TestCiftKabulConcurrency:
         Sonuç: 1 başarılı, 1 hata (toplam commit sayısı = 1).
         """
         from app.core.entities.palet import UretimPaletDurum
-        from app.core.exceptions import GecersizIslemError
         from app.infrastructure.persistence.repositories.sa_palet_repository import (
             SqlAlchemyPaletRepository,
         )

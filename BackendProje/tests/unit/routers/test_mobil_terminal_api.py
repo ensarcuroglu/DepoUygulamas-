@@ -14,7 +14,6 @@ from unittest.mock import MagicMock
 
 from app.api.v1.routers import mobil_terminal as mobil_terminal_router
 from app.application.dto.yerlestirme_gorevi_dto import (
-    AlternatifRafDTO,
     YerlestirmeGoreviResponseDTO,
     YerlestirmeOnaylaSonucDTO,
 )

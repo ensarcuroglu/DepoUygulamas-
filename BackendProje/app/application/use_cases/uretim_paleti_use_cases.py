@@ -30,7 +30,7 @@ from app.application.dto.uretim_paleti_dto import (
     UretimPaletiOlusturRequestDTO,
     UretimPaletiResponseDTO,
 )
-from typing import List
+from typing import List, Optional
 
 if TYPE_CHECKING:
     from app.core.entities.kullanici import Kullanici

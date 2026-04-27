@@ -5,7 +5,6 @@ her test fixture'ı cache'i temizler.
 """
 
 import pytest
-from datetime import date
 from tests.factories import (
     KullaniciFactory,
     DepoFactory,

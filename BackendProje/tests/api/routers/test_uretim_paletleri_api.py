@@ -12,14 +12,12 @@ Yetki matrisi:
 """
 
 import pytest
-from datetime import date
 from tests.factories import (
     KullaniciFactory,
     DepoFactory,
     RafFactory,
     LotFactory,
     PaletFactory,
-    UrunFactory,
 )
 from app.core.auth import create_access_token
 from app.core.entities.palet import UretimPaletDurum

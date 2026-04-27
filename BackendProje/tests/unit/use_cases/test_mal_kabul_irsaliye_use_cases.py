@@ -7,7 +7,7 @@ burada CRUD + durum geçişi + istisna bildirimi davranışı doğrulanır.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 from unittest.mock import MagicMock
 
 import pytest

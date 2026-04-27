@@ -15,8 +15,6 @@ import pytest
 
 from models import (
     ToplamaGorevi as ToplamaGoreviORM,
-    Siparis as SiparisORM,
-    SevkiyatPlani as SevkiyatPlaniORM,
     IdempotencyKaydi,
 )
 from sqlalchemy import func
@@ -34,7 +32,6 @@ def _gorev_olustur(db_session, sira_no=1):
         PaletFactory, LotFactory, UrunFactory,
         DepoFactory, SevkiyatPlaniFactory, SiparisFactory,
     )
-    from datetime import date
 
     depo = DepoFactory.create()
     urun = UrunFactory.create()
@@ -182,7 +179,6 @@ class TestGorevUretIdempotency:
             SevkiyatPlaniFactory, SiparisFactory, SiparisKalemiFactory,
         )
         from models import PaletRezervasyonu as PaletRezervasyonuORM
-        from datetime import date
 
         urun = UrunFactory.create()
         lot = LotFactory.create(urun=urun)

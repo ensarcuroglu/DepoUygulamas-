@@ -209,7 +209,7 @@ def run(dry_run: bool = False, batch_size: int = 1000) -> None:
     print("  ✓ FAZ 2 migration doğrulandı.")
 
     with engine.connect() as conn:
-        print(f"\n1. Snapshot oluşturuluyor (kaynak/durum NULL satırlar)...")
+        print("\n1. Snapshot oluşturuluyor (kaynak/durum NULL satırlar)...")
         snapshot_sayisi = _snapshot_olustur(conn, inspector, dry_run)
 
         if snapshot_sayisi == 0:

@@ -7,7 +7,7 @@ integration testlerde doğrulanmalıdır.
 
 import pytest
 from datetime import date
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 from app.infrastructure.services.sql_uretim_seri_no_uretici import SqlUretimSeriNoUretici
 

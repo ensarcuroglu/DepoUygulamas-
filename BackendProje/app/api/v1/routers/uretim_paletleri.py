@@ -6,7 +6,7 @@ Pilot depo kontrolü feature flag ile yönetilir.
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
@@ -36,7 +36,6 @@ from app.infrastructure.di.container import (
 )
 from app.application.dto.uretim_paleti_dto import (
     UretimPaletiOlusturRequestDTO,
-    UretimPaletiKabulRequestDTO,
     UretimPaletiKarantinaRequestDTO,
     UretimPaletiKarantinaCikarRequestDTO,
     UretimPaletiIptalRequestDTO,
