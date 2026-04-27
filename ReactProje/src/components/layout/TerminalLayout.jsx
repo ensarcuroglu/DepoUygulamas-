@@ -2,11 +2,12 @@
  * TerminalLayout — Mobil saha operatörü arayüzü ana sarmalayıcısı (PWA V3)
  * Scroll kilidi çözüldü, Native App hissi ve Zinc/Emerald uyumu eklendi.
  */
+import { useLayoutEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { ClipboardList, BarChart2, LogOut, ChevronLeft, ScanLine, Factory } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 
 const NAV_ITEMS = [
   { to: '/terminal/gorevler', icon: ClipboardList, label: 'Görevler' },
@@ -19,11 +20,23 @@ export default function TerminalLayout() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const mainRef = useRef(null);
 
   const handleLogout = async () => {
     await logout?.();
     navigate('/login', { replace: true });
   };
+
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+      mainRef.current.scrollLeft = 0;
+    }
+  }, [location.pathname]);
 
   return (
     // ÇÖZÜM: min-h-[100dvh] yerine fixed inset-0 kullanılarak cihazın kendi scroll'u kilitlendi.
@@ -93,9 +106,9 @@ export default function TerminalLayout() {
       </header>
 
       {/* Main Content Area: Sadece bu alan kaydırılabilir (overflow-y-auto) */}
-      <main className="flex-1 w-full overflow-y-auto overflow-x-hidden relative z-10 custom-scrollbar scroll-smooth">
+      <main ref={mainRef} className="flex-1 w-full overflow-y-auto overflow-x-hidden relative z-10 custom-scrollbar scroll-smooth">
         <AnimatePresence mode="wait">
-          <motion.div
+          <Motion.div
             key={location.pathname}
             initial={{ opacity: 0, x: -15 }}
             animate={{ opacity: 1, x: 0 }}
@@ -106,7 +119,7 @@ export default function TerminalLayout() {
             className="min-h-full pb-[calc(100px+env(safe-area-inset-bottom))]"
           >
             <Outlet />
-          </motion.div>
+          </Motion.div>
         </AnimatePresence>
       </main>
 
@@ -122,14 +135,14 @@ export default function TerminalLayout() {
               {({ isActive }) => (
                 <>
                   {isActive && (
-                    <motion.div
+                    <Motion.div
                       layoutId="activeTab"
                       className="absolute inset-0 bg-emerald-500/10 rounded-[18px]"
                       transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                     />
                   )}
                   
-                  <motion.div 
+                  <Motion.div 
                     className={`relative z-10 flex flex-col items-center gap-1.5 ${
                       isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                     }`}
@@ -143,7 +156,7 @@ export default function TerminalLayout() {
                     <span className="text-[10px] font-bold tracking-wide">
                       {item.label}
                     </span>
-                  </motion.div>
+                  </Motion.div>
                 </>
               )}
             </NavLink>

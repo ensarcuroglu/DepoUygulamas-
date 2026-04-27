@@ -7,8 +7,9 @@
  * - Safe-area uyumlu, devasa alt navigasyon hedefleri (Thumb-zone optimizasyonu)
  * - Pürüzsüz donanım ivmeli tıklama hissi (active:scale)
  */
+import { useLayoutEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import {
     Home,
     PackageCheck,
@@ -39,11 +40,23 @@ export default function DepocuLayout() {
     const { logout, user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const mainRef = useRef(null);
 
     const handleLogout = async () => {
         await logout?.();
         navigate('/login');
     };
+
+    useLayoutEffect(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+
+        if (mainRef.current) {
+            mainRef.current.scrollTop = 0;
+            mainRef.current.scrollLeft = 0;
+        }
+    }, [location.pathname]);
 
     return (
         <div className="min-h-[100dvh] bg-slate-50 dark:bg-[#0A0B0D] flex flex-col font-sans selection:bg-blue-500/30 transition-colors duration-300">
@@ -93,7 +106,7 @@ export default function DepocuLayout() {
             </header>
 
             {/* İÇERİK ALANI - Alt menü boşluğu ve safe-area hesaplamalı */}
-            <main className="flex-1 overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))] relative z-10">
+            <main ref={mainRef} className="flex-1 overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))] relative z-10">
                 <Outlet />
             </main>
 
@@ -136,7 +149,7 @@ export default function DepocuLayout() {
                             >
                                 <div className="relative flex items-center justify-center w-12 h-10 rounded-2xl z-10">
                                     {active && (
-                                        <motion.div
+                                        <Motion.div
                                             layoutId="activeTabIndicator"
                                             className="absolute inset-0 bg-blue-50 dark:bg-blue-500/15 rounded-2xl -z-10"
                                             initial={false}
