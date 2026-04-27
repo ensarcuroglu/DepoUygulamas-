@@ -80,12 +80,12 @@ export default function useTerminalScanInput({
         if (firstFocusRef.current) {
             firstFocusRef.current = false;
             window.requestAnimationFrame(() => {
-                inputRef.current?.focus();
+                inputRef.current?.focus({ preventScroll: true });
             });
             return;
         }
         window.setTimeout(() => {
-            inputRef.current?.focus();
+            inputRef.current?.focus({ preventScroll: true });
         }, INPUT_FOCUS_DELAY_MS);
     }, [autoFocus, disabled, inputRef, isEnabled]);
 
@@ -251,7 +251,7 @@ export default function useTerminalScanInput({
             const active = document.activeElement;
             const tag = active?.tagName?.toLowerCase();
             if (tag === 'input' || tag === 'textarea' || tag === 'button') return;
-            inputRef.current?.focus();
+            inputRef.current?.focus({ preventScroll: true });
         }, BLUR_REFOCUS_DELAY_MS);
     // inputRef stable; eslint exhaustive-deps için açıkça dahil edildi
     }, [autoFocus, disabled, inputRef, isEnabled]);
