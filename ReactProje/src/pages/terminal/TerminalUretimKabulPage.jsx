@@ -2,12 +2,13 @@
  * TerminalUretimKabulPage — Üretimden palet kabul + raf yerleştirme (Terminal 2-tarama akışı)
  * SAHA ODAKLI ENDÜSTRİYEL UI: Yüksek kontrast, büyük dokunma hedefleri, animasyon gürültüsü yok.
  */
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Factory, CheckCircle, XCircle, ArrowRight, Wifi,
-  ScanLine, Package, Inbox, AlertTriangle, MapPin,
-  Camera, Keyboard, ChevronDown, ChevronUp, AlertOctagon
+  ScanLine, Package, AlertTriangle, MapPin,
+  Camera, Keyboard, ChevronDown, AlertOctagon, 
+  ArrowLeft, RefreshCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
@@ -26,18 +27,16 @@ const idempotencyConfig = (idempotencyKey) => (
   idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}
 );
 
-// Animasyonlar saniye cinsinden çok daha hızlı ve sade (Performans odaklı)
 const stepVariants = {
   initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.15 } },
   exit: { opacity: 0, transition: { duration: 0.1 } }
 };
 
-// Titreşim (Haptic Feedback) Yardımcısı - Zebra/Android cihazlar için
 const hapticFeedback = (type) => {
   if (!navigator.vibrate) return;
-  if (type === 'success') navigator.vibrate([100, 50, 100]); // İki kısa titreşim
-  if (type === 'error') navigator.vibrate([300, 150, 300]); // Uzun ve kaba titreşim
+  if (type === 'success') navigator.vibrate([100, 50, 100]);
+  if (type === 'error') navigator.vibrate([300, 150, 300]);
 };
 
 export default function TerminalUretimKabulPage() {
@@ -46,18 +45,24 @@ export default function TerminalUretimKabulPage() {
   const [adim, setAdim] = useState(ADIM.PALET);
   const [barkodInput, setBarkodInput] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
+  const [raflarYukleniyor, setRaflarYukleniyor] = useState(true); // YENİ: Raf yüklenme durumu
   const [sonuc, setSonuc] = useState(null);
   const [kabulBilgi, setKabulBilgi] = useState(null);
   const [kameraAcik, setKameraAcik] = useState(false);
   const [gecmis, setGecmis] = useState([]);
   const [rafListesi, setRafListesi] = useState([]);
   const [manuelAcik, setManuelAcik] = useState(false);
-  const [gecmisAcik, setGecmisAcik] = useState(false);
 
   const inputRef = useRef(null);
 
   useEffect(() => {
-    getRaflar().then((r) => setRafListesi(r.data || [])).catch(() => {});
+    setRaflarYukleniyor(true);
+    getRaflar()
+      .then((r) => setRafListesi(r.data || []))
+      .catch((err) => {
+        toast.error('Raf listesi alınamadı!', { style: { background: '#ef4444', color: '#fff' } });
+      })
+      .finally(() => setRaflarYukleniyor(false));
   }, []);
 
   // ── Faz 1: Palet Okut ──────────────────────────────────────────────────────
@@ -171,11 +176,7 @@ export default function TerminalUretimKabulPage() {
   }, [barkodInput, kabulBilgi, rafListesi]);
 
   const toggleManuel = useCallback((e) => {
-    // 1. ODAK ÇALINMASINI ENGELLE: Tıklanan butondan odağı (focus) hemen kaldır.
-    // Bu sayede Zebra'nın gönderdiği donanımsal ENTER tuşu bu butonu tetikleyemez.
-    if (e && e.currentTarget) {
-      e.currentTarget.blur();
-    }
+    if (e && e.currentTarget) e.currentTarget.blur();
 
     const el = inputRef.current;
     setManuelAcik((onceki) => {
@@ -183,25 +184,18 @@ export default function TerminalUretimKabulPage() {
       if (!el) return yeni;
       
       if (yeni) {
-        // Açılış — gesture içinde senkron focus + inputmode değişimi
         el.setAttribute('inputmode', 'text');
         el.focus();
       } else {
-        // Kapanış — klavyeyi indirmek için blur yapıyoruz
         el.setAttribute('inputmode', 'none');
         el.blur();
-        
-        // 2. ODAĞI GİZLİ INPUT'A ZORLA GERİ VER
-        // Hook'un 250ms beklemesine fırsat vermeden, 50ms içinde arka planda
-        // donanım okuyucusunu dinleyecek şekilde odağı input'a kilitliyoruz.
-        setTimeout(() => {
-          el.focus({ preventScroll: true });
-        }, 50);
+        setTimeout(() => el.focus({ preventScroll: true }), 50);
       }
       return yeni;
     });
   }, []);
 
+  // YENİ: İptal Et / Yeni Palet Okut fonksiyonu
   const sifirla = () => {
     setSonuc(null);
     setKabulBilgi(null);
@@ -211,8 +205,20 @@ export default function TerminalUretimKabulPage() {
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
-  const scanMode = adim === ADIM.RAF ? 'raf' : 'palet';
-  const scanDisabled = yukleniyor || kameraAcik;
+  // YENİ: Hata durumunda aynı paleti tutup raf okutma ekranına dönme
+  const ayniPaletIcinRafOkut = () => {
+    setSonuc(null);
+    setBarkodInput('');
+    setManuelAcik(false);
+    setAdim(ADIM.RAF);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const isRaf = adim === ADIM.RAF;
+  // YENİ: Raf adımındaysa ve raflar yükleniyorsa tarama engellenir
+  const scanDisabled = yukleniyor || kameraAcik || (isRaf && raflarYukleniyor);
+  const scanMode = isRaf ? 'raf' : 'palet';
+  
   const scanInput = useTerminalScanInput({
     mode: scanMode,
     value: barkodInput,
@@ -235,7 +241,6 @@ export default function TerminalUretimKabulPage() {
     void scanInput.submitScan(code, { force: true });
   };
 
-  const isRaf = adim === ADIM.RAF;
   const headerInfo = isRaf
     ? { baslik: 'RAF YERLEŞTİRME', alt: 'ADIM 2/2', icon: MapPin, bg: 'bg-emerald-600', text: 'text-emerald-50' }
     : { baslik: 'ÜRETİM KABUL', alt: 'ADIM 1/2', icon: Factory, bg: 'bg-blue-600', text: 'text-blue-50' };
@@ -243,7 +248,6 @@ export default function TerminalUretimKabulPage() {
 
   return (
     <div className="w-full min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col">
-      {/* ─── Solid Endüstriyel Header ─────────────────────────────────────── */}
       <header className={`${headerInfo.bg} shadow-md`}>
         <div className="px-4 py-4 max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -257,7 +261,6 @@ export default function TerminalUretimKabulPage() {
           </div>
         </div>
         
-        {/* Adım 2'de devasa Palet Hatırlatıcısı */}
         {isRaf && kabulBilgi && (
           <div className="bg-emerald-800 text-white px-4 py-3 border-t border-emerald-500/50 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -271,25 +274,22 @@ export default function TerminalUretimKabulPage() {
 
       <main className="flex-1 px-4 py-6 max-w-md mx-auto w-full flex flex-col gap-4">
         <AnimatePresence mode="wait">
-          {/* ─── Adım 1 & 2: Tarama ────────────────────────────────────────── */}
           {(adim === ADIM.PALET || adim === ADIM.RAF) && (
             <Motion.div key={`scan-${adim}`} variants={stepVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-4 flex-1">
               
-              {/* Tarayıcı Hazır Kartı - Yüksek Kontrastlı Solid Kutu */}
               <ScannerHazirKarti 
                 isRaf={isRaf} 
                 busy={yukleniyor} 
                 zebraDetected={zebraDetected} 
+                raflarYukleniyor={raflarYukleniyor} // YENİ PROP EKLENDİ
               />
 
-              {/* Eldiven Uyumlu Aksiyon Butonları */}
               <div className="grid gap-3 mt-auto">
-                {/* Her zaman DOM'da olan ancak sadece gerektiğinde yüksekliği artan Solid Input */}
                 <div className={`overflow-hidden transition-all duration-200 ${manuelAcik ? 'h-auto' : 'h-0'}`} aria-hidden={!manuelAcik}>
                   <div className="flex gap-2">
                     <input
                       ref={scanInput.inputRef}
-                      className="flex-1 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-4 h-16 text-slate-900 dark:text-white text-lg font-mono font-bold tracking-widest uppercase focus:outline-none focus:border-blue-500"
+                      className="flex-1 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-4 h-16 text-slate-900 dark:text-white text-lg font-mono font-bold tracking-widest uppercase focus:outline-none focus:border-blue-500 disabled:opacity-50"
                       placeholder={isRaf ? 'RAF BARKODU' : 'PALET BARKODU'}
                       value={barkodInput}
                       onChange={(e) => setBarkodInput(e.target.value)}
@@ -318,6 +318,7 @@ export default function TerminalUretimKabulPage() {
                   label={manuelAcik ? "KLAVYEYİ GİZLE" : "MANUEL GİRİŞ YAP"} 
                   onClick={toggleManuel} 
                   variant="secondary"
+                  disabled={isRaf && raflarYukleniyor}
                 />
 
                 {!zebraDetected && (
@@ -326,13 +327,31 @@ export default function TerminalUretimKabulPage() {
                     label="KAMERAYI AÇ" 
                     onClick={() => setKameraAcik(true)} 
                     variant="secondary"
+                    disabled={isRaf && raflarYukleniyor}
                   />
+                )}
+
+                {/* YENİ: Paleti Değiştir ve İşlemi İptal Et Butonları */}
+                {isRaf && (
+                  <div className="grid grid-cols-2 gap-3 mt-2 border-t border-slate-200 dark:border-slate-800 pt-4">
+                    <FatButton 
+                      icon={ArrowLeft} 
+                      label="PALET DEĞİŞ" 
+                      onClick={sifirla} 
+                      variant="warning"
+                    />
+                    <FatButton 
+                      icon={XCircle} 
+                      label="İPTAL ET" 
+                      onClick={sifirla} 
+                      variant="danger"
+                    />
+                  </div>
                 )}
               </div>
             </Motion.div>
           )}
 
-          {/* ─── Adım 3: Sonuç Ekranı (Tam Ekran Hissi) ────────────────────── */}
           {adim === ADIM.SONUC && sonuc && (
             <Motion.div key="sonuc" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col flex-1">
               <div className={`flex-1 rounded-2xl flex flex-col items-center justify-center p-6 text-center shadow-lg border-2 ${sonuc.basarili ? 'bg-emerald-50 border-emerald-500 dark:bg-emerald-900/20 dark:border-emerald-500' : 'bg-red-50 border-red-500 dark:bg-red-900/20 dark:border-red-500'}`}>
@@ -360,10 +379,20 @@ export default function TerminalUretimKabulPage() {
               </div>
 
               <div className="mt-4 grid gap-3">
+                {/* YENİ: Başarısız işlemde aynı palet için rafı tekrar okut */}
+                {!sonuc.basarili && sonuc.palet && (
+                  <button onClick={ayniPaletIcinRafOkut} className="w-full h-16 bg-orange-500 text-white font-bold text-lg rounded-xl active:bg-orange-600 uppercase flex items-center justify-center gap-2">
+                    <RefreshCcw className="w-6 h-6" />
+                    AYNI PALET İÇİN RAF OKUT
+                  </button>
+                )}
+
+                {/* YENİ: Palet Okutma İsmine Özel Vurgu */}
                 <button onClick={sifirla} className="w-full h-20 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xl font-black rounded-xl uppercase tracking-widest active:scale-[0.98] transition-transform">
-                  YENİ OKUTMA
+                  YENİ PALET OKUT
                 </button>
-                <button onClick={() => navigate('/terminal/ozet')} className="w-full h-16 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-lg rounded-xl active:bg-slate-300 dark:active:bg-slate-700">
+
+                <button onClick={() => navigate('/terminal/ozet')} className="w-full h-16 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-lg rounded-xl active:bg-slate-300 dark:active:bg-slate-700 uppercase">
                   ÖZETE GİT
                 </button>
               </div>
@@ -379,23 +408,26 @@ export default function TerminalUretimKabulPage() {
 
 // ─── Bileşenler ──────────────────────────────────────────────────────────────
 
-function ScannerHazirKarti({ isRaf, busy, zebraDetected }) {
+function ScannerHazirKarti({ isRaf, busy, zebraDetected, raflarYukleniyor }) {
   const bg = isRaf ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700' : 'bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700';
   const text = isRaf ? 'text-emerald-800 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-300';
+  const isLoading = busy || (isRaf && raflarYukleniyor);
   
   return (
     <div className={`border-2 rounded-2xl p-8 flex flex-col items-center justify-center min-h-[220px] ${bg} shadow-sm transition-colors`}>
-      {busy ? (
+      {isLoading ? (
         <div className={`w-16 h-16 border-4 border-t-transparent rounded-full animate-spin ${isRaf ? 'border-emerald-600' : 'border-blue-600'}`} />
       ) : (
         <ScanLine className={`w-20 h-20 ${text} mb-4`} strokeWidth={2} />
       )}
       
-      <h2 className={`text-2xl font-black text-center uppercase tracking-tight ${text}`}>
-        {busy ? 'İŞLENİYOR...' : isRaf ? 'RAF BARKODUNU OKUT' : 'PALET BARKODUNU OKUT'}
+      {/* YENİ: Raf Yükleniyor Mesajı Entegrasyonu */}
+      <h2 className={`text-2xl font-black text-center uppercase tracking-tight ${text} mt-2`}>
+        {isLoading 
+          ? (raflarYukleniyor ? 'RAFLAR YÜKLENİYOR...' : 'İŞLENİYOR...') 
+          : isRaf ? 'RAF BARKODUNU OKUT' : 'PALET BARKODUNU OKUT'}
       </h2>
       
-      {/* Basit ve statik durum göstergesi (Animasyonsuz) */}
       <div className="mt-6 flex items-center gap-2 bg-white/60 dark:bg-black/30 px-4 py-2 rounded-lg">
         <Wifi className={`w-5 h-5 ${zebraDetected ? 'text-green-600' : 'text-slate-500'}`} />
         <span className="font-bold text-sm text-slate-700 dark:text-slate-300">
@@ -406,21 +438,25 @@ function ScannerHazirKarti({ isRaf, busy, zebraDetected }) {
   );
 }
 
-// Eldivenle rahat basılabilir "Fat Button"
-function FatButton({ icon: Icon, label, onClick, variant = 'primary' }) {
-  const baseStyle = "w-full min-h-[64px] px-6 rounded-xl flex items-center justify-between font-bold text-lg active:scale-[0.98] transition-all";
+function FatButton({ icon: Icon, label, onClick, variant = 'primary', disabled = false }) {
+  const baseStyle = "w-full min-h-[64px] px-4 md:px-6 rounded-xl flex items-center justify-between font-bold text-sm md:text-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100";
+  
+  // YENİ: Varyantlara Danger ve Warning Renkleri Eklendi
   const styles = {
     primary: "bg-blue-600 text-white active:bg-blue-700",
-    secondary: "bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 active:bg-slate-100 dark:active:bg-slate-700"
+    secondary: "bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 active:bg-slate-100 dark:active:bg-slate-700",
+    danger: "bg-red-100 dark:bg-red-900/40 border-2 border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 active:bg-red-200 dark:active:bg-red-800",
+    warning: "bg-orange-100 dark:bg-orange-900/40 border-2 border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-300 active:bg-orange-200 dark:active:bg-orange-800"
   };
 
   return (
-    <button onClick={onClick} className={`${baseStyle} ${styles[variant]}`}>
-      <span className="flex items-center gap-3">
-        <Icon className="w-6 h-6 opacity-80" strokeWidth={2.5} />
+    <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${styles[variant]}`}>
+      <span className="flex items-center gap-2 md:gap-3">
+        <Icon className="w-5 h-5 md:w-6 md:h-6 opacity-80" strokeWidth={2.5} />
         {label}
       </span>
-      <ChevronDown className="w-6 h-6 opacity-50" />
+      {/* Sadece uzun butonlarda Chevron gösteriyoruz, ikili gride sığması için sadeleştirdik */}
+      {variant === 'primary' || variant === 'secondary' ? <ChevronDown className="w-6 h-6 opacity-50" /> : null}
     </button>
   );
 }
