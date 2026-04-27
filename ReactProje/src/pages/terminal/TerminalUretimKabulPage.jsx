@@ -2,11 +2,11 @@
  * TerminalUretimKabulPage — Üretimden palet kabul + raf yerleştirme (Terminal 2-tarama akışı)
  * SAHA ODAKLI ENDÜSTRİYEL UI: Yüksek kontrast, büyük dokunma hedefleri, animasyon gürültüsü yok.
  */
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { createElement, useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Factory, CheckCircle, XCircle, ArrowRight, Wifi,
-  ScanLine, Package, AlertTriangle, MapPin,
+  ScanLine, Package, MapPin,
   Camera, Keyboard, ChevronDown, AlertOctagon, 
   ArrowLeft, RefreshCcw
 } from 'lucide-react';
@@ -49,7 +49,7 @@ export default function TerminalUretimKabulPage() {
   const [sonuc, setSonuc] = useState(null);
   const [kabulBilgi, setKabulBilgi] = useState(null);
   const [kameraAcik, setKameraAcik] = useState(false);
-  const [gecmis, setGecmis] = useState([]);
+  const [, setGecmis] = useState([]);
   const [rafListesi, setRafListesi] = useState([]);
   const [manuelAcik, setManuelAcik] = useState(false);
 
@@ -59,7 +59,7 @@ export default function TerminalUretimKabulPage() {
     setRaflarYukleniyor(true);
     getRaflar()
       .then((r) => setRafListesi(r.data || []))
-      .catch((err) => {
+      .catch(() => {
         toast.error('Raf listesi alınamadı!', { style: { background: '#ef4444', color: '#fff' } });
       })
       .finally(() => setRaflarYukleniyor(false));
@@ -241,165 +241,137 @@ export default function TerminalUretimKabulPage() {
     void scanInput.submitScan(code, { force: true });
   };
 
-  const headerInfo = isRaf
-    ? { baslik: 'RAF YERLEŞTİRME', alt: 'ADIM 2/2', icon: MapPin, bg: 'bg-emerald-600', text: 'text-emerald-50' }
-    : { baslik: 'ÜRETİM KABUL', alt: 'ADIM 1/2', icon: Factory, bg: 'bg-blue-600', text: 'text-blue-50' };
-  const HeaderIcon = headerInfo.icon;
-
   return (
-    <div className="w-full min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col">
-      <header className={`${headerInfo.bg} shadow-md`}>
-        <div className="px-4 py-4 max-w-md mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-2.5 rounded-lg">
-              <HeaderIcon className="w-7 h-7 text-white" strokeWidth={2.5} />
-            </div>
-            <div>
-              <p className={`text-[12px] font-bold ${headerInfo.text} uppercase tracking-wider`}>{headerInfo.alt}</p>
-              <h1 className="text-xl font-black text-white tracking-tight">{headerInfo.baslik}</h1>
-            </div>
-          </div>
-        </div>
-        
-        {isRaf && kabulBilgi && (
-          <div className="bg-emerald-800 text-white px-4 py-3 border-t border-emerald-500/50 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Package className="w-5 h-5 opacity-80" />
-              <span className="font-mono font-bold text-lg">{kabulBilgi.palet_no}</span>
-            </div>
-            <span className="font-bold text-emerald-200">{kabulBilgi.koli_adedi} Koli</span>
-          </div>
-        )}
-      </header>
+    <div className="w-full h-full relative overflow-hidden pb-6">
+      <AnimatePresence mode="wait">
+        {(adim === ADIM.PALET || adim === ADIM.RAF) && (
+          <Motion.div key={`scan-${adim}`} variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-2">
+            <AdimBasligi
+              adim={isRaf ? 2 : 1}
+              baslik={isRaf ? 'Raf Yerleştirme' : 'Üretim Kabul'}
+              isRaf={isRaf}
+            />
 
-      <main className="flex-1 px-4 py-6 max-w-md mx-auto w-full flex flex-col gap-4">
-        <AnimatePresence mode="wait">
-          {(adim === ADIM.PALET || adim === ADIM.RAF) && (
-            <Motion.div key={`scan-${adim}`} variants={stepVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-4 flex-1">
-              
-              <ScannerHazirKarti 
-                isRaf={isRaf} 
-                busy={yukleniyor} 
-                zebraDetected={zebraDetected} 
-                raflarYukleniyor={raflarYukleniyor} // YENİ PROP EKLENDİ
+            {isRaf && kabulBilgi && <KabulPaletKarti kabulBilgi={kabulBilgi} />}
+
+            <ScannerHazirKarti 
+              isRaf={isRaf} 
+              busy={yukleniyor} 
+              zebraDetected={zebraDetected} 
+              raflarYukleniyor={raflarYukleniyor}
+            />
+
+            <div className="grid gap-3 relative">
+              <div className={`overflow-hidden transition-all duration-200 ${manuelAcik ? 'h-auto' : 'absolute h-0 w-0 pointer-events-none'}`} aria-hidden={!manuelAcik}>
+                <div className="flex gap-2">
+                  <input
+                    ref={scanInput.inputRef}
+                    className="min-w-0 flex-1 bg-white dark:bg-[#121316] border border-slate-200/60 dark:border-slate-800/60 rounded-[20px] px-5 h-16 text-slate-900 dark:text-white text-[15px] font-mono font-bold tracking-wide uppercase placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all disabled:opacity-50 shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
+                    placeholder={isRaf ? 'RAF BARKODU' : 'PALET BARKODU'}
+                    value={barkodInput}
+                    onChange={(e) => setBarkodInput(e.target.value)}
+                    onKeyDown={scanInput.handleKeyDown}
+                    onBlur={scanInput.handleBlur}
+                    disabled={scanDisabled}
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    tabIndex={manuelAcik ? 0 : -1}
+                    inputMode={manuelAcik ? 'text' : 'none'}
+                  />
+                  <button
+                    onClick={() => void scanInput.submitScan()}
+                    disabled={scanDisabled || !barkodInput.trim()}
+                    tabIndex={manuelAcik ? 0 : -1}
+                    className={`h-16 w-16 shrink-0 flex items-center justify-center rounded-[20px] text-white font-bold transition-colors shadow-lg ${isRaf ? 'bg-emerald-600 active:bg-emerald-700 shadow-emerald-600/20' : 'bg-blue-600 active:bg-blue-700 shadow-blue-500/20'} disabled:opacity-50`}
+                  >
+                    <ArrowRight className="w-7 h-7" strokeWidth={2.5} />
+                  </button>
+                </div>
+              </div>
+
+              <FatButton 
+                icon={Keyboard} 
+                label={manuelAcik ? "KLAVYEYİ GİZLE" : "MANUEL GİRİŞ YAP"} 
+                onClick={toggleManuel} 
+                variant="secondary"
+                disabled={isRaf && raflarYukleniyor}
               />
 
-              <div className="grid gap-3 mt-auto">
-                <div className={`overflow-hidden transition-all duration-200 ${manuelAcik ? 'h-auto' : 'h-0'}`} aria-hidden={!manuelAcik}>
-                  <div className="flex gap-2">
-                    <input
-                      ref={scanInput.inputRef}
-                      className="flex-1 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-4 h-16 text-slate-900 dark:text-white text-lg font-mono font-bold tracking-widest uppercase focus:outline-none focus:border-blue-500 disabled:opacity-50"
-                      placeholder={isRaf ? 'RAF BARKODU' : 'PALET BARKODU'}
-                      value={barkodInput}
-                      onChange={(e) => setBarkodInput(e.target.value)}
-                      onKeyDown={scanInput.handleKeyDown}
-                      onBlur={scanInput.handleBlur}
-                      disabled={scanDisabled}
-                      autoComplete="off"
-                      autoCapitalize="characters"
-                      spellCheck={false}
-                      tabIndex={manuelAcik ? 0 : -1}
-                      inputMode={manuelAcik ? 'text' : 'none'}
-                    />
-                    <button
-                      onClick={() => void scanInput.submitScan()}
-                      disabled={scanDisabled || !barkodInput.trim()}
-                      tabIndex={manuelAcik ? 0 : -1}
-                      className={`h-16 w-16 flex items-center justify-center rounded-xl text-white font-bold transition-colors ${isRaf ? 'bg-emerald-600 active:bg-emerald-700' : 'bg-blue-600 active:bg-blue-700'} disabled:opacity-50`}
-                    >
-                      <ArrowRight className="w-8 h-8" strokeWidth={3} />
-                    </button>
-                  </div>
-                </div>
-
+              {!zebraDetected && (
                 <FatButton 
-                  icon={Keyboard} 
-                  label={manuelAcik ? "KLAVYEYİ GİZLE" : "MANUEL GİRİŞ YAP"} 
-                  onClick={toggleManuel} 
+                  icon={Camera} 
+                  label="KAMERAYI AÇ" 
+                  onClick={() => setKameraAcik(true)} 
                   variant="secondary"
                   disabled={isRaf && raflarYukleniyor}
                 />
+              )}
 
-                {!zebraDetected && (
+              {isRaf && (
+                <div className="grid grid-cols-2 gap-2.5 border-t border-slate-200 dark:border-slate-800/60 pt-4">
                   <FatButton 
-                    icon={Camera} 
-                    label="KAMERAYI AÇ" 
-                    onClick={() => setKameraAcik(true)} 
-                    variant="secondary"
-                    disabled={isRaf && raflarYukleniyor}
+                    icon={ArrowLeft} 
+                    label="PALET DEĞİŞ" 
+                    onClick={sifirla} 
+                    variant="warning"
                   />
-                )}
+                  <FatButton 
+                    icon={XCircle} 
+                    label="İPTAL ET" 
+                    onClick={sifirla} 
+                    variant="danger"
+                  />
+                </div>
+              )}
+            </div>
+          </Motion.div>
+        )}
 
-                {/* YENİ: Paleti Değiştir ve İşlemi İptal Et Butonları */}
-                {isRaf && (
-                  <div className="grid grid-cols-2 gap-3 mt-2 border-t border-slate-200 dark:border-slate-800 pt-4">
-                    <FatButton 
-                      icon={ArrowLeft} 
-                      label="PALET DEĞİŞ" 
-                      onClick={sifirla} 
-                      variant="warning"
-                    />
-                    <FatButton 
-                      icon={XCircle} 
-                      label="İPTAL ET" 
-                      onClick={sifirla} 
-                      variant="danger"
-                    />
-                  </div>
-                )}
-              </div>
-            </Motion.div>
-          )}
+        {adim === ADIM.SONUC && sonuc && (
+          <Motion.div key="sonuc" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-6">
+            <div className={`rounded-[32px] flex flex-col items-center justify-center p-8 text-center shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] border relative overflow-hidden ${sonuc.basarili ? 'bg-emerald-50/80 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-500/20' : 'bg-red-50/80 border-red-200 dark:bg-red-900/20 dark:border-red-500/20'}`}>
+              {sonuc.basarili ? (
+                <CheckCircle className="w-20 h-20 text-emerald-600 dark:text-emerald-400 mb-5" strokeWidth={2.5} />
+              ) : (
+                <AlertOctagon className="w-20 h-20 text-red-600 dark:text-red-400 mb-5" strokeWidth={2.5} />
+              )}
+              
+              <h2 className={`text-2xl font-black uppercase tracking-tight ${sonuc.basarili ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                {sonuc.basarili ? 'İŞLEM BAŞARILI' : 'HATA OLUŞTU'}
+              </h2>
+              
+              <p className="text-[14px] font-bold text-slate-700 dark:text-slate-300 mt-3 leading-snug max-w-[280px]">
+                {sonuc.mesaj}
+              </p>
 
-          {adim === ADIM.SONUC && sonuc && (
-            <Motion.div key="sonuc" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col flex-1">
-              <div className={`flex-1 rounded-2xl flex flex-col items-center justify-center p-6 text-center shadow-lg border-2 ${sonuc.basarili ? 'bg-emerald-50 border-emerald-500 dark:bg-emerald-900/20 dark:border-emerald-500' : 'bg-red-50 border-red-500 dark:bg-red-900/20 dark:border-red-500'}`}>
-                
-                {sonuc.basarili ? (
-                  <CheckCircle className="w-24 h-24 text-emerald-600 dark:text-emerald-400 mb-4" strokeWidth={2.5} />
-                ) : (
-                  <AlertOctagon className="w-24 h-24 text-red-600 dark:text-red-400 mb-4" strokeWidth={2.5} />
-                )}
-                
-                <h2 className={`text-3xl font-black uppercase tracking-tight ${sonuc.basarili ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
-                  {sonuc.basarili ? 'İŞLEM BAŞARILI' : 'HATA OLUŞTU'}
-                </h2>
-                
-                <p className="text-lg font-bold text-slate-700 dark:text-slate-300 mt-4 leading-snug">
-                  {sonuc.mesaj}
-                </p>
+              {sonuc.basarili && sonuc.palet && (
+                <div className="w-full bg-white/80 dark:bg-[#121316]/80 rounded-[20px] p-4 mt-6 border border-slate-200/60 dark:border-slate-800/60 text-left">
+                  <SolidInfoRow label="Palet" value={sonuc.palet.palet_no} />
+                  <SolidInfoRow label="Raf" value={sonuc.rafKod} />
+                </div>
+              )}
+            </div>
 
-                {sonuc.basarili && sonuc.palet && (
-                  <div className="w-full bg-white dark:bg-slate-900 rounded-xl p-4 mt-6 border border-slate-200 dark:border-slate-700 text-left">
-                    <SolidInfoRow label="Palet" value={sonuc.palet.palet_no} />
-                    <SolidInfoRow label="Raf" value={sonuc.rafKod} />
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 grid gap-3">
-                {/* YENİ: Başarısız işlemde aynı palet için rafı tekrar okut */}
-                {!sonuc.basarili && sonuc.palet && (
-                  <button onClick={ayniPaletIcinRafOkut} className="w-full h-16 bg-orange-500 text-white font-bold text-lg rounded-xl active:bg-orange-600 uppercase flex items-center justify-center gap-2">
-                    <RefreshCcw className="w-6 h-6" />
-                    AYNI PALET İÇİN RAF OKUT
-                  </button>
-                )}
-
-                {/* YENİ: Palet Okutma İsmine Özel Vurgu */}
-                <button onClick={sifirla} className="w-full h-20 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xl font-black rounded-xl uppercase tracking-widest active:scale-[0.98] transition-transform">
-                  YENİ PALET OKUT
+            <div className="grid gap-3">
+              {!sonuc.basarili && sonuc.palet && (
+                <button onClick={ayniPaletIcinRafOkut} className="w-full min-h-[60px] px-4 bg-orange-500 text-white font-bold text-[14px] rounded-[20px] active:bg-orange-600 uppercase flex items-center justify-center gap-2 leading-tight">
+                  <RefreshCcw className="w-5 h-5 shrink-0" />
+                  <span>AYNI PALET İÇİN RAF OKUT</span>
                 </button>
+              )}
 
-                <button onClick={() => navigate('/terminal/ozet')} className="w-full h-16 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-lg rounded-xl active:bg-slate-300 dark:active:bg-slate-700 uppercase">
-                  ÖZETE GİT
-                </button>
-              </div>
-            </Motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+              <button onClick={sifirla} className="w-full min-h-[64px] px-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[16px] font-black rounded-[20px] uppercase tracking-wide active:scale-[0.98] transition-transform">
+                YENİ PALET OKUT
+              </button>
+
+              <button onClick={() => navigate('/terminal/ozet')} className="w-full min-h-[60px] px-4 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[14px] rounded-[20px] active:bg-slate-300 dark:active:bg-slate-700 uppercase">
+                ÖZETE GİT
+              </button>
+            </div>
+          </Motion.div>
+        )}
+      </AnimatePresence>
 
       <ZXingBarcodeScanner isOpen={kameraAcik} onClose={() => setKameraAcik(false)} onScanSuccess={kameraIslem} />
     </div>
@@ -408,29 +380,82 @@ export default function TerminalUretimKabulPage() {
 
 // ─── Bileşenler ──────────────────────────────────────────────────────────────
 
+function AdimBasligi({ adim, baslik, isRaf }) {
+  const Icon = isRaf ? MapPin : Factory;
+  const tema = isRaf
+    ? {
+        step: 'text-emerald-600/80 dark:text-emerald-400/80',
+        iconWrap: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20',
+        icon: 'text-emerald-600 dark:text-emerald-400',
+        progress: 'bg-emerald-500 dark:bg-emerald-400',
+      }
+    : {
+        step: 'text-blue-600/80 dark:text-blue-400/80',
+        iconWrap: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20',
+        icon: 'text-blue-600 dark:text-blue-400',
+        progress: 'bg-blue-500 dark:bg-blue-400',
+      };
+
+  return (
+    <div className="flex items-center gap-3 bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md p-2 pr-4 rounded-[20px] border border-slate-200/60 dark:border-slate-800/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.2)]">
+      <div className={`w-10 h-10 rounded-[14px] border flex items-center justify-center shrink-0 ${tema.iconWrap}`}>
+        {createElement(Icon, { className: `w-5 h-5 ${tema.icon}`, strokeWidth: 2.5 })}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`text-[10px] uppercase tracking-widest font-bold mb-0.5 ${tema.step}`}>Adım {adim}/2</p>
+        <h1 className="text-[17px] font-bold text-slate-900 dark:text-white tracking-tight leading-none truncate">{baslik}</h1>
+      </div>
+      <div className="flex gap-1.5 shrink-0">
+        {[1, 2].map((sira) => (
+          <div key={sira} className={`h-1.5 rounded-full transition-all duration-300 ${sira <= adim ? `${tema.progress} w-5` : 'bg-slate-200 dark:bg-slate-800 w-2'}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function KabulPaletKarti({ kabulBilgi }) {
+  return (
+    <div className="bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md rounded-[24px] p-4 border border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between gap-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
+      <div className="min-w-0 flex items-center gap-3">
+        <div className="bg-emerald-50 dark:bg-emerald-500/10 p-2.5 rounded-[16px] border border-emerald-200 dark:border-emerald-500/20 shrink-0">
+          <Package className="w-5 h-5 text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold">Kabul Edilen Palet</p>
+          <p className="font-mono font-black text-[16px] text-slate-900 dark:text-white truncate">{kabulBilgi.palet_no}</p>
+        </div>
+      </div>
+      <span className="shrink-0 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-xl px-3 py-1.5 text-[12px] font-black">
+        {kabulBilgi.koli_adedi} Koli
+      </span>
+    </div>
+  );
+}
+
 function ScannerHazirKarti({ isRaf, busy, zebraDetected, raflarYukleniyor }) {
   const bg = isRaf ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700' : 'bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700';
   const text = isRaf ? 'text-emerald-800 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-300';
   const isLoading = busy || (isRaf && raflarYukleniyor);
   
   return (
-    <div className={`border-2 rounded-2xl p-8 flex flex-col items-center justify-center min-h-[220px] ${bg} shadow-sm transition-colors`}>
+    <div className={`border-2 rounded-[28px] px-5 py-7 flex flex-col items-center justify-center min-h-[200px] ${bg} shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-colors`}>
       {isLoading ? (
-        <div className={`w-16 h-16 border-4 border-t-transparent rounded-full animate-spin ${isRaf ? 'border-emerald-600' : 'border-blue-600'}`} />
+        <div className={`w-14 h-14 border-4 border-t-transparent rounded-full animate-spin ${isRaf ? 'border-emerald-600' : 'border-blue-600'}`} />
       ) : (
-        <ScanLine className={`w-20 h-20 ${text} mb-4`} strokeWidth={2} />
+        <ScanLine className={`w-16 h-16 ${text} mb-4`} strokeWidth={2} />
       )}
       
       {/* YENİ: Raf Yükleniyor Mesajı Entegrasyonu */}
-      <h2 className={`text-2xl font-black text-center uppercase tracking-tight ${text} mt-2`}>
+      <h2 className={`text-xl font-black text-center uppercase tracking-tight leading-tight ${text} mt-2`}>
         {isLoading 
           ? (raflarYukleniyor ? 'RAFLAR YÜKLENİYOR...' : 'İŞLENİYOR...') 
           : isRaf ? 'RAF BARKODUNU OKUT' : 'PALET BARKODUNU OKUT'}
       </h2>
       
-      <div className="mt-6 flex items-center gap-2 bg-white/60 dark:bg-black/30 px-4 py-2 rounded-lg">
-        <Wifi className={`w-5 h-5 ${zebraDetected ? 'text-green-600' : 'text-slate-500'}`} />
-        <span className="font-bold text-sm text-slate-700 dark:text-slate-300">
+      <div className="mt-5 flex items-center gap-2 bg-white/60 dark:bg-black/30 px-4 py-2 rounded-xl">
+        <Wifi className={`w-4 h-4 ${zebraDetected ? 'text-green-600' : 'text-slate-500'}`} />
+        <span className="font-bold text-[12px] text-slate-700 dark:text-slate-300">
           {zebraDetected ? 'ZEBRA AKTİF' : 'CİHAZ DİNLENİYOR'}
         </span>
       </div>
@@ -438,34 +463,34 @@ function ScannerHazirKarti({ isRaf, busy, zebraDetected, raflarYukleniyor }) {
   );
 }
 
-function FatButton({ icon: Icon, label, onClick, variant = 'primary', disabled = false }) {
-  const baseStyle = "w-full min-h-[64px] px-4 md:px-6 rounded-xl flex items-center justify-between font-bold text-sm md:text-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100";
+function FatButton({ icon, label, onClick, variant = 'primary', disabled = false }) {
+  const baseStyle = "w-full min-h-[60px] px-4 rounded-[20px] flex items-center justify-between gap-3 font-bold text-[13px] sm:text-[14px] leading-tight active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 tap-highlight-transparent";
   
   // YENİ: Varyantlara Danger ve Warning Renkleri Eklendi
   const styles = {
     primary: "bg-blue-600 text-white active:bg-blue-700",
-    secondary: "bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 active:bg-slate-100 dark:active:bg-slate-700",
-    danger: "bg-red-100 dark:bg-red-900/40 border-2 border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 active:bg-red-200 dark:active:bg-red-800",
-    warning: "bg-orange-100 dark:bg-orange-900/40 border-2 border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-300 active:bg-orange-200 dark:active:bg-orange-800"
+    secondary: "bg-white/80 dark:bg-[#121316]/80 border border-slate-200/60 dark:border-slate-800/60 text-slate-800 dark:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]",
+    danger: "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700/60 text-red-800 dark:text-red-300 active:bg-red-100 dark:active:bg-red-800/60",
+    warning: "bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700/60 text-orange-800 dark:text-orange-300 active:bg-orange-100 dark:active:bg-orange-800/60"
   };
 
   return (
     <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${styles[variant]}`}>
-      <span className="flex items-center gap-2 md:gap-3">
-        <Icon className="w-5 h-5 md:w-6 md:h-6 opacity-80" strokeWidth={2.5} />
-        {label}
+      <span className="min-w-0 flex items-center gap-2.5 text-left">
+        {createElement(icon, { className: 'w-5 h-5 shrink-0 opacity-80', strokeWidth: 2.5 })}
+        <span className="min-w-0 break-words">{label}</span>
       </span>
       {/* Sadece uzun butonlarda Chevron gösteriyoruz, ikili gride sığması için sadeleştirdik */}
-      {variant === 'primary' || variant === 'secondary' ? <ChevronDown className="w-6 h-6 opacity-50" /> : null}
+      {variant === 'primary' || variant === 'secondary' ? <ChevronDown className="w-5 h-5 shrink-0 opacity-50" /> : null}
     </button>
   );
 }
 
 function SolidInfoRow({ label, value }) {
   return (
-    <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
-      <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-sm">{label}</span>
-      <span className="text-slate-900 dark:text-white font-black font-mono text-lg">{value}</span>
+    <div className="flex items-center justify-between gap-4 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+      <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[12px] shrink-0">{label}</span>
+      <span className="min-w-0 text-slate-900 dark:text-white font-black font-mono text-[15px] truncate text-right">{value}</span>
     </div>
   );
 }
