@@ -20,6 +20,17 @@ export default defineConfig({
     https: true,
     host: true, // Vite'in 0.0.0.0 üzerinden yerel ağa açılmasını sağlar
     allowedHosts: true, // BÜTÜN TÜNEL LİNKLERİNE İZİN VEREN SATIR
+    
+    // =======================================================
+    // EKLENEN KISIM: ZAP Güvenlik Başlıkları (Security Headers)
+    // =======================================================
+    headers: {
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http: wss: ws:;",
+      'X-Frame-Options': 'DENY',
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+      'X-Content-Type-Options': 'nosniff'
+    },
+
     proxy: {
       // React'tan gelen istekleri Python (FastAPI/Uvicorn) backend'ine yönlendirir
       '/api': {
