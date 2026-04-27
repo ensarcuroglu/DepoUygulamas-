@@ -233,6 +233,7 @@ export default function YerlestirmePage() {
     inputRef: paletInputRef,
     zebraDetected: paletZebraDetected,
     handleKeyDown: handlePaletKeyDown,
+    handleBlur: handlePaletBlur,
     submitScan: submitPaletScan,
   } = useTerminalScanInput({
     mode: 'palet',
@@ -247,6 +248,7 @@ export default function YerlestirmePage() {
     inputRef: rafInputRef,
     zebraDetected: rafZebraDetected,
     handleKeyDown: handleRafKeyDown,
+    handleBlur: handleRafBlur,
     submitScan: submitRafScan,
   } = useTerminalScanInput({
     mode: 'raf',
@@ -258,6 +260,13 @@ export default function YerlestirmePage() {
     onSubmit: yerlestir,
   });
   const zebraDetected = paletZebraDetected || rafZebraDetected;
+
+  // Adım değişikliği için merkezi setter — geri/ileri navigasyonda eski metin kalmasın.
+  const adimDegistir = useCallback((yeniAdim) => {
+    if (yeniAdim !== ADIM.PALET) setManuelPalet('');
+    if (yeniAdim !== ADIM.RAF) setManuelRaf('');
+    setAdim(yeniAdim);
+  }, []);
 
   // --- Render Area ---
   return (
@@ -362,7 +371,7 @@ export default function YerlestirmePage() {
         {/* ─── Adım 2: Palet Scan ─────────────────────────────────────────── */}
         {adim === ADIM.PALET && (
           <Motion.div key="adim2" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-2">
-            <AdimHeader adim={2} toplam={3} baslik="Paleti Tara" onGeri={() => setAdim(ADIM.GOREV)} />
+            <AdimHeader adim={2} toplam={3} baslik="Paleti Tara" onGeri={() => adimDegistir(ADIM.GOREV)} />
 
             <div className="bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md rounded-[24px] p-5 border border-slate-200/60 dark:border-slate-800/60 space-y-2 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
               {gorev.urun_adi && <InfoRow label="Ürün" value={gorev.urun_adi} strong />}
@@ -385,6 +394,7 @@ export default function YerlestirmePage() {
                   value={manuelPalet}
                   onChange={(e) => setManuelPalet(e.target.value)}
                   onKeyDown={handlePaletKeyDown}
+                  onBlur={handlePaletBlur}
                 />
                 <Motion.button whileTap={{ scale: 0.9 }} onClick={() => void submitPaletScan()} disabled={scanDisabled || !manuelPalet.trim()} className="bg-blue-600 dark:bg-blue-500 disabled:opacity-50 text-white w-14 rounded-[20px] flex items-center justify-center tap-highlight-transparent shadow-lg shadow-blue-500/20">
                   <CornerDownRight className="w-5 h-5" strokeWidth={2.5} />
@@ -399,7 +409,7 @@ export default function YerlestirmePage() {
         {/* ─── Adım 3: Raf Scan ─────────────────────────────────────────── */}
         {adim === ADIM.RAF && (
           <Motion.div key="adim3" variants={stepVariants} initial="initial" animate="animate" exit="exit" className="p-4 space-y-5 max-w-md mx-auto pt-2">
-            <AdimHeader adim={3} toplam={3} baslik="Rafa Yerleştir" onGeri={() => setAdim(ADIM.PALET)} />
+            <AdimHeader adim={3} toplam={3} baslik="Rafa Yerleştir" onGeri={() => adimDegistir(ADIM.PALET)} />
 
             <div className="bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md rounded-[24px] p-5 border border-slate-200/60 dark:border-slate-800/60 space-y-2 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
               <InfoRow label="Palet" value={paletBarkod} mono strong />
@@ -430,6 +440,7 @@ export default function YerlestirmePage() {
                   value={manuelRaf}
                   onChange={(e) => setManuelRaf(e.target.value)}
                   onKeyDown={handleRafKeyDown}
+                  onBlur={handleRafBlur}
                 />
                 <Motion.button whileTap={{ scale: 0.9 }} disabled={scanDisabled || loading || !manuelRaf.trim()} onClick={() => void submitRafScan()} className="bg-blue-600 dark:bg-blue-500 disabled:opacity-50 text-white w-14 rounded-[20px] flex items-center justify-center tap-highlight-transparent shadow-lg shadow-blue-500/20">
                   {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CornerDownRight className="w-5 h-5" strokeWidth={2.5} />}

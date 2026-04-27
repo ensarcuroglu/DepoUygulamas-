@@ -9,7 +9,8 @@ import {
     validateBarkodFormat,
 } from '../utils/barcode';
 
-const INPUT_FOCUS_DELAY_MS = 60;
+const INPUT_FOCUS_DELAY_MS = 220;
+const BLUR_REFOCUS_DELAY_MS = 250;
 const DEFAULT_DUPLICATE_COOLDOWN_MS = 3000;
 
 /**
@@ -39,6 +40,8 @@ export default function useTerminalScanInput({
     const pendingRef = useRef(new Set());
     const onSubmitRef = useRef(onSubmit);
     const valueRef = useRef(value);
+    const firstFocusRef = useRef(true);
+    const blurTimerRef = useRef(null);
     const zebraDetected = useMemo(() => isZebraDevice(), []);
 
     if (!guardRef.current) {
@@ -55,6 +58,14 @@ export default function useTerminalScanInput({
 
     const focusInput = useCallback(() => {
         if (!autoFocus || !isEnabled || disabled) return;
+        // İlk mount: rAF ile anında, step/contextKey geçişlerinde animasyon sonrası
+        if (firstFocusRef.current) {
+            firstFocusRef.current = false;
+            window.requestAnimationFrame(() => {
+                inputRef.current?.focus();
+            });
+            return;
+        }
         window.setTimeout(() => {
             inputRef.current?.focus();
         }, INPUT_FOCUS_DELAY_MS);
@@ -66,14 +77,27 @@ export default function useTerminalScanInput({
 
     useEffect(() => {
         const handleVisibilityChange = () => {
-            if (!document.hidden) {
-                focusInput();
-            }
+            if (!document.hidden) focusInput();
         };
+        const handleWindowFocus = () => focusInput();
+        const handlePageShow = () => focusInput();
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleWindowFocus);
+        window.addEventListener('pageshow', handlePageShow);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleWindowFocus);
+            window.removeEventListener('pageshow', handlePageShow);
+        };
     }, [focusInput]);
+
+    useEffect(() => () => {
+        if (blurTimerRef.current) {
+            window.clearTimeout(blurTimerRef.current);
+            blurTimerRef.current = null;
+        }
+    }, []);
 
     const submitScan = useCallback(async (rawValue, options = {}) => {
         const { force = false } = options;
@@ -111,6 +135,8 @@ export default function useTerminalScanInput({
 
         pendingRef.current.add(dedupeKey);
         const idempotencyKey = generateIdempotencyKey();
+        const inputEl = inputRef.current;
+        if (inputEl) inputEl.readOnly = true;
 
         try {
             const result = await onSubmitRef.current?.(sanitized, {
@@ -134,6 +160,7 @@ export default function useTerminalScanInput({
             throw error;
         } finally {
             pendingRef.current.delete(dedupeKey);
+            if (inputEl) inputEl.readOnly = false;
         }
     }, [
         clearOnError,
@@ -141,6 +168,7 @@ export default function useTerminalScanInput({
         contextKey,
         disabled,
         focusInput,
+        inputRef,
         isEnabled,
         mode,
         setValue,
@@ -154,6 +182,19 @@ export default function useTerminalScanInput({
         void submitScan();
     }, [submitScan]);
 
+    const handleBlur = useCallback(() => {
+        if (!autoFocus || !isEnabled || disabled) return;
+        if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
+        blurTimerRef.current = window.setTimeout(() => {
+            blurTimerRef.current = null;
+            const active = document.activeElement;
+            const tag = active?.tagName?.toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || tag === 'button') return;
+            inputRef.current?.focus();
+        }, BLUR_REFOCUS_DELAY_MS);
+    // inputRef stable; eslint exhaustive-deps için açıkça dahil edildi
+    }, [autoFocus, disabled, inputRef, isEnabled]);
+
     const resetDuplicateGuard = useCallback(() => {
         guardRef.current?.reset();
         pendingRef.current.clear();
@@ -164,6 +205,7 @@ export default function useTerminalScanInput({
         zebraDetected,
         focusInput,
         handleKeyDown,
+        handleBlur,
         submitScan,
         resetDuplicateGuard,
     };
