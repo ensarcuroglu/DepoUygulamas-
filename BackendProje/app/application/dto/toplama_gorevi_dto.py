@@ -78,7 +78,8 @@ class ToplamaGoreviResponseDTO(BaseModel):
     @classmethod
     def from_entity(cls, e) -> "ToplamaGoreviResponseDTO":
         from app.core.entities.toplama_gorevi import ToplamaGorevi
-        assert isinstance(e, ToplamaGorevi)
+        if not isinstance(e, ToplamaGorevi):
+            raise TypeError(f"Beklenen tip ToplamaGorevi, ancak {type(e)} geldi.")
         return cls(
             id=e.id,
             sevkiyat_id=e.sevkiyat_id,

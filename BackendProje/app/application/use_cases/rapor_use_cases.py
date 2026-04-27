@@ -437,7 +437,8 @@ class RaporExportUseCase:
 
         # Pyright tip daraltması (Type Narrowing)
         # ws'nin None olmadığını kesinleştirerek hataları önlüyoruz
-        assert ws is not None, "Yeni Workbook oluşturulduğunda aktif sayfa bulunamadı."
+        if ws is None:
+            raise ValueError("Yeni Workbook oluşturulduğunda aktif sayfa bulunamadı.")
 
         ws.title = tur.capitalize()
 
