@@ -2,8 +2,9 @@
  * TerminalUretimKabulPage — Üretimden palet kabul + raf yerleştirme (Terminal 2-tarama akışı)
  * SAHA ODAKLI ENDÜSTRİYEL UI: Yüksek kontrast, büyük dokunma hedefleri, animasyon gürültüsü yok.
  */
-import { createElement, useState, useRef, useEffect, useCallback } from 'react';
+import { createElement, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Factory, CheckCircle, XCircle, ArrowRight, Wifi,
   ScanLine, Package, MapPin,
@@ -14,7 +15,7 @@ import toast from 'react-hot-toast';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { hataMetni } from '../../utils/hata';
 import useTerminalScanInput from '../../hooks/useTerminalScanInput';
-import { sanitizeBarkod } from '../../utils/barcode';
+import { sanitizeBarkod, validateBarkodFormat } from '../../utils/barcode';
 import { uretimPaletiKabulEt, uretimPaletiYerlestir, getRaflar, getUretimPaleti } from '../../services/api';
 import ZXingBarcodeScanner from '../../components/common/ZXingBarcodeScanner';
 
@@ -45,30 +46,48 @@ export default function TerminalUretimKabulPage() {
   const [adim, setAdim] = useState(ADIM.PALET);
   const [barkodInput, setBarkodInput] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
-  const [raflarYukleniyor, setRaflarYukleniyor] = useState(true); // YENİ: Raf yüklenme durumu
   const [sonuc, setSonuc] = useState(null);
   const [kabulBilgi, setKabulBilgi] = useState(null);
   const [kameraAcik, setKameraAcik] = useState(false);
   const [, setGecmis] = useState([]);
-  const [rafListesi, setRafListesi] = useState([]);
   const [manuelAcik, setManuelAcik] = useState(false);
 
   const inputRef = useRef(null);
 
-  useEffect(() => {
-    setRaflarYukleniyor(true);
-    getRaflar()
-      .then((r) => setRafListesi(r.data || []))
-      .catch(() => {
-        toast.error('Raf listesi alınamadı!', { style: { background: '#ef4444', color: '#fff' } });
-      })
-      .finally(() => setRaflarYukleniyor(false));
-  }, []);
+  // TanStack Query ile Raf Listesi Yönetimi
+  const {
+    data: rafListesi = [],
+    isLoading: raflarYukleniyor,
+    isError: rafYuklemeHatasi,
+    refetch: fetchRaflar
+  } = useQuery({
+    queryKey: ['terminal-raflar'],
+    queryFn: async () => {
+      const res = await getRaflar();
+      return res.data || [];
+    },
+    staleTime: 1000 * 60 * 5, // 5 dakika önbellekleme
+    retry: 1
+  });
 
   // ── Faz 1: Palet Okut ──────────────────────────────────────────────────────
   const paletOkut = useCallback(async (barkod, meta = {}) => {
     const no = sanitizeBarkod(barkod ?? barkodInput, 'palet');
     if (!no) return false;
+
+    // Yanlış Barkod Tipi Kontrolü
+    if (validateBarkodFormat(no, 'raf').valid) {
+      hapticFeedback('error');
+      setSonuc({ basarili: false, mesaj: 'HATA: Palet barkodu beklerken RAF barkodu okuttunuz.', okunan: no });
+      setAdim(ADIM.SONUC);
+      return false;
+    }
+    if (!validateBarkodFormat(no, 'palet').valid) {
+      hapticFeedback('error');
+      setSonuc({ basarili: false, mesaj: 'HATA: Geçersiz palet barkodu formatı.', okunan: no });
+      setAdim(ADIM.SONUC);
+      return false;
+    }
 
     setYukleniyor(true);
     setSonuc(null);
@@ -82,7 +101,7 @@ export default function TerminalUretimKabulPage() {
 
       if (palet && ZATEN_BITMIS.includes(palet.durum)) {
         hapticFeedback('error');
-        setSonuc({ basarili: false, mesaj: 'Bu palet ZATEN YERLEŞTİRİLMİŞ.', palet });
+        setSonuc({ basarili: false, mesaj: 'Bu palet ZATEN YERLEŞTİRİLMİŞ.', palet, okunan: no });
         setAdim(ADIM.SONUC);
         return true;
       }
@@ -105,7 +124,7 @@ export default function TerminalUretimKabulPage() {
     } catch (err) {
       hapticFeedback('error');
       const mesaj = hataMetni(err, 'Kabul işlemi başarısız');
-      setSonuc({ basarili: false, mesaj });
+      setSonuc({ basarili: false, mesaj, okunan: no });
       setGecmis((prev) => [
         { basarili: false, mesaj, no, rafKod: null, zaman: zamanStr() },
         ...prev.slice(0, 9),
@@ -123,6 +142,20 @@ export default function TerminalUretimKabulPage() {
     const kod = sanitizeBarkod(barkod ?? barkodInput, 'raf');
     if (!kod || !kabulBilgi) return false;
 
+    // Yanlış Barkod Tipi Kontrolü
+    if (validateBarkodFormat(kod, 'palet').valid) {
+      hapticFeedback('error');
+      setSonuc({ basarili: false, mesaj: 'HATA: Raf barkodu beklerken PALET barkodu okuttunuz.', okunan: kod, palet: kabulBilgi });
+      setAdim(ADIM.SONUC);
+      return false;
+    }
+    if (!validateBarkodFormat(kod, 'raf').valid) {
+      hapticFeedback('error');
+      setSonuc({ basarili: false, mesaj: 'HATA: Geçersiz raf barkodu formatı.', okunan: kod, palet: kabulBilgi });
+      setAdim(ADIM.SONUC);
+      return false;
+    }
+
     const raf = rafListesi.find(
       (r) => [r.kod, r.raf_kodu, r.barkod, String(r.id)]
         .filter(Boolean)
@@ -131,9 +164,9 @@ export default function TerminalUretimKabulPage() {
     
     if (!raf) {
       hapticFeedback('error');
-      toast.error(`"${kod}" ile eşleşen raf bulunamadı`, { style: { background: '#ef4444', color: '#fff', fontWeight: 'bold' }});
+      setSonuc({ basarili: false, mesaj: `Sistemde "${kod}" ile eşleşen raf bulunamadı.`, okunan: kod, palet: kabulBilgi });
       setBarkodInput('');
-      setTimeout(() => inputRef.current?.focus(), 50);
+      setAdim(ADIM.SONUC);
       return false;
     }
 
@@ -151,6 +184,7 @@ export default function TerminalUretimKabulPage() {
         mesaj: `Palet başarıyla rafa alındı.`,
         palet: kabulBilgi,
         rafKod,
+        okunan: kod
       };
       setSonuc(yeniSonuc);
       setGecmis((prev) => [
@@ -162,7 +196,7 @@ export default function TerminalUretimKabulPage() {
     } catch (err) {
       hapticFeedback('error');
       const mesaj = hataMetni(err, 'Yerleştirme başarısız');
-      setSonuc({ basarili: false, mesaj, palet: kabulBilgi });
+      setSonuc({ basarili: false, mesaj, palet: kabulBilgi, okunan: kod });
       setGecmis((prev) => [
         { basarili: false, mesaj, no: kabulBilgi.palet_no, rafKod: kod, zaman: zamanStr() },
         ...prev.slice(0, 9),
@@ -195,7 +229,6 @@ export default function TerminalUretimKabulPage() {
     });
   }, []);
 
-  // YENİ: İptal Et / Yeni Palet Okut fonksiyonu
   const sifirla = () => {
     setSonuc(null);
     setKabulBilgi(null);
@@ -205,7 +238,6 @@ export default function TerminalUretimKabulPage() {
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
-  // YENİ: Hata durumunda aynı paleti tutup raf okutma ekranına dönme
   const ayniPaletIcinRafOkut = () => {
     setSonuc(null);
     setBarkodInput('');
@@ -215,8 +247,7 @@ export default function TerminalUretimKabulPage() {
   };
 
   const isRaf = adim === ADIM.RAF;
-  // YENİ: Raf adımındaysa ve raflar yükleniyorsa tarama engellenir
-  const scanDisabled = yukleniyor || kameraAcik || (isRaf && raflarYukleniyor);
+  const scanDisabled = yukleniyor || kameraAcik || (isRaf && raflarYukleniyor) || (isRaf && rafYuklemeHatasi);
   const scanMode = isRaf ? 'raf' : 'palet';
   
   const scanInput = useTerminalScanInput({
@@ -229,6 +260,7 @@ export default function TerminalUretimKabulPage() {
       : `terminal-uretim:${kabulBilgi?.palet_no || 'yok'}:raf`,
     disabled: scanDisabled,
     isEnabled: (adim === ADIM.PALET || adim === ADIM.RAF) && !scanDisabled,
+    validateFormat: false, // UI tabanlı spesifik hata yakalayabilmek için hook'un toast'ını kapattık
     onSubmit: async (code, meta) => (scanMode === 'palet'
       ? paletOkut(code, meta)
       : rafOkut(code, meta)),
@@ -254,12 +286,25 @@ export default function TerminalUretimKabulPage() {
 
             {isRaf && kabulBilgi && <KabulPaletKarti kabulBilgi={kabulBilgi} />}
 
-            <ScannerHazirKarti 
-              isRaf={isRaf} 
-              busy={yukleniyor} 
-              zebraDetected={zebraDetected} 
-              raflarYukleniyor={raflarYukleniyor}
-            />
+            {isRaf && rafYuklemeHatasi ? (
+              <div className="border-2 border-red-300 dark:border-red-700/60 rounded-[28px] px-5 py-7 flex flex-col items-center justify-center min-h-[200px] bg-red-50 dark:bg-red-900/20 shadow-sm transition-colors text-center">
+                <AlertOctagon className="w-16 h-16 text-red-600 dark:text-red-400 mb-4" strokeWidth={2} />
+                <h2 className="text-xl font-black uppercase tracking-tight text-red-800 dark:text-red-300 mb-2">BAĞLANTI HATASI</h2>
+                <p className="text-[13px] font-bold text-red-600 dark:text-red-400 mb-5 leading-tight">
+                  Raf listesi yüklenemedi.<br/>Lütfen bağlantınızı kontrol edin.
+                </p>
+                <div className="w-full max-w-[240px]">
+                  <FatButton icon={RefreshCcw} label="TEKRAR DENE" onClick={() => fetchRaflar()} variant="danger" />
+                </div>
+              </div>
+            ) : (
+              <ScannerHazirKarti 
+                isRaf={isRaf} 
+                busy={yukleniyor} 
+                zebraDetected={zebraDetected} 
+                raflarYukleniyor={raflarYukleniyor}
+              />
+            )}
 
             <div className="grid gap-3 relative">
               <div className={`overflow-hidden transition-all duration-200 ${manuelAcik ? 'h-auto' : 'absolute h-0 w-0 pointer-events-none'}`} aria-hidden={!manuelAcik}>
@@ -295,7 +340,7 @@ export default function TerminalUretimKabulPage() {
                 label={manuelAcik ? "KLAVYEYİ GİZLE" : "MANUEL GİRİŞ YAP"} 
                 onClick={toggleManuel} 
                 variant="secondary"
-                disabled={isRaf && raflarYukleniyor}
+                disabled={isRaf && (raflarYukleniyor || rafYuklemeHatasi)}
               />
 
               {!zebraDetected && (
@@ -304,7 +349,7 @@ export default function TerminalUretimKabulPage() {
                   label="KAMERAYI AÇ" 
                   onClick={() => setKameraAcik(true)} 
                   variant="secondary"
-                  disabled={isRaf && raflarYukleniyor}
+                  disabled={isRaf && (raflarYukleniyor || rafYuklemeHatasi)}
                 />
               )}
 
@@ -345,12 +390,11 @@ export default function TerminalUretimKabulPage() {
                 {sonuc.mesaj}
               </p>
 
-              {sonuc.basarili && sonuc.palet && (
-                <div className="w-full bg-white/80 dark:bg-[#121316]/80 rounded-[20px] p-4 mt-6 border border-slate-200/60 dark:border-slate-800/60 text-left">
-                  <SolidInfoRow label="Palet" value={sonuc.palet.palet_no} />
-                  <SolidInfoRow label="Raf" value={sonuc.rafKod} />
-                </div>
-              )}
+              <div className={`w-full rounded-[20px] p-4 mt-6 border text-left ${sonuc.basarili ? 'bg-white/80 dark:bg-[#121316]/80 border-slate-200/60 dark:border-slate-800/60' : 'bg-red-100/50 dark:bg-red-900/40 border-red-200 dark:border-red-800/50'}`}>
+                {sonuc.okunan && <SolidInfoRow label="Okunan Barkod" value={sonuc.okunan} />}
+                {sonuc.palet && <SolidInfoRow label="Mevcut Palet" value={sonuc.palet.palet_no} />}
+                {sonuc.rafKod && <SolidInfoRow label="Yerleşen Raf" value={sonuc.rafKod} />}
+              </div>
             </div>
 
             <div className="grid gap-3">
@@ -446,7 +490,6 @@ function ScannerHazirKarti({ isRaf, busy, zebraDetected, raflarYukleniyor }) {
         <ScanLine className={`w-16 h-16 ${text} mb-4`} strokeWidth={2} />
       )}
       
-      {/* YENİ: Raf Yükleniyor Mesajı Entegrasyonu */}
       <h2 className={`text-xl font-black text-center uppercase tracking-tight leading-tight ${text} mt-2`}>
         {isLoading 
           ? (raflarYukleniyor ? 'RAFLAR YÜKLENİYOR...' : 'İŞLENİYOR...') 
@@ -466,7 +509,6 @@ function ScannerHazirKarti({ isRaf, busy, zebraDetected, raflarYukleniyor }) {
 function FatButton({ icon, label, onClick, variant = 'primary', disabled = false }) {
   const baseStyle = "w-full min-h-[60px] px-4 rounded-[20px] flex items-center justify-between gap-3 font-bold text-[13px] sm:text-[14px] leading-tight active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 tap-highlight-transparent";
   
-  // YENİ: Varyantlara Danger ve Warning Renkleri Eklendi
   const styles = {
     primary: "bg-blue-600 text-white active:bg-blue-700",
     secondary: "bg-white/80 dark:bg-[#121316]/80 border border-slate-200/60 dark:border-slate-800/60 text-slate-800 dark:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]",
@@ -480,7 +522,6 @@ function FatButton({ icon, label, onClick, variant = 'primary', disabled = false
         {createElement(icon, { className: 'w-5 h-5 shrink-0 opacity-80', strokeWidth: 2.5 })}
         <span className="min-w-0 break-words">{label}</span>
       </span>
-      {/* Sadece uzun butonlarda Chevron gösteriyoruz, ikili gride sığması için sadeleştirdik */}
       {variant === 'primary' || variant === 'secondary' ? <ChevronDown className="w-5 h-5 shrink-0 opacity-50" /> : null}
     </button>
   );
@@ -488,7 +529,7 @@ function FatButton({ icon, label, onClick, variant = 'primary', disabled = false
 
 function SolidInfoRow({ label, value }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+    <div className="flex items-center justify-between gap-4 py-2 border-b border-slate-500/10 last:border-0">
       <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[12px] shrink-0">{label}</span>
       <span className="min-w-0 text-slate-900 dark:text-white font-black font-mono text-[15px] truncate text-right">{value}</span>
     </div>
