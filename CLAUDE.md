@@ -1,119 +1,355 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file is the operational reference for AI coding agents working in this repository.
 
 ## Project Overview
 
-**Depo Yönetim Sistemi** — A warehouse management system (WMS) with lot/pallet tracking. Full-stack application: FastAPI backend + React (Vite) frontend.
+**Depo Yönetim Sistemi (WMS)** — Full-stack warehouse management system with lot/pallet tracking, putaway/pick task workflows, production pallet intake, and mobile terminal PWA. FastAPI backend (Clean Architecture) + React (Vite) frontend.
 
 ---
 
-## Running the Project
+## Build, Lint, Typecheck ve Test Komutları
 
-### Backend (FastAPI)
+### Backend (FastAPI — `BackendProje/`)
+
 ```bash
+# Dependency kurulumu
 cd BackendProje
-
-# Install dependencies
 pip install -r requirements.txt
+pip install -r requirements-test.txt   # test bağımlılıkları (pytest, httpx, factory-boy, pytest-cov)
 
-# Configure environment — create a .env file with:
-# DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME (MySQL)
-# JWT_SECRET_KEY
-
-# Start the development server
+# Development server
 uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
-# Seed initial data (admin + depocu users)
+# Lint (ruff)
+ruff check .
+
+# Type check (pyright — basic mode, sadece app/ dizini)
+pyright
+
+# Tüm testleri çalıştır (test DB gerekir: depo_db_test)
+pytest
+
+# Sadece unit testler
+pytest -m unit
+
+# Sadece integration testler
+pytest -m integration
+
+# Sadece API testler
+pytest -m api
+
+# Sadece concurrency testler
+pytest -m concurrency
+
+# Tek test dosyası
+pytest tests/unit/test_feature_flags.py
+
+# Tek test case (isim pattern'i ile)
+pytest -k "test_token_rotation"
+
+# Coverage raporu
+pytest --cov=app --cov-report=term --disable-warnings -q --tb=short
+
+# Seed data (admin + depocu kullanıcı)
 python seed.py
+
+# Alembic migration
+alembic upgrade head
+alembic revision --autogenerate -m "migration_aciklamasi"
 ```
 
-API docs available at: `http://localhost:8000/docs`
+### Frontend (React + Vite — `ReactProje/`)
 
-### Frontend (React + Vite)
 ```bash
 cd ReactProje
 
-# Install dependencies
+# Dependency kurulumu
 npm install
 
-# Start dev server (http://localhost:5173)
+# Development server (https://localhost:5173, HTTPS + mkcert)
 npm run dev
 
-# Lint
+# Lint (ESLint 9 flat config)
 npm run lint
 
 # Production build
 npm run build
+
+# Preview (production build serve)
+npm run preview
+```
+
+> **Not:** Frontend'te TypeScript kullanılmıyor; tüm dosyalar `.js` / `.jsx`.
+
+---
+
+## Tech Stack
+
+### Backend
+- **Language/Runtime:** Python 3.x
+- **Framework:** FastAPI
+- **ORM:** SQLAlchemy (declarative)
+- **Database:** MySQL (PyMySQL driver, charset=utf8mb4)
+- **Migration:** Alembic + standalone `migrate_*.py` scriptleri
+- **Auth:** JWT (python-jose) + bcrypt (passlib), refresh token desteği
+- **Settings:** pydantic-settings (`.env` tabanlı)
+- **Rate limiting:** slowapi
+- **Scheduler:** APScheduler (rapor zamanlama, staging uyarı)
+- **Email:** fastapi-mail (SMTP)
+- **Lint:** ruff
+- **Type check:** pyright (basic mode)
+- **Test:** pytest, httpx (TestClient), factory-boy, pytest-cov
+
+### Frontend
+- **Framework:** React 19 + Vite 7
+- **Routing:** react-router-dom v7
+- **Styling:** Tailwind CSS v4 (@tailwindcss/vite plugin)
+- **State/Data fetching:** TanStack React Query v5
+- **Animation:** Framer Motion
+- **Charts:** Recharts
+- **Icons:** lucide-react
+- **Toast:** react-hot-toast
+- **Barcode/QR:** @zxing/library, html5-qrcode, qrcode.react, jsbarcode
+- **Export:** xlsx (Excel), jspdf + jspdf-autotable (PDF)
+- **HTTP:** Axios
+- **PWA:** vite-plugin-pwa + workbox
+- **HTTPS (dev):** vite-plugin-mkcert
+- **Lint:** ESLint 9 (flat config) + react-hooks + react-refresh
+- **Bundle analysis:** rollup-plugin-visualizer
+
+---
+
+## Project Structure
+
+```
+BackendProje/
+├── main.py                    # FastAPI app entry point, router kayıtları, CORS, lifespan
+├── database.py                # SQLAlchemy engine + SessionLocal
+├── models.py                  # Tüm SQLAlchemy ORM modelleri (tek dosya)
+├── schemas.py                 # Legacy Pydantic modelleri (runtime büyük ölçüde DTO'lara taşındı; bazı testlerde kullanılır)
+├── limiter.py                 # slowapi rate limiter instance
+├── seed.py                    # İlk veri yükleme (admin, depocu)
+├── alembic/                   # Alembic migration yapılandırması
+│   └── versions/              # Migration dosyaları
+├── app/                       # Clean Architecture katmanları
+│   ├── core/                  # Domain katmanı
+│   │   ├── config.py          # Settings (pydantic-settings) + FeatureFlags
+│   │   ├── auth.py            # JWT + bcrypt helpers, get_current_user, require_role
+│   │   ├── constants.py       # Sabitler
+│   │   ├── barcode.py         # Barkod üretim yardımcıları
+│   │   ├── idempotency.py     # İdempotency key desteği
+│   │   ├── entities/          # Domain entity dataclass'ları
+│   │   ├── repositories/      # Abstract repository interface'leri
+│   │   ├── services/          # Domain service'ler (FEFO, kapasite, yerleştirme alg., palet giriş/çıkış)
+│   │   └── exceptions/        # Domain exception sınıfları
+│   ├── application/           # Uygulama katmanı
+│   │   ├── use_cases/         # Use case sınıfları
+│   │   ├── dto/               # Data Transfer Object'ler
+│   │   └── helpers.py         # Yardımcı fonksiyonlar
+│   ├── infrastructure/        # Altyapı katmanı
+│   │   ├── persistence/       # SQLAlchemy repository implementasyonları + mappers
+│   │   ├── di/                # Dependency Injection container + domain modülleri
+│   │   │   ├── container.py   # Ana re-export hub
+│   │   │   └── modules/       # Domain-odaklı DI modülleri
+│   │   ├── config/            # ERP config
+│   │   ├── services/          # Infra service implementasyonları (ERP, mock, SQL seri no)
+│   │   └── scheduler/         # APScheduler jobs (rapor, staging uyarı)
+│   └── api/                   # API katmanı
+│       └── v1/routers/        # FastAPI router dosyaları
+├── core/                      # Birleşik exception handler'lar (APIException + generic)
+├── tests/                     # Test altyapısı
+│   ├── conftest.py            # Merkezi fixture'lar (engine, db_session, client, auth)
+│   ├── factories/             # factory-boy factory'leri
+│   ├── unit/                  # Unit testler (+ iç içe dto/, entities/, routers/, services/, use_cases/)
+│   ├── integration/           # Integration testler (concurrency, idempotency, putaway E2E)
+│   └── api/routers/           # API endpoint testleri
+├── migrate_*.py               # Standalone migration scriptleri (elle çalıştırılır)
+├── uploads/                   # Kullanıcı yükleme dizini
+├── .env.example               # Ortam değişkeni şablonu
+├── .env.test                  # Test ortam değişkenleri
+├── pyproject.toml             # Pyright yapılandırması
+├── pytest.ini                 # Pytest marker ve filtreleri
+└── .coveragerc                # Coverage ayarları
+
+ReactProje/
+├── src/
+│   ├── main.jsx               # React entrypoint, PWA registration
+│   ├── App.jsx                # Route tanımları, PrivateRoute/RoleRoute guards
+│   ├── index.css              # Global Tailwind styles + custom CSS
+│   ├── contexts/              # AuthContext, AuthProvider, ThemeContext
+│   ├── providers/             # QueryProvider (TanStack React Query)
+│   ├── lib/                   # queryClient singleton
+│   ├── queries/               # TanStack Query hooks + queryKeys (domain-based)
+│   ├── services/              # Axios API instance + endpoint fonksiyonları
+│   ├── hooks/                 # Custom hooks (useAsync, useBarcodeScanner, useTerminalScanInput)
+│   ├── components/
+│   │   ├── layout/            # DashboardLayout, DepocuLayout, TerminalLayout, Header, Sidebar
+│   │   ├── common/            # Ortak UI bileşenleri
+│   │   ├── depocu/            # Depocu'ya özel bileşenler
+│   │   ├── palet/             # Palet bileşenleri
+│   │   ├── PrivateRoute.jsx   # Auth guard
+│   │   └── RoleRoute.jsx      # Role-based guard
+│   ├── pages/                 # Sayfa bileşenleri + alt dizinler
+│   │   ├── terminal/          # Mobil terminal sayfaları (GorevListesi, Yerlestirme, UretimKabul)
+│   │   └── depocu/            # Depocu ana sayfası, kabul seçim
+│   ├── utils/                 # Yardımcılar (barcode, exportUtils, hata)
+│   └── pwa/                   # PWA registration
+├── public/                    # Statik dosyalar, PWA ikonları
+├── vite.config.js             # Vite yapılandırması (proxy, PWA, chunks, security headers)
+├── eslint.config.js           # ESLint 9 flat config
+└── package.json               # npm bağımlılıkları
 ```
 
 ---
 
-## Architecture
+## Code Style Guidelines
 
-### Backend (`BackendProje/`)
+### Backend (Python)
+- **Linter:** ruff (`ruff check .`)
+- **Type checking:** pyright, basic mode, sadece `app/` dizini
+- **Fonksiyon/değişken isimleri:** snake_case, Türkçe (ör. `get_urun_listele_uc`, `stok_miktari`)
+- **Sınıf isimleri:** PascalCase, Türkçe (ör. `YerlestirmeGorevi`, `PaletGirisService`)
+- **Clean Architecture katman disiplini:** `core` → `application` → `infrastructure` → `api` (iç katman dış katmanı import etmez)
+- **Dependency Injection:** `Depends()` tabanlı; factory fonksiyonları `app/infrastructure/di/modules/` altında domain modülleri olarak tanımlanır, `container.py` üzerinden re-export edilir
+- **Use case pattern:** Yeni iş akışlarında router → use case → repository zinciri tercih edilir; `auth`, idempotency ve bazı stok/terminal endpoint'lerinde sınırlı doğrudan `Session` kullanımı vardır
+- **Repository pattern:** Abstract repository (`app/core/repositories/`) → SQLAlchemy implementasyonu (`app/infrastructure/persistence/repositories/`)
+- **Entity pattern:** Domain entity'leri `app/core/entities/` altında dataclass olarak tanımlanır; mapper'lar ORM ↔ entity dönüşümü yapar
+- **Error handling:** Domain exception'lar (`app/core/exceptions/`) → `APIException` (HTTP status + code + detail) → merkezi exception handler
+- **Auth:** `get_current_user` dependency, `require_role("admin")` factory pattern
+- **Loglama:** `SistemLog` kaydı kritik CRUD işlemlerinde router'lardan yazılır
 
-- **`main.py`** — FastAPI app entry point; registers all routers, CORS config, and the `/api/dashboard` endpoint
-- **`database.py`** — SQLAlchemy engine setup reading MySQL connection from `.env` (`DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`)
-- **`models.py`** — All SQLAlchemy ORM models: `Marka`, `Kategori`, `Depo`, `Raf`, `Tedarikci`, `Urun`, `Lot`, `Palet`, `StokHareketi`, `SistemLog`, `Kullanici`, `DestekTalebi`
-- **`schemas.py`** — Pydantic request/response models
-- **`crud.py`** — Business logic layer (DB queries)
-- **`auth.py`** — JWT token creation/validation (`python-jose`), bcrypt password hashing (`passlib`), `get_current_user` dependency, `require_role()` factory
-- **`routers/`** — One router file per entity: `auth`, `urunler`, `kategoriler`, `depolar`, `raflar`, `lotlar`, `paletler`, `stok_hareketleri`, `kullanicilar`, `tedarikciler`, `markalar`, `sistem_loglari`, `destek`
-
-**Key data flow:** `Urun` stock level (`stok_miktari`) is computed as a SQLAlchemy `column_property` — it aggregates `Palet.koli_adedi` through active `Lot` records (no stored stock count column on `Urun`).
-
-**Roles:** `admin`, `depocu`, `goruntuleyen`, `lojistik`
-
-**JWT config:** `JWT_SECRET_KEY` env var (falls back to hardcoded default — must be overridden in production). Token expires in 8 hours.
-
-### Frontend (`ReactProje/src/`)
-
-- **`App.jsx`** — Route definitions with nested `PrivateRoute` (auth check) and `RoleRoute` (role check). Default redirect: `depocu`/`lojistik` → `/stok-hareketleri`; `admin` → `/dashboard`
-- **`contexts/AuthContext.jsx`** — Auth state: token + user stored in `localStorage`; validates on load via `GET /api/auth/me`
-- **`services/api.js`** — Axios instance with base URL `http://localhost:8000/api`; request interceptor adds Bearer token; response interceptor auto-redirects to `/login` on 401
-- **`components/layout/`** — `DashboardLayout`, `Header`, `Sidebar`
-- **`components/PrivateRoute.jsx`** / **`RoleRoute.jsx`** — Route guards
-- **`pages/`** — One page component per feature area
-- **`utils/exportUtils.js`** — Excel (xlsx) and PDF (jspdf + jspdf-autotable) export helpers
-- **`utils/hata.js`** — API error message resolver (`hataMetni(err, fallback)`); checks FastAPI `detail`, `message`, JS message in order
-- **`hooks/useAsync.js`** — `useAsync(initialLoading?)` hook; centralizes `loading` state via `run(asyncFn)` — used across all data-fetching pages
-
-**Route access control:**
-- Admin only: `/dashboard`, `/urunler`, `/kategoriler`, `/lotlar`, `/paletler`, `/kullanicilar`, `/ayarlar`, `/tedarikciler`, `/sistem-loglari`
-- Admin + Lojistik: `/depolar`, `/depo-kroki`
-- All authenticated: `/stok-hareketleri`, `/sevkiyatlar`, `/profil-ayarlari`, `/destek-masasi`
+### Frontend (JavaScript/JSX)
+- **Linter:** ESLint 9 flat config, `no-unused-vars` (ignore `^[A-Z_]` pattern)
+- **Dosya formatı:** `.js` / `.jsx` (TypeScript yok)
+- **Component pattern:** Fonksiyonel bileşenler + hooks
+- **Data fetching:** TanStack React Query (`queries/` dizininde domain-based hooks, `queryKeys.js` merkezi key yapısı)
+- **HTTP client:** Axios (`services/api.js`), auto Bearer token injection, 401 → refresh token denemesi → başarısızsa login redirect
+- **State management:** React Context (Auth, Theme) + React Query cache
+- **Animation:** Framer Motion
+- **Styling:** Tailwind CSS v4 (vite plugin entegrasyonu), custom CSS `index.css` içinde
+- **Error handling:** `hataMetni(err, fallback)` utility; API hatalarında `detail` → `message` → JS `message` sırası
+- **Toast:** `react-hot-toast`
+- **Export:** `exportUtils.js` (Excel: xlsx, PDF: jspdf + jspdf-autotable)
+- **Debounce:** `use-debounce` kütüphanesi
+- **Route guards:** `PrivateRoute` (auth) + `RoleRoute` (rol kontrolü)
 
 ---
 
-## Environment Variables
+## Naming Conventions
 
-Create `BackendProje/.env`:
-```
-DB_USER=...
-DB_PASSWORD=...
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=depo_db
-JWT_SECRET_KEY=<strong-random-secret>
-```
+| Kapsam | Kural | Örnek |
+|--------|-------|-------|
+| Python dosyaları | snake_case, Türkçe | `yerlestirme_gorevi_use_cases.py` |
+| Python sınıflar | PascalCase | `PaletGirisService`, `UrunListeleUseCase` |
+| Python fonksiyonlar | snake_case, Türkçe | `get_urun_listele_uc`, `stok_cikis_yap` |
+| Python entity'ler | PascalCase | `YerlestirmeGorevi`, `MalKabulIrsaliye` |
+| API endpoint'ler | Çoğunlukla `/api/<resource>/`; outbound bazı endpoint'ler `/api/v1/<resource>/` | `/api/urunler/`, `/api/paletler/`, `/api/v1/toplama-gorevleri/` |
+| DI factory'ler | `get_<entity>_<islem>_uc` | `get_palet_bazli_stok_service` |
+| Test factory'ler | `<Entity>Factory` | `KullaniciFactory`, `PaletFactory` |
+| Test dosyaları | `test_<konu>.py` | `test_feature_flags.py` |
+| Test marker'lar | `@pytest.mark.<marker>` | `unit`, `integration`, `api`, `concurrency` |
+| JSX sayfa dosyaları | PascalCase + `Page.jsx` | `DashboardPage.jsx`, `LotlarPage.jsx` |
+| JSX layout dosyaları | PascalCase + `Layout.jsx` | `DashboardLayout.jsx`, `TerminalLayout.jsx` |
+| JSX bileşenler | PascalCase | `PrivateRoute`, `PwaInstallButton` |
+| JS hook'lar | `use` prefix, camelCase | `useAsync`, `useBarcodeScanner` |
+| JS query key'ler | Türkçe camelCase (entity bazlı) | `queryKeys.urunler.list(params)` |
+| JS query hook dosyaları | camelCase + `Queries.js` | `productQueries.js`, `malKabulQueries.js` |
+| JS service dosyaları | camelCase + `Api.js` | `toplamaGorevleriApi.js` |
+| Ortam değişkenleri | UPPER_SNAKE_CASE | `DB_USER`, `JWT_SECRET_KEY`, `FEATURE_URETIM_PALET_PILOT_DEPO_IDS` |
 
 ---
 
-## Key Conventions
+## Architecture and Patterns
 
-- All naming is in Turkish (models, variables, API endpoints, UI labels)
-- API endpoints follow pattern `/api/<resource>/` (plural Turkish names)
-- Backend routers use `Depends(get_current_user)` or `Depends(require_role("admin"))` for auth
-- `SistemLog` records are written manually from routers when critical operations occur (CREATE/UPDATE/DELETE)
-- `Palet.aktif=False` marks a pallet as shipped/removed; `Lot.aktif=False` marks a lot as closed
+### Backend — Clean Architecture (4 Katman)
 
-## Code Review Standards
+```
+api (routers) → application (use cases + DTOs) → core (entities + repositories + services)
+                                                   ↑
+                                    infrastructure (persistence + DI + scheduler + services)
+```
 
-After completing any implementation, review the code for:
-- Functions longer than 30 lines (likely doing too much)
-- Logic duplicated more than twice (extract to utility)
-- Any `any` type usage in JavaScript (replace with real types)
-- Components with more than 3 props that could be grouped into an object
-- Missing error handling on async operations
+- **Router'lar** çoğunlukla HTTP concern'leri (request parse, response format, auth guard) yönetir; mevcut legacy/adapter noktalarında sınırlı DB erişimi bulunabilir
+- **Use case'ler** iş mantığını orkestre eder; repository + domain service'leri inject alır
+- **Domain service'ler** çapraz-entity iş kurallarını barındırır (FEFO seçim, kapasite doğrulama, yerleştirme algoritması, palet giriş/çıkış)
+- **Repository'ler** abstract (core) → concrete (infrastructure/persistence) ayrımıyla tanımlanır
+- **DI container** `Depends()` tabanlı; `app/infrastructure/di/modules/` altında domain-odaklı modüller, `container.py` tek re-export noktası
 
+### Frontend — SPA (Feature-Based Pages)
+
+- **Routing:** `App.jsx` → `react-router-dom` v7, nested `PrivateRoute` + `RoleRoute`
+- **Üç farklı layout:** `DashboardLayout` (admin/lojistik ve ortak korumalı sayfalar), `DepocuLayout` (sadece depocu), `TerminalLayout` (mobil terminal)
+- **Data fetching:** TanStack React Query + merkezi `queryKeys.js` + domain-based query hook dosyaları
+- **Auth akışı:** `AuthProvider` → login → localStorage'a access/refresh token + user → Axios interceptor ile Bearer ekleme → 401'de refresh token → başarısızsa logout
+- **Tema:** `ThemeContext` (light/dark mode desteği)
+- **PWA:** Service Worker (workbox), offline cache, manifest.json (standalone mode, portrait)
+
+### Roller ve Erişim Kontrolü
+- `admin` — Yönetim, raporlama, depo ve terminal rotalarının çoğuna erişim; `/depocu/*` arayüzü sadece `depocu` rolüne açıktır
+- `depocu` — Terminal, stok hareketleri, üretim kabul
+- `lojistik` — Depolar, depo kroki, stok hareketleri
+- `goruntuleyen` — Salt okunur erişim
+
+---
+
+## Project-Specific Rules and Gotchas
+
+### Ortam Değişkenleri
+- Backend: `BackendProje/.env` (şablon: `.env.example`). Zorunlu: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `JWT_SECRET_KEY` (min 32 karakter)
+- Test: `BackendProje/.env.test` → DB adı `depo_db_test` olmalı (`test` ifadesi içermezse güvenlik kontrolü hata verir)
+- Frontend: `ReactProje/.env.local` (isteğe bağlı)
+- Feature flag: `FEATURE_URETIM_PALET_PILOT_DEPO_IDS` (boş=kapalı, `TUMU`=tüm depolar, `1,3,5`=belirli depolar)
+- Palet veri kaynağı: `PALET_VERI_KAYNAGI` (`LOCAL`, `MOCK`, `ERP`)
+
+### Stok Hesaplama
+- `Urun.stok_miktari` bir `column_property`; `Palet.koli_adedi` üzerinden aktif `Lot` kayıtlarından hesaplanır. **Ürün tablosunda saklanan stok sütunu yoktur.**
+
+### Palet/Lot Durumu
+- `Palet.aktif=False` → sevk edilmiş/çıkarılmış palet
+- `Lot.aktif=False` → kapatılmış lot
+- Üretim paleti state machine: `OLUSTURULDU → KABUL_BEKLIYOR → KABUL_EDILDI → YERLESTIRME_BEKLIYOR → YERLESTIRILDI`; saha hızlı kabul akışında `OLUSTURULDU → KABUL_EDILDI` geçişi de desteklenir (+ `KARANTINA`, `IPTAL_EDILDI`)
+
+### Generated / Dokunulmaması Gereken Dosyalar
+- `ReactProje/dist/` — build çıktısı
+- `ReactProje/dev-dist/` — PWA dev build
+- `ReactProje/stats.html` — bundle analiz raporu (`npm run build` ile oluşur)
+- `BackendProje/__pycache__/`, `BackendProje/.venv/`
+- `BackendProje/.coverage` — test coverage veritabanı
+- `BackendProje/alembic/versions/` — otomatik üretilen migration dosyaları (sadece alembic ile oluştur)
+
+### Migration Kuralları
+- **Alembic** resmi migration aracıdır ama projede standalone `migrate_*.py` scriptleri de bulunur (elle çalıştırılır, tekrar çalıştırmaya dayanıklı değil)
+- Yeni migration: `alembic revision --autogenerate -m "aciklama"` → `alembic upgrade head`
+- `models.py` değiştirildiğinde migration gerekir
+
+### Vite Dev Server
+- HTTPS zorunlu (mkcert plugin'i); dev URL: `https://localhost:5173`
+- `/api` prefix'li istekler `http://127.0.0.1:8000`'a proxy edilir
+- `server.host: true` — LAN erişimi açık
+- Build chunk'ları elle bölünmüş: `react-vendor`, `chart-vendor`, `excel-vendor`, `pdf-vendor`, `barcode-vendor`, `ui-vendor`
+
+### Idempotency
+- Kritik yazma endpoint'leri `Idempotency-Key` header'ı destekler; tekrarlayan istekler aynı sonucu döner
+
+### Test Altyapısı
+- Test DB her `db_session` fixture'ında truncate edilir (izolasyon)
+- `factory-boy` factory'leri `tests/factories/` altında; `conftest.py`'daki `admin_user`, `depocu_user`, `lojistik_user` fixture'ları otomatik token üretir
+- Test marker'ları: `unit`, `integration`, `api`, `concurrency`
+- `.coveragerc` şu dosyaları hariç tutar: `_crud_legacy.py`, `migrate_*.py`, `seed.py`
+
+---
+
+## AI Agent Development Checklist
+
+- [ ] Değişiklik yapmadan önce ilgili dosyaları (entity, use case, router, test) oku
+- [ ] Clean Architecture katman sınırlarını koru: router → use case → repository; kısa yol açma
+- [ ] DI modül desenini takip et: yeni use case/repo → ilgili `di/modules/` dosyasına factory ekle → `container.py`'dan re-export et
+- [ ] Backend değişikliği sonrası: `ruff check .` ve `pytest -m unit` çalıştır
+- [ ] Frontend değişikliği sonrası: `npm run lint` çalıştır
+- [ ] Tüm isimlendirmede Türkçe konvansiyonu koru (model, endpoint, değişken)
+- [ ] ORM model değişikliğinde Alembic migration oluştur
+- [ ] Yeni API endpoint'i eklerken ilgili use case + router + DI factory + test factory zincirini tamamla
+- [ ] Mevcut query key pattern'ine uy (`queryKeys.js`)
+- [ ] Davranış değişikliğinde mevcut testleri güncelle; yeni davranış için test yaz
+- [ ] Alakasız refactor yapma; değişiklikleri dar ve kapsamlı tut

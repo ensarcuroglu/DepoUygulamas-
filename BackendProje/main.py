@@ -190,3 +190,6 @@ def ana_sayfa():
 
 # Sadeleştirilmiş Terminal Çıktısı ile Hızlı Kod Kapsamı Analizi (coverage.py)
 # pytest --cov=app --cov-report=term --disable-warnings -q --tb=short
+
+# CLOUDFLARED İLE HTTPS TUNNEL AÇMA KODU (Geliştirme sırasında güvenli bağlantı için)
+# & "C:\Program Files (x86)\cloudflared\cloudflared.exe" tunnel --protocol http2 --url https://localhost:4173 --no-tls-verify

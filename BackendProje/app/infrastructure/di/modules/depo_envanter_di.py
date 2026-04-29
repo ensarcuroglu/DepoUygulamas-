@@ -60,6 +60,7 @@ from app.application.use_cases.yerlestirme_gorevi_use_cases import (
     KarantinadanCikarUseCase,
     KarantinayaAlUseCase,
     ZamanAsimiBirakUseCase,
+    RafOneriSorgulaUseCase,
 )
 from app.core.services.palet_bazli_stok_domain_service import PaletBazliStokDomainService
 from app.core.services.zon_uyumluluk_servisi import ZonUyumlulukServisi
@@ -540,4 +541,22 @@ def get_karantinaya_al_uc(
 ):
     return KarantinayaAlUseCase(
         repo, palet_repo, raf_repo, zon_repo, kapasite, log_repo,
+    )
+
+
+def get_raf_oneri_sorgula_uc(
+    palet_repo=Depends(get_palet_repo),
+    lot_repo=Depends(get_lot_repo),
+    urun_repo=Depends(get_urun_repo),
+    raf_repo=Depends(get_raf_repo),
+    zon_repo=Depends(get_zon_repo),
+    algoritma=Depends(get_yerlestirme_algoritmasi),
+):
+    return RafOneriSorgulaUseCase(
+        palet_repo=palet_repo,
+        lot_repo=lot_repo,
+        urun_repo=urun_repo,
+        raf_repo=raf_repo,
+        zon_repo=zon_repo,
+        algoritma=algoritma,
     )

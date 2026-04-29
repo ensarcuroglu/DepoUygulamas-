@@ -81,4 +81,8 @@ export const queryKeys = {
         lists: () => ['uretimPaletleri', 'list'],
         list: (params = {}) => ['uretimPaletleri', 'list', params],
     },
+    yerlestirme: {
+        all: ['yerlestirme'],
+        oneri: (paletId) => ['yerlestirme', 'oneri', paletId],
+    },
 };

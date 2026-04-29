@@ -124,6 +124,7 @@ from app.infrastructure.di.modules.depo_envanter_di import (  # noqa: F401
     get_bilinmeyen_konum_gorevleri_olustur_uc,
     get_karantinadan_cikar_uc,
     get_karantinaya_al_uc,
+    get_raf_oneri_sorgula_uc,
 )
 
 from app.infrastructure.di.modules.stok_di import (  # noqa: F401

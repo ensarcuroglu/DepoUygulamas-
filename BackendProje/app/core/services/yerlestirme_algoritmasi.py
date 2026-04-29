@@ -14,7 +14,7 @@ Karar hiyerarşisi:
 from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from app.core.entities.raf import Raf
 from app.core.entities.palet import Palet
@@ -39,12 +39,23 @@ _ZON_ONCELIK_VARSAYILAN = 3
 
 
 @dataclass
+class AlternatifOneri:
+    """Alternatif raf için skor + bileşen + gerekçe taşır."""
+    raf: Raf
+    skor: float
+    bilesenler: Dict[str, float] = field(default_factory=dict)
+    gerekce: str = ""
+
+
+@dataclass
 class YerlestirmeOnerisi:
     """Yerleştirme algoritmasının ürettiği öneri."""
     onerilen_raf: Raf
     skor: float                         # 0–100
-    alternatifler: List[Raf] = field(default_factory=list)  # Top 3 alternatif
+    alternatifler: List[Raf] = field(default_factory=list)  # Top 3 alternatif (geri uyumluluk)
     gerekce: str = ""                   # "Aynı üründen 5 palet mevcut, %72 dolu"
+    bilesenler: Dict[str, float] = field(default_factory=dict)  # konsolidasyon/doluluk/fifo/zon_oncelik
+    alternatif_detaylari: List[AlternatifOneri] = field(default_factory=list)
 
 
 class YerlestirmeAlgoritmasi:
@@ -108,18 +119,32 @@ class YerlestirmeAlgoritmasi:
         if not uygun_raflar:
             return None
 
-        # 4. Tüm adayları skorla
-        skorlar = [(raf, self._skorla(raf, urun, palet)) for raf in uygun_raflar]
+        # 4. Tüm adayları skorla (bileşen sözlüğü dahil)
+        skorlar = [
+            (raf, *self._skor_ve_bilesenler(raf, urun, palet))
+            for raf in uygun_raflar
+        ]
         skorlar.sort(key=lambda x: x[1], reverse=True)
 
-        en_iyi_raf, en_iyi_skor = skorlar[0]
-        alternatifler = [r for r, _ in skorlar[1:4]]  # Top 3 alternatif
+        en_iyi_raf, en_iyi_skor, en_iyi_bilesenler = skorlar[0]
+        alternatif_detaylari = [
+            AlternatifOneri(
+                raf=r,
+                skor=round(s, 1),
+                bilesenler=b,
+                gerekce=self._gerekce_olustur(r, urun, s),
+            )
+            for r, s, b in skorlar[1:4]
+        ]
+        alternatifler = [a.raf for a in alternatif_detaylari]
 
         return YerlestirmeOnerisi(
             onerilen_raf=en_iyi_raf,
             skor=round(en_iyi_skor, 1),
             alternatifler=alternatifler,
             gerekce=self._gerekce_olustur(en_iyi_raf, urun, en_iyi_skor),
+            bilesenler=en_iyi_bilesenler,
+            alternatif_detaylari=alternatif_detaylari,
         )
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -128,12 +153,30 @@ class YerlestirmeAlgoritmasi:
 
     def _skorla(self, raf: Raf, urun: Urun, palet: Palet) -> float:
         """Her raf için 0–100 arası bileşik skor hesaplar."""
-        return (
-            self._konsolidasyon_skoru(raf, urun) * 0.40
-            + self._doluluk_skoru(raf) * 0.30
-            + self._fifo_skoru(raf, palet) * 0.20
-            + self._zon_onceligi_skoru(raf) * 0.10
+        skor, _ = self._skor_ve_bilesenler(raf, urun, palet)
+        return skor
+
+    def _skor_ve_bilesenler(
+        self, raf: Raf, urun: Urun, palet: Palet
+    ) -> tuple[float, Dict[str, float]]:
+        """Bileşik skoru + ham bileşen sözlüğünü birlikte döner (açıklanabilirlik için)."""
+        konsolidasyon = self._konsolidasyon_skoru(raf, urun)
+        doluluk = self._doluluk_skoru(raf)
+        fifo = self._fifo_skoru(raf, palet)
+        zon_oncelik = self._zon_onceligi_skoru(raf)
+        skor = (
+            konsolidasyon * 0.40
+            + doluluk * 0.30
+            + fifo * 0.20
+            + zon_oncelik * 0.10
         )
+        bilesenler = {
+            "konsolidasyon": round(konsolidasyon, 1),
+            "doluluk": round(doluluk, 1),
+            "fifo": round(fifo, 1),
+            "zon_oncelik": round(zon_oncelik, 1),
+        }
+        return skor, bilesenler
 
     def _konsolidasyon_skoru(self, raf: Raf, urun: Urun) -> float:
         """Raftaki mevcut paletler içinde aynı ürün varsa yüksek skor döner (0–100)."""

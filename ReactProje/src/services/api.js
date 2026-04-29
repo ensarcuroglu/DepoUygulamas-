@@ -411,6 +411,8 @@ export const karantinayaAl = (data) => api.post('/yerlestirme-gorevleri/karantin
 export const karantinandanCikar = (data) => api.post('/yerlestirme-gorevleri/karantinadan-cikar', data);
 export const bilinmeyenKonumGorevleriOlustur = (depo_id) =>
   api.post('/yerlestirme-gorevleri/bilinmeyen-konum-gorevleri-olustur', null, { params: { depo_id } });
+export const getRafOneri = (paletId) =>
+  api.get('/yerlestirme-gorevleri/oneri', { params: { palet_id: paletId } });
 
 // ========================
 // MOBİL TERMİNAL

@@ -17,7 +17,7 @@ from app.core.entities.yerlestirme_gorevi import YerlestirmeGorevi, GorevTipi, G
 from app.core.entities.mal_kabul_irsaliye import MalKabulDurum
 from app.core.entities.sistem_log import SistemLog, IslemTipi
 from app.core.entities.zon import ZonTipi
-from app.core.exceptions import KayitBulunamadiError, GecersizIslemError
+from app.core.exceptions import KayitBulunamadiError, GecersizIslemError, YetkisizIslemError
 
 # Görev tamamlandı sayılan durumlar (bu ikisi varsa irsaliye kapanır)
 _GOREV_BITTI_DURUMLARI = {GorevDurum.TAMAMLANDI, GorevDurum.IPTAL_EDILDI}
@@ -97,6 +97,8 @@ from app.application.dto.yerlestirme_gorevi_dto import (    # noqa: E402
     KarantinadanCikarRequestDTO,
     KarantinayaAlRequestDTO,
     BilinmeyenKonumGorevleriOlusturSonucDTO,
+    RafOneriDetayDTO,
+    RafOneriResponseDTO,
 )
 
 if TYPE_CHECKING:
@@ -843,3 +845,132 @@ class KarantinayaAlUseCase:
                 if self._kapasite.dogrula(raf, palet_kg).yeterli:
                     return raf
         return None
+
+
+# ─────────────────────────────────────────────────────────────────
+# AKILLI YERLEŞTİRME — RAF ÖNERİ SORGULAMA (Read-only)
+# ─────────────────────────────────────────────────────────────────
+
+class RafOneriSorgulaUseCase:
+    """
+    Tek bir palet için akıllı yerleştirme önerisi döner.
+
+    Read-only: hiçbir görev/log oluşturmaz; mevcut YerlestirmeAlgoritmasi
+    domain servisini çağırarak skor + bileşen + gerekçe taşıyan zenginleştirilmiş
+    DTO üretir.
+    """
+
+    def __init__(
+        self,
+        palet_repo: IPaletRepository,
+        lot_repo: ILotRepository,
+        urun_repo: IUrunRepository,
+        raf_repo: IRafRepository,
+        zon_repo: IZonRepository,
+        algoritma: "YerlestirmeAlgoritmasi",
+    ):
+        self._palet_repo = palet_repo
+        self._lot_repo = lot_repo
+        self._urun_repo = urun_repo
+        self._raf_repo = raf_repo
+        self._zon_repo = zon_repo
+        self._algoritma = algoritma
+
+    def execute(
+        self, palet_id: int, depo_id_filtresi: Optional[int] = None
+    ) -> RafOneriResponseDTO:
+        palet = self._palet_repo.getir_id_ile(palet_id)
+        if not palet:
+            raise KayitBulunamadiError("Palet", palet_id)
+
+        if not palet.lot_id:
+            raise GecersizIslemError("Paletin lot bilgisi bulunamadı.")
+
+        lot = self._lot_repo.getir_id_ile(palet.lot_id)
+        if not lot:
+            raise GecersizIslemError("Paletin lot kaydı bulunamadı.")
+
+        urun = self._urun_repo.getir_id_ile(lot.urun_id)
+        if not urun:
+            raise GecersizIslemError("Paletin ürün bilgisi bulunamadı.")
+
+        depo_id = self._depo_id_cozumle(palet)
+        if depo_id is None:
+            raise GecersizIslemError(
+                "Paletin depo bağlamı çözümlenemedi. Lütfen yöneticiniz ile iletişime geçin."
+            )
+
+        if depo_id_filtresi is not None and depo_id != depo_id_filtresi:
+            raise YetkisizIslemError(
+                "Bu palet farklı bir depoya ait, erişim yetkiniz bulunmuyor."
+            )
+
+        oneri = self._algoritma.raf_oner(palet, urun, depo_id)
+        if oneri is None:
+            return RafOneriResponseDTO(
+                palet_id=palet.id or palet_id,
+                palet_no=palet.palet_no,
+                urun_id=urun.id,
+                urun_adi=urun.isim,
+                depo_id=depo_id,
+                onerilen=None,
+                alternatifler=[],
+                uyari="Bu palet için uygun raf bulunamadı (zon uyumu / kapasite).",
+            )
+
+        onerilen_detay = self._detay_olustur(
+            raf=oneri.onerilen_raf,
+            skor=oneri.skor,
+            gerekce=oneri.gerekce,
+            bilesenler=oneri.bilesenler,
+        )
+        alt_detaylar = [
+            self._detay_olustur(
+                raf=alt.raf,
+                skor=alt.skor,
+                gerekce=alt.gerekce,
+                bilesenler=alt.bilesenler,
+            )
+            for alt in oneri.alternatif_detaylari
+        ]
+
+        return RafOneriResponseDTO(
+            palet_id=palet.id or palet_id,
+            palet_no=palet.palet_no,
+            urun_id=urun.id,
+            urun_adi=urun.isim,
+            depo_id=depo_id,
+            onerilen=onerilen_detay,
+            alternatifler=alt_detaylar,
+            uyari=None,
+        )
+
+    # ─────────────────────────────────────────────────────────────
+    # Yardımcılar
+    # ─────────────────────────────────────────────────────────────
+
+    def _depo_id_cozumle(self, palet) -> Optional[int]:
+        """Paletin depo bağlamını mevcut raf üzerinden çözümler."""
+        if palet.raf_id:
+            raf = self._raf_repo.getir_id_ile(palet.raf_id)
+            if raf and raf.depo_id is not None:
+                return raf.depo_id
+        return None
+
+    def _detay_olustur(self, raf, skor: float, gerekce: str, bilesenler: dict) -> RafOneriDetayDTO:
+        zon = self._zon_repo.getir_id_ile(raf.zon_id) if raf.zon_id else None
+        mevcut_paletler = self._palet_repo.getir_hepsi(
+            raf_id=raf.id, sadece_aktif=True, limit=500
+        )
+        bos_slot = max(0, (raf.kapasite or 0) - len(mevcut_paletler))
+        return RafOneriDetayDTO(
+            raf_id=raf.id,
+            raf_kod=raf.kod,
+            zon_id=raf.zon_id,
+            zon_kod=zon.kod if zon else None,
+            zon_tipi=zon.tip if zon else None,
+            bos_slot=bos_slot,
+            skor=round(skor, 1),
+            gerekce=gerekce,
+            bilesenler=bilesenler or {},
+        )

@@ -5,7 +5,7 @@ from .palet_cikis_service import PaletCikisService
 from .palet_bazli_stok_domain_service import PaletBazliStokDomainService, TopluPaletSonuc
 from .zon_uyumluluk_servisi import ZonUyumlulukServisi
 from .kapasite_dogrulama_servisi import KapasiteDogrulamaServisi
-from .yerlestirme_algoritmasi import YerlestirmeAlgoritmasi, YerlestirmeOnerisi
+from .yerlestirme_algoritmasi import YerlestirmeAlgoritmasi, YerlestirmeOnerisi, AlternatifOneri
 
 __all__ = [
     "StokCikisDomainService",
@@ -18,4 +18,5 @@ __all__ = [
     "KapasiteDogrulamaServisi",
     "YerlestirmeAlgoritmasi",
     "YerlestirmeOnerisi",
+    "AlternatifOneri",
 ]

@@ -4,7 +4,7 @@ Yerleştirme Görevi veri transfer nesneleri (DTO).
 
 from __future__ import annotations
 from datetime import datetime
-from typing import Optional, List
+from typing import Dict, Optional, List
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.entities.yerlestirme_gorevi import GorevTipi, YerlestirmeGorevi
@@ -66,6 +66,33 @@ class AlternatifRafDTO(BaseModel):
     raf_kod: str
     bos_slot: int
     skor: float
+    gerekce: Optional[str] = None
+    bilesenler: Optional[Dict[str, float]] = None
+
+
+class RafOneriDetayDTO(BaseModel):
+    """Akıllı yerleştirme önerisinin tek raf detayı (önerilen veya alternatif)."""
+    raf_id: int
+    raf_kod: str
+    zon_id: Optional[int] = None
+    zon_kod: Optional[str] = None
+    zon_tipi: Optional[str] = None
+    bos_slot: int
+    skor: float
+    gerekce: str = ""
+    bilesenler: Dict[str, float] = Field(default_factory=dict)
+
+
+class RafOneriResponseDTO(BaseModel):
+    """Akıllı yerleştirme öneri sorgusu yanıtı."""
+    palet_id: int
+    palet_no: Optional[str] = None
+    urun_id: Optional[int] = None
+    urun_adi: Optional[str] = None
+    depo_id: int
+    onerilen: Optional[RafOneriDetayDTO] = None
+    alternatifler: List[RafOneriDetayDTO] = Field(default_factory=list)
+    uyari: Optional[str] = None
 
 
 class YerlestirmeOnaylaSonucDTO(BaseModel):

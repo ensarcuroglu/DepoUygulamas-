@@ -25,6 +25,7 @@ from app.infrastructure.di.container import (
     get_karantinadan_cikar_uc,
     get_karantinaya_al_uc,
     get_bilinmeyen_konum_gorevleri_olustur_uc,
+    get_raf_oneri_sorgula_uc,
 )
 from app.application.dto.yerlestirme_gorevi_dto import (
     YerlestirmeGoreviOlusturRequestDTO,
@@ -35,6 +36,7 @@ from app.application.dto.yerlestirme_gorevi_dto import (
     KarantinadanCikarRequestDTO,
     KarantinayaAlRequestDTO,
     BilinmeyenKonumGorevleriOlusturSonucDTO,
+    RafOneriResponseDTO,
 )
 from app.application.use_cases.yerlestirme_gorevi_use_cases import (
     YerlestirmeGoreviListeleUseCase,
@@ -51,6 +53,7 @@ from app.application.use_cases.yerlestirme_gorevi_use_cases import (
     KarantinayaAlUseCase,
     BilinmeyenKonumGorevleriOlusturUseCase,
     ZamanAsimiBirakUseCase,
+    RafOneriSorgulaUseCase,
 )
 
 router = APIRouter(prefix="/api/yerlestirme-gorevleri", tags=["Yerleştirme Görevleri"])
@@ -113,6 +116,19 @@ def benim_gorevlerim(
         atanan_kullanici_id=current_user.id,
         depo_id=_depocu_depo_id(current_user),
     )
+
+
+@router.get("/oneri", response_model=RafOneriResponseDTO)
+@limiter.limit("60/minute")
+def raf_oneri_sorgula(
+    request: Request,
+    palet_id: int = Query(..., gt=0, description="Öneri sorgulanacak paletin ID'si"),
+    current_user: Kullanici = Depends(require_role("admin", "depocu", "lojistik")),
+    uc: RafOneriSorgulaUseCase = Depends(get_raf_oneri_sorgula_uc),
+):
+    """Akıllı yerleştirme: palet için en uygun raf + alternatifler + skor + gerekçe."""
+    depo_id_filtresi = _depocu_depo_id(current_user)
+    return uc.execute(palet_id=palet_id, depo_id_filtresi=depo_id_filtresi)
 
 
 @router.get("/{gorev_id}", response_model=YerlestirmeGoreviResponseDTO)

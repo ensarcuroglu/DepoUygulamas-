@@ -28,6 +28,7 @@ import {
   karantinayaAl,
   terminalLogPaletHata,
 } from '../../services/api';
+import { useRafOneriQuery } from '../../queries/locationQueries';
 
 const ADIM = { GOREV: 1, PALET: 2, RAF: 3, SONUC: 4 };
 
@@ -67,6 +68,10 @@ export default function YerlestirmePage() {
   const [sorunNeden, setSorunNeden] = useState('');
   // Inline scan hata banner'ı — toast yerine kalıcı, ekrana sabitli, ses + titreşim ile birlikte.
   const [scanHata, setScanHata] = useState(null); // { baslik, detay, beklenen?, okutulan? }
+
+  // Akıllı yerleştirme önerisi (sadece RAF adımında ve görev varken sorgulanır)
+  const oneriEnabled = adim === ADIM.RAF && Boolean(gorev?.palet_id);
+  const { data: rafOneri } = useRafOneriQuery(gorev?.palet_id, { enabled: oneriEnabled });
 
   useEffect(() => {
     if (gorev) return undefined;
@@ -444,6 +449,10 @@ export default function YerlestirmePage() {
               {gorev.zone_adi && <InfoRow label="Zon" value={gorev.zone_adi} />}
             </div>
 
+            {rafOneri?.onerilen && (
+              <OneriDetayKart oneri={rafOneri.onerilen} alternatifler={rafOneri.alternatifler} />
+            )}
+
             <div className="bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 rounded-2xl px-4 py-3.5 flex items-start gap-3">
               <div className="bg-sky-100 dark:bg-sky-500/20 p-1.5 rounded-lg shrink-0 border border-sky-300 dark:border-sky-500/30 mt-0.5">
                 <ScanLine className="w-4 h-4 text-sky-600 dark:text-sky-400" />
@@ -687,6 +696,49 @@ function Divider({ text }) {
       <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
       <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-widest">{text}</p>
       <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
+    </div>
+  );
+}
+
+// Akıllı yerleştirme öneri kartı: önerilen rafın skoru, gerekçesi ve top alternatifleri.
+function OneriDetayKart({ oneri, alternatifler }) {
+  const skor = Math.round(oneri.skor ?? 0);
+  const skorRenk =
+    skor >= 75 ? 'text-emerald-600 dark:text-emerald-400'
+      : skor >= 50 ? 'text-amber-600 dark:text-amber-400'
+        : 'text-rose-600 dark:text-rose-400';
+  return (
+    <div className="bg-indigo-50/70 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-2xl px-4 py-3.5 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="bg-indigo-100 dark:bg-indigo-500/20 p-1.5 rounded-lg border border-indigo-300 dark:border-indigo-500/30">
+            <MapPin className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <p className="text-[11px] uppercase font-bold tracking-widest text-indigo-700 dark:text-indigo-300">Akıllı Öneri</p>
+        </div>
+        <span className={`text-[13px] font-black tabular-nums ${skorRenk}`}>{skor}/100</span>
+      </div>
+      <p className="text-[13px] text-slate-700 dark:text-slate-200 font-medium leading-snug">
+        <span className="font-mono font-bold">{oneri.raf_kod}</span>
+        {oneri.zon_kod ? <span className="text-slate-500 dark:text-slate-400"> · {oneri.zon_kod}</span> : null}
+        {typeof oneri.bos_slot === 'number' ? <span className="text-slate-500 dark:text-slate-400"> · {oneri.bos_slot} boş slot</span> : null}
+      </p>
+      {oneri.gerekce && (
+        <p className="text-[12px] text-slate-600 dark:text-slate-400 leading-relaxed">{oneri.gerekce}</p>
+      )}
+      {Array.isArray(alternatifler) && alternatifler.length > 0 && (
+        <div className="pt-1.5 border-t border-indigo-200/60 dark:border-indigo-500/20">
+          <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500 dark:text-slate-400 mb-1">Alternatifler</p>
+          <ul className="space-y-1">
+            {alternatifler.slice(0, 3).map((alt) => (
+              <li key={alt.raf_id} className="flex items-center justify-between text-[12px]">
+                <span className="font-mono text-slate-700 dark:text-slate-200">{alt.raf_kod}</span>
+                <span className="text-slate-500 dark:text-slate-400 tabular-nums">{Math.round(alt.skor ?? 0)}/100</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

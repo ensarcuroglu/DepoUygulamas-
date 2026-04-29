@@ -310,3 +310,64 @@ class TestFIFOSkoru:
         skor_uzak = alg._fifo_skoru(raf_uzak, yeni_palet)
 
         assert skor_yakin > skor_uzak
+
+
+# ─── Skor Bileşen Sözlüğü (açıklanabilirlik) ──────────────────────────────
+
+class TestSkorBilesenleri:
+    def test_oneri_bilesenler_sozlugu_dolu_doner(self):
+        """raf_oner sonucu bilesenler dict'i dolu olmalı (4 bileşen)."""
+        raf = _raf(id=1, kapasite=10)
+
+        alg, raf_repo, zon_repo, palet_repo = _algoritma_kur()
+        zon_repo.getir_hepsi.return_value = [_zon(tip=ZonTipi.GENEL)]
+        raf_repo.getir_hepsi.return_value = [raf]
+        palet_repo.getir_hepsi.return_value = []
+
+        oneri = alg.raf_oner(_palet(), _urun(), depo_id=1)
+
+        assert oneri is not None
+        assert set(oneri.bilesenler.keys()) == {
+            "konsolidasyon", "doluluk", "fifo", "zon_oncelik",
+        }
+        for v in oneri.bilesenler.values():
+            assert 0.0 <= v <= 100.0
+
+    def test_alternatif_detaylari_skor_ve_gerekce_tasir(self):
+        """Alternatifler için skor + gerekçe + bileşenler döner; sıralama korunur."""
+        raflar = [_raf(id=i, kapasite=10) for i in range(1, 5)]
+
+        alg, raf_repo, zon_repo, palet_repo = _algoritma_kur()
+        zon_repo.getir_hepsi.return_value = [_zon(tip=ZonTipi.GENEL)]
+        raf_repo.getir_hepsi.return_value = raflar
+        palet_repo.getir_hepsi.return_value = []
+
+        oneri = alg.raf_oner(_palet(), _urun(), depo_id=1)
+
+        assert oneri is not None
+        assert len(oneri.alternatif_detaylari) == len(oneri.alternatifler)
+        for alt in oneri.alternatif_detaylari:
+            assert 0.0 <= alt.skor <= 100.0
+            assert isinstance(alt.gerekce, str)
+            assert "konsolidasyon" in alt.bilesenler
+        # Önerilen skoru, alternatiflerin tümünden büyük veya eşit olmalı
+        for alt in oneri.alternatif_detaylari:
+            assert oneri.skor >= alt.skor
+
+    def test_skor_ve_bilesenler_toplami_skora_esit(self):
+        """_skor_ve_bilesenler bileşen ağırlıklı toplamı = bileşik skor."""
+        raf = _raf(id=1, kapasite=10)
+
+        alg, raf_repo, zon_repo, palet_repo = _algoritma_kur()
+        zon_repo.getir_hepsi.return_value = [_zon(tip=ZonTipi.GENEL)]
+        raf_repo.getir_hepsi.return_value = [raf]
+        palet_repo.getir_hepsi.return_value = []
+
+        skor, bilesenler = alg._skor_ve_bilesenler(raf, _urun(), _palet())
+        beklenen = (
+            bilesenler["konsolidasyon"] * 0.40
+            + bilesenler["doluluk"] * 0.30
+            + bilesenler["fifo"] * 0.20
+            + bilesenler["zon_oncelik"] * 0.10
+        )
+        assert abs(skor - beklenen) < 0.5  # round(1) toleransı

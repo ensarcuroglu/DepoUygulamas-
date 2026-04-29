@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createDepo, createRaf, getDepolar, getRaflar } from '../services/api';
+import { createDepo, createRaf, getDepolar, getRaflar, getRafOneri } from '../services/api';
 import { queryKeys } from './queryKeys';
 import { responseData } from './queryUtils';
 
@@ -28,6 +28,16 @@ export function useCreateDepoMutation() {
             queryClient.invalidateQueries({ queryKey: queryKeys.depolar.all });
             queryClient.invalidateQueries({ queryKey: queryKeys.kullanicilar.all });
         },
+    });
+}
+
+export function useRafOneriQuery(paletId, options = {}) {
+    return useQuery({
+        queryKey: queryKeys.yerlestirme.oneri(paletId),
+        queryFn: () => getRafOneri(paletId).then(responseData),
+        enabled: Boolean(paletId),
+        staleTime: 30_000,
+        ...options,
     });
 }
 
