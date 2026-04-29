@@ -21,6 +21,11 @@ class IZonRepository(ABC):
         ...
 
     @abstractmethod
+    def getir_idler_ile(self, ids: List[int]) -> List[Zon]:
+        """Verilen id listesindeki zonları tek seferde döner (sıra/aktiflik filtresi yok)."""
+        ...
+
+    @abstractmethod
     def getir_kod_ile(self, kod: str) -> Optional[Zon]:
         ...
 

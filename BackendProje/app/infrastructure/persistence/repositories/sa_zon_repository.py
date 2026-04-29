@@ -33,6 +33,12 @@ class SqlAlchemyZonRepository(IZonRepository):
         orm = self._db.query(ZonORM).filter(ZonORM.id == zon_id).first()
         return zon_to_entity(orm) if orm else None
 
+    def getir_idler_ile(self, ids: List[int]) -> List[Zon]:
+        if not ids:
+            return []
+        orm_list = self._db.query(ZonORM).filter(ZonORM.id.in_(ids)).all()
+        return [zon_to_entity(o) for o in orm_list]
+
     def getir_kod_ile(self, kod: str) -> Optional[Zon]:
         orm = self._db.query(ZonORM).filter(ZonORM.kod.ilike(kod)).first()
         return zon_to_entity(orm) if orm else None

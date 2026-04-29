@@ -41,6 +41,19 @@ class ZonTipi:
     def izin_verilen_depolama_tipleri(cls, zon_tipi: str) -> Set[str]:
         return cls._DEPOLAMA_TIPI_UYUMLULUK.get(zon_tipi, set())
 
+    @classmethod
+    def kalici_depolama_zonlari(cls) -> Set[str]:
+        """Algoritmanın kalıcı yerleştirme önerebileceği zon tipleri.
+
+        MalKabul ve Sevkiyat staging alanlarıdır; Karantina izolasyon alanıdır.
+        Bunların hiçbiri kalıcı depolama hedefi değildir.
+        """
+        return {cls.GENEL, cls.SOGUK, cls.TEHLIKELI}
+
+    @classmethod
+    def kalici_depolama_mi(cls, zon_tipi: str) -> bool:
+        return zon_tipi in cls.kalici_depolama_zonlari()
+
 
 @dataclass
 class Zon:

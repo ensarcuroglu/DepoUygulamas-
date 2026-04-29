@@ -46,10 +46,24 @@ class ZonUyumlulukServisi:
         """Ürünün bu zona yerleştirilip yerleştirilemeyeceğini kontrol eder."""
         return depolama_tipi in ZonTipi.izin_verilen_depolama_tipleri(zon_tipi)
 
-    def uyumlu_zonlari_getir(self, depo_id: int, depolama_tipi: str) -> List[Zon]:
-        """Ürün tipiyle uyumlu, aktif tüm zonları döner."""
+    def uyumlu_zonlari_getir(
+        self,
+        depo_id: int,
+        depolama_tipi: str,
+        sadece_kalici_depolama: bool = False,
+    ) -> List[Zon]:
+        """Ürün tipiyle uyumlu, aktif tüm zonları döner.
+
+        Args:
+            sadece_kalici_depolama: True ise MalKabul/Sevkiyat/Karantina gibi
+                staging/izolasyon zonları sonuçtan çıkarılır. Akıllı yerleştirme
+                algoritması bu bayrağı True ile çağırır.
+        """
         tum_zonlar = self._aktif_zonlari_getir(depo_id)
-        return [z for z in tum_zonlar if self.uyumlu_mu(depolama_tipi, z.tip)]
+        sonuc = [z for z in tum_zonlar if self.uyumlu_mu(depolama_tipi, z.tip)]
+        if sadece_kalici_depolama:
+            sonuc = [z for z in sonuc if ZonTipi.kalici_depolama_mi(z.tip)]
+        return sonuc
 
     def uyumsuzluk_mesaji(self, depolama_tipi: str, zon_tipi: str) -> str:
         """Frontend'e gösterilecek hata mesajını döner."""

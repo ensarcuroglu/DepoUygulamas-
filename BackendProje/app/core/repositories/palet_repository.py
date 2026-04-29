@@ -11,6 +11,7 @@ class IPaletRepository(ABC):
         self, skip: int = 0, limit: int = 50,
         lot_id: Optional[int] = None,
         raf_id: Optional[int] = None,
+        raf_ids: Optional[List[int]] = None,
         ean: Optional[str] = None,
         sadece_aktif: bool = True,
         kaynak: Optional[str] = None,

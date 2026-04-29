@@ -93,6 +93,7 @@ class RafOneriResponseDTO(BaseModel):
     onerilen: Optional[RafOneriDetayDTO] = None
     alternatifler: List[RafOneriDetayDTO] = Field(default_factory=list)
     uyari: Optional[str] = None
+    agirliklar: Dict[str, float] = Field(default_factory=dict)
 
 
 class YerlestirmeOnaylaSonucDTO(BaseModel):

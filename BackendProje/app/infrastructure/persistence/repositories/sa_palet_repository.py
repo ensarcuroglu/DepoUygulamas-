@@ -17,6 +17,7 @@ class SqlAlchemyPaletRepository(IPaletRepository):
         self, skip: int = 0, limit: int = 50,
         lot_id: Optional[int] = None,
         raf_id: Optional[int] = None,
+        raf_ids: Optional[List[int]] = None,
         ean: Optional[str] = None,
         sadece_aktif: bool = True,
         kaynak: Optional[str] = None,
@@ -33,6 +34,8 @@ class SqlAlchemyPaletRepository(IPaletRepository):
             query = query.filter(PaletORM.lot_id == lot_id)
         if raf_id:
             query = query.filter(PaletORM.raf_id == raf_id)
+        if raf_ids:
+            query = query.filter(PaletORM.raf_id.in_(raf_ids))
         if ean:
             # Palet → Lot → Urun zinciriyle EAN exact match
             query = query.join(LotORM, PaletORM.lot_id == LotORM.id) \

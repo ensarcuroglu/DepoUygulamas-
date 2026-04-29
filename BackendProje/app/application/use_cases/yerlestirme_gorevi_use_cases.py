@@ -943,6 +943,7 @@ class RafOneriSorgulaUseCase:
             onerilen=onerilen_detay,
             alternatifler=alt_detaylar,
             uyari=None,
+            agirliklar=oneri.agirliklar,
         )
 
     # ─────────────────────────────────────────────────────────────

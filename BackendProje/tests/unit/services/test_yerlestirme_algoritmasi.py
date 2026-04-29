@@ -20,7 +20,10 @@ from app.core.entities.palet import Palet
 from app.core.entities.raf import Raf
 from app.core.entities.urun import Urun
 from app.core.entities.zon import Zon, ZonTipi
-from app.core.services.yerlestirme_algoritmasi import YerlestirmeAlgoritmasi
+from app.core.services.yerlestirme_algoritmasi import (
+    YerlestirmeAlgoritmasi,
+    YerlestirmeAyarlari,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -59,6 +62,7 @@ def _algoritma_kur(
     zonlar=None,
     palet_repo_paletler=None,
     zon_repo_getir=None,
+    ayarlar=None,
 ):
     raf_repo = MagicMock()
     zon_repo = MagicMock()
@@ -81,6 +85,7 @@ def _algoritma_kur(
         palet_repo=palet_repo,
         zon_uyumluluk=zon_uyumluluk,
         kapasite_dogrulama=kapasite,
+        ayarlar=ayarlar,
     )
     return alg, raf_repo, zon_repo, palet_repo
 
@@ -118,8 +123,10 @@ class TestTemelAkis:
         )
         zon_repo.getir_hepsi.return_value = [_zon(tip=ZonTipi.GENEL)]
         raf_repo.getir_hepsi.return_value = [dolu_raf]
-        # Rafta zaten 1 palet var (kapasite=1, dolu)
-        palet_repo.getir_hepsi.return_value = [_palet()]
+        # Rafta zaten 1 palet var (kapasite=1, dolu) — raf_id eşleşmesi şart
+        mevcut = _palet()
+        mevcut.raf_id = dolu_raf.id
+        palet_repo.getir_hepsi.return_value = [mevcut]
 
         oneri = alg.raf_oner(_palet(), _urun(), depo_id=1)
         assert oneri is None
@@ -182,17 +189,14 @@ class TestKonsolidasyonSkoru:
         mevcut_palet.lot.urun_id = 42
         mevcut_palet.lot.son_kullanma_tarihi = None
         mevcut_palet.palet_kg = 100.0
+        mevcut_palet.raf_id = raf_aynı_urun.id
 
         alg, raf_repo, zon_repo, palet_repo = _algoritma_kur()
         zon_repo.getir_hepsi.return_value = [_zon(tip=ZonTipi.GENEL)]
         raf_repo.getir_hepsi.return_value = [raf_aynı_urun, raf_bos]
 
-        def palet_getir_hepsi(**kwargs):
-            if kwargs.get("raf_id") == raf_aynı_urun.id:
-                return [mevcut_palet]  # mevcut_palet.lot.urun_id == 42
-            return []
-
-        palet_repo.getir_hepsi.side_effect = palet_getir_hepsi
+        # Yeni algoritma raf_ids batch ile çağırır; tek listeyi döner.
+        palet_repo.getir_hepsi.return_value = [mevcut_palet]
 
         oneri = alg.raf_oner(_palet(), urun, depo_id=1)
 
@@ -274,12 +278,14 @@ class TestFIFOSkoru:
         yakin_palet.lot.urun_id = 99
         yakin_palet.lot.son_kullanma_tarihi = date(2026, 6, 5)  # 4 gün fark
         yakin_palet.palet_kg = 100.0
+        yakin_palet.raf_id = raf_yakin.id
 
         uzak_palet = MagicMock()
         uzak_palet.lot = MagicMock()
         uzak_palet.lot.urun_id = 99
         uzak_palet.lot.son_kullanma_tarihi = date(2027, 1, 1)  # 7 ay fark
         uzak_palet.palet_kg = 100.0
+        uzak_palet.raf_id = raf_uzak.id
 
         yeni_palet = MagicMock(spec=Palet)
         yeni_palet.id = 99
@@ -296,18 +302,9 @@ class TestFIFOSkoru:
         zon_repo.getir_hepsi.return_value = [_zon(tip=ZonTipi.GENEL)]
         raf_repo.getir_hepsi.return_value = [raf_yakin, raf_uzak]
 
-        def palet_getir(**kwargs):
-            if kwargs.get("raf_id") == raf_yakin.id:
-                return [yakin_palet]
-            if kwargs.get("raf_id") == raf_uzak.id:
-                return [uzak_palet]
-            return []
-
-        palet_repo.getir_hepsi.side_effect = palet_getir
-
-        # Skoru doğrudan al
-        skor_yakin = alg._fifo_skoru(raf_yakin, yeni_palet)
-        skor_uzak = alg._fifo_skoru(raf_uzak, yeni_palet)
+        # Yeni imzaya uygun: _fifo_skoru artık (palet, mevcut_paletler) alır
+        skor_yakin = alg._fifo_skoru(yeni_palet, [yakin_palet])
+        skor_uzak = alg._fifo_skoru(yeni_palet, [uzak_palet])
 
         assert skor_yakin > skor_uzak
 
@@ -371,3 +368,232 @@ class TestSkorBilesenleri:
             + bilesenler["zon_oncelik"] * 0.10
         )
         assert abs(skor - beklenen) < 0.5  # round(1) toleransı
+
+    def test_oneri_agirliklari_iceriyor(self):
+        """Öneri DTO'sunda ağırlıklar şeffaf şekilde döner."""
+        raf = _raf(id=1, kapasite=10)
+
+        alg, raf_repo, zon_repo, palet_repo = _algoritma_kur()
+        zon_repo.getir_hepsi.return_value = [_zon(tip=ZonTipi.GENEL)]
+        raf_repo.getir_hepsi.return_value = [raf]
+        palet_repo.getir_hepsi.return_value = []
+
+        oneri = alg.raf_oner(_palet(), _urun(), depo_id=1)
+        assert oneri is not None
+        assert set(oneri.agirliklar.keys()) == {
+            "konsolidasyon", "doluluk", "fifo", "zon_oncelik",
+        }
+        assert abs(sum(oneri.agirliklar.values()) - 1.0) < 1e-6
+
+
+# ─── Karışık-SKU cezası ───────────────────────────────────────────────────
+
+class TestKarisikSkuCezasi:
+    def test_karisik_raf_bos_raftan_dusuk_skor_alir(self):
+        """2+ farklı SKU içeren raf, boş rafa karşı kaybetmeli (konsolidasyon=0)."""
+        raf_karisik = _raf(id=1, kapasite=10)
+        raf_bos = _raf(id=2, kapasite=10)
+
+        urun = _urun(id=42)
+
+        p1 = MagicMock()
+        p1.lot = MagicMock(urun_id=11, son_kullanma_tarihi=None)
+        p1.palet_kg = 50.0
+        p1.raf_id = raf_karisik.id
+        p2 = MagicMock()
+        p2.lot = MagicMock(urun_id=22, son_kullanma_tarihi=None)
+        p2.palet_kg = 50.0
+        p2.raf_id = raf_karisik.id
+
+        alg, raf_repo, zon_repo, palet_repo = _algoritma_kur()
+        zon_repo.getir_hepsi.return_value = [_zon(tip=ZonTipi.GENEL)]
+        raf_repo.getir_hepsi.return_value = [raf_karisik, raf_bos]
+        palet_repo.getir_hepsi.return_value = [p1, p2]
+
+        oneri = alg.raf_oner(_palet(), urun, depo_id=1)
+        assert oneri is not None
+        # Karışık raf konsolidasyon=0; boş raf konsolidasyon=50 → boş raf kazanır.
+        assert oneri.onerilen_raf.id == raf_bos.id
+
+    def test_konsolidasyon_skoru_bantlari(self):
+        """Boş=50, aynı SKU>50, farklı tek SKU=10, karışık=0."""
+        alg, _, _, _ = _algoritma_kur()
+        urun = _urun(id=7)
+
+        # Boş
+        assert alg._konsolidasyon_skoru(urun, []) == 50.0
+
+        # Aynı SKU, 1 palet
+        p_ayni = MagicMock()
+        p_ayni.lot = MagicMock(urun_id=7)
+        skor_ayni = alg._konsolidasyon_skoru(urun, [p_ayni])
+        assert skor_ayni > 50.0
+
+        # Farklı tek SKU
+        p_farkli = MagicMock()
+        p_farkli.lot = MagicMock(urun_id=99)
+        assert alg._konsolidasyon_skoru(urun, [p_farkli]) == 10.0
+
+        # Karışık (2+ farklı SKU)
+        p_x = MagicMock()
+        p_x.lot = MagicMock(urun_id=99)
+        p_y = MagicMock()
+        p_y.lot = MagicMock(urun_id=100)
+        assert alg._konsolidasyon_skoru(urun, [p_x, p_y]) == 0.0
+
+
+# ─── Doluluk U-eğrisi ─────────────────────────────────────────────────────
+
+class TestDolulukUegrisi:
+    def test_dolma_orani_doyma_noktasinda_max(self):
+        """Doluluk = doyma_orani noktasında skor 100."""
+        alg, _, _, _ = _algoritma_kur()
+        # Doyma 0.85 default, kapasite 100 ile test edelim:
+        raf100 = _raf(kapasite=100)
+        mevcut85 = [MagicMock(palet_kg=0.0, lot=None) for _ in range(85)]
+        skor = alg._doluluk_skoru(raf100, mevcut85)
+        assert 99.0 <= skor <= 100.0
+
+    def test_asiri_dolu_raf_cezalandirilir(self):
+        """%85 üstü doluluk skoru U-eğrisiyle düşer."""
+        alg, _, _, _ = _algoritma_kur()
+        raf = _raf(kapasite=100)
+        mevcut95 = [MagicMock(palet_kg=0.0, lot=None) for _ in range(95)]
+        mevcut70 = [MagicMock(palet_kg=0.0, lot=None) for _ in range(70)]
+        skor95 = alg._doluluk_skoru(raf, mevcut95)
+        skor70 = alg._doluluk_skoru(raf, mevcut70)
+        # %95 dolu raf, %70 dolu raftan daha düşük skor almalı
+        assert skor95 < skor70
+        assert skor95 < 50.0
+
+    def test_bos_raf_dusuk_doluluk_skoru(self):
+        """Tamamen boş raf doluluk skoru sıfır olmalı (henüz konsolidasyon yok)."""
+        alg, _, _, _ = _algoritma_kur()
+        raf = _raf(kapasite=10)
+        assert alg._doluluk_skoru(raf, []) == 0.0
+
+
+# ─── Tie-break determinizmi ───────────────────────────────────────────────
+
+class TestTieBreak:
+    def test_esit_skor_raf_kod_ile_tie_break(self):
+        """Eşit skorlu raflar arasında raf.kod alfabetik küçük olan kazanır."""
+        raf_b = Raf(id=1, zon_id=1, kapasite=10, kod="RAF-B", aktif=True)
+        raf_a = Raf(id=2, zon_id=1, kapasite=10, kod="RAF-A", aktif=True)
+
+        alg, raf_repo, zon_repo, palet_repo = _algoritma_kur()
+        zon_repo.getir_hepsi.return_value = [_zon(tip=ZonTipi.GENEL)]
+        raf_repo.getir_hepsi.return_value = [raf_b, raf_a]
+        palet_repo.getir_hepsi.return_value = []
+
+        oneri = alg.raf_oner(_palet(), _urun(), depo_id=1)
+        assert oneri is not None
+        assert oneri.onerilen_raf.kod == "RAF-A"
+
+
+# ─── Performans regresyonu (N+1 koruması) ─────────────────────────────────
+
+class TestPerformansRegresyonu:
+    def test_palet_repo_tek_batch_cagrisi(self):
+        """Aday raf sayısından bağımsız, palet_repo.getir_hepsi tek seferde
+        raf_ids parametresiyle çağrılmalı (N+1 regresyonu testi)."""
+        raflar = [_raf(id=i, kapasite=10, zon_id=1) for i in range(1, 21)]
+
+        alg, raf_repo, zon_repo, palet_repo = _algoritma_kur()
+        zon_repo.getir_hepsi.return_value = [_zon(id=1, tip=ZonTipi.GENEL)]
+        raf_repo.getir_hepsi.return_value = raflar
+        palet_repo.getir_hepsi.return_value = []
+
+        oneri = alg.raf_oner(_palet(), _urun(), depo_id=1)
+        assert oneri is not None
+
+        # Algoritma tüm aday raflar için palet_repo'yu tek batch ile çağırmalı.
+        raf_ids_calls = [
+            call for call in palet_repo.getir_hepsi.call_args_list
+            if call.kwargs.get("raf_ids") is not None
+        ]
+        assert len(raf_ids_calls) == 1
+        # Tek raf_id ile yapılan çağrı olmamalı (per-raf N+1 regresyonu).
+        per_raf_calls = [
+            call for call in palet_repo.getir_hepsi.call_args_list
+            if call.kwargs.get("raf_id") is not None
+        ]
+        assert per_raf_calls == []
+
+    def test_zon_repo_id_per_raf_cagrisi_yok(self):
+        """_zon_onceligi_skoru için DB'ye gidilmemeli — zon haritası ön-yüklü."""
+        raflar = [_raf(id=i, kapasite=10, zon_id=1) for i in range(1, 11)]
+
+        alg, raf_repo, zon_repo, palet_repo = _algoritma_kur()
+        zon_repo.getir_hepsi.return_value = [_zon(id=1, tip=ZonTipi.GENEL)]
+        raf_repo.getir_hepsi.return_value = raflar
+        palet_repo.getir_hepsi.return_value = []
+
+        alg.raf_oner(_palet(), _urun(), depo_id=1)
+
+        # Zon haritası uyumlu_zonlari_getir'den geldiği için getir_id_ile
+        # her raf başına çağrılmamalı.
+        assert zon_repo.getir_id_ile.call_count == 0
+
+
+# ─── Kalıcı depolama filtresi ─────────────────────────────────────────────
+
+class TestKaliciDepolamaFiltresi:
+    def test_mal_kabul_zonu_oneriye_dahil_edilmez(self):
+        """MalKabul zonu kalıcı depolama hedefi değil; algoritma önermez."""
+        raf_genel = _raf(id=1, zon_id=1, kapasite=10)
+        raf_staging = _raf(id=2, zon_id=2, kapasite=10)
+
+        zon_genel = _zon(id=1, tip=ZonTipi.GENEL)
+        zon_staging = _zon(id=2, tip=ZonTipi.MAL_KABUL)
+
+        alg, raf_repo, zon_repo, palet_repo = _algoritma_kur()
+        zon_repo.getir_hepsi.return_value = [zon_genel, zon_staging]
+
+        def raf_getir_hepsi(**kwargs):
+            zon_id = kwargs.get("zon_id")
+            if zon_id == 1:
+                return [raf_genel]
+            if zon_id == 2:
+                return [raf_staging]
+            return []
+
+        raf_repo.getir_hepsi.side_effect = raf_getir_hepsi
+        palet_repo.getir_hepsi.return_value = []
+
+        oneri = alg.raf_oner(_palet(), _urun(depolama_tipi="Kuru"), depo_id=1)
+        assert oneri is not None
+        # Sadece Genel zon değerlendirildi → MalKabul rafı ne öneride ne alternatifte
+        assert oneri.onerilen_raf.id == raf_genel.id
+        assert raf_staging.id not in {a.id for a in oneri.alternatifler}
+
+
+# ─── Yapılandırılabilir ağırlıklar ────────────────────────────────────────
+
+class TestAyarlar:
+    def test_ozel_agirliklar_skoru_etkiler(self):
+        """YerlestirmeAyarlari ile ağırlıklar değiştirildiğinde skor değişmeli."""
+        raf = _raf(id=1, kapasite=10)
+
+        alg_default, raf_repo, zon_repo, palet_repo = _algoritma_kur()
+        zon_repo.getir_hepsi.return_value = [_zon(tip=ZonTipi.GENEL)]
+        raf_repo.getir_hepsi.return_value = [raf]
+        palet_repo.getir_hepsi.return_value = []
+        oneri_default = alg_default.raf_oner(_palet(), _urun(), depo_id=1)
+
+        ayarlar = YerlestirmeAyarlari(
+            konsolidasyon_agirlik=1.0,
+            doluluk_agirlik=0.0,
+            fifo_agirlik=0.0,
+            zon_oncelik_agirlik=0.0,
+        )
+        alg_ozel, raf_repo2, zon_repo2, palet_repo2 = _algoritma_kur(ayarlar=ayarlar)
+        zon_repo2.getir_hepsi.return_value = [_zon(tip=ZonTipi.GENEL)]
+        raf_repo2.getir_hepsi.return_value = [raf]
+        palet_repo2.getir_hepsi.return_value = []
+        oneri_ozel = alg_ozel.raf_oner(_palet(), _urun(), depo_id=1)
+
+        assert oneri_default is not None and oneri_ozel is not None
+        # Tek bileşene odaklanmış skor, default ile farklı olmalı (boş raf konsolidasyon=50)
+        assert oneri_ozel.skor != oneri_default.skor
+        assert oneri_ozel.agirliklar["konsolidasyon"] == 1.0
