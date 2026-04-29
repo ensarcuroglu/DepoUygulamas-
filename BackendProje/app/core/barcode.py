@@ -12,7 +12,11 @@ PALET_BARKOD_PATTERN = re.compile(
     r"^(PRD-\d{8}-\d{1,5}|MKB-\d{8}-\d{1,5}|PLT-[\w-]{1,30}|\d{4,10})$",
     re.IGNORECASE,
 )
-RAF_BARKOD_PATTERN = re.compile(r"^[A-Z]{2,4}-[A-Z]-\d{2}-\d{2}-\d{2}$", re.IGNORECASE)
+# Raf kodu serbest formdadır (depo bazında farklı şemalar).
+# Asıl semantik doğrulama raf_repo.getir_kod_ile ile DB'de yapılır.
+# Burada sadece kaba format/güvenlik filtresi: harf+rakam+tire, 2-40 karakter,
+# en az bir alfanümerik içermeli, tire ile başlayıp/bitmemeli.
+RAF_BARKOD_PATTERN = re.compile(r"^(?=.*[A-Z0-9])[A-Z0-9](?:[A-Z0-9-]{0,38}[A-Z0-9])?$", re.IGNORECASE)
 
 
 def sanitize_barkod(value: Optional[str]) -> str:
@@ -37,5 +41,8 @@ def validate_palet_barkod(value: str) -> str:
 def validate_raf_barkod(value: str) -> str:
     sanitized = sanitize_barkod(value)
     if not RAF_BARKOD_PATTERN.fullmatch(sanitized):
-        raise ValueError("Raf barkod formati hatali. Ornek: GNL-A-01-01-01")
+        raise ValueError(
+            "Raf barkod formati hatali. Sadece harf, rakam ve tire kullanin "
+            "(2-40 karakter). Ornek: A-01, GNL-A-01-01-01"
+        )
     return sanitized

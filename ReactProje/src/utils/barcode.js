@@ -116,8 +116,9 @@ const BARKOD_PATTERNLERI = {
     // Çok kaynaklı palet formatları — prefix registry
     // PRD: Üretim | MKB: Mal Kabul | PLT: Tedarikçi ref | Sayısal: Legacy
     palet: /^(PRD-\d{8}-\d{1,5}|MKB-\d{8}-\d{1,5}|PLT-[\w-]{1,30}|\d{4,10})$/i,
-    // GNL-A-01-01-01 veya RAF-XX-XX-XX gibi
-    raf: /^[A-Z]{2,4}-[A-Z]-\d{2}-\d{2}-\d{2}$/i,
+    // Raf kodu serbest formdadır (depo bazında farklı şemalar). Asıl kontrol
+    // sunucuda DB lookup ile yapılır; burada sadece kaba güvenlik filtresi.
+    raf: /^(?=.*[A-Z0-9])[A-Z0-9](?:[A-Z0-9-]{0,38}[A-Z0-9])?$/i,
     // LOT-NNN veya LOT-NNNNN
     lot: /^LOT-\d{1,8}$/i,
 };
@@ -138,7 +139,7 @@ export const validateBarkodFormat = (code, type) => {
     if (!pattern.test(code)) {
         const ornekler = {
             palet: 'PRD-20260424-001 veya MKB-20260429-001',
-            raf: 'GNL-A-01-01-01',
+            raf: 'A-01 veya GNL-A-01-01-01',
             lot: 'LOT-12345',
         };
         return {

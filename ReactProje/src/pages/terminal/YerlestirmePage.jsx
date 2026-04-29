@@ -14,7 +14,7 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { useAsync } from '../../hooks/useAsync';
 import { useAuth } from '../../contexts/AuthContext';
 import useTerminalScanInput from '../../hooks/useTerminalScanInput';
-import { sanitizeBarkod, scanFeedback } from '../../utils/barcode';
+import { sanitizeBarkod, scanFeedback, validateBarkodFormat } from '../../utils/barcode';
 import { hataMetni } from '../../utils/hata';
 import ZXingBarcodeScanner from '../../components/common/ZXingBarcodeScanner';
 import { FatButton } from '../../components/terminal/FatButton';
@@ -56,8 +56,13 @@ export default function YerlestirmePage() {
   const [adim, setAdim] = useState(ADIM.GOREV);
   const [gorev, setGorev] = useState(location.state?.gorev || null);
   const [bekleyenSayisi, setBekleyenSayisi] = useState(null);
+  // paletBarkod/rafBarkod = scanner buffer (hook tarafından clearOnSuccess ile temizlenir)
+  // dogrulanmisPaletBarkod = palet adımında format/eşleşme check'lerini geçen kalıcı değer.
+  // Bu ayrım yapılmadığında scanner buffer temizliği sırasında submit edilecek palet
+  // değeri de siliniyor ve raf adımında 422 palet_barkod hatasıyla geri dönülüyor.
   const [paletBarkod, setPaletBarkod] = useState('');
   const [rafBarkod, setRafBarkod] = useState('');
+  const [dogrulanmisPaletBarkod, setDogrulanmisPaletBarkod] = useState('');
   const [sonuc, setSonuc] = useState(null);
   const [kameraAcik, setKameraAcik] = useState(false);
   const [manuelAcik, setManuelAcik] = useState(false);
@@ -132,6 +137,9 @@ export default function YerlestirmePage() {
         await goreviBirak(gorev.id);
         toast('Görev havuza iade edildi.');
         setGorev(null);
+        setPaletBarkod('');
+        setRafBarkod('');
+        setDogrulanmisPaletBarkod('');
         setAdim(ADIM.GOREV);
         void bekleyenYukle();
       });
@@ -143,6 +151,21 @@ export default function YerlestirmePage() {
   const paletDogrula = useCallback((barkod) => {
     const b = sanitizeBarkod(barkod, 'palet');
     if (!b) return false;
+
+    // Format doğrulaması — bozuk değerin state'e yazılıp raf adımında
+    // 422 olarak geri gelmesini engeller (kontrollerin "karışık" görünmesinin
+    // kök nedeni budur).
+    const format = validateBarkodFormat(b, 'palet');
+    if (!format.valid) {
+      scanFeedback('error');
+      setScanHata({
+        baslik: 'Geçersiz palet barkodu',
+        detay: format.error || 'Palet barkod formatı hatalı.',
+        okutulan: b,
+      });
+      return false;
+    }
+
     const beklenen = sanitizeBarkod(gorev?.palet_barkodu, 'palet');
     if (beklenen && b !== beklenen) {
       scanFeedback('error');
@@ -163,6 +186,7 @@ export default function YerlestirmePage() {
     }
     setScanHata(null);
     setPaletBarkod(b);
+    setDogrulanmisPaletBarkod(b);
     setAdim(ADIM.RAF);
     toast.success('Palet doğrulandı. Raf barkodunu okutun.');
     return true;
@@ -171,11 +195,33 @@ export default function YerlestirmePage() {
   const yerlestir = useCallback(async (rafKod, meta = {}) => {
     const r = sanitizeBarkod(rafKod, 'raf');
     if (!r) return false;
+
+    const format = validateBarkodFormat(r, 'raf');
+    if (!format.valid) {
+      scanFeedback('error');
+      setScanHata({
+        baslik: 'Geçersiz raf barkodu',
+        detay: format.error || 'Raf barkod formatı hatalı.',
+        okutulan: r,
+      });
+      return false;
+    }
+
+    if (!dogrulanmisPaletBarkod) {
+      scanFeedback('error');
+      setAdim(ADIM.PALET);
+      setScanHata({
+        baslik: 'Palet doğrulanmadı',
+        detay: 'Lütfen önce palet barkodunu okutarak doğrulayın.',
+      });
+      return false;
+    }
+
     try {
       await run(async () => {
         const res = await terminalYerlestir({
           gorev_id: gorev.id,
-          palet_barkod: paletBarkod,
+          palet_barkod: dogrulanmisPaletBarkod,
           raf_barkod: r,
         }, idempotencyConfig(meta.idempotencyKey));
         setScanHata(null);
@@ -185,6 +231,21 @@ export default function YerlestirmePage() {
       return true;
     } catch (err) {
       scanFeedback('error');
+      // Sunucudan dönen field-bazlı 422'yi ayırt et: palet_barkod fail ederse
+      // hata raf adımında değil, palet adımındadır. Kullanıcıyı geri yönlendir.
+      const detail = err?.response?.data?.detail;
+      const palet_field_hatasi = Array.isArray(detail)
+        && detail.some((d) => Array.isArray(d?.loc) && d.loc.includes('palet_barkod'));
+      if (palet_field_hatasi) {
+        setPaletBarkod('');
+        setDogrulanmisPaletBarkod('');
+        setAdim(ADIM.PALET);
+        setScanHata({
+          baslik: 'Palet barkodu geçersiz',
+          detay: 'Palet adımında geçersiz bir barkod kabul edildi. Lütfen palet barkodunu tekrar okutun.',
+        });
+        return false;
+      }
       setScanHata({
         baslik: 'Raf doğrulaması başarısız',
         detay: hataMetni(err, 'Yerleştirme doğrulaması başarısız.'),
@@ -192,7 +253,7 @@ export default function YerlestirmePage() {
       });
       return false;
     }
-  }, [gorev, paletBarkod, run]);
+  }, [gorev, dogrulanmisPaletBarkod, run]);
 
   const overrideYap = async () => {
     if (!overrideRafSec) return toast.error('Lütfen önce bir alternatif raf seçin.');
@@ -239,6 +300,7 @@ export default function YerlestirmePage() {
     setGorev(null);
     setPaletBarkod('');
     setRafBarkod('');
+    setDogrulanmisPaletBarkod('');
     setSonuc(null);
     setOverrideModal(false);
     setOverrideNeden('');
