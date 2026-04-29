@@ -3,6 +3,7 @@ import { Bell, Search, Settings, Menu, LogOut, ChevronDown, Plus, Package, Arrow
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import PwaInstallButton from '../PwaInstallButton';
 import toast from 'react-hot-toast';
 
 const PAGE_TITLES = {
@@ -238,6 +239,9 @@ export default function Header({ onMobileMenuToggle }) {
                         </span>
                     )}
                 </button>
+
+                {/* PWA Install Button */}
+                <PwaInstallButton />
 
                 {/* Notifications */}
                 <button className="relative w-11 h-11 hidden sm:flex items-center justify-center rounded-2xl

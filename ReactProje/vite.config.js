@@ -3,12 +3,107 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import mkcert from 'vite-plugin-mkcert'
 import { visualizer } from "rollup-plugin-visualizer"
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     mkcert(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      injectRegister: false,
+      includeAssets: [
+        'icons/depo-icon.svg',
+        'icons/apple-touch-icon-180.png',
+        'fonts/**/*',
+      ],
+      manifest: {
+        name: 'Depo Yönetim Sistemi',
+        short_name: 'DepoTerminal',
+        description: 'Saha operatörü için scan-to-verify yerleştirme ve depo yönetim terminali',
+        lang: 'tr',
+        dir: 'ltr',
+        start_url: '/terminal/gorevler',
+        scope: '/',
+        display: 'standalone',
+        display_override: ['standalone', 'minimal-ui'],
+        orientation: 'portrait-primary',
+        background_color: '#0f172a',
+        theme_color: '#0f172a',
+        categories: ['business', 'productivity', 'utilities'],
+        icons: [
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+        shortcuts: [
+          {
+            name: 'Görev Listesi',
+            short_name: 'Görevler',
+            description: 'Aktif yerleştirme/toplama görevleri',
+            url: '/terminal/gorevler',
+            icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Üretim Paleti Kabul',
+            short_name: 'Üretim Kabul',
+            description: 'Üretimden gelen palet kabul ekranı',
+            url: '/terminal/uretim-kabul',
+            icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Stok İşlemleri',
+            short_name: 'Stok',
+            description: 'Stok giriş ve çıkış işlemleri',
+            url: '/stok-hareketleri',
+            icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: false,
+        runtimeCaching: [
+          {
+            urlPattern: ({ url, request }) =>
+              url.pathname.startsWith('/api/') && request.method === 'GET',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'depo-api-get',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: ({ request }) =>
+              ['style', 'script', 'worker'].includes(request.destination),
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'depo-static-assets' },
+          },
+          {
+            urlPattern: ({ request }) =>
+              ['image', 'font'].includes(request.destination),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'depo-media',
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
+      devOptions: {
+        enabled: true,
+        type: 'module',
+        navigateFallback: '/index.html',
+      },
+    }),
     visualizer({
       open: true,          // Build bittiğinde raporu tarayıcıda otomatik açar
       filename: "stats.html", // Analiz dosyasının adı
