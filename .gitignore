@@ -5,6 +5,7 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyc.*
 *.egg-info/
 
 # SQLite (artık MySQL kullanıyoruz)
@@ -19,3 +20,12 @@ venv/
 ReactProje/guvenlik_raporu.md
 
 .agents/skills/
+
+# ML deney/veri artefact'leri
+ml_models/**/data/raw/*
+ml_models/**/data/processed/*
+ml_models/**/artifacts/*
+ml_models/**/reports/*
+ml_models/**/outputs/*
+!ml_models/**/README.md
+!ml_models/**/.gitignore
