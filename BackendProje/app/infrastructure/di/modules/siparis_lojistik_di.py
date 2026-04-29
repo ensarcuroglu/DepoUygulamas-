@@ -75,6 +75,7 @@ from app.infrastructure.di.modules.depo_envanter_di import (
     get_yerlestirme_gorevi_repo,
     get_yerlestirme_algoritmasi,
 )
+from app.infrastructure.di.modules.uretim_di import get_uretim_seri_no_uretici
 
 
 # ── Repository factory'leri ──
@@ -437,10 +438,12 @@ def get_irsaliye_onayla_ve_gorev_olustur_uc(
     raf_repo=Depends(get_raf_repo),
     algoritma=Depends(get_yerlestirme_algoritmasi),
     log_repo=Depends(get_log_repo),
+    seri_no_uretici=Depends(get_uretim_seri_no_uretici),
 ):
     return IrsaliyeOnaylaVeGorevOlusturUseCase(
         repo, urun_repo, lot_repo, palet_repo, hareket_repo,
         gorev_repo, raf_repo, algoritma, log_repo, db,
+        seri_no_uretici=seri_no_uretici,
     )
 
 

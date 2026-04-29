@@ -273,8 +273,12 @@ class Palet(Base):
 
 class UretimSeriSayac(Base):
     __tablename__ = "uretim_seri_sayac"
+    __table_args__ = (
+        PrimaryKeyConstraint("prefix", "tarih"),
+    )
 
-    tarih: Mapped[date] = mapped_column(Date, primary_key=True)
+    prefix: Mapped[str] = mapped_column(String(10), default="PRD", nullable=False)
+    tarih: Mapped[date] = mapped_column(Date, nullable=False)
     son_seri_no: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
 

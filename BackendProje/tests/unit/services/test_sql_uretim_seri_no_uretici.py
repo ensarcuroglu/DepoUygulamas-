@@ -54,7 +54,7 @@ class TestSeriNoUretici:
         sayac_repo.artir_ve_dondur.return_value = 5
         tarih = date(2025, 4, 16)
         uretici.uret(tarih)
-        sayac_repo.artir_ve_dondur.assert_called_once_with(tarih)
+        sayac_repo.artir_ve_dondur.assert_called_once_with(tarih, "PRD")
 
     def test_farkli_tarihler_farkli_prefix(
         self, uretici: SqlUretimSeriNoUretici, sayac_repo

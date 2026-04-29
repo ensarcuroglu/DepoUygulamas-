@@ -17,6 +17,8 @@ import useTerminalScanInput from '../../hooks/useTerminalScanInput';
 import { sanitizeBarkod, scanFeedback } from '../../utils/barcode';
 import { hataMetni } from '../../utils/hata';
 import ZXingBarcodeScanner from '../../components/common/ZXingBarcodeScanner';
+import { FatButton } from '../../components/terminal/FatButton';
+import { ScannerHazirKarti } from '../../components/terminal/ScannerHazirKarti';
 import {
   siradakiGorevisiniAl,
   goreviBaslat,
@@ -55,11 +57,10 @@ export default function YerlestirmePage() {
   const [gorev, setGorev] = useState(location.state?.gorev || null);
   const [bekleyenSayisi, setBekleyenSayisi] = useState(null);
   const [paletBarkod, setPaletBarkod] = useState('');
+  const [rafBarkod, setRafBarkod] = useState('');
   const [sonuc, setSonuc] = useState(null);
   const [kameraAcik, setKameraAcik] = useState(false);
-  const [kameraMod, setKameraMod] = useState('palet');
-  const [manuelPalet, setManuelPalet] = useState('');
-  const [manuelRaf, setManuelRaf] = useState('');
+  const [manuelAcik, setManuelAcik] = useState(false);
   const [overrideModal, setOverrideModal] = useState(false);
   const [overrideNeden, setOverrideNeden] = useState('');
   const [overrideRafSec, setOverrideRafSec] = useState(null);
@@ -162,7 +163,6 @@ export default function YerlestirmePage() {
     }
     setScanHata(null);
     setPaletBarkod(b);
-    setManuelPalet('');
     setAdim(ADIM.RAF);
     toast.success('Palet doğrulandı. Raf barkodunu okutun.');
     return true;
@@ -238,9 +238,8 @@ export default function YerlestirmePage() {
   const sifirla = () => {
     setGorev(null);
     setPaletBarkod('');
+    setRafBarkod('');
     setSonuc(null);
-    setManuelPalet('');
-    setManuelRaf('');
     setOverrideModal(false);
     setOverrideNeden('');
     setOverrideRafSec(null);
@@ -249,50 +248,52 @@ export default function YerlestirmePage() {
     void bekleyenYukle();
   };
 
+  const isRaf = adim === ADIM.RAF;
   const scanDisabled = loading || kameraAcik || overrideModal || sorunSheet;
-  const {
-    inputRef: paletInputRef,
-    zebraDetected: paletZebraDetected,
-    handleKeyDown: handlePaletKeyDown,
-    handleBlur: handlePaletBlur,
-    submitScan: submitPaletScan,
-  } = useTerminalScanInput({
-    mode: 'palet',
-    value: manuelPalet,
-    setValue: setManuelPalet,
-    contextKey: `yerlestirme:${gorev?.id || 'yok'}:palet`,
-    disabled: scanDisabled,
-    isEnabled: adim === ADIM.PALET && !!gorev && !scanDisabled,
-    onSubmit: paletDogrula,
-    // Sigorta: DataWedge "Send ENTER" kapalıysa veya yeni cihazda profil yoksa
-    // 250 ms inaktivite sonrası otomatik submit. Manuel klavye girişinde de güvenli (insan ≥ 100 ms).
-    flushOnIdleMs: 250,
-  });
-  const {
-    inputRef: rafInputRef,
-    zebraDetected: rafZebraDetected,
-    handleKeyDown: handleRafKeyDown,
-    handleBlur: handleRafBlur,
-    submitScan: submitRafScan,
-  } = useTerminalScanInput({
-    mode: 'raf',
-    value: manuelRaf,
-    setValue: setManuelRaf,
-    contextKey: `yerlestirme:${gorev?.id || 'yok'}:raf`,
-    disabled: scanDisabled,
-    isEnabled: adim === ADIM.RAF && !!gorev && !scanDisabled,
-    onSubmit: yerlestir,
-    flushOnIdleMs: 250,
-  });
-  const zebraDetected = paletZebraDetected || rafZebraDetected;
+  const scanMode = isRaf ? 'raf' : 'palet';
 
-  // Adım değişikliği için merkezi setter — geri/ileri navigasyonda eski metin kalmasın.
+  const {
+    inputRef,
+    zebraDetected,
+    handleKeyDown,
+    handleBlur,
+    submitScan
+  } = useTerminalScanInput({
+    mode: scanMode,
+    value: isRaf ? rafBarkod : paletBarkod,
+    setValue: isRaf ? setRafBarkod : setPaletBarkod,
+    contextKey: scanMode === 'palet' ? `yerlestirme:${gorev?.id || 'yok'}:palet` : `yerlestirme:${gorev?.id || 'yok'}:raf`,
+    disabled: scanDisabled,
+    isEnabled: (adim === ADIM.PALET || adim === ADIM.RAF) && !!gorev && !scanDisabled,
+    validateFormat: false,
+    onSubmit: async (code, meta) => (scanMode === 'palet' ? paletDogrula(code, meta) : yerlestir(code, meta)),
+    flushOnIdleMs: 250,
+  });
+
+  const toggleManuel = useCallback((e) => {
+    if (e && e.currentTarget) e.currentTarget.blur();
+    const el = inputRef.current;
+    setManuelAcik((onceki) => {
+      const yeni = !onceki;
+      if (!el) return yeni;
+      if (yeni) {
+        el.setAttribute('inputmode', 'text');
+        el.focus();
+      } else {
+        el.setAttribute('inputmode', 'none');
+        el.blur();
+        setTimeout(() => el.focus({ preventScroll: true }), 50);
+      }
+      return yeni;
+    });
+  }, [inputRef]);
+
   const adimDegistir = useCallback((yeniAdim) => {
-    if (yeniAdim !== ADIM.PALET) setManuelPalet('');
-    if (yeniAdim !== ADIM.RAF) setManuelRaf('');
-    setScanHata(null);
     setAdim(yeniAdim);
-  }, []);
+    setScanHata(null);
+    setManuelAcik(false);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, [inputRef]);
 
   // --- Render Area ---
   return (
@@ -408,26 +409,54 @@ export default function YerlestirmePage() {
               {gorev.miktar != null && <InfoRow label="Miktar" value={`${gorev.miktar} koli`} />}
             </div>
 
-            {!zebraDetected && (
-              <ScanButton onClick={() => { setKameraMod('palet'); setKameraAcik(true); }} text="KAMERA İLE OKUT" />
-            )}
+            <ScannerHazirKarti 
+              isRaf={false} 
+              busy={loading} 
+              zebraDetected={zebraDetected} 
+            />
 
-            <div className="space-y-3">
-              <Divider text="Manuel Gir" />
-              <div className="flex gap-2">
-                <input
-                  ref={paletInputRef}
-                  className="flex-1 bg-white dark:bg-[#121316] border border-slate-200/60 dark:border-slate-800/60 rounded-[20px] px-5 py-4 text-slate-900 dark:text-white text-[15px] font-mono tracking-wide placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
-                  placeholder="PRD-20260424-001"
-                  value={manuelPalet}
-                  onChange={(e) => setManuelPalet(e.target.value)}
-                  onKeyDown={handlePaletKeyDown}
-                  onBlur={handlePaletBlur}
-                />
-                <Motion.button whileTap={{ scale: 0.9 }} onClick={() => void submitPaletScan()} disabled={scanDisabled || !manuelPalet.trim()} className="bg-blue-600 dark:bg-blue-500 disabled:opacity-50 text-white w-14 rounded-[20px] flex items-center justify-center tap-highlight-transparent shadow-lg shadow-blue-500/20">
-                  <CornerDownRight className="w-5 h-5" strokeWidth={2.5} />
-                </Motion.button>
+            <div className="grid gap-3 relative">
+              <div className={`overflow-hidden transition-all duration-200 ${manuelAcik ? 'h-auto' : 'absolute h-0 w-0 pointer-events-none'}`} aria-hidden={!manuelAcik}>
+                <div className="flex gap-2">
+                  <input
+                    ref={inputRef}
+                    className="min-w-0 flex-1 bg-white dark:bg-[#121316] border border-slate-200/60 dark:border-slate-800/60 rounded-[20px] px-5 h-16 text-slate-900 dark:text-white text-[15px] font-mono font-bold tracking-wide uppercase placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all disabled:opacity-50 shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
+                    placeholder="PALET BARKODU"
+                    value={paletBarkod}
+                    onChange={(e) => setPaletBarkod(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onBlur={handleBlur}
+                    disabled={scanDisabled}
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    tabIndex={manuelAcik ? 0 : -1}
+                    inputMode={manuelAcik ? 'text' : 'none'}
+                  />
+                  <button
+                    onClick={() => void submitScan()}
+                    disabled={scanDisabled || !paletBarkod.trim()}
+                    tabIndex={manuelAcik ? 0 : -1}
+                    className={`h-16 w-16 shrink-0 flex items-center justify-center rounded-[20px] text-white font-bold transition-colors shadow-lg bg-blue-600 active:bg-blue-700 shadow-blue-500/20 disabled:opacity-50`}
+                  >
+                    <ArrowRight className="w-7 h-7" strokeWidth={2.5} />
+                  </button>
+                </div>
               </div>
+
+              <FatButton 
+                label={manuelAcik ? "KLAVYEYİ GİZLE" : "MANUEL GİRİŞ YAP"} 
+                onClick={toggleManuel} 
+                variant="secondary"
+              />
+
+              {!zebraDetected && (
+                <FatButton 
+                  label="KAMERAYI AÇ" 
+                  onClick={() => setKameraAcik(true)} 
+                  variant="secondary"
+                />
+              )}
             </div>
 
             <ProblemButton onClick={() => setSorunSheet(true)} />
@@ -453,33 +482,54 @@ export default function YerlestirmePage() {
               <OneriDetayKart oneri={rafOneri.onerilen} alternatifler={rafOneri.alternatifler} />
             )}
 
-            <div className="bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 rounded-2xl px-4 py-3.5 flex items-start gap-3">
-              <div className="bg-sky-100 dark:bg-sky-500/20 p-1.5 rounded-lg shrink-0 border border-sky-300 dark:border-sky-500/30 mt-0.5">
-                <ScanLine className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+            <ScannerHazirKarti 
+              isRaf={true} 
+              busy={loading} 
+              zebraDetected={zebraDetected} 
+            />
+
+            <div className="grid gap-3 relative">
+              <div className={`overflow-hidden transition-all duration-200 ${manuelAcik ? 'h-auto' : 'absolute h-0 w-0 pointer-events-none'}`} aria-hidden={!manuelAcik}>
+                <div className="flex gap-2">
+                  <input
+                    ref={inputRef}
+                    className="min-w-0 flex-1 bg-white dark:bg-[#121316] border border-slate-200/60 dark:border-slate-800/60 rounded-[20px] px-5 h-16 text-slate-900 dark:text-white text-[15px] font-mono font-bold tracking-wide uppercase placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all disabled:opacity-50 shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
+                    placeholder="RAF BARKODU"
+                    value={rafBarkod}
+                    onChange={(e) => setRafBarkod(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onBlur={handleBlur}
+                    disabled={scanDisabled}
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    tabIndex={manuelAcik ? 0 : -1}
+                    inputMode={manuelAcik ? 'text' : 'none'}
+                  />
+                  <button
+                    onClick={() => void submitScan()}
+                    disabled={scanDisabled || !rafBarkod.trim()}
+                    tabIndex={manuelAcik ? 0 : -1}
+                    className={`h-16 w-16 shrink-0 flex items-center justify-center rounded-[20px] text-white font-bold transition-colors shadow-lg bg-emerald-600 active:bg-emerald-700 shadow-emerald-500/20 disabled:opacity-50`}
+                  >
+                    <ArrowRight className="w-7 h-7" strokeWidth={2.5} />
+                  </button>
+                </div>
               </div>
-              <p className="text-[13px] text-sky-800 dark:text-sky-200/90 font-medium leading-snug">Hedef raf barkodunu okutun ya da farklı uygun bir raf seçin.</p>
-            </div>
 
-            {!zebraDetected && (
-              <ScanButton onClick={() => { setKameraMod('raf'); setKameraAcik(true); }} text="KAMERA İLE OKUT" />
-            )}
+              <FatButton 
+                label={manuelAcik ? "KLAVYEYİ GİZLE" : "MANUEL GİRİŞ YAP"} 
+                onClick={toggleManuel} 
+                variant="secondary"
+              />
 
-            <div className="space-y-3">
-              <Divider text="Manuel Gir" />
-              <div className="flex gap-2">
-                <input
-                  ref={rafInputRef}
-                  className="flex-1 bg-white dark:bg-[#121316] border border-slate-200/60 dark:border-slate-800/60 rounded-[20px] px-5 py-4 text-slate-900 dark:text-white text-[15px] font-mono tracking-wide placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
-                  placeholder="GNL-A-01-01-01"
-                  value={manuelRaf}
-                  onChange={(e) => setManuelRaf(e.target.value)}
-                  onKeyDown={handleRafKeyDown}
-                  onBlur={handleRafBlur}
+              {!zebraDetected && (
+                <FatButton 
+                  label="KAMERAYI AÇ" 
+                  onClick={() => setKameraAcik(true)} 
+                  variant="secondary"
                 />
-                <Motion.button whileTap={{ scale: 0.9 }} disabled={scanDisabled || loading || !manuelRaf.trim()} onClick={() => void submitRafScan()} className="bg-blue-600 dark:bg-blue-500 disabled:opacity-50 text-white w-14 rounded-[20px] flex items-center justify-center tap-highlight-transparent shadow-lg shadow-blue-500/20">
-                  {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CornerDownRight className="w-5 h-5" strokeWidth={2.5} />}
-                </Motion.button>
-              </div>
+              )}
             </div>
 
             <ProblemButton onClick={() => setSorunSheet(true)} />
@@ -575,7 +625,7 @@ export default function YerlestirmePage() {
         onClose={() => setKameraAcik(false)}
         onScanSuccess={(code) => {
           setKameraAcik(false);
-          void (kameraMod === 'palet' ? submitPaletScan : submitRafScan)(code, { force: true });
+          void submitScan(code, { force: true });
         }}
       />
 

@@ -8,7 +8,10 @@ from typing import Optional
 
 CONTROL_CHARS_RE = re.compile(r"[\x00-\x1F\x7F]")
 ZERO_WIDTH_RE = re.compile(r"[\u200B-\u200F\uFEFF]")
-PALET_BARKOD_PATTERN = re.compile(r"^PRD-\d{8}-\d{1,5}$", re.IGNORECASE)
+PALET_BARKOD_PATTERN = re.compile(
+    r"^(PRD-\d{8}-\d{1,5}|MKB-\d{8}-\d{1,5}|PLT-[\w-]{1,30}|\d{4,10})$",
+    re.IGNORECASE,
+)
 RAF_BARKOD_PATTERN = re.compile(r"^[A-Z]{2,4}-[A-Z]-\d{2}-\d{2}-\d{2}$", re.IGNORECASE)
 
 
@@ -24,7 +27,10 @@ def sanitize_barkod(value: Optional[str]) -> str:
 def validate_palet_barkod(value: str) -> str:
     sanitized = sanitize_barkod(value)
     if not PALET_BARKOD_PATTERN.fullmatch(sanitized):
-        raise ValueError("Barkod formati hatali. Ornek: PRD-20260424-001")
+        raise ValueError(
+            "Palet barkod formati hatali. "
+            "Ornekler: PRD-20260424-001, MKB-20260429-001, PLT-TEDARIK-001"
+        )
     return sanitized
 
 

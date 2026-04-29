@@ -11,13 +11,14 @@ import {
   Camera, Keyboard, ChevronDown, AlertOctagon, 
   ArrowLeft, RefreshCcw
 } from 'lucide-react';
-import toast from 'react-hot-toast';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { hataMetni } from '../../utils/hata';
 import useTerminalScanInput from '../../hooks/useTerminalScanInput';
 import { sanitizeBarkod, validateBarkodFormat } from '../../utils/barcode';
 import { uretimPaletiKabulEt, uretimPaletiYerlestir, getRaflar, getUretimPaleti } from '../../services/api';
 import ZXingBarcodeScanner from '../../components/common/ZXingBarcodeScanner';
+import { FatButton } from '../../components/terminal/FatButton';
+import { ScannerHazirKarti } from '../../components/terminal/ScannerHazirKarti';
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
 const ADIM = { PALET: 1, RAF: 2, SONUC: 3 };
@@ -250,7 +251,12 @@ export default function TerminalUretimKabulPage() {
   const scanDisabled = yukleniyor || kameraAcik || (isRaf && raflarYukleniyor) || (isRaf && rafYuklemeHatasi);
   const scanMode = isRaf ? 'raf' : 'palet';
   
-  const scanInput = useTerminalScanInput({
+  const {
+    zebraDetected,
+    handleKeyDown,
+    handleBlur,
+    submitScan
+  } = useTerminalScanInput({
     mode: scanMode,
     value: barkodInput,
     setValue: setBarkodInput,
@@ -260,17 +266,16 @@ export default function TerminalUretimKabulPage() {
       : `terminal-uretim:${kabulBilgi?.palet_no || 'yok'}:raf`,
     disabled: scanDisabled,
     isEnabled: (adim === ADIM.PALET || adim === ADIM.RAF) && !scanDisabled,
-    validateFormat: false, // UI tabanlı spesifik hata yakalayabilmek için hook'un toast'ını kapattık
+    validateFormat: false,
     onSubmit: async (code, meta) => (scanMode === 'palet'
       ? paletOkut(code, meta)
       : rafOkut(code, meta)),
     flushOnIdleMs: 250,
   });
-  const zebraDetected = scanInput.zebraDetected;
   
   const kameraIslem = (code) => {
     setKameraAcik(false);
-    void scanInput.submitScan(code, { force: true });
+    void submitScan(code, { force: true });
   };
 
   return (
@@ -310,13 +315,13 @@ export default function TerminalUretimKabulPage() {
               <div className={`overflow-hidden transition-all duration-200 ${manuelAcik ? 'h-auto' : 'absolute h-0 w-0 pointer-events-none'}`} aria-hidden={!manuelAcik}>
                 <div className="flex gap-2">
                   <input
-                    ref={scanInput.inputRef}
+                    ref={inputRef}
                     className="min-w-0 flex-1 bg-white dark:bg-[#121316] border border-slate-200/60 dark:border-slate-800/60 rounded-[20px] px-5 h-16 text-slate-900 dark:text-white text-[15px] font-mono font-bold tracking-wide uppercase placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all disabled:opacity-50 shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
                     placeholder={isRaf ? 'RAF BARKODU' : 'PALET BARKODU'}
                     value={barkodInput}
                     onChange={(e) => setBarkodInput(e.target.value)}
-                    onKeyDown={scanInput.handleKeyDown}
-                    onBlur={scanInput.handleBlur}
+                    onKeyDown={handleKeyDown}
+                    onBlur={handleBlur}
                     disabled={scanDisabled}
                     autoComplete="off"
                     autoCapitalize="characters"
@@ -325,7 +330,7 @@ export default function TerminalUretimKabulPage() {
                     inputMode={manuelAcik ? 'text' : 'none'}
                   />
                   <button
-                    onClick={() => void scanInput.submitScan()}
+                    onClick={() => void submitScan()}
                     disabled={scanDisabled || !barkodInput.trim()}
                     tabIndex={manuelAcik ? 0 : -1}
                     className={`h-16 w-16 shrink-0 flex items-center justify-center rounded-[20px] text-white font-bold transition-colors shadow-lg ${isRaf ? 'bg-emerald-600 active:bg-emerald-700 shadow-emerald-600/20' : 'bg-blue-600 active:bg-blue-700 shadow-blue-500/20'} disabled:opacity-50`}
@@ -477,55 +482,7 @@ function KabulPaletKarti({ kabulBilgi }) {
   );
 }
 
-function ScannerHazirKarti({ isRaf, busy, zebraDetected, raflarYukleniyor }) {
-  const bg = isRaf ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700' : 'bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700';
-  const text = isRaf ? 'text-emerald-800 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-300';
-  const isLoading = busy || (isRaf && raflarYukleniyor);
-  
-  return (
-    <div className={`border-2 rounded-[28px] px-5 py-7 flex flex-col items-center justify-center min-h-[200px] ${bg} shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-colors`}>
-      {isLoading ? (
-        <div className={`w-14 h-14 border-4 border-t-transparent rounded-full animate-spin ${isRaf ? 'border-emerald-600' : 'border-blue-600'}`} />
-      ) : (
-        <ScanLine className={`w-16 h-16 ${text} mb-4`} strokeWidth={2} />
-      )}
-      
-      <h2 className={`text-xl font-black text-center uppercase tracking-tight leading-tight ${text} mt-2`}>
-        {isLoading 
-          ? (raflarYukleniyor ? 'RAFLAR YÜKLENİYOR...' : 'İŞLENİYOR...') 
-          : isRaf ? 'RAF BARKODUNU OKUT' : 'PALET BARKODUNU OKUT'}
-      </h2>
-      
-      <div className="mt-5 flex items-center gap-2 bg-white/60 dark:bg-black/30 px-4 py-2 rounded-xl">
-        <Wifi className={`w-4 h-4 ${zebraDetected ? 'text-green-600' : 'text-slate-500'}`} />
-        <span className="font-bold text-[12px] text-slate-700 dark:text-slate-300">
-          {zebraDetected ? 'ZEBRA AKTİF' : 'CİHAZ DİNLENİYOR'}
-        </span>
-      </div>
-    </div>
-  );
-}
 
-function FatButton({ icon, label, onClick, variant = 'primary', disabled = false }) {
-  const baseStyle = "w-full min-h-[60px] px-4 rounded-[20px] flex items-center justify-between gap-3 font-bold text-[13px] sm:text-[14px] leading-tight active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 tap-highlight-transparent";
-  
-  const styles = {
-    primary: "bg-blue-600 text-white active:bg-blue-700",
-    secondary: "bg-white/80 dark:bg-[#121316]/80 border border-slate-200/60 dark:border-slate-800/60 text-slate-800 dark:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]",
-    danger: "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700/60 text-red-800 dark:text-red-300 active:bg-red-100 dark:active:bg-red-800/60",
-    warning: "bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700/60 text-orange-800 dark:text-orange-300 active:bg-orange-100 dark:active:bg-orange-800/60"
-  };
-
-  return (
-    <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${styles[variant]}`}>
-      <span className="min-w-0 flex items-center gap-2.5 text-left">
-        {createElement(icon, { className: 'w-5 h-5 shrink-0 opacity-80', strokeWidth: 2.5 })}
-        <span className="min-w-0 break-words">{label}</span>
-      </span>
-      {variant === 'primary' || variant === 'secondary' ? <ChevronDown className="w-5 h-5 shrink-0 opacity-50" /> : null}
-    </button>
-  );
-}
 
 function SolidInfoRow({ label, value }) {
   return (

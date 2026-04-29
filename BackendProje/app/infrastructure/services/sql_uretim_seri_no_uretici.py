@@ -8,12 +8,12 @@ class SqlUretimSeriNoUretici(IUretimSeriNoUretici):
     """Transaction-güvenli seri numara üretici.
 
     SELECT FOR UPDATE ile atomik artış; rollback'te gap kabul edilir.
-    Format: PRD-YYYYMMDD-NNNN
+    Format: {PREFIX}-YYYYMMDD-NNNN
     """
 
     def __init__(self, sayac_repo: IUretimSeriSayacRepository):
         self._sayac_repo = sayac_repo
 
-    def uret(self, tarih: date) -> str:
-        seri_no = self._sayac_repo.artir_ve_dondur(tarih)
-        return f"PRD-{tarih.strftime('%Y%m%d')}-{seri_no:04d}"
+    def uret(self, tarih: date, prefix: str = "PRD") -> str:
+        seri_no = self._sayac_repo.artir_ve_dondur(tarih, prefix)
+        return f"{prefix}-{tarih.strftime('%Y%m%d')}-{seri_no:04d}"

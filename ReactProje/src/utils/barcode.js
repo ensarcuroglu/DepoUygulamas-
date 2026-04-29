@@ -113,8 +113,9 @@ export const sanitizeBarkod = (raw, type = 'generic') => {
  * Şu anki pattern'ler yaygın formatları kapsar ama kısıtlayıcı değildir.
  */
 const BARKOD_PATTERNLERI = {
-    // PRD-YYYYMMDD-NNNN veya PRD-YYYYMMDD-NNNNN
-    palet: /^PRD-\d{8}-\d{1,5}$/i,
+    // Çok kaynaklı palet formatları — prefix registry
+    // PRD: Üretim | MKB: Mal Kabul | PLT: Tedarikçi ref | Sayısal: Legacy
+    palet: /^(PRD-\d{8}-\d{1,5}|MKB-\d{8}-\d{1,5}|PLT-[\w-]{1,30}|\d{4,10})$/i,
     // GNL-A-01-01-01 veya RAF-XX-XX-XX gibi
     raf: /^[A-Z]{2,4}-[A-Z]-\d{2}-\d{2}-\d{2}$/i,
     // LOT-NNN veya LOT-NNNNN
@@ -136,7 +137,7 @@ export const validateBarkodFormat = (code, type) => {
 
     if (!pattern.test(code)) {
         const ornekler = {
-            palet: 'PRD-20260424-001',
+            palet: 'PRD-20260424-001 veya MKB-20260429-001',
             raf: 'GNL-A-01-01-01',
             lot: 'LOT-12345',
         };

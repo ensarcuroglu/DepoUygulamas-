@@ -41,6 +41,7 @@ from app.application.dto.mal_kabul_irsaliye_dto import (
 
 if TYPE_CHECKING:
     from app.core.services.yerlestirme_algoritmasi import YerlestirmeAlgoritmasi
+    from app.core.services.uretim_seri_no_uretici import IUretimSeriNoUretici
 
 
 def _dto_to_kalem_entity(dto: MalKabulKalemiOlusturDTO) -> MalKabulKalemi:
@@ -311,6 +312,8 @@ class IrsaliyeOnaylaVeGorevOlusturUseCase:
         yerlestirme_algoritmasi: "YerlestirmeAlgoritmasi",
         log_repo: ISistemLogRepository,
         db: Session,
+        *,
+        seri_no_uretici: "IUretimSeriNoUretici | None" = None,
     ):
         self._repo = repo
         self._urun_repo = urun_repo
@@ -322,6 +325,7 @@ class IrsaliyeOnaylaVeGorevOlusturUseCase:
         self._algoritma = yerlestirme_algoritmasi
         self._log_repo = log_repo
         self._db = db
+        self._seri = seri_no_uretici
 
     def execute(
         self, irsaliye_id: int, kullanici_id: int
@@ -362,10 +366,18 @@ class IrsaliyeOnaylaVeGorevOlusturUseCase:
                 if staging_raf.id is None:
                     raise GecersizIslemError("Staging raf ID bulunamadı.")
 
+                # MKB otomatik seri no üret (seri_no_uretici varsa)
+                if self._seri:
+                    from datetime import date as date_cls
+                    mkb_tarih = kalem.uretim_tarihi or irsaliye.tarih or date_cls.today()
+                    mkb_palet_no = self._seri.uret(mkb_tarih, prefix="MKB")
+                else:
+                    mkb_palet_no = kalem.palet_no
+
                 palet = Palet(
                     lot_id=lot.id,
                     raf_id=staging_raf.id,
-                    palet_no=kalem.palet_no,
+                    palet_no=mkb_palet_no,
                     koli_adedi=kalem.miktar,
                 )
                 palet = self._palet_repo.olustur(palet, auto_commit=False)

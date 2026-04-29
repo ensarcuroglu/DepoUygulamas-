@@ -3,13 +3,14 @@ from datetime import date
 
 
 class IUretimSeriNoUretici(ABC):
-    """Port: üretim paleti seri numarası üretici."""
+    """Port: prefix bazlı palet seri numarası üretici."""
 
     @abstractmethod
-    def uret(self, tarih: date) -> str:
-        """Verilen tarih için benzersiz seri no üretir.
+    def uret(self, tarih: date, prefix: str = "PRD") -> str:
+        """Verilen tarih ve prefix için benzersiz seri no üretir.
 
-        Format: PRD-YYYYMMDD-NNNN
+        Format: {PREFIX}-YYYYMMDD-NNNN
+        Desteklenen prefix'ler: PRD (üretim), MKB (mal kabul)
         Transaction rollback'te gap kabul edilir.
         """
         ...

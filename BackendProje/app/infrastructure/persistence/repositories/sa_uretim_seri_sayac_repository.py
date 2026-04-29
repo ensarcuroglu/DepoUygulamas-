@@ -12,11 +12,18 @@ class SqlAlchemyUretimSeriSayacRepository(IUretimSeriSayacRepository):
     def __init__(self, db: Session):
         self._db = db
 
-    def artir_ve_dondur(self, tarih: date) -> int:
-        kayit = self._db.query(UretimSeriSayacORM).filter(UretimSeriSayacORM.tarih == tarih).first()
+    def artir_ve_dondur(self, tarih: date, prefix: str = "PRD") -> int:
+        kayit = (
+            self._db.query(UretimSeriSayacORM)
+            .filter(
+                UretimSeriSayacORM.prefix == prefix,
+                UretimSeriSayacORM.tarih == tarih,
+            )
+            .first()
+        )
 
         if not kayit:
-            yeni_kayit = UretimSeriSayacORM(tarih=tarih, son_seri_no=1)
+            yeni_kayit = UretimSeriSayacORM(prefix=prefix, tarih=tarih, son_seri_no=1)
             try:
                 with self._db.begin_nested():
                     self._db.add(yeni_kayit)
@@ -29,7 +36,10 @@ class SqlAlchemyUretimSeriSayacRepository(IUretimSeriSayacRepository):
 
         kilitli_kayit = (
             self._db.query(UretimSeriSayacORM)
-            .filter(UretimSeriSayacORM.tarih == tarih)
+            .filter(
+                UretimSeriSayacORM.prefix == prefix,
+                UretimSeriSayacORM.tarih == tarih,
+            )
             .with_for_update()
             .populate_existing()
             .first()
