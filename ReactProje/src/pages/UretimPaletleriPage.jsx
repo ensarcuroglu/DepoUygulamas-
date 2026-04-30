@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import {
     Package, Plus, Search, X, RefreshCw, CheckCircle, AlertTriangle,
     Ban, Download, ShieldAlert, ShieldCheck, Loader2, ChevronDown, MapPin,
+    Calendar, Layers, CheckSquare
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,13 +33,13 @@ const DURUM = {
 };
 
 const DURUM_BADGE = {
-    [DURUM.OLUSTURULDU]:          'bg-slate-100 text-slate-700',
-    [DURUM.KABUL_BEKLIYOR]:       'bg-amber-100 text-amber-800',
-    [DURUM.KABUL_EDILDI]:         'bg-emerald-100 text-emerald-800',
-    [DURUM.YERLESTIRME_BEKLIYOR]: 'bg-blue-100 text-blue-800',
-    [DURUM.YERLESTIRILDI]:        'bg-indigo-100 text-indigo-800',
-    [DURUM.KARANTINA]:            'bg-red-100 text-red-700',
-    [DURUM.IPTAL_EDILDI]:         'bg-gray-100 text-gray-500 line-through',
+    [DURUM.OLUSTURULDU]:          'bg-slate-50 text-slate-700 ring-slate-200',
+    [DURUM.KABUL_BEKLIYOR]:       'bg-amber-50 text-amber-800 ring-amber-200',
+    [DURUM.KABUL_EDILDI]:         'bg-emerald-50 text-emerald-800 ring-emerald-200',
+    [DURUM.YERLESTIRME_BEKLIYOR]: 'bg-blue-50 text-blue-800 ring-blue-200',
+    [DURUM.YERLESTIRILDI]:        'bg-indigo-50 text-indigo-800 ring-indigo-200',
+    [DURUM.KARANTINA]:            'bg-red-50 text-red-700 ring-red-200',
+    [DURUM.IPTAL_EDILDI]:         'bg-gray-50 text-gray-500 ring-gray-200 line-through',
 };
 
 const DURUM_ETIKET = {
@@ -87,6 +88,7 @@ export default function UretimPaletleriPage() {
 
     // Etiket modalı
     const [etiketModalPaletNo, setEtiketModalPaletNo] = useState(null);
+
     const {
         data: paletler = [],
         isLoading: loading,
@@ -104,11 +106,13 @@ export default function UretimPaletleriPage() {
         data: kullanicilar = [],
         refetch: refetchKullanicilar,
     } = useKullanicilarQuery();
+
     const createUretimPaletiMutation = useCreateUretimPaletiMutation();
     const kabulEtMutation = useUretimPaletiKabulEtMutation();
     const karantinaAlMutation = useUretimPaletiKarantinaAlMutation();
     const karantinaCikarMutation = useUretimPaletiKarantinaCikarMutation();
     const iptalMutation = useUretimPaletiIptalMutation();
+
     const lotlar = lotlarResult?.data ?? [];
     const operatorler = useMemo(
         () => kullanicilar.filter((k) => k.rol === 'depocu' || k.rol === 'admin'),
@@ -119,13 +123,15 @@ export default function UretimPaletleriPage() {
         await Promise.all([refetchPaletler(), refetchLotlar(), refetchDepolar(), refetchKullanicilar()]);
     }, [refetchDepolar, refetchKullanicilar, refetchLotlar, refetchPaletler]);
 
-    // ── Filtre ────────────────────────────────────────────────────────────────
+    // ── Filtre (Performans için useMemo eklendi) ──────────────────────────────
 
-    const filtrelenmis = paletler.filter((p) => {
-        const aramaUyum = !aramaMetni || p.palet_no.toLowerCase().includes(aramaMetni.toLowerCase());
-        const durumUyum = !durumFiltre || p.durum === durumFiltre;
-        return aramaUyum && durumUyum;
-    });
+    const filtrelenmis = useMemo(() => {
+        return paletler.filter((p) => {
+            const aramaUyum = !aramaMetni || p.palet_no.toLowerCase().includes(aramaMetni.toLowerCase());
+            const durumUyum = !durumFiltre || p.durum === durumFiltre;
+            return aramaUyum && durumUyum;
+        });
+    }, [paletler, aramaMetni, durumFiltre]);
 
     // ── Form ──────────────────────────────────────────────────────────────────
 
@@ -196,7 +202,7 @@ export default function UretimPaletleriPage() {
         }
     };
 
-    const kabulEt    = (pn) => aksiyon(kabulEtMutation.mutateAsync, pn, 'Palet kabul edildi');
+    const kabulEt = (pn) => aksiyon(kabulEtMutation.mutateAsync, pn, 'Palet kabul edildi');
 
     const sebepliIslem = async () => {
         if (!sebepModal) return;
@@ -218,31 +224,99 @@ export default function UretimPaletleriPage() {
     const isDepocuOrAdmin = user?.rol === 'admin' || user?.rol === 'depocu';
     const isKaliteYetkili = kaliteyetkisi(user);
 
+    // Tekrarı önlemek için aksiyon butonlarını render eden fonksiyon
+    const renderIslemler = (p) => {
+        const islem = islemPaletNo === p.palet_no;
+        return (
+            <div className="flex items-center gap-2 flex-wrap">
+                {islem && <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />}
+
+                {isDepocuOrAdmin && [DURUM.OLUSTURULDU, DURUM.KABUL_BEKLIYOR].includes(p.durum) && (
+                    <AksiyonButon
+                        onClick={() => kabulEt(p.palet_no)}
+                        icon={<CheckCircle className="w-4 h-4" />}
+                        label="Kabul Et"
+                        renk="emerald"
+                        disabled={islem}
+                    />
+                )}
+
+                {isDepocuOrAdmin && p.durum === DURUM.YERLESTIRME_BEKLIYOR && (
+                    <AksiyonButon
+                        onClick={() => toast('Yerleştirme için Üretimden Kabul sayfasından raf barkodu okutun', { icon: '📍' })}
+                        icon={<MapPin className="w-4 h-4" />}
+                        label="Yerleştir"
+                        renk="blue"
+                        disabled={islem}
+                    />
+                )}
+
+                {isKaliteYetkili && p.durum === DURUM.KABUL_EDILDI && (
+                    <AksiyonButon
+                        onClick={() => { setSebepModal({ tip: 'karantina', paletNo: p.palet_no }); setSebepText(''); }}
+                        icon={<ShieldAlert className="w-4 h-4" />}
+                        label="Karantina"
+                        renk="red"
+                        disabled={islem}
+                    />
+                )}
+
+                {isKaliteYetkili && p.durum === DURUM.KARANTINA && (
+                    <AksiyonButon
+                        onClick={() => { setSebepModal({ tip: 'karantina-cikar', paletNo: p.palet_no }); setSebepText(''); }}
+                        icon={<ShieldCheck className="w-4 h-4" />}
+                        label="Çıkar"
+                        renk="emerald"
+                        disabled={islem}
+                    />
+                )}
+
+                {isAdmin && [DURUM.OLUSTURULDU, DURUM.KABUL_BEKLIYOR].includes(p.durum) && (
+                    <AksiyonButon
+                        onClick={() => { setSebepModal({ tip: 'iptal', paletNo: p.palet_no }); setSebepText(''); }}
+                        icon={<Ban className="w-4 h-4" />}
+                        label="İptal"
+                        renk="gray"
+                        disabled={islem}
+                    />
+                )}
+
+                <AksiyonButon
+                    onClick={() => setEtiketModalPaletNo(p.palet_no)}
+                    icon={<Download className="w-4 h-4" />}
+                    label="Etiket"
+                    renk="slate"
+                    disabled={islem}
+                />
+            </div>
+        );
+    };
+
     return (
-        <div className="p-6 space-y-6">
-            {/* Başlık */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-100 rounded-xl">
-                        <Package className="w-6 h-6 text-emerald-700" />
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 min-h-screen bg-slate-50/50">
+            {/* Başlık ve Ana Aksiyonlar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-white border border-slate-200/60 rounded-2xl shadow-sm">
+                        <Package className="w-6 h-6 text-emerald-600" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-gray-900">Üretim Palet Yönetimi</h1>
-                        <p className="text-sm text-gray-500">Üretimden gelen palet girişlerini yönetin</p>
+                        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Üretim Paletleri</h1>
+                        <p className="text-sm text-slate-500 font-medium mt-0.5">Üretimden gelen girişleri yönetin</p>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
                     <button
                         onClick={veriYukle}
-                        className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                        className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-600 shadow-sm"
                         title="Yenile"
                     >
-                        <RefreshCw className="w-4 h-4 text-gray-600" />
+                        <RefreshCw className="w-5 h-5" />
                     </button>
                     {isDepocuOrAdmin && (
                         <button
                             onClick={modaliAc}
-                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-600/20 text-sm font-semibold tracking-wide"
                         >
                             <Plus className="w-4 h-4" />
                             Yeni Palet
@@ -251,157 +325,141 @@ export default function UretimPaletleriPage() {
                 </div>
             </div>
 
-            {/* Filtreler */}
-            <div className="flex gap-3">
-                <div className="relative flex-1 max-w-xs">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            {/* Arama ve Filtreler */}
+            <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                         type="text"
-                        placeholder="Palet no ara..."
+                        placeholder="Palet no ile ara..."
                         value={aramaMetni}
                         onChange={(e) => setAramaMetni(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm transition-all focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 placeholder:text-slate-400 shadow-sm"
                     />
                 </div>
-                <select
-                    value={durumFiltre}
-                    onChange={(e) => setDurumFiltre(e.target.value)}
-                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                >
-                    <option value="">Tüm Durumlar</option>
-                    {Object.entries(DURUM_ETIKET).map(([k, v]) => (
-                        <option key={k} value={k}>{v}</option>
-                    ))}
-                </select>
+                <div className="relative w-full sm:w-48">
+                    <select
+                        value={durumFiltre}
+                        onChange={(e) => setDurumFiltre(e.target.value)}
+                        className="w-full pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm appearance-none transition-all focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 shadow-sm text-slate-700 font-medium"
+                    >
+                        <option value="">Tüm Durumlar</option>
+                        {Object.entries(DURUM_ETIKET).map(([k, v]) => (
+                            <option key={k} value={k}>{v}</option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
             </div>
 
-            {/* Tablo */}
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                {loading ? (
-                    <div className="flex justify-center items-center py-20">
-                        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+            {/* İçerik Alanı */}
+            {loading ? (
+                <div className="flex flex-col items-center justify-center py-32 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                    <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mb-4" />
+                    <p className="text-sm font-medium text-slate-500">Paletler yükleniyor...</p>
+                </div>
+            ) : filtrelenmis.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-32 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                    <div className="p-4 bg-slate-50 rounded-full mb-4">
+                        <Package className="w-10 h-10 text-slate-300" />
                     </div>
-                ) : filtrelenmis.length === 0 ? (
-                    <div className="text-center py-20 text-gray-400">
-                        <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                        <p>Üretim paleti bulunamadı</p>
+                    <h3 className="text-lg font-semibold text-slate-700">Palet Bulunamadı</h3>
+                    <p className="text-sm text-slate-500 mt-1">Arama kriterlerinize uygun sonuç yok.</p>
+                </div>
+            ) : (
+                <>
+                    {/* MOBİL GÖRÜNÜM (Kart Tasarımı) */}
+                    <div className="grid grid-cols-1 gap-4 md:hidden">
+                        {filtrelenmis.map((p) => (
+                            <div key={p.palet_no} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-4">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-base font-bold font-mono text-slate-800">{p.palet_no}</span>
+                                        </div>
+                                        <p className="text-sm text-slate-600 font-medium line-clamp-1">
+                                            {p.urun_isim || p.lot_no || `Lot #${p.lot_id}`}
+                                        </p>
+                                    </div>
+                                    <span className={`shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ring-1 ring-inset ${DURUM_BADGE[p.durum] || 'bg-slate-50 text-slate-600 ring-slate-200'}`}>
+                                        {DURUM_ETIKET[p.durum] || p.durum}
+                                    </span>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-3 py-3 border-y border-slate-100">
+                                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                                        <Layers className="w-4 h-4 text-slate-400" />
+                                        <span>{p.koli_adedi} Koli</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                                        <Calendar className="w-4 h-4 text-slate-400" />
+                                        <span>{p.uretim_tarihi || 'Tarih Yok'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-slate-600 col-span-2">
+                                        <CheckSquare className="w-4 h-4 text-slate-400" />
+                                        <span>Vardiya: {p.vardiya || '—'}</span>
+                                    </div>
+                                </div>
+
+                                <div className="pt-1">
+                                    {renderIslemler(p)}
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead className="bg-gray-50 border-b border-gray-100">
-                                <tr>
-                                    {['Palet No', 'Lot / Ürün', 'Koli', 'Vardiya', 'Üretim Tarihi', 'Durum', 'İşlemler'].map((h) => (
-                                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                                            {h}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {filtrelenmis.map((p) => {
-                                    const islem = islemPaletNo === p.palet_no;
-                                    return (
-                                        <tr key={p.palet_no} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="px-4 py-3 font-mono font-semibold text-gray-900">{p.palet_no}</td>
-                                            <td className="px-4 py-3">
-                                                <div className="text-gray-900">{p.lot_no || `Lot #${p.lot_id}`}</div>
-                                                {p.urun_isim && <div className="text-xs text-gray-400">{p.urun_isim}</div>}
+
+                    {/* MASAÜSTÜ GÖRÜNÜM (Tablo Tasarımı) */}
+                    <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500">
+                                    <tr>
+                                        <th className="px-5 py-4 font-semibold uppercase tracking-wider text-[11px]">Palet No</th>
+                                        <th className="px-5 py-4 font-semibold uppercase tracking-wider text-[11px]">Lot / Ürün</th>
+                                        <th className="px-5 py-4 font-semibold uppercase tracking-wider text-[11px]">Koli</th>
+                                        <th className="px-5 py-4 font-semibold uppercase tracking-wider text-[11px]">Vardiya</th>
+                                        <th className="px-5 py-4 font-semibold uppercase tracking-wider text-[11px]">Üretim Tarihi</th>
+                                        <th className="px-5 py-4 font-semibold uppercase tracking-wider text-[11px]">Durum</th>
+                                        <th className="px-5 py-4 font-semibold uppercase tracking-wider text-[11px] text-right">İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {filtrelenmis.map((p) => (
+                                        <tr key={p.palet_no} className="hover:bg-slate-50/50 transition-colors group">
+                                            <td className="px-5 py-4 whitespace-nowrap font-mono font-bold text-slate-700">{p.palet_no}</td>
+                                            <td className="px-5 py-4">
+                                                <div className="font-medium text-slate-800">{p.lot_no || `Lot #${p.lot_id}`}</div>
+                                                {p.urun_isim && <div className="text-xs text-slate-500 mt-0.5">{p.urun_isim}</div>}
                                             </td>
-                                            <td className="px-4 py-3 text-gray-700">{p.koli_adedi}</td>
-                                            <td className="px-4 py-3 text-gray-600">{p.vardiya || '—'}</td>
-                                            <td className="px-4 py-3 text-gray-600">{p.uretim_tarihi || '—'}</td>
-                                            <td className="px-4 py-3">
-                                                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${DURUM_BADGE[p.durum] || 'bg-gray-100 text-gray-600'}`}>
+                                            <td className="px-5 py-4 whitespace-nowrap text-slate-600 font-medium">{p.koli_adedi}</td>
+                                            <td className="px-5 py-4 whitespace-nowrap text-slate-600">{p.vardiya || '—'}</td>
+                                            <td className="px-5 py-4 whitespace-nowrap text-slate-600">{p.uretim_tarihi || '—'}</td>
+                                            <td className="px-5 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ring-1 ring-inset ${DURUM_BADGE[p.durum] || 'bg-slate-50 text-slate-600 ring-slate-200'}`}>
                                                     {DURUM_ETIKET[p.durum] || p.durum}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3">
-                                                <div className="flex items-center gap-1 flex-wrap">
-                                                    {islem && <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />}
-
-                                                    {/* Kabul Et (OLUSTURULDU veya KABUL_BEKLIYOR) */}
-                                                    {isDepocuOrAdmin && [DURUM.OLUSTURULDU, DURUM.KABUL_BEKLIYOR].includes(p.durum) && (
-                                                        <AksiyonButon
-                                                            onClick={() => kabulEt(p.palet_no)}
-                                                            icon={<CheckCircle className="w-3.5 h-3.5" />}
-                                                            label="Kabul Et"
-                                                            renk="emerald"
-                                                            disabled={islem}
-                                                        />
-                                                    )}
-
-                                                    {/* Yerleştirme sayfasına yönlendir (YERLESTIRME_BEKLIYOR) */}
-                                                    {isDepocuOrAdmin && p.durum === DURUM.YERLESTIRME_BEKLIYOR && (
-                                                        <AksiyonButon
-                                                            onClick={() => toast('Yerleştirme için Üretimden Kabul sayfasından raf barkodu okutun', { icon: '📍' })}
-                                                            icon={<MapPin className="w-3.5 h-3.5" />}
-                                                            label="Yerleştir"
-                                                            renk="blue"
-                                                            disabled={islem}
-                                                        />
-                                                    )}
-
-                                                    {/* Karantinaya Al */}
-                                                    {isKaliteYetkili && p.durum === DURUM.KABUL_EDILDI && (
-                                                        <AksiyonButon
-                                                            onClick={() => { setSebepModal({ tip: 'karantina', paletNo: p.palet_no }); setSebepText(''); }}
-                                                            icon={<ShieldAlert className="w-3.5 h-3.5" />}
-                                                            label="Karantina"
-                                                            renk="red"
-                                                            disabled={islem}
-                                                        />
-                                                    )}
-
-                                                    {/* Karantinadan Çıkar */}
-                                                    {isKaliteYetkili && p.durum === DURUM.KARANTINA && (
-                                                        <AksiyonButon
-                                                            onClick={() => { setSebepModal({ tip: 'karantina-cikar', paletNo: p.palet_no }); setSebepText(''); }}
-                                                            icon={<ShieldCheck className="w-3.5 h-3.5" />}
-                                                            label="Çıkar"
-                                                            renk="emerald"
-                                                            disabled={islem}
-                                                        />
-                                                    )}
-
-                                                    {/* İptal */}
-                                                    {isAdmin && [DURUM.OLUSTURULDU, DURUM.KABUL_BEKLIYOR].includes(p.durum) && (
-                                                        <AksiyonButon
-                                                            onClick={() => { setSebepModal({ tip: 'iptal', paletNo: p.palet_no }); setSebepText(''); }}
-                                                            icon={<Ban className="w-3.5 h-3.5" />}
-                                                            label="İptal"
-                                                            renk="gray"
-                                                            disabled={islem}
-                                                        />
-                                                    )}
-
-                                                    {/* Etiket Oluştur (şablon bazlı) */}
-                                                    <AksiyonButon
-                                                        onClick={() => setEtiketModalPaletNo(p.palet_no)}
-                                                        icon={<Download className="w-3.5 h-3.5" />}
-                                                        label="Etiket"
-                                                        renk="slate"
-                                                        disabled={islem}
-                                                    />
+                                            <td className="px-5 py-4 whitespace-nowrap">
+                                                <div className="flex justify-end opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {renderIslemler(p)}
                                                 </div>
                                             </td>
                                         </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                )}
-            </div>
+                </>
+            )}
 
             {/* Yeni Palet Modalı */}
             {yeniModal && (
                 <Modal baslik="Yeni Üretim Paleti" onKapat={() => { setYeniModal(false); formuSifirla(); }} genisMi>
-                    <form onSubmit={paletOlustur} className="space-y-4">
-                        {/* Zorunlu alanlar */}
-                        <div className="grid grid-cols-2 gap-3">
+                    <form onSubmit={paletOlustur} className="space-y-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
                                     Depo <span className="text-red-500">*</span>
                                 </label>
                                 <select
@@ -409,35 +467,36 @@ export default function UretimPaletleriPage() {
                                     onChange={(e) => setFormData({ ...formData, depo_id: e.target.value })}
                                     required
                                     disabled={!isAdmin && !!user?.depo_id}
-                                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-50 disabled:text-gray-600"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm transition-all focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:opacity-60 disabled:cursor-not-allowed appearance-none"
                                 >
-                                    <option value="">Depo seçin...</option>
+                                    <option value="">Seçiniz...</option>
                                     {depolar.map((d) => (
                                         <option key={d.id} value={d.id}>{d.isim || `Depo #${d.id}`}</option>
                                     ))}
                                 </select>
                                 {!isAdmin && user?.depo_id && (
-                                    <p className="text-xs text-gray-400 mt-1">Atanmış depo — değiştirilemez</p>
+                                    <p className="text-[11px] font-medium text-slate-400 mt-1.5">Mevcut deponuz atandı, değiştirilemez.</p>
                                 )}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
                                     Lot <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     value={formData.lot_id}
                                     onChange={(e) => setFormData({ ...formData, lot_id: e.target.value })}
                                     required
-                                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm transition-all focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 appearance-none"
                                 >
-                                    <option value="">Lot seçin...</option>
+                                    <option value="">Seçiniz...</option>
                                     {lotlar.map((l) => (
                                         <option key={l.id} value={l.id}>{l.lot_no || `#${l.id}`}</option>
                                     ))}
                                 </select>
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+
+                        <div className="grid grid-cols-2 gap-4">
                             <FormField label="Koli Adedi *" type="number" min="1" required
                                 value={formData.koli_adedi}
                                 onChange={(v) => setFormData({ ...formData, koli_adedi: v })} />
@@ -445,7 +504,7 @@ export default function UretimPaletleriPage() {
                                 value={formData.palet_kg}
                                 onChange={(v) => setFormData({ ...formData, palet_kg: v })} />
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-4">
                             <FormField label="Vardiya" type="text" placeholder="A / B / C"
                                 value={formData.vardiya}
                                 onChange={(v) => setFormData({ ...formData, vardiya: v })} />
@@ -454,28 +513,27 @@ export default function UretimPaletleriPage() {
                                 onChange={(v) => setFormData({ ...formData, uretim_tarihi: v })} />
                         </div>
 
-                        {/* Üretim meta — opsiyonel */}
-                        <div className="pt-2 border-t border-gray-100">
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                                İzlenebilirlik (opsiyonel)
-                            </p>
-                            <div className="grid grid-cols-2 gap-3">
-                                <FormField label="Üretim Hattı" type="text" placeholder="HAT-1"
+                        <div className="pt-4 mt-2 border-t border-slate-100">
+                            <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+                                İzlenebilirlik Bilgileri (Opsiyonel)
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <FormField label="Üretim Hattı" type="text" placeholder="Örn: HAT-1"
                                     value={formData.uretim_hatti}
                                     onChange={(v) => setFormData({ ...formData, uretim_hatti: v })} />
-                                <FormField label="Makine Kodu" type="text" placeholder="M-07"
+                                <FormField label="Makine Kodu" type="text" placeholder="Örn: M-07"
                                     value={formData.makine_kodu}
                                     onChange={(v) => setFormData({ ...formData, makine_kodu: v })} />
                             </div>
-                            <div className="grid grid-cols-3 gap-3 mt-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Operatör</label>
+                                    <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">Operatör</label>
                                     <select
                                         value={formData.operator_kullanici_id}
                                         onChange={(e) => setFormData({ ...formData, operator_kullanici_id: e.target.value })}
-                                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm transition-all focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 appearance-none"
                                     >
-                                        <option value="">—</option>
+                                        <option value="">Yok</option>
                                         {operatorler.map((o) => (
                                             <option key={o.id} value={o.id}>
                                                 {o.ad_soyad || o.kullanici_adi}
@@ -492,13 +550,13 @@ export default function UretimPaletleriPage() {
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-2 pt-2">
+                        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t border-slate-100 mt-2">
                             <button type="button" onClick={() => { setYeniModal(false); formuSifirla(); }}
-                                className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">
+                                className="w-full sm:w-auto px-6 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
                                 İptal
                             </button>
                             <button type="submit"
-                                className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium">
+                                className="w-full sm:w-auto px-6 py-2.5 text-sm font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-sm shadow-emerald-600/20 transition-all">
                                 Oluştur
                             </button>
                         </div>
@@ -514,7 +572,7 @@ export default function UretimPaletleriPage() {
                 />
             )}
 
-            {/* Sebep Modalı (karantina / iptal) */}
+            {/* Sebep Modalı */}
             {sebepModal && (
                 <Modal
                     baslik={
@@ -523,29 +581,30 @@ export default function UretimPaletleriPage() {
                     }
                     onKapat={() => setSebepModal(null)}
                 >
-                    <div className="space-y-4">
-                        <p className="text-sm text-gray-600">
-                            <span className="font-mono font-semibold">{sebepModal.paletNo}</span> için işlem gerekçesi:
+                    <div className="space-y-5">
+                        <p className="text-sm text-slate-600 font-medium">
+                            <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md mr-1">{sebepModal.paletNo}</span> 
+                            paleti için işlem gerekçesi belirtin:
                         </p>
                         <textarea
                             autoFocus
                             value={sebepText}
                             onChange={(e) => setSebepText(e.target.value)}
-                            placeholder="Sebep girin..."
+                            placeholder="Açıklama veya sebep giriniz..."
                             required={sebepModal.tip === 'iptal'}
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none h-24"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm transition-all focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 resize-none h-28 placeholder:text-slate-400"
                         />
-                        <div className="flex justify-end gap-2">
+                        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-2">
                             <button onClick={() => setSebepModal(null)}
-                                className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">
+                                className="w-full sm:w-auto px-6 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
                                 Vazgeç
                             </button>
                             <button
                                 onClick={sebepliIslem}
                                 disabled={sebepModal.tip === 'iptal' && !sebepText.trim()}
-                                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
+                                className={`w-full sm:w-auto px-6 py-2.5 text-sm font-semibold text-white rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed ${sebepModal.tip === 'karantina-cikar' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-red-600 hover:bg-red-700 shadow-red-600/20'}`}
                             >
-                                Onayla
+                                İşlemi Onayla
                             </button>
                         </div>
                     </div>
@@ -559,37 +618,42 @@ export default function UretimPaletleriPage() {
 
 function AksiyonButon({ onClick, icon, label, renk, disabled }) {
     const renkler = {
-        amber:   'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200',
-        emerald: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200',
-        blue:    'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200',
-        red:     'bg-red-50 text-red-700 hover:bg-red-100 border-red-200',
-        gray:    'bg-gray-50 text-gray-600 hover:bg-gray-100 border-gray-200',
-        slate:   'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200',
+        amber:   'bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 border-transparent hover:border-amber-200',
+        emerald: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border-transparent hover:border-emerald-200',
+        blue:    'bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 border-transparent hover:border-blue-200',
+        red:     'bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 border-transparent hover:border-red-200',
+        gray:    'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-700 border-transparent hover:border-slate-300',
+        slate:   'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800',
     };
     return (
         <button
             onClick={onClick}
             disabled={disabled}
             title={label}
-            className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border transition-colors disabled:opacity-40 ${renkler[renk] || renkler.gray}`}
+            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-lg border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${renkler[renk] || renkler.gray}`}
         >
             {icon}
-            <span className="hidden sm:inline">{label}</span>
+            <span className="hidden sm:inline-block">{label}</span>
         </button>
     );
 }
 
 function Modal({ baslik, onKapat, children, genisMi }) {
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className={`bg-white rounded-2xl shadow-xl w-full ${genisMi ? 'max-w-2xl' : 'max-w-md'} max-h-[90vh] flex flex-col`}>
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
-                    <h2 className="font-semibold text-gray-900">{baslik}</h2>
-                    <button onClick={onKapat} className="p-1 rounded-lg hover:bg-gray-100">
-                        <X className="w-5 h-5 text-gray-500" />
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity">
+            <div className={`bg-white shadow-2xl w-full ${genisMi ? 'sm:max-w-3xl' : 'sm:max-w-md'} max-h-[95vh] sm:max-h-[90vh] flex flex-col rounded-t-3xl sm:rounded-2xl overflow-hidden`}>
+                {/* Mobilde modal sürükleme indikatörü */}
+                <div className="w-full flex justify-center pt-3 pb-1 sm:hidden">
+                    <div className="w-12 h-1.5 bg-slate-200 rounded-full"></div>
+                </div>
+                
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
+                    <h2 className="text-lg font-bold text-slate-800 tracking-tight">{baslik}</h2>
+                    <button onClick={onKapat} className="p-2 -mr-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
-                <div className="px-6 py-5 overflow-y-auto">{children}</div>
+                <div className="px-6 py-5 overflow-y-auto custom-scrollbar">{children}</div>
             </div>
         </div>
     );
@@ -598,11 +662,11 @@ function Modal({ baslik, onKapat, children, genisMi }) {
 function FormField({ label, onChange, ...props }) {
     return (
         <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">{label}</label>
             <input
                 {...props}
                 onChange={(e) => onChange(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm transition-all focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 placeholder:text-slate-400"
             />
         </div>
     );
