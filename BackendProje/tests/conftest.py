@@ -6,10 +6,18 @@ Merkezi Test Altyapısı
 """
 
 import os
-import pytest
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
-from fastapi.testclient import TestClient
+import sys
+from pathlib import Path
+
+# ml_models paketi proje kokunde sibling oldugu icin sys.path'e ekle
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+import pytest  # noqa: E402
+from sqlalchemy import create_engine, text  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
 # Test ortam değişkenlerini yükle (ana .env'den önce)
 _env_test_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env.test")

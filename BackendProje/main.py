@@ -1,3 +1,5 @@
+import _ml_models_path  # noqa: F401  # ml_models paketini sys.path'e ekler
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager

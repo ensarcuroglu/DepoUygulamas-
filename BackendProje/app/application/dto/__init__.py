@@ -106,8 +106,10 @@ from .mal_kabul_irsaliye_dto import (
     OperatorVerimDTO,
 )
 from .talep_tahmini_dto import (
+    BacktestOzetDTO,
     GunlukTahminDTO,
     GunlukTalepDTO,
+    RiskliUrunDTO,
     TalepTahminResponseDTO,
     TalepTahminUrunOzetDTO,
     TalepTrendDTO,
@@ -165,4 +167,5 @@ __all__ = [
     # Talep Tahmini
     "GunlukTahminDTO", "GunlukTalepDTO", "TalepTahminResponseDTO",
     "TalepTahminUrunOzetDTO", "TalepTrendDTO",
+    "RiskliUrunDTO", "BacktestOzetDTO",
 ]

@@ -1,4 +1,8 @@
-"""DI - Talep Tahmini."""
+"""DI - Talep Tahmini.
+
+Algoritma `ml_models.talep_tahmin` paketinden gelir; bu modul predictor
+ve use case factory'lerini FastAPI Depends() zincirine baglar.
+"""
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
@@ -9,6 +13,48 @@ from app.application.use_cases import (
     TalepTahminiGetirUseCase,
 )
 from app.infrastructure.persistence.repositories import SqlAlchemyTalepTahminiRepository
+import logging
+
+from ml_models.talep_tahmin.application import PredictDemandUseCase
+from ml_models.talep_tahmin.domain import ITimeSeriesPredictor
+from ml_models.talep_tahmin.infrastructure import (
+    BaselineMovingAveragePredictor,
+    SklearnGradientBoostingPredictor,
+)
+
+_logger = logging.getLogger(__name__)
+_PREDICTOR_SINGLETON: ITimeSeriesPredictor | None = None
+
+
+def get_talep_tahmin_predictor() -> ITimeSeriesPredictor:
+    """Process-omru boyunca tek bir predictor instance kullan.
+
+    Sklearn kuruluysa SklearnGradientBoostingPredictor; aksi halde
+    baseline'a fallback. Sklearn predictor zaten icinde veri yetersiz
+    olunca baseline'a dusuyor — bu factory sadece kurulum eksikligine
+    bakiyor.
+    """
+    global _PREDICTOR_SINGLETON
+    if _PREDICTOR_SINGLETON is not None:
+        return _PREDICTOR_SINGLETON
+
+    try:
+        import sklearn  # noqa: F401
+
+        _PREDICTOR_SINGLETON = SklearnGradientBoostingPredictor()
+        _logger.info("Talep tahmini: SklearnGradientBoostingPredictor aktif.")
+    except ImportError:
+        _PREDICTOR_SINGLETON = BaselineMovingAveragePredictor()
+        _logger.warning(
+            "Talep tahmini: sklearn yok, BaselineMovingAveragePredictor kullaniliyor."
+        )
+    return _PREDICTOR_SINGLETON
+
+
+def get_talep_tahmin_predict_uc(
+    predictor: ITimeSeriesPredictor = Depends(get_talep_tahmin_predictor),
+) -> PredictDemandUseCase:
+    return PredictDemandUseCase(predictor)
 
 
 def get_talep_tahmini_repo(db: Session = Depends(get_db)):
@@ -23,6 +69,6 @@ def get_talep_tahmin_urunleri_listele_uc(
 
 def get_talep_tahmini_getir_uc(
     repo=Depends(get_talep_tahmini_repo),
+    predict_uc: PredictDemandUseCase = Depends(get_talep_tahmin_predict_uc),
 ):
-    return TalepTahminiGetirUseCase(repo)
-
+    return TalepTahminiGetirUseCase(repo, predict_uc)

@@ -966,6 +966,39 @@ class PaletEtiket(Base):
     sablon: Mapped["EtiketSablonu"] = relationship("EtiketSablonu", foreign_keys=[sablon_id])
 
 
+# ========================
+# TALEP TAHMİNİ CACHE
+# ========================
+
+class TalepTahminCache(Base):
+    """Nightly job tarafindan hesaplanan tahmin payload'ini saklar.
+
+    Frontend on-demand istegi cache'den okur — model uretim runtime'inda
+    egitilmez. Eger cache miss olursa router on-demand hesaplar ve sonra
+    yazar (write-through).
+    """
+    __tablename__ = "talep_tahmin_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    urun_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("urunler.id"), nullable=False, index=True
+    )
+    tahmin_gun: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+    stok_riski: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    tahmini_talep: Mapped[float] = mapped_column(default=0.0, nullable=False)
+    onerilen_ikmal: Mapped[float] = mapped_column(default=0.0, nullable=False)
+    veri_guven_skoru: Mapped[float] = mapped_column(default=0.0, nullable=False)
+    model_versiyonu: Mapped[str] = mapped_column(String(80), nullable=False)
+    hesaplanma_tarihi: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False, index=True,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("urun_id", "tahmin_gun", name="uq_talep_tahmin_cache_urun_ufuk"),
+    )
+
+
 from sqlalchemy.orm import column_property  # noqa: E402
 
 # N+1 Problemini çözmek için column_property ile veritabanı seviyesinde toplama yapıyoruz.
