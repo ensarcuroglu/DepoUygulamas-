@@ -53,6 +53,7 @@ from app.api.v1.routers import ( # noqa: E402
     palet_rezervasyonlari_router as v1_palet_rezervasyonlari_router,
     uretim_paletleri_router as v1_uretim_paletleri_router,
     etiket_sablonlari_router as v1_etiket_sablonlari_router,
+    talep_tahmini_router as v1_talep_tahmini_router,
 )
 
 _scheduler = RaporScheduler()
@@ -157,6 +158,7 @@ app.include_router(v1_uretim_paletleri_router)
 
 # Etiket Modülü — Şablon yönetimi
 app.include_router(v1_etiket_sablonlari_router)
+app.include_router(v1_talep_tahmini_router)
 
 # Auth + Dashboard Router (CA — Faz 3d)
 app.include_router(v1_auth_router)

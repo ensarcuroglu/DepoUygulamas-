@@ -180,6 +180,10 @@ from .toplama_gorevi_use_cases import (
     GorevIptalUseCase,
     FefoOverrideUseCase,
 )
+from .talep_tahmini_use_cases import (
+    TalepTahminiGetirUseCase,
+    TalepTahminUrunleriListeleUseCase,
+)
 
 __all__ = [
     # Ürün
@@ -265,4 +269,6 @@ __all__ = [
     "PickTaskUretUseCase", "SiradanGorevAlUseCase",
     "GorevBaslatUseCase", "GorevTamamlaUseCase",
     "GorevIptalUseCase", "FefoOverrideUseCase",
+    # Talep Tahmini
+    "TalepTahminiGetirUseCase", "TalepTahminUrunleriListeleUseCase",
 ]

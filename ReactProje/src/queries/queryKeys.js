@@ -18,6 +18,11 @@ export const queryKeys = {
         critical: () => ['urunler', 'critical'],
         stockDetail: (urunId) => ['urunler', 'stockDetail', urunId],
     },
+    talepTahmini: {
+        all: ['talepTahmini'],
+        products: (params = {}) => ['talepTahmini', 'products', params],
+        detail: (urunId, tahminGun) => ['talepTahmini', 'detail', urunId, tahminGun],
+    },
     kategoriler: {
         all: ['kategoriler'],
         list: () => ['kategoriler', 'list'],

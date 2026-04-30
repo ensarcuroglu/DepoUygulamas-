@@ -246,3 +246,9 @@ from app.infrastructure.di.modules.rapor_dashboard_di import (  # noqa: F401
     get_rapor_export_uc,
     get_dashboard_istatistik_uc,
 )
+
+from app.infrastructure.di.modules.talep_tahmini_di import (  # noqa: F401
+    get_talep_tahmini_repo,
+    get_talep_tahmin_urunleri_listele_uc,
+    get_talep_tahmini_getir_uc,
+)

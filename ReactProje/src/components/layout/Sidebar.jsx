@@ -52,6 +52,7 @@ const menuGroups = [
             { path: '/lotlar', label: 'LOT Takibi', icon: Layers, roles: ['admin'], badge: null },
             { path: '/paletler', label: 'Palet Yönetimi', icon: Container, roles: ['admin'], badge: null },
             { path: '/stok-hareketleri', label: 'Stok İşlemleri', icon: ArrowLeftRight, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/talep-tahmini', label: 'Talep Tahmini', icon: TrendingUp, roles: ['admin', 'lojistik'], badge: null },
             { path: '/stok-sayim', label: 'Stok Sayımı', icon: ClipboardCheck, roles: ['admin'], badge: null },
         ],
     },

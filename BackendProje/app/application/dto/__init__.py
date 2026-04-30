@@ -105,6 +105,13 @@ from .mal_kabul_irsaliye_dto import (
     InboundKpiResponseDTO,
     OperatorVerimDTO,
 )
+from .talep_tahmini_dto import (
+    GunlukTahminDTO,
+    GunlukTalepDTO,
+    TalepTahminResponseDTO,
+    TalepTahminUrunOzetDTO,
+    TalepTrendDTO,
+)
 
 __all__ = [
     # Ürün
@@ -155,4 +162,7 @@ __all__ = [
     "MalKabulIrsaliyeResponseDTO", "MalKabulKalemiIstisnaRequestDTO",
     "InboundDashboardResponseDTO", "InboundIrsaliyeOzetDTO",
     "InboundKpiResponseDTO", "OperatorVerimDTO",
+    # Talep Tahmini
+    "GunlukTahminDTO", "GunlukTalepDTO", "TalepTahminResponseDTO",
+    "TalepTahminUrunOzetDTO", "TalepTrendDTO",
 ]

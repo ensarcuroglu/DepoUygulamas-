@@ -22,6 +22,7 @@ from .toplama_gorevi_repository import IToplamaGoreviRepository
 from .palet_rezervasyonu_repository import IPaletRezervasyonuRepository
 from .uretim_seri_sayac_repository import IUretimSeriSayacRepository
 from .palet_durum_log_repository import IPaletDurumLogRepository
+from .talep_tahmini_repository import ITalepTahminiRepository
 
 __all__ = [
     "IMarkaRepository", "IKategoriRepository", "IDepoRepository", "IZonRepository",
@@ -37,4 +38,5 @@ __all__ = [
     "IPaletRezervasyonuRepository",
     "IUretimSeriSayacRepository",
     "IPaletDurumLogRepository",
+    "ITalepTahminiRepository",
 ]

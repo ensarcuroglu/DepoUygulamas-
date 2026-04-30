@@ -263,6 +263,13 @@ export const getStokHareketleri = (params = {}) => api.get('/stok-hareketleri/',
 export const createStokHareketi = (data) => api.post('/stok-hareketleri/', data);
 
 // ========================
+// TALEP TAHMINI
+// ========================
+export const getTalepTahminUrunleri = (params = {}) => api.get('/talep-tahmini/urunler', { params });
+export const getTalepTahmini = (urunId, tahminGun = 7) =>
+  api.get(`/talep-tahmini/urunler/${urunId}`, { params: { tahmin_gun: tahminGun } });
+
+// ========================
 // STOK İŞLEMLERİ (Palet Bazlı)
 // ========================
 export const stokIslemleriPaletSorgula = (paletNo) => api.get(`/stok-islemleri/palet/${encodeURIComponent(paletNo)}`);
