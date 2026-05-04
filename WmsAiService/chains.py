@@ -49,7 +49,11 @@ OLLAMA_ANSWER_MODEL = os.getenv("OLLAMA_ANSWER_MODEL", OLLAMA_MODEL)
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0"))
 LLM_NUM_CTX = int(os.getenv("LLM_NUM_CTX", "4096"))
 LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "120"))
-ANSWER_NUM_PREDICT = int(os.getenv("ANSWER_NUM_PREDICT", "96"))
+ANSWER_NUM_PREDICT = int(os.getenv("ANSWER_NUM_PREDICT", "40"))
+ANSWER_TOP_K = int(os.getenv("ANSWER_TOP_K", "1"))
+ANSWER_REPEAT_PENALTY = float(os.getenv("ANSWER_REPEAT_PENALTY", "1.2"))
+SQL_TOP_K = int(os.getenv("SQL_TOP_K", "1"))
+SQL_REPEAT_PENALTY = float(os.getenv("SQL_REPEAT_PENALTY", "1.1"))
 MAX_CORRECTION_ATTEMPTS = int(os.getenv("MAX_CORRECTION_ATTEMPTS", "2"))
 
 
@@ -83,6 +87,9 @@ def build_sql_llm() -> ChatOllama:
         model=OLLAMA_MODEL,
         base_url=OLLAMA_BASE_URL,
         temperature=LLM_TEMPERATURE,
+        top_k=SQL_TOP_K,
+        top_p=1.0,
+        repeat_penalty=SQL_REPEAT_PENALTY,
         num_ctx=LLM_NUM_CTX,
         timeout=LLM_TIMEOUT,
         # SQL çıktısı tek satır olmalı; modelin tekrar etmesini engelle
@@ -97,6 +104,8 @@ def build_answerer() -> Answerer:
         timeout=LLM_TIMEOUT,
         num_ctx=LLM_NUM_CTX,
         num_predict=ANSWER_NUM_PREDICT,
+        repeat_penalty=ANSWER_REPEAT_PENALTY,
+        top_k=ANSWER_TOP_K,
     )
     return Answerer(list_llm=list_llm)
 
@@ -165,7 +174,12 @@ class WmsAiPipeline:
 
     # --- entrypoint ---
 
-    def run(self, soru: str, history: str = "(önceki konuşma yok)") -> SorguSonucu:
+    def run(
+        self,
+        soru: str,
+        history: str = "(önceki konuşma yok)",
+        verbose: bool = False,
+    ) -> SorguSonucu:
         attempts = 0
         log: list[str] = []
         sql = self._generate_sql(soru, history)
@@ -199,7 +213,7 @@ class WmsAiPipeline:
                 f"SQL {attempts} denemede çalıştırılamadı. Son hata: {last_error}"
             )
 
-        cevap = self.answerer.answer(soru, structured)
+        cevap = self.answerer.answer(soru, structured, verbose=verbose)
         log.append(f"intent: {structured.intent.value} (rows={structured.row_count})")
 
         return SorguSonucu(

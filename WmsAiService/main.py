@@ -42,6 +42,10 @@ class SorguIstegi(BaseModel):
     soru: str = Field(..., min_length=2, max_length=500)
     session_id: str | None = Field(default=None, description="Takip soruları için oturum kimliği")
     debug: bool = Field(default=False, description="Üretilen SQL ve düzeltme logunu döndür")
+    verbose: bool = Field(
+        default=False,
+        description="Çok-satır LIST için LLM cevabını dene (validation'dan geçemezse template fallback)",
+    )
 
 
 class SorguYaniti(BaseModel):
@@ -68,7 +72,7 @@ def ai_sorgula(istek: SorguIstegi) -> SorguYaniti:
     history = store.render_history(session_id)
 
     try:
-        sonuc = pipeline.run(istek.soru, history=history)
+        sonuc = pipeline.run(istek.soru, history=history, verbose=istek.verbose)
     except Exception as exc:  # noqa: BLE001
         logger.exception("Pipeline hatası")
         raise HTTPException(status_code=500, detail=f"AI sorgulama başarısız: {exc}") from exc

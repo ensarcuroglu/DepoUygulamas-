@@ -1,14 +1,17 @@
 """
 Cevap üretim katmanı.
 
-Strateji:
-- EMPTY  -> sabit Türkçe cümle (LLM yok)
-- SCALAR -> deterministik şablon. Tek hücre sonuç (COUNT, SUM, AVG vb.)
-            phi3'e bırakılmaz; akıcı bir Türkçe cümleye dönüştürülür.
-- LIST   -> few-shot ile beslenen LLM. temperature=0, num_predict=80,
-            stop sequence ile uzayıp bozulmasını engelleriz.
+Strateji (template-first; LLM by-pass):
+- EMPTY  -> sabit Türkçe cümle.
+- SCALAR -> deterministik şablon (kolon adı + değer).
+- LIST   -> deterministik liste şablonu (list_renderer.py).
+            LLM yalnızca şablon hiç eşleşmediği veya kullanıcı verbose
+            modda istediği durumda devreye girer. Bu durumda da çıktı
+            validation döngüsünden geçer; sayı/isim eşleşmesi yoksa
+            template fallback'e döner.
 
-Bu katman pipeline'a `answer(soru, sql, structured)` arayüzü sunar.
+Bu yaklaşım phi3'ün Türkçe morfoloji bozukluklarına maruz kalma alanını
+büyük ölçüde kapatır.
 """
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
+from list_renderer import render_list
 from prompts import (
     ANSWER_SYSTEM_PROMPT,
     ANSWER_USER_PROMPT,
@@ -60,26 +64,16 @@ def _humanize(col: str) -> str:
 
 
 def _format_single_row(structured: StructuredResult) -> str:
-    """Tek satır + birden çok kolon — LLM'e gitmeden Türkçe cümle üret.
-
-    Örnek:
-      rows=[{"urun_adi":"DEV Bulgur 1kg","guncel_stok_miktari":"0"}]
-      -> "1 sonuç bulundu: Ürün: DEV Bulgur 1kg, Stok: 0."
-    """
     row = structured.rows[0]
     parts = [f"{_humanize(col)}: {_pretty_value(val)}" for col, val in row.items()]
     return "1 sonuç bulundu — " + ", ".join(parts) + "."
 
 
 # ----------------------------------------------------------------------------
-# Scalar şablonu — kolon adına göre Türkçe cümle üretir
+# Scalar şablonu
 # ----------------------------------------------------------------------------
 
-# Kolon adlarındaki ipuçlarını (substring match) Türkçe ifadelere eşler.
 _SCALAR_LABEL_RULES: list[tuple[str, str]] = [
-    # Daha spesifik (uzun) eşleşmeler önce gelmeli.
-    # LLM kolon takma adında "stoq", "stoğ", "miktar", "miktari" varyantları
-    # üretebilir; bu yüzden gevşek substring eşleştirmesi yapıyoruz.
     ("guncel_stok_miktari", "stok"),
     ("kritik_stok_siniri", "kritik stok eşiği"),
     ("urun_sayisi", "ürün"),
@@ -115,17 +109,12 @@ def _format_scalar(structured: StructuredResult, soru: str) -> str:
     column = structured.scalar_column or ""
     label = _label_for_scalar(column)
 
-    # Decimal -> int/float normalize
     if isinstance(value, Decimal):
         value = int(value) if value == value.to_integral_value() else float(value)
 
     pretty_value = _pretty_value(value)
-    is_count_label = "sayı" in label or label in {
-        "ürün",
-        "kayıt",
-    }
+    is_count_label = "sayı" in label or label in {"ürün", "kayıt"}
 
-    # Sayım/sayı sonuçları için "Toplam X Y bulunuyor."
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         if value == 0 and is_count_label:
             return f"Hiç {label} bulunamadı."
@@ -133,7 +122,6 @@ def _format_scalar(structured: StructuredResult, soru: str) -> str:
             return f"Toplam {pretty_value} {label} bulunuyor."
         return f"{label.capitalize()}: {pretty_value}."
 
-    # Metinsel scalar — örneğin tek bir marka/kategori adı
     if value is None:
         return EMPTY_RESPONSE
     return f"Sonuç: {pretty_value}."
@@ -150,11 +138,11 @@ def _pretty_value(value: Any) -> str:
 
 
 # ----------------------------------------------------------------------------
-# LLM tabanlı list cevap
+# LLM tabanlı list cevap (yalnızca verbose modda devreye girer)
 # ----------------------------------------------------------------------------
 
 class ListAnswerLLM:
-    """Few-shot ile disipline edilmiş, deterministik (temp=0) cevap üretici."""
+    """phi3 için sıkı sampling parametreleriyle disipline edilmiş üretici."""
 
     def __init__(
         self,
@@ -162,17 +150,31 @@ class ListAnswerLLM:
         base_url: str,
         timeout: float,
         num_ctx: int,
-        num_predict: int = 96,
+        num_predict: int = 40,
+        repeat_penalty: float = 1.2,
+        top_k: int = 1,
     ) -> None:
         self.llm = ChatOllama(
             model=model,
             base_url=base_url,
             temperature=0,
+            top_k=top_k,
+            top_p=1.0,
+            repeat_penalty=repeat_penalty,
             num_ctx=num_ctx,
             num_predict=num_predict,
             timeout=timeout,
-            # Modelin uzayıp ikinci paragrafa veya saçma metne kayma riskine karşı
-            stop=["\nSoru:", "\nKullanıcı:", "\n\n\n"],
+            # Sıkı stop: ilk paragraf bittiği anda kes
+            stop=[
+                "\n",
+                "\nSoru:",
+                "\nKullanıcı:",
+                "Soru:",
+                "•",
+                "1)",
+                "2)",
+                "- ",
+            ],
         )
         self.prompt = ChatPromptTemplate.from_messages(
             [
@@ -188,7 +190,7 @@ class ListAnswerLLM:
 
 
 # ----------------------------------------------------------------------------
-# Post-processing — yaygın phi3 bozukluklarını törpüler
+# Post-processing
 # ----------------------------------------------------------------------------
 
 _REPLACEMENTS = [
@@ -201,18 +203,69 @@ _REPLACEMENTS = [
 
 def _post_process(text: str) -> str:
     cleaned = text.strip()
-    # Bazı modeller "Cevap:" prefix'ini tekrar yazar
     cleaned = re.sub(r"^(Cevap|Yanıt)\s*:\s*", "", cleaned, flags=re.IGNORECASE)
-    # Markdown bullet'larını sıyır
     cleaned = re.sub(r"^[\-\*\d\.\)]+\s*", "", cleaned, flags=re.MULTILINE)
-    # Çoklu boşluk/satır
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     for pattern, repl in _REPLACEMENTS:
         cleaned = pattern.sub(repl, cleaned)
-    # Sonuna nokta ekle
     if cleaned and cleaned[-1] not in ".!?":
         cleaned += "."
     return cleaned
+
+
+# ----------------------------------------------------------------------------
+# Validation: LLM cevabı SQL sonucundaki sayı/isimleri içeriyor mu?
+# ----------------------------------------------------------------------------
+
+# En az kaç anchor (sayı veya öne çıkan isim) tutulmalı
+_MIN_ANCHOR_HITS = 1
+_MIN_ANSWER_CHARS = 8
+_MAX_ANSWER_CHARS = 400
+
+
+def _extract_anchors(structured: StructuredResult) -> set[str]:
+    """SQL sonucundan, cevapta görmeyi beklediğimiz 'anchor' token'lar."""
+    anchors: set[str] = set()
+
+    # Scalar değerler
+    if structured.scalar_value is not None:
+        anchors.add(str(structured.scalar_value))
+
+    # İlk birkaç satırın sayı/metin değerleri
+    for row in structured.rows[:5]:
+        for v in row.values():
+            if v is None:
+                continue
+            text = str(v).strip()
+            if not text or text == "—":
+                continue
+            # Sayılar: rakam dizilerini al
+            if re.fullmatch(r"-?\d+(\.\d+)?", text):
+                anchors.add(text.split(".")[0])  # "0.00" -> "0"
+                continue
+            # İsimler: 3+ karakter olan tokenları ekle
+            if len(text) >= 3:
+                anchors.add(text)
+
+    return {a for a in anchors if a}
+
+
+def _is_valid_llm_answer(answer: str, structured: StructuredResult) -> bool:
+    """LLM cevabı sıhhat kontrolünden geçiyor mu?"""
+    if not answer:
+        return False
+    n = len(answer)
+    if n < _MIN_ANSWER_CHARS or n > _MAX_ANSWER_CHARS:
+        return False
+
+    anchors = _extract_anchors(structured)
+    if not anchors:
+        # Eğer anchor çıkaramadıysak (boş sonuç vs.) length kontrolü yeterli
+        return True
+
+    lower = answer.lower()
+    hits = sum(1 for a in anchors if a.lower() in lower)
+    return hits >= _MIN_ANCHOR_HITS
 
 
 # ----------------------------------------------------------------------------
@@ -220,33 +273,55 @@ def _post_process(text: str) -> str:
 # ----------------------------------------------------------------------------
 
 class Answerer:
-    def __init__(self, list_llm: ListAnswerLLM) -> None:
+    """
+    Template-first cevap üretici.
+
+    Args:
+        list_llm: LIST sorularda 'verbose' istendiğinde devreye giren LLM.
+                  Default akışta hiç çağrılmaz.
+    """
+
+    def __init__(self, list_llm: ListAnswerLLM | None = None) -> None:
         self._list_llm = list_llm
 
-    def answer(self, soru: str, structured: StructuredResult) -> str:
+    def answer(
+        self,
+        soru: str,
+        structured: StructuredResult,
+        verbose: bool = False,
+    ) -> str:
         if structured.intent == ResultIntent.EMPTY:
             return EMPTY_RESPONSE
 
         if structured.intent == ResultIntent.SCALAR:
             return _format_scalar(structured, soru)
 
-        # Tek-satır LIST: LLM'e gitmeden deterministik şablon (phi3 bypass)
+        # Tek-satır LIST
         if structured.row_count == 1:
             return _format_single_row(structured)
 
-        # Çok satırlı LIST
+        # Çok satırlı LIST — default: deterministik template renderer
+        template_answer = render_list(structured)
+
+        if not verbose or self._list_llm is None:
+            return template_answer
+
+        # verbose=True -> LLM'i denemeye değer; ama validation gate'i var
         sonuc_metni = render_rows_for_prompt(
             structured.rows, limit=DEFAULT_LIST_PREVIEW_ROWS
         )
         try:
-            return self._list_llm.invoke(soru, sonuc_metni)
+            llm_answer = self._list_llm.invoke(soru, sonuc_metni)
         except Exception as exc:  # noqa: BLE001
-            # LLM çökerse minimum güvenli fallback — kullanıcı boş kalmasın
-            logger.warning("Answer LLM failed, falling back to summary: %s", exc)
-            return _fallback_list_summary(structured)
+            logger.warning("Answer LLM failed, falling back to template: %s", exc)
+            return template_answer
 
+        if _is_valid_llm_answer(llm_answer, structured):
+            return llm_answer
 
-def _fallback_list_summary(structured: StructuredResult) -> str:
-    n = structured.row_count
-    cols = ", ".join(structured.columns)
-    return f"Sorgu {n} satır döndürdü ({cols}). Detay için sonucu inceleyin."
+        logger.info(
+            "LLM cevabı validation'dan geçemedi, template fallback uygulanıyor. "
+            "LLM çıktı: %r",
+            llm_answer,
+        )
+        return template_answer
