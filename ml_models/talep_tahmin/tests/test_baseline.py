@@ -44,17 +44,23 @@ def baseline_tahmin_payload() -> dict:
 
 def test_baseline_tahmin_dto_formati() -> None:
     payload = baseline_tahmin_payload()
-    assert set(payload) == {
+    zorunlu_alanlar = {
         "urun_id",
         "tahmin_gun",
         "tahmini_talep",
         "gunluk_ortalama_talep",
         "onerilen_ikmal_miktari",
+        "guvenli_stok",
         "stok_riski",
         "talep_sinyali",
         "veri_guven_skoru",
         "uyarilar",
+        "gunluk_tahmin_serisi",
+        "trend",
+        "model_versiyonu",
+        "son_hesaplanma",
     }
+    assert zorunlu_alanlar.issubset(payload)
     assert payload["urun_id"] == 1
     assert payload["tahmin_gun"] == 30
     assert payload["tahmini_talep"] > 0
@@ -64,6 +70,11 @@ def test_baseline_tahmin_dto_formati() -> None:
     assert payload["talep_sinyali"] in {"dusuk", "normal", "yuksek"}
     assert 0 <= payload["veri_guven_skoru"] <= 1
     assert isinstance(payload["uyarilar"], list)
+    assert len(payload["gunluk_tahmin_serisi"]) == payload["tahmin_gun"]
+    nokta = payload["gunluk_tahmin_serisi"][0]
+    assert nokta["alt_sinir"] <= nokta["tahmin"] <= nokta["ust_sinir"]
+    assert payload["trend"]["yon"] in {"pozitif", "negatif", "stabil"}
+    assert payload["model_versiyonu"].startswith("baseline-ma")
 
 
 def test_cold_start_dusuk_guvenle_calismali() -> None:

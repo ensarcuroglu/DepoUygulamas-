@@ -268,6 +268,10 @@ export const createStokHareketi = (data) => api.post('/stok-hareketleri/', data)
 export const getTalepTahminUrunleri = (params = {}) => api.get('/talep-tahmini/urunler', { params });
 export const getTalepTahmini = (urunId, tahminGun = 7) =>
   api.get(`/talep-tahmini/urunler/${urunId}`, { params: { tahmin_gun: tahminGun } });
+export const getRiskliUrunler = (params = {}) =>
+  api.get('/talep-tahmini/riskli-urunler', { params });
+export const getBacktestOzet = (tahminGun = 7) =>
+  api.get('/talep-tahmini/backtest-ozet', { params: { tahmin_gun: tahminGun } });
 
 // ========================
 // STOK İŞLEMLERİ (Palet Bazlı)

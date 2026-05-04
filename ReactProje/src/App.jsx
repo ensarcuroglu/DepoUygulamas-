@@ -20,6 +20,7 @@ const UrunlerPage = lazy(() => import('./pages/UrunlerPage'));
 const KategorilerPage = lazy(() => import('./pages/KategorilerPage'));
 const StokHareketleriPage = lazy(() => import('./pages/StokHareketleriPage'));
 const TalepTahminiPage = lazy(() => import('./pages/TalepTahminiPage'));
+const RiskliUrunlerPage = lazy(() => import('./pages/RiskliUrunlerPage'));
 const KullanicilarPage = lazy(() => import('./pages/KullanicilarPage'));
 const AyarlarPage = lazy(() => import('./pages/AyarlarPage'));
 const TedarikcilerPage = lazy(() => import('./pages/TedarikcilerPage'));
@@ -142,6 +143,7 @@ function App() {
                     <Route path="/siparisler" element={<SiparislerPage />} />
                     <Route path="/sevkiyat-planlama" element={<SevkiyatPlanlamaPage />} />
                     <Route path="/talep-tahmini" element={<TalepTahminiPage />} />
+                    <Route path="/riskli-urunler" element={<RiskliUrunlerPage />} />
                   </Route>
 
                   {/* İrsaliye Yönetimi + Gelen Mal rotaları */}

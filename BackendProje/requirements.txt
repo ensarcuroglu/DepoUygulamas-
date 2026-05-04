@@ -14,3 +14,6 @@ apscheduler
 fastapi-mail
 slowapi
 email-validator>=2.3.0
+scikit-learn>=1.4.0
+numpy>=1.26.0
+holidays>=0.45

@@ -12,16 +12,18 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import {
+  Area,
   CartesianGrid,
+  ComposedChart,
   Legend,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 import {
+  useBacktestOzetQuery,
   useTalepTahminUrunleriQuery,
   useTalepTahminiQuery,
 } from '../queries/talepTahminiQueries';
@@ -73,21 +75,29 @@ function buildChartData(data) {
     label: formatDate(item.tarih),
     gecmis: item.miktar,
     tahmin: null,
+    band: null,
   }));
 
   if (history.length > 0) {
+    const lastHist = history[history.length - 1];
     history[history.length - 1] = {
-      ...history[history.length - 1],
-      tahmin: history[history.length - 1].gecmis,
+      ...lastHist,
+      tahmin: lastHist.gecmis,
+      band: [lastHist.gecmis, lastHist.gecmis],
     };
   }
 
-  const forecast = data.gelecek_gunluk_tahmin.map((item) => ({
-    tarih: item.tarih,
-    label: formatDate(item.tarih),
-    gecmis: null,
-    tahmin: item.tahmin,
-  }));
+  const forecast = data.gelecek_gunluk_tahmin.map((item) => {
+    const alt = Number(item.alt_sinir ?? item.tahmin ?? 0);
+    const ust = Number(item.ust_sinir ?? item.tahmin ?? 0);
+    return {
+      tarih: item.tarih,
+      label: formatDate(item.tarih),
+      gecmis: null,
+      tahmin: item.tahmin,
+      band: [alt, ust],
+    };
+  });
 
   return [...history, ...forecast];
 }
@@ -120,6 +130,7 @@ export default function TalepTahminiPage() {
   }), [search]);
 
   const productsQuery = useTalepTahminUrunleriQuery(productParams);
+  const backtestQuery = useBacktestOzetQuery(horizon);
   const products = useMemo(() => productsQuery.data ?? [], [productsQuery.data]);
   const selectedProductId = useMemo(() => {
     if (products.length === 0) return '';
@@ -209,6 +220,13 @@ export default function TalepTahminiPage() {
             Stok: {formatNumber(selectedProduct.stok_miktari)}
           </div>
         )}
+
+        {backtestQuery.data && backtestQuery.data.urun_sayisi > 0 && (
+          <div className="inline-flex h-11 items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700">
+            <Activity className="w-4 h-4" />
+            MAPE: %{formatDecimal(backtestQuery.data.mape)} ({backtestQuery.data.urun_sayisi} urun)
+          </div>
+        )}
       </div>
 
       {errorMessage && (
@@ -286,6 +304,11 @@ export default function TalepTahminiPage() {
                   <h2 className="text-base font-extrabold text-slate-800">{forecast.urun.isim}</h2>
                   <p className="text-xs font-semibold text-slate-400">
                     {forecast.urun.barkod || 'Barkod yok'}
+                    {forecast.model_versiyonu && (
+                      <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 font-bold text-slate-500">
+                        {forecast.model_versiyonu}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -300,7 +323,7 @@ export default function TalepTahminiPage() {
 
               <div className="h-[360px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis
                       dataKey="label"
@@ -316,6 +339,16 @@ export default function TalepTahminiPage() {
                     />
                     <Tooltip content={<ChartTooltip />} />
                     <Legend verticalAlign="top" height={32} iconType="circle" />
+                    <Area
+                      type="monotone"
+                      dataKey="band"
+                      name="Guven Araligi"
+                      stroke="none"
+                      fill="#fbbf24"
+                      fillOpacity={0.18}
+                      isAnimationActive={false}
+                      connectNulls={false}
+                    />
                     <Line
                       type="monotone"
                       dataKey="gecmis"
@@ -337,7 +370,7 @@ export default function TalepTahminiPage() {
                       activeDot={{ r: 5 }}
                       connectNulls={false}
                     />
-                  </LineChart>
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </section>

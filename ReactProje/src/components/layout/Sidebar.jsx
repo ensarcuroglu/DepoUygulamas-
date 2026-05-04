@@ -53,6 +53,7 @@ const menuGroups = [
             { path: '/paletler', label: 'Palet Yönetimi', icon: Container, roles: ['admin'], badge: null },
             { path: '/stok-hareketleri', label: 'Stok İşlemleri', icon: ArrowLeftRight, roles: ['admin', 'lojistik'], badge: null },
             { path: '/talep-tahmini', label: 'Talep Tahmini', icon: TrendingUp, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/riskli-urunler', label: 'Riskli Urunler', icon: ShieldAlert, roles: ['admin', 'lojistik'], badge: null },
             { path: '/stok-sayim', label: 'Stok Sayımı', icon: ClipboardCheck, roles: ['admin'], badge: null },
         ],
     },
