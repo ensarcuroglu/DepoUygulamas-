@@ -141,3 +141,101 @@ class TestTalepTahminiHesaplama:
         data = response.json()
         assert data["stok_riski"] == beklenen_risk
 
+    def test_response_confidence_band_alanlari_iceriyor(self, admin_client):
+        urun = UrunFactory.create(min_stok=10)
+        _stok_ekle(urun, 50)
+        _stabil_cikis_gecmisi_ekle(urun, miktar=1)
+
+        response = admin_client.get(
+            f"/api/talep-tahmini/urunler/{urun.id}",
+            params={"tahmin_gun": 7},
+        )
+
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert "model_versiyonu" in data
+        assert isinstance(data["gelecek_gunluk_tahmin"], list)
+        assert len(data["gelecek_gunluk_tahmin"]) == 7
+        ilk = data["gelecek_gunluk_tahmin"][0]
+        assert "alt_sinir" in ilk and "ust_sinir" in ilk
+        assert ilk["alt_sinir"] <= ilk["tahmin"] <= ilk["ust_sinir"]
+
+
+class TestRiskliUrunlerEndpoint:
+    def test_yetkisiz_erisim(self, client):
+        response = client.get("/api/talep-tahmini/riskli-urunler")
+        assert response.status_code == 401
+
+    def test_cache_bos_oldugunda_bos_liste_doner(self, admin_client):
+        UrunFactory.create()
+        response = admin_client.get(
+            "/api/talep-tahmini/riskli-urunler",
+            params={"tahmin_gun": 7},
+        )
+        assert response.status_code == 200
+        assert response.json() == []
+
+    def test_gecersiz_ufuk_422_doner(self, admin_client):
+        response = admin_client.get(
+            "/api/talep-tahmini/riskli-urunler",
+            params={"tahmin_gun": 5},
+        )
+        assert response.status_code == 422
+
+    def test_yazma_sonrasi_riskli_kayit_listelenir(self, admin_client, db_session):
+        from app.core.repositories.talep_tahmini_repository import CacheKaydi
+        from app.infrastructure.persistence.repositories import (
+            SqlAlchemyTalepTahminCacheRepository,
+        )
+
+        urun = UrunFactory.create(isim="Riskli Urun", min_stok=10)
+        cache_repo = SqlAlchemyTalepTahminCacheRepository(db_session)
+        cache_repo.yaz(
+            CacheKaydi(
+                urun_id=urun.id,
+                tahmin_gun=7,
+                payload={
+                    "tahmini_talep": 50.0,
+                    "gunluk_ortalama_talep": 7.1,
+                    "talep_sinyali": "yuksek",
+                    "son_hesaplanma": "2026-05-04T02:00:00",
+                },
+                stok_riski="kritik",
+                tahmini_talep=50.0,
+                onerilen_ikmal=40.0,
+                veri_guven_skoru=0.8,
+                model_versiyonu="sklearn-gbr-quantile-1.0",
+                hesaplanma_tarihi=date.today(),
+            )
+        )
+        db_session.commit()
+
+        response = admin_client.get(
+            "/api/talep-tahmini/riskli-urunler",
+            params={"tahmin_gun": 7},
+        )
+
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["urun"]["id"] == urun.id
+        assert data[0]["stok_riski"] == "kritik"
+        assert data[0]["onerilen_ikmal_miktari"] == 40.0
+
+
+class TestBacktestOzetEndpoint:
+    def test_yetkisiz_erisim(self, client):
+        response = client.get("/api/talep-tahmini/backtest-ozet")
+        assert response.status_code == 401
+
+    def test_aktif_urun_yoksa_sifir_doner(self, admin_client):
+        response = admin_client.get(
+            "/api/talep-tahmini/backtest-ozet",
+            params={"tahmin_gun": 7},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["urun_sayisi"] == 0
+        assert data["mae"] == 0
+        assert data["mape"] == 0
+

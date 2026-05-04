@@ -11,6 +11,7 @@ Kullanım (main.py lifespan):
 import logging
 from app.infrastructure.scheduler.rapor_scheduler import zamanlama_kontrol
 from app.infrastructure.scheduler.staging_uyari_job import staging_uyari_kontrol
+from app.infrastructure.scheduler.talep_tahmin_job import talep_tahmin_precompute
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,15 @@ class RaporScheduler:
                 CronTrigger(hour=7, minute=0),
                 id="staging_uyari",
                 replace_existing=True,
+            )
+            # Talep tahmini precompute — her gece 02:00 (satıncı sabah cache'ten okur)
+            self._scheduler.add_job(
+                talep_tahmin_precompute,
+                CronTrigger(hour=2, minute=0),
+                id="talep_tahmin_precompute",
+                replace_existing=True,
+                max_instances=1,
+                coalesce=True,
             )
         except ImportError:
             logger.warning("apscheduler kurulu değil — zamanlı görevler devre dışı")

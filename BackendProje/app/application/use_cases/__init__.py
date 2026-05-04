@@ -181,6 +181,8 @@ from .toplama_gorevi_use_cases import (
     FefoOverrideUseCase,
 )
 from .talep_tahmini_use_cases import (
+    BacktestOzetGetirUseCase,
+    RiskliUrunlerListeleUseCase,
     TalepTahminiGetirUseCase,
     TalepTahminUrunleriListeleUseCase,
 )
@@ -271,4 +273,5 @@ __all__ = [
     "GorevIptalUseCase", "FefoOverrideUseCase",
     # Talep Tahmini
     "TalepTahminiGetirUseCase", "TalepTahminUrunleriListeleUseCase",
+    "RiskliUrunlerListeleUseCase", "BacktestOzetGetirUseCase",
 ]

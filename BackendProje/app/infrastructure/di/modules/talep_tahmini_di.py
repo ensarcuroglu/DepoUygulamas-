@@ -9,10 +9,15 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from app.application.use_cases import (
+    BacktestOzetGetirUseCase,
+    RiskliUrunlerListeleUseCase,
     TalepTahminUrunleriListeleUseCase,
     TalepTahminiGetirUseCase,
 )
-from app.infrastructure.persistence.repositories import SqlAlchemyTalepTahminiRepository
+from app.infrastructure.persistence.repositories import (
+    SqlAlchemyTalepTahminCacheRepository,
+    SqlAlchemyTalepTahminiRepository,
+)
 import logging
 
 from ml_models.talep_tahmin.application import PredictDemandUseCase
@@ -61,6 +66,10 @@ def get_talep_tahmini_repo(db: Session = Depends(get_db)):
     return SqlAlchemyTalepTahminiRepository(db)
 
 
+def get_talep_tahmin_cache_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyTalepTahminCacheRepository(db)
+
+
 def get_talep_tahmin_urunleri_listele_uc(
     repo=Depends(get_talep_tahmini_repo),
 ):
@@ -70,5 +79,20 @@ def get_talep_tahmin_urunleri_listele_uc(
 def get_talep_tahmini_getir_uc(
     repo=Depends(get_talep_tahmini_repo),
     predict_uc: PredictDemandUseCase = Depends(get_talep_tahmin_predict_uc),
+    cache_repo=Depends(get_talep_tahmin_cache_repo),
 ):
-    return TalepTahminiGetirUseCase(repo, predict_uc)
+    return TalepTahminiGetirUseCase(repo, predict_uc, cache_repo=cache_repo)
+
+
+def get_riskli_urunler_listele_uc(
+    repo=Depends(get_talep_tahmini_repo),
+    cache_repo=Depends(get_talep_tahmin_cache_repo),
+):
+    return RiskliUrunlerListeleUseCase(repo, cache_repo)
+
+
+def get_backtest_ozet_getir_uc(
+    repo=Depends(get_talep_tahmini_repo),
+    predict_uc: PredictDemandUseCase = Depends(get_talep_tahmin_predict_uc),
+):
+    return BacktestOzetGetirUseCase(repo, predict_uc)
