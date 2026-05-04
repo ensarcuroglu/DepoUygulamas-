@@ -37,6 +37,39 @@ logger = logging.getLogger(__name__)
 
 EMPTY_RESPONSE = "Bu kriterlere uygun kayıt bulunamadı."
 
+# Tek-satır LIST sonuçlarını LLM'e göndermeden şablonla cevaplamak için
+# kolon adı -> Türkçe insan etiketi haritası
+_HUMAN_LABELS: dict[str, str] = {
+    "urun_adi": "Ürün",
+    "urun_id": "Ürün ID",
+    "barkod": "Barkod",
+    "kategori_adi": "Kategori",
+    "marka_adi": "Marka",
+    "guncel_stok_miktari": "Stok",
+    "kritik_stok_siniri": "Kritik stok sınırı",
+    "birim": "Birim",
+    "stok_durumu": "Stok durumu",
+    "urun_sayisi": "Ürün sayısı",
+    "toplam_miktar": "Toplam",
+    "adet": "Adet",
+}
+
+
+def _humanize(col: str) -> str:
+    return _HUMAN_LABELS.get(col, col.replace("_", " ").capitalize())
+
+
+def _format_single_row(structured: StructuredResult) -> str:
+    """Tek satır + birden çok kolon — LLM'e gitmeden Türkçe cümle üret.
+
+    Örnek:
+      rows=[{"urun_adi":"DEV Bulgur 1kg","guncel_stok_miktari":"0"}]
+      -> "1 sonuç bulundu: Ürün: DEV Bulgur 1kg, Stok: 0."
+    """
+    row = structured.rows[0]
+    parts = [f"{_humanize(col)}: {_pretty_value(val)}" for col, val in row.items()]
+    return "1 sonuç bulundu — " + ", ".join(parts) + "."
+
 
 # ----------------------------------------------------------------------------
 # Scalar şablonu — kolon adına göre Türkçe cümle üretir
@@ -44,17 +77,26 @@ EMPTY_RESPONSE = "Bu kriterlere uygun kayıt bulunamadı."
 
 # Kolon adlarındaki ipuçlarını (substring match) Türkçe ifadelere eşler.
 _SCALAR_LABEL_RULES: list[tuple[str, str]] = [
-    # Daha spesifik (uzun) eşleşmeler önce gelmeli
+    # Daha spesifik (uzun) eşleşmeler önce gelmeli.
+    # LLM kolon takma adında "stoq", "stoğ", "miktar", "miktari" varyantları
+    # üretebilir; bu yüzden gevşek substring eşleştirmesi yapıyoruz.
     ("guncel_stok_miktari", "stok"),
     ("kritik_stok_siniri", "kritik stok eşiği"),
     ("urun_sayisi", "ürün"),
     ("kayit_sayisi", "kayıt"),
-    ("toplam_miktar", "toplam"),
+    ("palet_sayisi", "palet"),
+    ("toplam_miktar", "toplam stok"),
+    ("toplam_stok", "toplam stok"),
+    ("toplam_stoq", "toplam stok"),
+    ("toplam_stog", "toplam stok"),
+    ("toplam", "toplam"),
     ("ortalama", "ortalama"),
     ("adet", "kayıt"),
     ("count", "kayıt"),
     ("sum", "toplam"),
     ("avg", "ortalama"),
+    ("miktar", "miktar"),
+    ("stok", "stok"),
 ]
 
 
@@ -188,7 +230,11 @@ class Answerer:
         if structured.intent == ResultIntent.SCALAR:
             return _format_scalar(structured, soru)
 
-        # LIST
+        # Tek-satır LIST: LLM'e gitmeden deterministik şablon (phi3 bypass)
+        if structured.row_count == 1:
+            return _format_single_row(structured)
+
+        # Çok satırlı LIST
         sonuc_metni = render_rows_for_prompt(
             structured.rows, limit=DEFAULT_LIST_PREVIEW_ROWS
         )
