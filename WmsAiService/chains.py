@@ -3,11 +3,14 @@ LangChain LCEL pipeline'ı.
 
 Akış:
     soru + history
-        -> SQL üret  (ChatOllama, low-temp, few-shot)
+        -> SQL üret  (ChatOllama, temp=0, few-shot)
         -> clean & validate (sql_guard)
-        -> execute (SQLAlchemy)
+        -> SQLAlchemy ile execute, structured rows + intent çıkar
             -> hata olursa: self-correction loop (max N iter)
-        -> sonuç + soru -> doğal dil cevap üret (ikinci LLM çağrısı)
+        -> Answerer dispatch:
+            EMPTY  -> sabit cümle
+            SCALAR -> deterministik şablon (LLM yok)
+            LIST   -> few-shot ile beslenen ChatOllama (temp=0, stop, num_predict)
 """
 
 from __future__ import annotations
@@ -22,14 +25,15 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
+from answerer import Answerer, ListAnswerLLM
 from prompts import (
-    ANSWER_GENERATION_PROMPT,
     SCHEMA_DESCRIPTION,
     SQL_CORRECTION_PROMPT,
     SQL_SYSTEM_PROMPT,
     SQL_USER_PROMPT,
     render_few_shot_block,
 )
+from result_formatter import StructuredResult, execute_structured
 from sql_guard import SqlValidationError, clean_and_validate
 
 logger = logging.getLogger(__name__)
@@ -41,13 +45,12 @@ logger = logging.getLogger(__name__)
 
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "phi3")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-# Cevap üretimi için ayrı (ve daha küçük) bir model kullanılabilir
 OLLAMA_ANSWER_MODEL = os.getenv("OLLAMA_ANSWER_MODEL", OLLAMA_MODEL)
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0"))
 LLM_NUM_CTX = int(os.getenv("LLM_NUM_CTX", "4096"))
 LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "120"))
+ANSWER_NUM_PREDICT = int(os.getenv("ANSWER_NUM_PREDICT", "96"))
 MAX_CORRECTION_ATTEMPTS = int(os.getenv("MAX_CORRECTION_ATTEMPTS", "2"))
-RESULT_ROW_PREVIEW = int(os.getenv("RESULT_ROW_PREVIEW", "20"))
 
 
 # ----------------------------------------------------------------------------
@@ -82,17 +85,20 @@ def build_sql_llm() -> ChatOllama:
         temperature=LLM_TEMPERATURE,
         num_ctx=LLM_NUM_CTX,
         timeout=LLM_TIMEOUT,
+        # SQL çıktısı tek satır olmalı; modelin tekrar etmesini engelle
+        stop=["\nSoru:", "\nKullanıcı:", "```\n```"],
     )
 
 
-def build_answer_llm() -> ChatOllama:
-    return ChatOllama(
+def build_answerer() -> Answerer:
+    list_llm = ListAnswerLLM(
         model=OLLAMA_ANSWER_MODEL,
         base_url=OLLAMA_BASE_URL,
-        temperature=0.2,
-        num_ctx=LLM_NUM_CTX,
         timeout=LLM_TIMEOUT,
+        num_ctx=LLM_NUM_CTX,
+        num_predict=ANSWER_NUM_PREDICT,
     )
+    return Answerer(list_llm=list_llm)
 
 
 # ----------------------------------------------------------------------------
@@ -117,10 +123,6 @@ def build_correction_prompt() -> ChatPromptTemplate:
     )
 
 
-def build_answer_prompt() -> ChatPromptTemplate:
-    return ChatPromptTemplate.from_messages([("human", ANSWER_GENERATION_PROMPT)])
-
-
 # ----------------------------------------------------------------------------
 # Çekirdek pipeline
 # ----------------------------------------------------------------------------
@@ -129,7 +131,7 @@ def build_answer_prompt() -> ChatPromptTemplate:
 class SorguSonucu:
     soru: str
     uretilen_sql: str
-    raw_sonuc: Any
+    structured: StructuredResult
     cevap: str
     deneme_sayisi: int
     duzeltme_logu: list[str]
@@ -138,11 +140,11 @@ class SorguSonucu:
 class WmsAiPipeline:
     def __init__(self) -> None:
         self.db = build_db()
+        self.engine = self.db._engine  # SQLAlchemy engine — structured execute için
         self.sql_llm = build_sql_llm()
-        self.answer_llm = build_answer_llm()
         self.sql_chain = build_sql_prompt() | self.sql_llm | StrOutputParser()
         self.correction_chain = build_correction_prompt() | self.sql_llm | StrOutputParser()
-        self.answer_chain = build_answer_prompt() | self.answer_llm | StrOutputParser()
+        self.answerer = build_answerer()
 
     # --- adımlar ---
 
@@ -158,21 +160,8 @@ class WmsAiPipeline:
         logger.debug("LLM correction output: %s", raw)
         return clean_and_validate(raw)
 
-    def _execute(self, sql: str) -> Any:
-        # SQLDatabase.run güvenli; ama biz zaten guard'ladık.
-        return self.db.run(sql, include_columns=True)
-
-    def _generate_answer(self, soru: str, sql: str, sonuc: Any) -> str:
-        preview = self._truncate_result(sonuc)
-        return self.answer_chain.invoke({"soru": soru, "sql": sql, "sonuc": preview})
-
-    @staticmethod
-    def _truncate_result(sonuc: Any) -> str:
-        text = str(sonuc)
-        # Çok büyük sonuçlar context'i bozar
-        if len(text) > 4000:
-            return text[:4000] + "\n... (sonuç kırpıldı)"
-        return text
+    def _execute(self, sql: str) -> StructuredResult:
+        return execute_structured(self.engine, sql)
 
     # --- entrypoint ---
 
@@ -184,10 +173,10 @@ class WmsAiPipeline:
         log.append(f"deneme-{attempts}: {sql}")
 
         last_error: Exception | None = None
-        sonuc: Any = None
+        structured: StructuredResult | None = None
         for _ in range(MAX_CORRECTION_ATTEMPTS + 1):
             try:
-                sonuc = self._execute(sql)
+                structured = self._execute(sql)
                 last_error = None
                 break
             except Exception as exc:  # noqa: BLE001
@@ -205,18 +194,19 @@ class WmsAiPipeline:
                 attempts += 1
                 log.append(f"deneme-{attempts}: {sql}")
 
-        if last_error is not None:
+        if last_error is not None or structured is None:
             raise RuntimeError(
                 f"SQL {attempts} denemede çalıştırılamadı. Son hata: {last_error}"
             )
 
-        cevap = self._generate_answer(soru, sql, sonuc)
+        cevap = self.answerer.answer(soru, structured)
+        log.append(f"intent: {structured.intent.value} (rows={structured.row_count})")
 
         return SorguSonucu(
             soru=soru,
             uretilen_sql=sql,
-            raw_sonuc=sonuc,
-            cevap=cevap.strip(),
+            structured=structured,
+            cevap=cevap,
             deneme_sayisi=attempts,
             duzeltme_logu=log,
         )

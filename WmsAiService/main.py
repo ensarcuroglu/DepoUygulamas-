@@ -82,7 +82,10 @@ def ai_sorgula(istek: SorguIstegi) -> SorguYaniti:
     if istek.debug:
         debug_payload = {
             "duzeltme_logu": sonuc.duzeltme_logu,
-            "raw_sonuc": str(sonuc.raw_sonuc)[:4000],
+            "intent": sonuc.structured.intent.value,
+            "row_count": sonuc.structured.row_count,
+            "columns": sonuc.structured.columns,
+            "rows": sonuc.structured.rows[:50],
         }
 
     return SorguYaniti(
