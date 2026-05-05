@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Code2, Database, Download, Copy, Check } from 'lucide-react';
+import { ChevronDown, Code2, Database, Download, Copy, Check, FileTerminal } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { exportToExcel } from '../../utils/exportUtils';
 
@@ -25,7 +25,7 @@ export default function MessageDetailPanel({ uretilenSql, debug }) {
       await navigator.clipboard.writeText(uretilenSql);
       setSqlCopied(true);
       toast.success('SQL kopyalandı');
-      setTimeout(() => setSqlCopied(false), 1600);
+      setTimeout(() => setSqlCopied(false), 2000);
     } catch {
       toast.error('Kopyalanamadı');
     }
@@ -40,120 +40,140 @@ export default function MessageDetailPanel({ uretilenSql, debug }) {
   };
 
   return (
-    <div className="mt-3">
-      <button
+    <div className="mt-3 w-full">
+      <Motion.button
         type="button"
+        whileTap={{ scale: 0.97 }}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/60 px-3 py-1.5 text-[11.5px] font-medium text-slate-600 backdrop-blur transition hover:border-slate-300 hover:bg-white/80 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+        className="group inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3.5 py-1.5 text-[12px] font-medium text-slate-600 shadow-[0_2px_8px_-4px_rgba(15,23,42,0.08)] backdrop-blur-md transition-all duration-300 hover:border-indigo-300/80 hover:bg-white hover:text-indigo-600 dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:border-indigo-400/50 dark:hover:bg-slate-800/90 dark:hover:text-indigo-300 sm:px-4 sm:py-2"
       >
-        <Code2 className="h-3.5 w-3.5" />
-        Detayları {open ? 'gizle' : 'göster'}
-        <Motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown className="h-3.5 w-3.5" />
+        <FileTerminal className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2} />
+        Sorgu Detayları
+        <Motion.span 
+          animate={{ rotate: open ? 180 : 0 }} 
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          className="ml-0.5 opacity-70 group-hover:opacity-100"
+        >
+          <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2.5} />
         </Motion.span>
-      </button>
+      </Motion.button>
 
       <AnimatePresence initial={false}>
         {open && (
           <Motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden"
           >
-            <div className="mt-3 space-y-3 rounded-2xl border border-slate-200/70 bg-white/50 p-3 backdrop-blur-md dark:border-white/10 dark:bg-white/5">
-              {/* SQL */}
+            <div className="space-y-4 rounded-[1.25rem] border border-slate-200/80 bg-white/60 p-3.5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 sm:p-5">
+              
+              {/* SQL Paneli */}
               <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    <Code2 className="h-3 w-3" /> Üretilen SQL
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:text-[12px]">
+                    <Code2 className="h-3.5 w-3.5" /> Üretilen SQL
                   </span>
                   <button
                     type="button"
                     onClick={handleCopySql}
-                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-200"
+                    className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 text-[11.5px] font-medium text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-300"
                   >
-                    {sqlCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                    Kopyala
+                    {sqlCopied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    {sqlCopied ? 'Kopyalandı' : 'Kopyala'}
                   </button>
                 </div>
-                <pre className="overflow-x-auto rounded-xl bg-slate-900/95 p-3 text-[12px] leading-relaxed text-slate-100 shadow-inner">
-                  <code>{uretilenSql || '—'}</code>
-                </pre>
+                <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-[#0D1117] shadow-inner dark:border-white/10">
+                  <div className="absolute top-0 left-0 flex h-7 w-full items-center gap-1.5 bg-slate-800/50 px-3">
+                    <div className="h-2.5 w-2.5 rounded-full bg-rose-500/80" />
+                    <div className="h-2.5 w-2.5 rounded-full bg-amber-500/80" />
+                    <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
+                  </div>
+                  <pre className="overflow-x-auto p-4 pt-10 text-[13px] leading-relaxed text-slate-300 [scrollbar-width:thin] sm:text-[13.5px]">
+                    <code>{uretilenSql || '—'}</code>
+                  </pre>
+                </div>
               </div>
 
-              {/* Sonuç tablosu */}
+              {/* Sonuç Tablosu */}
               {rows.length > 0 && (
                 <div>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      <Database className="h-3 w-3" /> Sonuç ({rowCount} satır)
+                  <div className="mb-2 flex items-center justify-between px-1">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:text-[12px]">
+                      <Database className="h-3.5 w-3.5" /> Sonuç ({rowCount} satır)
                     </span>
                     <button
                       type="button"
                       onClick={handleExport}
-                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-emerald-600 transition hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
+                      className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 text-[11.5px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
                     >
-                      <Download className="h-3 w-3" /> Excel'e indir
+                      <Download className="h-3.5 w-3.5" /> Excel'e İndir
                     </button>
                   </div>
-                  <div className="overflow-x-auto rounded-xl border border-slate-200/70 bg-white/70 dark:border-white/10 dark:bg-slate-900/30">
-                    <table className="min-w-full text-[12px]">
-                      <thead className="border-b border-slate-200/70 bg-slate-50/70 dark:border-white/10 dark:bg-white/5">
-                        <tr>
-                          {columns.map((col) => (
-                            <th
-                              key={col}
-                              className="whitespace-nowrap px-3 py-2 text-left font-semibold text-slate-600 dark:text-slate-300"
-                            >
-                              {col}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {previewRows.map((row, i) => (
-                          <tr
-                            key={i}
-                            className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60 dark:border-white/5 dark:hover:bg-white/5"
-                          >
+                  
+                  <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900/50">
+                    <div className="max-h-[300px] overflow-auto [scrollbar-width:thin]">
+                      <table className="min-w-full text-[13px]">
+                        <thead className="sticky top-0 z-10 border-b border-slate-200/80 bg-slate-50/95 backdrop-blur-sm dark:border-white/10 dark:bg-slate-800/95">
+                          <tr>
                             {columns.map((col) => (
-                              <td
+                              <th
                                 key={col}
-                                className="whitespace-nowrap px-3 py-1.5 text-slate-700 dark:text-slate-200"
+                                className="whitespace-nowrap px-4 py-2.5 text-left font-semibold text-slate-700 dark:text-slate-200"
                               >
-                                {formatValue(row[col])}
-                              </td>
+                                {col}
+                              </th>
                             ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                          {previewRows.map((row, i) => (
+                            <tr
+                              key={i}
+                              className="transition-colors hover:bg-slate-50/80 dark:hover:bg-white/[0.03]"
+                            >
+                              {columns.map((col) => (
+                                <td
+                                  key={col}
+                                  className="whitespace-nowrap px-4 py-2 text-slate-600 dark:text-slate-300"
+                                >
+                                  {formatValue(row[col])}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                     {rowCount > previewRows.length && (
-                      <div className="border-t border-slate-200/70 bg-slate-50/40 px-3 py-1.5 text-[11px] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
-                        İlk {previewRows.length} satır gösteriliyor — Excel'e indir tüm {rowCount} satır.
+                      <div className="border-t border-slate-200/80 bg-slate-50/50 px-4 py-2 text-center text-[11px] font-medium text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 sm:text-[12px]">
+                        İlk {previewRows.length} satır gösteriliyor. Tüm {rowCount} satırı görmek için Excel'e indirin.
                       </div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Düzeltme logu */}
+              {/* Düzeltme Logu */}
               {debug?.duzeltme_logu?.length > 1 && (
                 <div>
-                  <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <span className="mb-2 block px-1 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:text-[12px]">
                     Düzeltme Logu
                   </span>
-                  <ul className="space-y-1 text-[12px] text-slate-600 dark:text-slate-300">
+                  <ul className="space-y-1.5">
                     {debug.duzeltme_logu.map((line, i) => (
-                      <li key={i} className="rounded-md bg-amber-50/60 px-2 py-1 font-mono text-[11px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">
+                      <li 
+                        key={i} 
+                        className="rounded-lg border border-amber-200/50 bg-amber-50/80 px-3 py-2 font-mono text-[11.5px] leading-relaxed text-amber-900 shadow-sm dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200"
+                      >
                         {line}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
+              
             </div>
           </Motion.div>
         )}
