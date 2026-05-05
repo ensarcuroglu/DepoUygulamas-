@@ -30,6 +30,7 @@ import {
     Scan,
     Factory,
     Tag,
+    Sparkles,
 } from 'lucide-react';
 
 /* ───────────────────────────────────────────
@@ -41,6 +42,7 @@ const menuGroups = [
         label: 'Genel',
         items: [
             { path: '/dashboard', label: 'İş Zekası & Özet', icon: LayoutDashboard, roles: ['admin'], badge: null },
+            { path: '/ai-asistan', label: 'AI Asistan', icon: Sparkles, roles: ['admin'], badge: 'Yeni' },
         ],
     },
     {

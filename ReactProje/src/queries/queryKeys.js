@@ -92,4 +92,8 @@ export const queryKeys = {
         all: ['yerlestirme'],
         oneri: (paletId) => ['yerlestirme', 'oneri', paletId],
     },
+    aiAsistan: {
+        all: ['aiAsistan'],
+        sema: () => ['aiAsistan', 'sema'],
+    },
 };

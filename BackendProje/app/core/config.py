@@ -116,6 +116,16 @@ class Settings(BaseSettings):
         alias="CLEAN_TEST_DATA_ALLOWED_DBS",
     )
 
+    wms_ai_service_url: str = Field(
+        "http://localhost:8001",
+        alias="WMS_AI_SERVICE_URL",
+    )
+    wms_ai_service_timeout: float = Field(
+        180.0,
+        alias="WMS_AI_SERVICE_TIMEOUT",
+        ge=1.0,
+    )
+
     @field_validator("db_user", "db_host", "db_name")
     @classmethod
     def _required_str(cls, value: str) -> str:
