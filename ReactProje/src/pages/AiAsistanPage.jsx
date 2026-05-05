@@ -12,8 +12,6 @@ import ChatMessage from '../components/aiAsistan/ChatMessage';
 import MessageInput from '../components/aiAsistan/MessageInput';
 import { hataMetni } from '../utils/hata';
 
-const PENDING_PLACEHOLDER = 'Düşünüyor…';
-
 export default function AiAsistanPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -48,7 +46,7 @@ export default function AiAsistanPage() {
       setMessages((prev) => [
         ...prev,
         { id: userId, role: 'user', content: soru },
-        { id: assistantId, role: 'assistant', content: PENDING_PLACEHOLDER, pending: true },
+        { id: assistantId, role: 'assistant', content: '', pending: true },
       ]);
       setInput('');
 
