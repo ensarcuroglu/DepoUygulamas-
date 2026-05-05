@@ -32,21 +32,34 @@ export default function ChatMessage({ message }) {
       className={`flex w-full gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
     >
       {isAssistant && (
-        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/40 bg-gradient-to-br from-indigo-500/90 via-violet-500/90 to-fuchsia-500/90 text-white shadow-[0_4px_16px_-6px_rgba(99,102,241,0.6)]">
-          <Sparkles className="h-4 w-4" />
+        <div className="relative mt-1 shrink-0">
+          {pending && (
+            <Motion.span
+              aria-hidden
+              className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-400/30 via-violet-400/30 to-fuchsia-400/30 blur-lg"
+              animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.85, 1.1, 0.85] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          )}
+          <div className="relative flex h-8 w-8 items-center justify-center rounded-xl border border-white/40 bg-gradient-to-br from-indigo-500/90 via-violet-500/90 to-fuchsia-500/90 text-white shadow-[0_4px_16px_-6px_rgba(99,102,241,0.6)]">
+            <Sparkles className="h-4 w-4" />
+          </div>
         </div>
       )}
 
       <div className={`flex max-w-[85%] flex-col ${isUser ? 'items-end' : 'items-start'}`}>
         <div
           className={[
-            'group relative rounded-2xl px-4 py-2.5 text-[14.5px] leading-relaxed shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_28px_-18px_rgba(15,23,42,0.25)] backdrop-blur-md',
-            isUser
+            'group relative rounded-2xl text-[14.5px] leading-relaxed backdrop-blur-md transition-all duration-500',
+            pending
+              ? 'inline-flex min-h-[36px] min-w-[64px] items-center border border-indigo-200/50 bg-white/60 px-3 py-2 shadow-[0_4px_20px_-10px_rgba(99,102,241,0.35)] dark:border-indigo-400/15 dark:bg-white/[0.04]'
+              : 'px-4 py-2.5 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_28px_-18px_rgba(15,23,42,0.15)]',
+            !pending && (isUser
               ? 'bg-gradient-to-br from-indigo-500 to-violet-500 text-white'
               : error
                 ? 'border border-rose-200/70 bg-rose-50/80 text-rose-900 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200'
-                : 'border border-slate-200/70 bg-white/70 text-slate-800 dark:border-white/10 dark:bg-white/5 dark:text-slate-100',
-          ].join(' ')}
+                : 'border border-slate-200/70 bg-white/70 text-slate-800 dark:border-white/10 dark:bg-white/5 dark:text-slate-100'),
+          ].filter(Boolean).join(' ')}
         >
           {pending ? (
             <TypingIndicator />
@@ -66,7 +79,7 @@ export default function ChatMessage({ message }) {
               aria-label="Kopyala"
               className="absolute -bottom-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200/70 bg-white text-slate-500 opacity-0 shadow-sm transition-all hover:text-slate-800 group-hover:opacity-100 dark:border-white/10 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
             >
-              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              {copied ? <Check className="h-3.3 w-3.3" /> : <Copy className="h-3.3 w-3.3" />}
             </button>
           )}
         </div>
