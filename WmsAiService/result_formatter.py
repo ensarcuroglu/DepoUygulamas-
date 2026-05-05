@@ -1,7 +1,7 @@
 """
 SQL execute sonucunu yapılandırılmış formata çevirir.
 
-`SQLDatabase.run` çıktısı string olduğu için phi3 yorumlamakta zorlanıyor.
+`SQLDatabase.run` çıktısı string olduğu için qwen2.5-coder:7b yorumlamakta zorlanıyor.
 Bu modül SQLAlchemy üzerinden ham `RowMapping` listesi alır, kolon adlı
 dict satırlara dönüştürür ve cevap üretimi için intent tespiti yapar.
 

@@ -9,7 +9,7 @@ Strateji:
     * (urun_adi, guncel_stok_miktari, ...)   -> ürün listesi
     * (urun_adi, marka_adi)                  -> isim listesi
     * default                                 -> generic "N kayıt bulundu"
-- LLM tamamen by-pass; phi3'ün Türkçe morfoloji bozukluklarına maruz kalmaz.
+- LLM tamamen by-pass; qwen2.5-coder:7b'nin Türkçe morfoloji bozukluklarına maruz kalmaz.
 - İlk 5 satır cümle içine gömülür, geri kalan "ve N tanesi daha" şeklinde özetlenir.
 """
 

@@ -1,7 +1,7 @@
 """
 Prompt şablonları ve few-shot örnekleri.
 
-Yerel/küçük LLM'lerde (phi3 vb.) SQL üretim doğruluğunu artırmanın en etkili
+Yerel/küçük LLM'lerde (qwen2.5-coder:7b vb.) SQL üretim doğruluğunu artırmanın en etkili
 yolu zengin sistem prompt + Türkçe few-shot örnekleridir. Şema açıklaması +
 allowed-values listesi + örnek soru/SQL çiftleri modelin hallucination
 ihtimalini ciddi şekilde düşürür.

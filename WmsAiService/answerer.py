@@ -10,7 +10,7 @@ Strateji (template-first; LLM by-pass):
             validation döngüsünden geçer; sayı/isim eşleşmesi yoksa
             template fallback'e döner.
 
-Bu yaklaşım phi3'ün Türkçe morfoloji bozukluklarına maruz kalma alanını
+Bu yaklaşım qwen2.5-coder:7b'nin Türkçe morfoloji bozukluklarına maruz kalma alanını
 büyük ölçüde kapatır.
 """
 
@@ -142,7 +142,7 @@ def _pretty_value(value: Any) -> str:
 # ----------------------------------------------------------------------------
 
 class ListAnswerLLM:
-    """phi3 için sıkı sampling parametreleriyle disipline edilmiş üretici."""
+    """qwen2.5-coder:7b için sıkı sampling parametreleriyle disipline edilmiş üretici."""
 
     def __init__(
         self,

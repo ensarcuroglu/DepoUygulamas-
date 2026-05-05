@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 # Konfig
 # ----------------------------------------------------------------------------
 
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "phi3")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_ANSWER_MODEL = os.getenv("OLLAMA_ANSWER_MODEL", OLLAMA_MODEL)
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0"))
