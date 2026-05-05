@@ -33,7 +33,17 @@ _FORBIDDEN_KEYWORDS = (
 )
 
 # Whitelist — DB'de erişilmesine izin verilen view/tablo isimleri
-ALLOWED_TABLES = {"ai_stok_durumu_view"}
+ALLOWED_TABLES = {
+    "ai_stok_durumu_view",
+    "ai_palet_view",
+    "ai_lot_view",
+    "ai_irsaliye_view",
+    "ai_mal_kabul_view",
+    "ai_siparis_view",
+    "ai_sevkiyat_view",
+    "ai_stok_hareketi_view",
+    "ai_depo_doluluk_view",
+}
 
 
 class SqlValidationError(Exception):

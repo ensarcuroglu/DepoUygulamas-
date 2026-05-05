@@ -13,36 +13,138 @@ ihtimalini ciddi şekilde düşürür.
 
 SCHEMA_DESCRIPTION = """
 Veritabanı: MySQL (utf8mb4)
-Erişilebilir tek view: `ai_stok_durumu_view`
 
-Kolonlar (TAMAMI):
-- urun_id (INT)                       : Ürün PK
-- urun_adi (VARCHAR(200))             : Ürün adı (örn. 'DEV Makarna 500g')
-- barkod (VARCHAR(50), NULL)          : Ürün barkodu
-- kategori_adi (VARCHAR(100), NULL)   : Kategori (örn. 'Makarna', 'Özel Seri', 'Küçük Kesme')
-- marka_adi (VARCHAR(100), NULL)      : Marka (örn. 'ARBELLA')
-- guncel_stok_miktari (DECIMAL)       : Mevcut/güncel stok miktarı
-- kritik_stok_siniri (INT)            : Kritik stok eşiği (bu değerin altı = azalmış stok)
-- birim (VARCHAR(20))                 : 'Adet', 'Kg', 'Lt' gibi (Büyük harfle başlar)
-- stok_durumu (VARCHAR(11))           : SADECE iki değer alır: 'Yeterli' veya 'Stok Yok'
+Erişilebilir view'lar (sadece bunları kullan, başka tablo/view UYDURMA):
+
+============================================================================
+VIEW 1: `ai_stok_durumu_view` — Ürün bazlı güncel stok durumu
+============================================================================
+- urun_id (INT)                     : Ürün PK
+- urun_adi (VARCHAR)                : Ürün adı (örn. 'DEV Makarna 500g')
+- barkod (VARCHAR, NULL)            : Ürün barkodu
+- kategori_adi (VARCHAR, NULL)      : Kategori (örn. 'Makarna')
+- marka_adi (VARCHAR, NULL)         : Marka (örn. 'ARBELLA')
+- guncel_stok_miktari (DECIMAL)     : Mevcut stok (palet koli toplamı)
+- kritik_stok_siniri (INT)          : Kritik stok eşiği
+- birim (VARCHAR)                   : 'Adet', 'Kg', 'Lt'
+- stok_durumu (VARCHAR)             : SADECE 'Yeterli' veya 'Stok Yok'
+
+============================================================================
+VIEW 2: `ai_palet_view` — Palet + lot + ürün + raf + depo birleşimi
+============================================================================
+- palet_id (INT), palet_no (VARCHAR), koli_adedi (INT)
+- palet_kg, brut_kg, net_kg (FLOAT, NULL)
+- vardiya, kaynak (VARCHAR, NULL)
+- palet_durumu (VARCHAR, NULL)      : 'OLUSTURULDU','KABUL_BEKLIYOR','KABUL_EDILDI',
+                                       'YERLESTIRME_BEKLIYOR','YERLESTIRILDI',
+                                       'KARANTINA','IPTAL_EDILDI'
+- aktif (BOOL)                      : 1 = aktif, 0 = sevk/iptal
+- uretim_tarihi (DATE, NULL), uretim_hatti, makine_kodu (VARCHAR, NULL)
+- palet_kayit_tarihi (DATETIME), kabul_tarihi (DATETIME, NULL)
+- lot_id, lot_no, son_kullanma_tarihi (DATE, NULL)
+- urun_id, urun_adi, urun_barkod, birim, kategori_adi, marka_adi
+- raf_id, raf_kodu, raf_bolge, raf_koridor, raf_staging_mi (BOOL)
+- depo_id, depo_adi
+
+============================================================================
+VIEW 3: `ai_lot_view` — Lot + ürün + palet özeti
+============================================================================
+- lot_id, lot_no, parti_no (VARCHAR, NULL)
+- uretim_tarihi (DATE, NULL), son_kullanma_tarihi (DATE, NULL)
+- aktif (BOOL), olusturma_tarihi (DATETIME)
+- urun_id, urun_adi, birim, kategori_adi, marka_adi
+- palet_sayisi (INT), toplam_koli (INT)
+- skt_kalan_gun (INT, NULL)         : Bugüne göre SKT'ye kalan gün; negatifse geçmiş.
+
+============================================================================
+VIEW 4: `ai_irsaliye_view` — Çıkış (sevk) irsaliyeleri
+============================================================================
+- irsaliye_id, irsaliye_no, irsaliye_tarihi (DATE)
+- belge_turu (VARCHAR)              : 'SevkIrsaliyesi' default
+- tir_plaka, sofor_adi (VARCHAR, NULL)
+- durum (VARCHAR)                   : 'Taslak','Onaylandi','Sevkedildi','Iptal'
+- olusturma_tarihi (DATETIME)
+- siparis_id, siparis_no, musteri_adi
+- teslimat_tarihi (DATE), siparis_durumu, siparis_top_miktar, siparis_top_tutar
+
+============================================================================
+VIEW 5: `ai_mal_kabul_view` — Giriş (mal kabul) irsaliyeleri
+============================================================================
+- mal_kabul_id, irsaliye_no, tarih (DATE)
+- durum (VARCHAR)                   : 'Taslak','Tamamlandi','Iptal' vb.
+- tir_plaka, sofor_adi (VARCHAR, NULL)
+- olusturma_tarihi (DATETIME)
+- tedarikci_id, tedarikci_adi
+- depo_id, depo_adi
+- kalem_sayisi (INT), toplam_miktar (INT)
+
+============================================================================
+VIEW 6: `ai_siparis_view` — Siparişler + sevkiyat planı özeti
+============================================================================
+- siparis_id, siparis_no, musteri_adi
+- teslimat_tarihi (DATE)
+- siparis_durumu (VARCHAR)          : 'Bekleme','Hazirlaniyor','Yuklemede','Sevkedildi','Iptal'
+- top_miktar (INT), top_tutar (FLOAT), aktif (BOOL)
+- olusturma_tarihi (DATETIME)
+- sevkiyat_id, sevkiyat_tir_plaka, sevkiyat_sofor_adi
+- yukleme_tarihi (DATE), sevkiyat_durumu
+- kalem_sayisi (INT), irsaliye_sayisi (INT)
+
+============================================================================
+VIEW 7: `ai_sevkiyat_view` — Sevkiyat planı + sipariş + müşteri
+============================================================================
+- sevkiyat_id, tir_plaka, sofor_adi, depo_kapi (VARCHAR, NULL)
+- yukleme_tarihi (DATE), cikis_saati, varis_saati (VARCHAR, NULL)
+- durum (VARCHAR)                   : 'Planlandi','Yuklemede','Sevkedildi','Iptal'
+- olusturma_tarihi (DATETIME)
+- siparis_id, siparis_no, musteri_adi, teslimat_tarihi, siparis_top_miktar
+
+============================================================================
+VIEW 8: `ai_stok_hareketi_view` — Stok hareketleri (giriş/çıkış)
+============================================================================
+- hareket_id, hareket_tipi (VARCHAR): 'GIRIS' veya 'CIKIS'
+- miktar (INT), tarih (DATETIME)
+- siparis_no, irsaliye_no, tir_plaka, depo_kapi, tasiyici_firma, aciklama
+- urun_id, urun_adi, birim, kategori_adi, marka_adi
+- palet_id, palet_no, lot_id, lot_no
+- raf_id, raf_kodu, depo_id, depo_adi
+- kullanici_id, kullanici_adi
+
+============================================================================
+VIEW 9: `ai_depo_doluluk_view` — Depo bazlı raf/palet özeti
+============================================================================
+- depo_id, depo_adi
+- toplam_raf (INT), dolu_raf (INT), bos_raf (INT)
+- aktif_palet_sayisi (INT), toplam_koli (INT)
+
+============================================================================
+HANGİ VIEW'I SEÇ?
+- "stok", "ürün stoğu", "kritik stok"           => ai_stok_durumu_view
+- "palet", "aktif palet", "raftaki palet"       => ai_palet_view (aktif=1 filtrele)
+- "lot", "SKT", "son kullanma"                  => ai_lot_view
+- "irsaliye" (çıkış/sevk), "müşteriye sevk"     => ai_irsaliye_view
+- "mal kabul", "tedarikçi girişi"               => ai_mal_kabul_view
+- "sipariş", "müşteri siparişi"                 => ai_siparis_view
+- "sevkiyat planı", "tır", "yükleme"            => ai_sevkiyat_view
+- "stok hareketi", "giriş/çıkış kaydı"          => ai_stok_hareketi_view
+- "depo doluluk", "boş raf", "kapasite"         => ai_depo_doluluk_view
 
 ÖNEMLİ KURALLAR:
 1. SADECE SELECT sorgusu üret. INSERT/UPDATE/DELETE/DROP/SHOW/DESCRIBE yasak.
-2. Sadece `ai_stok_durumu_view` view'ını kullan. Başka tablo/view ismi UYDURMA.
-3. Yukarıda LİSTELENMEYEN kolon adı UYDURMA. ('urun_kodu', 'toplam_stok', 'minimum_stok', 'depo_adi', 'aktif_palet_sayisi' YOKTUR.)
-4. `stok_durumu` filtresinde sadece 'Yeterli' veya 'Stok Yok' kullan.
-5. Eşanlamlı haritası:
-     - 'kritik', 'azalan', 'biten', 'tükenen', 'stok yok', 'stoğu olmayan'
-       => `stok_durumu = 'Stok Yok'`
-     - 'yeterli', 'bol', 'çok', 'dolu'
-       => `stok_durumu = 'Yeterli'`
-     - 'kritik altında', 'eşiğin altında', 'azalmış'
-       => `guncel_stok_miktari < kritik_stok_siniri`
-6. LIKE kullanırken `%` wildcard ekle: `urun_adi LIKE '%makarna%'`.
-7. Sayım için COUNT(*), toplam için SUM(guncel_stok_miktari) kullan.
-8. Limit belirtilmediyse `LIMIT 50` ekle.
-9. Türkçe karakterleri (ç,ş,ğ,ü,ö,ı) olduğu gibi kullan.
-10. Cevap SADECE SQL olsun, açıklama veya markdown KULLANMA.
+2. Yalnızca yukarıdaki 9 view'dan birini kullan. JOIN GEREKMEZ — view'lar zaten birleşik.
+3. Yukarıda LİSTELENMEYEN kolon adı UYDURMA.
+4. Aktif palet sorularında `WHERE aktif = 1` ekle (ai_palet_view'da).
+5. "Son N gün" için: `tarih_kolonu >= CURDATE() - INTERVAL N DAY`.
+6. `stok_durumu` filtresinde sadece 'Yeterli' veya 'Stok Yok' kullan.
+7. Eşanlamlı haritası:
+     - 'kritik','azalan','biten','tükenen','stoğu olmayan' => stok_durumu = 'Stok Yok'
+     - 'yeterli','bol','çok','dolu'                        => stok_durumu = 'Yeterli'
+     - 'kritik altında','eşiğin altında','azalmış'         => guncel_stok_miktari < kritik_stok_siniri
+8. LIKE'da `%` wildcard kullan: `urun_adi LIKE '%makarna%'`.
+9. Limit belirtilmediyse listeleme için `LIMIT 50` ekle. Sayım/toplam için LIMIT EKLEME.
+10. Türkçe karakterleri (ç,ş,ğ,ü,ö,ı) olduğu gibi kullan.
+11. Cevap SADECE SQL olsun, açıklama veya markdown KULLANMA.
+12. Eğer soru yukarıdaki view'larla yanıtlanamıyorsa, en yakın view üzerinden BOŞ sonuç dönecek bir SELECT yaz (örn. `SELECT 1 WHERE 1=0`).
 """
 
 
@@ -98,6 +200,106 @@ FEW_SHOT_EXAMPLES = [
     {
         "soru": "Adet biriminde satılan ürünlerden stoğu olmayanlar",
         "sql": "SELECT urun_adi, guncel_stok_miktari FROM ai_stok_durumu_view WHERE birim = 'Adet' AND stok_durumu = 'Stok Yok' LIMIT 50;",
+    },
+    # ----- ai_palet_view örnekleri -----
+    {
+        "soru": "Aktif palet sayısı kaç?",
+        "sql": "SELECT COUNT(*) AS aktif_palet_sayisi FROM ai_palet_view WHERE aktif = 1;",
+    },
+    {
+        "soru": "Yerleştirilmiş aktif palet sayısı",
+        "sql": "SELECT COUNT(*) AS palet_sayisi FROM ai_palet_view WHERE aktif = 1 AND palet_durumu = 'YERLESTIRILDI';",
+    },
+    {
+        "soru": "Karantinadaki paletleri listele",
+        "sql": "SELECT palet_no, urun_adi, koli_adedi, raf_kodu FROM ai_palet_view WHERE palet_durumu = 'KARANTINA' AND aktif = 1 LIMIT 50;",
+    },
+    {
+        "soru": "1 numaralı depodaki aktif palet sayısı",
+        "sql": "SELECT COUNT(*) AS palet_sayisi FROM ai_palet_view WHERE depo_id = 1 AND aktif = 1;",
+    },
+    {
+        "soru": "Depoya göre aktif palet dağılımı",
+        "sql": "SELECT depo_adi, COUNT(*) AS palet_sayisi FROM ai_palet_view WHERE aktif = 1 GROUP BY depo_adi ORDER BY palet_sayisi DESC LIMIT 50;",
+    },
+    # ----- ai_lot_view örnekleri -----
+    {
+        "soru": "Son kullanma tarihi 30 günden az kalan lotlar",
+        "sql": "SELECT lot_no, urun_adi, son_kullanma_tarihi, skt_kalan_gun FROM ai_lot_view WHERE aktif = 1 AND skt_kalan_gun IS NOT NULL AND skt_kalan_gun BETWEEN 0 AND 30 ORDER BY skt_kalan_gun ASC LIMIT 50;",
+    },
+    {
+        "soru": "SKT'si geçmiş aktif lot sayısı",
+        "sql": "SELECT COUNT(*) AS lot_sayisi FROM ai_lot_view WHERE aktif = 1 AND skt_kalan_gun < 0;",
+    },
+    {
+        "soru": "Toplam aktif lot sayısı",
+        "sql": "SELECT COUNT(*) AS lot_sayisi FROM ai_lot_view WHERE aktif = 1;",
+    },
+    # ----- ai_irsaliye_view örnekleri -----
+    {
+        "soru": "Son 7 günde oluşturulan irsaliye sayısı",
+        "sql": "SELECT COUNT(*) AS irsaliye_sayisi FROM ai_irsaliye_view WHERE olusturma_tarihi >= CURDATE() - INTERVAL 7 DAY;",
+    },
+    {
+        "soru": "Bugün sevkedilmesi planlanan irsaliyeler",
+        "sql": "SELECT irsaliye_no, musteri_adi, tir_plaka, durum FROM ai_irsaliye_view WHERE irsaliye_tarihi = CURDATE() LIMIT 50;",
+    },
+    {
+        "soru": "Taslak durumundaki irsaliye sayısı",
+        "sql": "SELECT COUNT(*) AS adet FROM ai_irsaliye_view WHERE durum = 'Taslak';",
+    },
+    # ----- ai_mal_kabul_view örnekleri -----
+    {
+        "soru": "Bu ay gelen mal kabul irsaliyesi sayısı",
+        "sql": "SELECT COUNT(*) AS adet FROM ai_mal_kabul_view WHERE YEAR(tarih) = YEAR(CURDATE()) AND MONTH(tarih) = MONTH(CURDATE());",
+    },
+    {
+        "soru": "Tedarikçi bazında mal kabul irsaliye sayısı",
+        "sql": "SELECT tedarikci_adi, COUNT(*) AS irsaliye_sayisi FROM ai_mal_kabul_view GROUP BY tedarikci_adi ORDER BY irsaliye_sayisi DESC LIMIT 50;",
+    },
+    # ----- ai_siparis_view örnekleri -----
+    {
+        "soru": "Bekleyen sipariş sayısı",
+        "sql": "SELECT COUNT(*) AS adet FROM ai_siparis_view WHERE siparis_durumu = 'Bekleme';",
+    },
+    {
+        "soru": "Bugünkü teslimat tarihli siparişler",
+        "sql": "SELECT siparis_no, musteri_adi, top_miktar, siparis_durumu FROM ai_siparis_view WHERE teslimat_tarihi = CURDATE() LIMIT 50;",
+    },
+    {
+        "soru": "En çok sipariş veren 10 müşteri",
+        "sql": "SELECT musteri_adi, COUNT(*) AS siparis_sayisi FROM ai_siparis_view GROUP BY musteri_adi ORDER BY siparis_sayisi DESC LIMIT 10;",
+    },
+    # ----- ai_sevkiyat_view örnekleri -----
+    {
+        "soru": "Bugün yüklenecek sevkiyatlar",
+        "sql": "SELECT siparis_no, musteri_adi, tir_plaka, sofor_adi, durum FROM ai_sevkiyat_view WHERE yukleme_tarihi = CURDATE() LIMIT 50;",
+    },
+    {
+        "soru": "Planlandı durumundaki sevkiyat sayısı",
+        "sql": "SELECT COUNT(*) AS adet FROM ai_sevkiyat_view WHERE durum = 'Planlandi';",
+    },
+    # ----- ai_stok_hareketi_view örnekleri -----
+    {
+        "soru": "Son 7 günde yapılan giriş hareketi sayısı",
+        "sql": "SELECT COUNT(*) AS adet FROM ai_stok_hareketi_view WHERE hareket_tipi = 'GIRIS' AND tarih >= CURDATE() - INTERVAL 7 DAY;",
+    },
+    {
+        "soru": "Bugün yapılan stok çıkışları",
+        "sql": "SELECT urun_adi, miktar, palet_no, tarih FROM ai_stok_hareketi_view WHERE hareket_tipi = 'CIKIS' AND DATE(tarih) = CURDATE() ORDER BY tarih DESC LIMIT 50;",
+    },
+    {
+        "soru": "Hareket tipine göre toplam miktar",
+        "sql": "SELECT hareket_tipi, SUM(miktar) AS toplam FROM ai_stok_hareketi_view GROUP BY hareket_tipi;",
+    },
+    # ----- ai_depo_doluluk_view örnekleri -----
+    {
+        "soru": "Depoların doluluk durumu",
+        "sql": "SELECT depo_adi, toplam_raf, dolu_raf, bos_raf, aktif_palet_sayisi FROM ai_depo_doluluk_view ORDER BY dolu_raf DESC LIMIT 50;",
+    },
+    {
+        "soru": "En çok boş raf hangi depoda?",
+        "sql": "SELECT depo_adi, bos_raf FROM ai_depo_doluluk_view ORDER BY bos_raf DESC LIMIT 1;",
     },
 ]
 
