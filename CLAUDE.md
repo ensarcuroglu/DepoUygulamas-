@@ -4,7 +4,7 @@ This file is the operational reference for AI coding agents working in this repo
 
 ## Project Overview
 
-**Depo Yönetim Sistemi (WMS)** — Full-stack warehouse management system with lot/pallet tracking, putaway/pick task workflows, production pallet intake, and mobile terminal PWA. FastAPI backend (Clean Architecture) + React (Vite) frontend.
+**Depo Yönetim Sistemi (WMS)** — Full-stack warehouse management system with lot/pallet tracking, putaway/pick task workflows, production pallet intake, and mobile terminal PWA. FastAPI backend (Clean Architecture) + React (Vite) frontend + AI doğal dil sorgu servisi (LangChain + Ollama).
 
 ---
 
@@ -80,6 +80,24 @@ npm run build
 npm run preview
 ```
 
+### WmsAiService (LangChain + Ollama — `WmsAiService/`)
+
+```bash
+cd WmsAiService
+
+# Dependency kurulumu
+pip install -r requirements.txt
+
+# Development server (port 8001 önerilir, backend 8000'de çalışır)
+uvicorn main:app --reload --host 127.0.0.1 --port 8001
+
+# Ollama model (varsayılan: qwen2.5-coder:7b)
+ollama pull qwen2.5-coder:7b
+
+# DB view'larını oluştur (ilk kurulumda bir kez)
+mysql -u root -p depo_yonetim < views.sql
+```
+
 > **Not:** Frontend'te TypeScript kullanılmıyor; tüm dosyalar `.js` / `.jsx`.
 
 ---
@@ -117,6 +135,15 @@ npm run preview
 - **HTTPS (dev):** vite-plugin-mkcert
 - **Lint:** ESLint 9 (flat config) + react-hooks + react-refresh
 - **Bundle analysis:** rollup-plugin-visualizer
+
+### WmsAiService (AI Sorgu Servisi)
+- **Language/Runtime:** Python 3.x
+- **Framework:** FastAPI
+- **LLM orchestration:** LangChain (LCEL) + langchain-ollama (ChatOllama)
+- **Local LLM:** Ollama (varsayılan model: `qwen2.5-coder:7b`)
+- **Database:** MySQL (PyMySQL driver, charset=utf8mb4) — read-only `depo_ai_reader` kullanıcısı
+- **SQL execution:** SQLAlchemy + LangChain `SQLDatabase` (view_support=True)
+- **Settings:** python-dotenv (`.env` tabanlı)
 
 ---
 
@@ -199,6 +226,20 @@ ReactProje/
 ├── vite.config.js             # Vite yapılandırması (proxy, PWA, chunks, security headers)
 ├── eslint.config.js           # ESLint 9 flat config
 └── package.json               # npm bağımlılıkları
+
+WmsAiService/
+├── main.py                    # FastAPI app entry point, endpoint tanımları (/api/ai/*)
+├── chains.py                  # LangChain LCEL pipeline (SQL üret → çalıştır → self-correct → cevapla)
+├── prompts.py                 # Sistem promptları, şema açıklaması, few-shot örnekleri (Türkçe)
+├── answerer.py                # Cevap üretim katmanı (template-first; LLM yalnızca verbose modda)
+├── list_renderer.py           # Çok-satır LIST sonuçlar için deterministik Türkçe template renderer
+├── result_formatter.py        # SQL sonuçlarını yapılandırılmış formata çevirir (intent: SCALAR/EMPTY/LIST)
+├── sql_guard.py               # SQL güvenlik katmanı (SELECT-only, whitelist, yasaklı keyword'ler)
+├── memory.py                  # In-memory konuşma hafızası (session_id bazlı, LRU + TTL)
+├── views.sql                  # 9 adet read-only MySQL view tanımı + depo_ai_reader GRANT'ları
+├── requirements.txt           # Python bağımlılıkları
+├── .env                       # Ortam değişkenleri (DB bağlantı, Ollama ayarları)
+└── venv/                      # Python sanal ortam (generated)
 ```
 
 ---
@@ -290,6 +331,7 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - `depocu` — Terminal, stok hareketleri, üretim kabul
 - `lojistik` — Depolar, depo kroki, stok hareketleri
 - `goruntuleyen` — Salt okunur erişim
+- `depo_ai_reader` — MySQL DB kullanıcısı (WmsAiService); sadece `ai_*_view` SELECT izni
 
 ---
 
@@ -301,6 +343,7 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - Frontend: `ReactProje/.env.local` (isteğe bağlı)
 - Feature flag: `FEATURE_URETIM_PALET_PILOT_DEPO_IDS` (boş=kapalı, `TUMU`=tüm depolar, `1,3,5`=belirli depolar)
 - Palet veri kaynağı: `PALET_VERI_KAYNAGI` (`LOCAL`, `MOCK`, `ERP`)
+- WmsAiService: `WmsAiService/.env`. Zorunlu: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`. Opsiyonel: `OLLAMA_MODEL` (def: `qwen2.5-coder:7b`), `OLLAMA_BASE_URL` (def: `http://localhost:11434`), `OLLAMA_ANSWER_MODEL`, `LLM_TEMPERATURE` (def: `0`), `LLM_NUM_CTX` (def: `4096`), `LLM_TIMEOUT` (def: `120`), `MAX_CORRECTION_ATTEMPTS` (def: `2`), `ANSWER_NUM_PREDICT` (def: `40`)
 
 ### Stok Hesaplama
 - `Urun.stok_miktari` bir `column_property`; `Palet.koli_adedi` üzerinden aktif `Lot` kayıtlarından hesaplanır. **Ürün tablosunda saklanan stok sütunu yoktur.**
@@ -317,6 +360,7 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - `BackendProje/__pycache__/`, `BackendProje/.venv/`
 - `BackendProje/.coverage` — test coverage veritabanı
 - `BackendProje/alembic/versions/` — otomatik üretilen migration dosyaları (sadece alembic ile oluştur)
+- `WmsAiService/__pycache__/`, `WmsAiService/venv/`
 
 ### Migration Kuralları
 - **Alembic** resmi migration aracıdır ama projede standalone `migrate_*.py` scriptleri de bulunur (elle çalıştırılır, tekrar çalıştırmaya dayanıklı değil)
@@ -340,6 +384,45 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 
 ---
 
+### WmsAiService — Mimari ve Kurallar
+
+#### Pipeline Akışı
+```
+Kullanıcı sorusu (Türkçe doğal dil)
+  → LangChain LCEL: ChatOllama ile SQL üret (few-shot + şema-aware)
+  → sql_guard: temizle + SELECT-only + whitelist doğrula
+  → SQLAlchemy execute → StructuredResult (intent: SCALAR / EMPTY / LIST)
+      → Hata? → self-correction loop (max N deneme, LLM'e hatayı geri ver)
+  → Answerer dispatch:
+      EMPTY  → sabit Türkçe cümle
+      SCALAR → deterministik şablon (LLM yok)
+      LIST   → deterministik template (list_renderer); verbose=True ise LLM dener + validation gate
+```
+
+#### Güvenlik Katmanı (`sql_guard.py`)
+- SELECT-only: INSERT/UPDATE/DELETE/DROP/ALTER ve diğer yasaklı keyword'ler reddedilir
+- Whitelist: Yalnızca `ALLOWED_TABLES` setindeki 9 `ai_*_view`'a erişim izni
+- SQL yorum satırları (injection vektörü) engellenir
+- Birden fazla SQL statement çalıştırılamaz
+
+#### Yeni View Ekleme Kuralları
+Yeni bir view eklendiğinde **üç dosya birlikte güncellenmelidir:**
+1. `views.sql` — view CREATE + GRANT
+2. `sql_guard.py` → `ALLOWED_TABLES` set'ine ekleme
+3. `prompts.py` → `SCHEMA_DESCRIPTION` + `FEW_SHOT_EXAMPLES` güncelleme
+
+#### Konuşma Hafızası
+- In-memory, thread-safe LRU + TTL (30 dk, max 200 session)
+- Session bazlı; `session_id` ile takip soruları desteklenir
+- Üretim ortamında Redis ile değiştirilmesi tavsiye edilir
+
+#### Cevap Üretim Stratejisi
+- **Template-first:** Çoğu cevap LLM çağrısı olmadan deterministik şablonlarla üretilir
+- LLM yalnızca `verbose=True` + LIST intent + validation gate başarılıysa kullanılır
+- Bu tasarım küçük/yerel LLM'lerin Türkçe morfoloji bozukluklarını minimize eder
+
+---
+
 ## AI Agent Development Checklist
 
 - [ ] Değişiklik yapmadan önce ilgili dosyaları (entity, use case, router, test) oku
@@ -353,3 +436,4 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - [ ] Mevcut query key pattern'ine uy (`queryKeys.js`)
 - [ ] Davranış değişikliğinde mevcut testleri güncelle; yeni davranış için test yaz
 - [ ] Alakasız refactor yapma; değişiklikleri dar ve kapsamlı tut
+- [ ] WmsAiService'te yeni view eklerken: `views.sql` + `sql_guard.py` (ALLOWED_TABLES) + `prompts.py` (SCHEMA_DESCRIPTION + FEW_SHOT_EXAMPLES) üçlüsünü birlikte güncelle
