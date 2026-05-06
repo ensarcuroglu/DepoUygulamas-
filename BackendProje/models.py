@@ -999,6 +999,115 @@ class TalepTahminCache(Base):
     )
 
 
+# ========================
+# OPERATÖR PERFORMANS — LMS (Faz 1)
+# ========================
+
+class GorevPerformansEvent(Base):
+    """Görev yaşam döngüsü olaylarının immutable log'u (transactional outbox).
+
+    Yerleştirme veya toplama görevi BAŞLATILDI/TAMAMLANDI/IPTAL olduğunda
+    use case kendi transaction'ı içinde buraya bir kayıt insert eder.
+    APScheduler aggregator job `aggregate_edildi=False` kayıtları okuyup
+    `operator_vardiya_metrikleri` tablosuna upsert eder.
+    """
+
+    __tablename__ = "gorev_performans_eventleri"
+    __table_args__ = (
+        Index(
+            "ix_gorev_performans_event_outbox",
+            "aggregate_edildi",
+            "olusturma_tarihi",
+        ),
+        Index(
+            "ix_gorev_performans_event_kullanici_tarih",
+            "kullanici_id",
+            "olusturma_tarihi",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    event_tipi: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    gorev_tipi: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    gorev_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    kullanici_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("kullanicilar.id"), nullable=False, index=True
+    )
+    depo_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("depolar.id"), nullable=True, index=True
+    )
+    sure_saniye: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    iptal_nedeni: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    payload: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    aggregate_edildi: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="0", nullable=False, index=True
+    )
+    olusturma_tarihi: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        server_default=func.now(),
+        nullable=False,
+        index=True,
+    )
+
+    kullanici: Mapped["Kullanici"] = relationship("Kullanici", foreign_keys=[kullanici_id])
+
+
+class OperatorVardiyaMetrikleri(Base):
+    """Bir operatörün bir takvim günü için aggregate edilmiş performans özeti.
+
+    Aggregator job `gorev_performans_eventleri` üzerinden upsert eder. UPH
+    okuma sırasında hesaplanır: (tamamlanan_yerlestirme + tamamlanan_toplama)
+    / (toplam_aktif_saniye / 3600). Vardiya = takvim günü (00:00–23:59 UTC).
+    """
+
+    __tablename__ = "operator_vardiya_metrikleri"
+    __table_args__ = (
+        UniqueConstraint(
+            "kullanici_id",
+            "vardiya_tarihi",
+            name="uq_operator_vardiya_metrikleri_kullanici_tarih",
+        ),
+        Index(
+            "ix_operator_vardiya_metrikleri_depo_tarih",
+            "depo_id",
+            "vardiya_tarihi",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    kullanici_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("kullanicilar.id"), nullable=False, index=True
+    )
+    depo_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("depolar.id"), nullable=True, index=True
+    )
+    vardiya_tarihi: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    tamamlanan_yerlestirme: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    tamamlanan_toplama: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    iptal_sayisi: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    toplam_aktif_saniye: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    ortalama_gorev_suresi_sn: Mapped[float] = mapped_column(
+        Float, default=0.0, server_default="0", nullable=False
+    )
+    son_guncelleme: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    kullanici: Mapped["Kullanici"] = relationship("Kullanici", foreign_keys=[kullanici_id])
+
+
 from sqlalchemy.orm import column_property  # noqa: E402
 
 # N+1 Problemini çözmek için column_property ile veritabanı seviyesinde toplama yapıyoruz.

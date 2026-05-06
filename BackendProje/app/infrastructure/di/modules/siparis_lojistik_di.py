@@ -76,6 +76,9 @@ from app.infrastructure.di.modules.depo_envanter_di import (
     get_yerlestirme_algoritmasi,
 )
 from app.infrastructure.di.modules.uretim_di import get_uretim_seri_no_uretici
+from app.infrastructure.di.modules.operator_performans_di import (
+    get_performans_event_publisher,
+)
 
 
 # ── Repository factory'leri ──
@@ -199,8 +202,9 @@ def get_siradan_gorev_al_uc(
 
 def get_gorev_baslat_uc(
     gorev_repo=Depends(get_toplama_gorevi_repo),
+    performans_publisher=Depends(get_performans_event_publisher),
 ):
-    return GorevBaslatUseCase(gorev_repo)
+    return GorevBaslatUseCase(gorev_repo, performans_publisher)
 
 
 def get_gorev_tamamla_uc(
@@ -209,16 +213,21 @@ def get_gorev_tamamla_uc(
     rezervasyon_repo=Depends(get_rezervasyon_repo),
     hareket_repo=Depends(get_hareket_repo),
     log_repo=Depends(get_log_repo),
+    performans_publisher=Depends(get_performans_event_publisher),
 ):
-    return GorevTamamlaUseCase(gorev_repo, palet_repo, rezervasyon_repo, hareket_repo, log_repo)
+    return GorevTamamlaUseCase(
+        gorev_repo, palet_repo, rezervasyon_repo, hareket_repo, log_repo,
+        performans_publisher,
+    )
 
 
 def get_gorev_iptal_uc(
     gorev_repo=Depends(get_toplama_gorevi_repo),
     rezervasyon_repo=Depends(get_rezervasyon_repo),
     log_repo=Depends(get_log_repo),
+    performans_publisher=Depends(get_performans_event_publisher),
 ):
-    return GorevIptalUseCase(gorev_repo, rezervasyon_repo, log_repo)
+    return GorevIptalUseCase(gorev_repo, rezervasyon_repo, log_repo, performans_publisher)
 
 
 def get_fefo_override_uc(

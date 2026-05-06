@@ -30,6 +30,10 @@ from .sa_uretim_seri_sayac_repository import SqlAlchemyUretimSeriSayacRepository
 from .sa_palet_durum_log_repository import SqlAlchemyPaletDurumLogRepository
 from .sa_talep_tahmini_repository import SqlAlchemyTalepTahminiRepository
 from .sa_talep_tahmin_cache_repository import SqlAlchemyTalepTahminCacheRepository
+from .sa_operator_performans_repository import (
+    SqlAlchemyGorevPerformansEventRepository,
+    SqlAlchemyOperatorVardiyaMetrikleriRepository,
+)
 
 __all__ = [
     "SqlAlchemyMarkaRepository",
@@ -62,4 +66,6 @@ __all__ = [
     "SqlAlchemyPaletDurumLogRepository",
     "SqlAlchemyTalepTahminiRepository",
     "SqlAlchemyTalepTahminCacheRepository",
+    "SqlAlchemyGorevPerformansEventRepository",
+    "SqlAlchemyOperatorVardiyaMetrikleriRepository",
 ]

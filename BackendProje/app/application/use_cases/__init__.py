@@ -186,6 +186,10 @@ from .talep_tahmini_use_cases import (
     TalepTahminiGetirUseCase,
     TalepTahminUrunleriListeleUseCase,
 )
+from .operator_performans_use_cases import (
+    AggregasyonSonucDTO,
+    MetriklerAggregasyonUseCase,
+)
 
 __all__ = [
     # Ürün
@@ -274,4 +278,6 @@ __all__ = [
     # Talep Tahmini
     "TalepTahminiGetirUseCase", "TalepTahminUrunleriListeleUseCase",
     "RiskliUrunlerListeleUseCase", "BacktestOzetGetirUseCase",
+    # Operatör Performans (LMS)
+    "MetriklerAggregasyonUseCase", "AggregasyonSonucDTO",
 ]

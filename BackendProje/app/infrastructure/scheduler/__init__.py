@@ -12,6 +12,9 @@ import logging
 from app.infrastructure.scheduler.rapor_scheduler import zamanlama_kontrol
 from app.infrastructure.scheduler.staging_uyari_job import staging_uyari_kontrol
 from app.infrastructure.scheduler.talep_tahmin_job import talep_tahmin_precompute
+from app.infrastructure.scheduler.operator_metrik_aggregator_job import (
+    operator_metrikleri_aggregate_et,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +46,15 @@ class RaporScheduler:
                 talep_tahmin_precompute,
                 CronTrigger(hour=2, minute=0),
                 id="talep_tahmin_precompute",
+                replace_existing=True,
+                max_instances=1,
+                coalesce=True,
+            )
+            # Operatör performans metrikleri aggregator — her 5 dakikada bir
+            self._scheduler.add_job(
+                operator_metrikleri_aggregate_et,
+                CronTrigger(minute="*/5"),
+                id="operator_metrikleri_aggregate",
                 replace_existing=True,
                 max_instances=1,
                 coalesce=True,

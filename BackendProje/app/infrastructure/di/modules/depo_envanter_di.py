@@ -73,6 +73,9 @@ from app.core.config import get_settings
 
 from app.infrastructure.di.modules.kullanici_destek_di import get_log_repo
 from app.infrastructure.di.modules.urun_di import get_urun_repo
+from app.infrastructure.di.modules.operator_performans_di import (
+    get_performans_event_publisher,
+)
 
 _erp_config = ErpConfig.from_settings(get_settings())
 _mock_erp_adapter = None
@@ -406,8 +409,9 @@ def get_sonraki_gorevini_al_uc(
 
 def get_yerlestirme_gorevi_baslat_uc(
     repo=Depends(get_yerlestirme_gorevi_repo),
+    performans_publisher=Depends(get_performans_event_publisher),
 ):
-    return YerlestirmeGoreviBaslatUseCase(repo)
+    return YerlestirmeGoreviBaslatUseCase(repo, performans_publisher)
 
 
 def get_yerlestirme_gorevi_tamamla_uc(
@@ -416,8 +420,11 @@ def get_yerlestirme_gorevi_tamamla_uc(
     raf_repo=Depends(get_raf_repo),
     log_repo=Depends(get_log_repo),
     mal_kabul_repo=Depends(get_mal_kabul_irsaliye_repo),
+    performans_publisher=Depends(get_performans_event_publisher),
 ):
-    return YerlestirmeGoreviTamamlaUseCase(repo, palet_repo, raf_repo, log_repo, mal_kabul_repo)
+    return YerlestirmeGoreviTamamlaUseCase(
+        repo, palet_repo, raf_repo, log_repo, mal_kabul_repo, performans_publisher,
+    )
 
 
 def get_yerlestirme_gorevi_override_uc(
@@ -426,15 +433,19 @@ def get_yerlestirme_gorevi_override_uc(
     raf_repo=Depends(get_raf_repo),
     log_repo=Depends(get_log_repo),
     mal_kabul_repo=Depends(get_mal_kabul_irsaliye_repo),
+    performans_publisher=Depends(get_performans_event_publisher),
 ):
-    return YerlestirmeGoreviOverrideUseCase(repo, palet_repo, raf_repo, log_repo, mal_kabul_repo)
+    return YerlestirmeGoreviOverrideUseCase(
+        repo, palet_repo, raf_repo, log_repo, mal_kabul_repo, performans_publisher,
+    )
 
 
 def get_yerlestirme_gorevi_iptal_uc(
     repo=Depends(get_yerlestirme_gorevi_repo),
     log_repo=Depends(get_log_repo),
+    performans_publisher=Depends(get_performans_event_publisher),
 ):
-    return YerlestirmeGoreviIptalUseCase(repo, log_repo)
+    return YerlestirmeGoreviIptalUseCase(repo, log_repo, performans_publisher)
 
 
 def get_yerlestirme_gorevi_birak_uc(
@@ -495,10 +506,12 @@ def get_yerlestirme_onayla_uc(
     kapasite=Depends(get_kapasite_dogrulama_servisi),
     log_repo=Depends(get_log_repo),
     mal_kabul_repo=Depends(get_mal_kabul_irsaliye_repo),
+    performans_publisher=Depends(get_performans_event_publisher),
 ):
     return YerlestirmeOnaylaUseCase(
         repo, palet_repo, raf_repo, lot_repo, urun_repo,
         zon_repo, zon_uyumluluk, kapasite, log_repo, mal_kabul_repo, db,
+        performans_publisher,
     )
 
 

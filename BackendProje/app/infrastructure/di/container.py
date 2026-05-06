@@ -257,3 +257,11 @@ from app.infrastructure.di.modules.talep_tahmini_di import (  # noqa: F401
     get_riskli_urunler_listele_uc,
     get_backtest_ozet_getir_uc,
 )
+
+from app.infrastructure.di.modules.operator_performans_di import (  # noqa: F401
+    get_gorev_performans_event_repo,
+    get_operator_vardiya_metrikleri_repo,
+    get_performans_event_publisher,
+    get_operator_kpi_service,
+    get_metrikler_aggregasyon_uc,
+)

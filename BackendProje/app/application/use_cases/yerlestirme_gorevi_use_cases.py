@@ -3,6 +3,7 @@ Yerleştirme Görevi Use Case'leri.
 """
 
 from __future__ import annotations
+from datetime import datetime
 from typing import List, Optional, TYPE_CHECKING
 
 from app.core.repositories.yerlestirme_gorevi_repository import IYerlestirmeGoreviRepository
@@ -17,7 +18,17 @@ from app.core.entities.yerlestirme_gorevi import YerlestirmeGorevi, GorevTipi, G
 from app.core.entities.mal_kabul_irsaliye import MalKabulDurum
 from app.core.entities.sistem_log import SistemLog, IslemTipi
 from app.core.entities.zon import ZonTipi
+from app.core.entities.operator_performans import PerformansGorevTipi
 from app.core.exceptions import KayitBulunamadiError, GecersizIslemError, YetkisizIslemError
+from app.core.services.performans_event_publisher import IPerformansEventPublisher
+
+
+def _gorev_sure_saniye(baslama, bitis) -> int:
+    """Operatör gerçek aktif sürenin saniye karşılığı; eksik veride 0."""
+    if not baslama or not bitis:
+        return 0
+    delta = (bitis - baslama).total_seconds()
+    return max(0, int(delta))
 
 # Görev tamamlandı sayılan durumlar (bu ikisi varsa irsaliye kapanır)
 _GOREV_BITTI_DURUMLARI = {GorevDurum.TAMAMLANDI, GorevDurum.IPTAL_EDILDI}
@@ -232,8 +243,13 @@ class ZamanAsimiBirakUseCase:
 class YerlestirmeGoreviBaslatUseCase:
     """Operatör paleti fiziksel olarak aldığında DEVAM_EDIYOR'a geçer."""
 
-    def __init__(self, repo: IYerlestirmeGoreviRepository):
+    def __init__(
+        self,
+        repo: IYerlestirmeGoreviRepository,
+        performans_publisher: Optional[IPerformansEventPublisher] = None,
+    ):
         self._repo = repo
+        self._performans = performans_publisher
 
     def execute(self, gorev_id: int, kullanici_id: int) -> YerlestirmeGoreviResponseDTO:
         gorev = self._repo.getir_id_ile(gorev_id)
@@ -242,6 +258,14 @@ class YerlestirmeGoreviBaslatUseCase:
         if gorev.atanan_kullanici_id != kullanici_id:
             raise GecersizIslemError("Bu görev size atanmamış.")
         gorev.baslat()
+        # Transactional outbox: event'i flush eder, son guncelle commit'i atar.
+        if self._performans is not None and gorev.id is not None:
+            self._performans.gorev_baslatildi(
+                gorev_tipi=PerformansGorevTipi.YERLESTIRME,
+                gorev_id=gorev.id,
+                kullanici_id=kullanici_id,
+                depo_id=gorev.depo_id,
+            )
         kaydedilen = self._repo.guncelle(gorev)
         return YerlestirmeGoreviResponseDTO.from_entity(kaydedilen)
 
@@ -256,12 +280,14 @@ class YerlestirmeGoreviTamamlaUseCase:
         raf_repo: IRafRepository,
         log_repo: ISistemLogRepository,
         mal_kabul_repo: IMalKabulIrsaliyeRepository,
+        performans_publisher: Optional[IPerformansEventPublisher] = None,
     ):
         self._repo = repo
         self._palet_repo = palet_repo
         self._raf_repo = raf_repo
         self._log_repo = log_repo
         self._mal_kabul_repo = mal_kabul_repo
+        self._performans = performans_publisher
 
     def execute(
         self, gorev_id: int, dto: YerlestirmeGoreviTamamlaRequestDTO, kullanici_id: int
@@ -283,7 +309,17 @@ class YerlestirmeGoreviTamamlaUseCase:
         palet.raf_ata(dto.gerceklesen_raf_id)
         self._palet_repo.guncelle(palet, auto_commit=False)
 
+        baslama = gorev.baslama_tarihi
         gorev.tamamla(dto.gerceklesen_raf_id)
+        if self._performans is not None and gorev.id is not None:
+            self._performans.gorev_tamamlandi(
+                gorev_tipi=PerformansGorevTipi.YERLESTIRME,
+                gorev_id=gorev.id,
+                kullanici_id=kullanici_id,
+                sure_saniye=_gorev_sure_saniye(baslama, gorev.tamamlanma_tarihi),
+                depo_id=gorev.depo_id,
+                payload={"gerceklesen_raf_id": dto.gerceklesen_raf_id},
+            )
         kaydedilen = self._repo.guncelle(gorev)
 
         self._log_repo.olustur(
@@ -311,12 +347,14 @@ class YerlestirmeGoreviOverrideUseCase:
         raf_repo: IRafRepository,
         log_repo: ISistemLogRepository,
         mal_kabul_repo: IMalKabulIrsaliyeRepository,
+        performans_publisher: Optional[IPerformansEventPublisher] = None,
     ):
         self._repo = repo
         self._palet_repo = palet_repo
         self._raf_repo = raf_repo
         self._log_repo = log_repo
         self._mal_kabul_repo = mal_kabul_repo
+        self._performans = performans_publisher
 
     def execute(
         self, gorev_id: int, dto: YerlestirmeGoreviOverrideRequestDTO, supervisor_id: int
@@ -336,7 +374,21 @@ class YerlestirmeGoreviOverrideUseCase:
         palet.raf_ata(dto.gerceklesen_raf_id)
         self._palet_repo.guncelle(palet, auto_commit=False)
 
+        baslama = gorev.baslama_tarihi
+        atanan_id = gorev.atanan_kullanici_id or supervisor_id
         gorev.override_ile_tamamla(dto.gerceklesen_raf_id, supervisor_id, dto.neden)
+        if self._performans is not None and gorev.id is not None:
+            self._performans.gorev_tamamlandi(
+                gorev_tipi=PerformansGorevTipi.YERLESTIRME,
+                gorev_id=gorev.id,
+                kullanici_id=atanan_id,
+                sure_saniye=_gorev_sure_saniye(baslama, gorev.tamamlanma_tarihi),
+                depo_id=gorev.depo_id,
+                payload={
+                    "gerceklesen_raf_id": dto.gerceklesen_raf_id,
+                    "override_supervisor_id": supervisor_id,
+                },
+            )
         kaydedilen = self._repo.guncelle(gorev)
 
         self._log_repo.olustur(
@@ -392,9 +444,15 @@ class YerlestirmeGoreviYerlestirmeGoreviBekleyenOzetUseCase:
 
 
 class YerlestirmeGoreviIptalUseCase:
-    def __init__(self, repo: IYerlestirmeGoreviRepository, log_repo: ISistemLogRepository):
+    def __init__(
+        self,
+        repo: IYerlestirmeGoreviRepository,
+        log_repo: ISistemLogRepository,
+        performans_publisher: Optional[IPerformansEventPublisher] = None,
+    ):
         self._repo = repo
         self._log_repo = log_repo
+        self._performans = performans_publisher
 
     def execute(
         self, gorev_id: int, dto: YerlestirmeGoreviIptalRequestDTO, kullanici_id: int
@@ -403,7 +461,22 @@ class YerlestirmeGoreviIptalUseCase:
         if not gorev:
             raise KayitBulunamadiError("YerlestirmeGorevi", gorev_id)
 
+        baslama = gorev.baslama_tarihi
+        atanan_id = gorev.atanan_kullanici_id
         gorev.iptal_et(dto.neden)
+        if (
+            self._performans is not None
+            and gorev.id is not None
+            and atanan_id is not None
+        ):
+            self._performans.gorev_iptal(
+                gorev_tipi=PerformansGorevTipi.YERLESTIRME,
+                gorev_id=gorev.id,
+                kullanici_id=atanan_id,
+                iptal_nedeni=dto.neden,
+                sure_saniye=_gorev_sure_saniye(baslama, datetime.utcnow()),
+                depo_id=gorev.depo_id,
+            )
         kaydedilen = self._repo.guncelle(gorev)
 
         self._log_repo.olustur(
@@ -442,6 +515,7 @@ class YerlestirmeOnaylaUseCase:
         log_repo: ISistemLogRepository,
         mal_kabul_repo: IMalKabulIrsaliyeRepository,
         db=None,
+        performans_publisher: Optional[IPerformansEventPublisher] = None,
     ):
         self._repo = repo
         self._palet_repo = palet_repo
@@ -454,6 +528,7 @@ class YerlestirmeOnaylaUseCase:
         self._log_repo = log_repo
         self._mal_kabul_repo = mal_kabul_repo
         self._db = db
+        self._performans = performans_publisher
 
     def execute(
         self, gorev_id: int, dto: YerlestirmeOnaylaRequestDTO, kullanici_id: int
@@ -526,8 +601,19 @@ class YerlestirmeOnaylaUseCase:
             palet.raf_ata(hedef_raf.id)
             self._palet_repo.guncelle(palet, auto_commit=False)
 
+            baslama = gorev.baslama_tarihi
             gorev.tamamla(hedef_raf.id)
             self._repo.guncelle(gorev, auto_commit=False)
+
+            if self._performans is not None and gorev.id is not None:
+                self._performans.gorev_tamamlandi(
+                    gorev_tipi=PerformansGorevTipi.YERLESTIRME,
+                    gorev_id=gorev.id,
+                    kullanici_id=kullanici_id,
+                    sure_saniye=_gorev_sure_saniye(baslama, gorev.tamamlanma_tarihi),
+                    depo_id=gorev.depo_id,
+                    payload={"gerceklesen_raf_id": hedef_raf.id, "scan_to_verify": True},
+                )
 
             self._log_repo.olustur(
                 SistemLog.olustur(

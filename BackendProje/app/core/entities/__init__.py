@@ -22,6 +22,12 @@ from .palet_rezervasyonu import PaletRezervasyonu, RezervasyonDurum
 from .palet_durum_log import PaletDurumLog
 from .etiket_sablonu import EtiketSablonu
 from .palet_etiket import PaletEtiket
+from .operator_performans import (
+    GorevPerformansEvent,
+    OperatorVardiyaMetrikleri,
+    PerformansEventTipi,
+    PerformansGorevTipi,
+)
 
 __all__ = [
     "Marka", "Kategori", "Depo", "Zon", "ZonTipi", "Raf", "Tedarikci",
@@ -35,4 +41,6 @@ __all__ = [
     "PaletRezervasyonu", "RezervasyonDurum",
     "PaletDurumLog",
     "EtiketSablonu", "PaletEtiket",
+    "GorevPerformansEvent", "OperatorVardiyaMetrikleri",
+    "PerformansEventTipi", "PerformansGorevTipi",
 ]

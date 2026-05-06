@@ -11,6 +11,7 @@ Akış:
 """
 
 from __future__ import annotations
+from datetime import datetime
 from typing import List, Optional
 
 from app.core.repositories.toplama_gorevi_repository import IToplamaGoreviRepository
@@ -22,16 +23,24 @@ from app.core.repositories.sevkiyat_plani_repository import ISevkiyatPlaniReposi
 from app.core.entities.toplama_gorevi import ToplamaGorevi, ToplamaGoreviDurum
 from app.core.entities.stok_hareketi import StokHareketi, HareketTipi
 from app.core.entities.sistem_log import SistemLog, IslemTipi
+from app.core.entities.operator_performans import PerformansGorevTipi
 from app.core.exceptions import (
     KayitBulunamadiError,
     GecersizIslemError,
     YetkisizIslemError,
 )
 from app.core.services.fefo_secim_servisi import FEFOSecimServisi
+from app.core.services.performans_event_publisher import IPerformansEventPublisher
 from app.application.dto.toplama_gorevi_dto import (
     ToplamaGoreviResponseDTO,
     FefoOverrideRequestDTO,
 )
+
+
+def _toplama_sure_saniye(baslama, bitis) -> int:
+    if not baslama or not bitis:
+        return 0
+    return max(0, int((bitis - baslama).total_seconds()))
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -188,8 +197,13 @@ class SiradanGorevAlUseCase:
 class GorevBaslatUseCase:
     """Atandı → DevamEdiyor. Yalnızca atanan operatör başlatabilir."""
 
-    def __init__(self, gorev_repo: IToplamaGoreviRepository):
+    def __init__(
+        self,
+        gorev_repo: IToplamaGoreviRepository,
+        performans_publisher: Optional[IPerformansEventPublisher] = None,
+    ):
         self._repo = gorev_repo
+        self._performans = performans_publisher
 
     def execute(self, gorev_id: int, kullanici_id: int) -> ToplamaGoreviResponseDTO:
         gorev = self._repo.getir_id_ile(gorev_id)
@@ -200,6 +214,13 @@ class GorevBaslatUseCase:
             raise YetkisizIslemError("Bu görevi yalnızca atanan operatör başlatabilir.")
 
         gorev.baslat()
+        if self._performans is not None and gorev.id is not None:
+            self._performans.gorev_baslatildi(
+                gorev_tipi=PerformansGorevTipi.TOPLAMA,
+                gorev_id=gorev.id,
+                kullanici_id=kullanici_id,
+                depo_id=gorev.depo_id,
+            )
         guncellenen = self._repo.guncelle(gorev)
         return ToplamaGoreviResponseDTO.from_entity(guncellenen)
 
@@ -226,12 +247,14 @@ class GorevTamamlaUseCase:
         rezervasyon_repo: IPaletRezervasyonuRepository,
         hareket_repo: IStokHareketiRepository,
         log_repo: ISistemLogRepository,
+        performans_publisher: Optional[IPerformansEventPublisher] = None,
     ):
         self._gorev_repo = gorev_repo
         self._palet_repo = palet_repo
         self._rezervasyon_repo = rezervasyon_repo
         self._hareket_repo = hareket_repo
         self._log_repo = log_repo
+        self._performans = performans_publisher
 
     def execute(self, gorev_id: int, kullanici_id: int) -> ToplamaGoreviResponseDTO:
         gorev = self._gorev_repo.getir_id_ile(gorev_id)
@@ -251,7 +274,17 @@ class GorevTamamlaUseCase:
             raise GecersizIslemError("Göreve ait palet aktif değil veya bulunamadı.")
 
         # 1. Görevi tamamla
+        baslama = gorev.baslama_tarihi
         gorev.tamamla()
+        if self._performans is not None and gorev.id is not None:
+            self._performans.gorev_tamamlandi(
+                gorev_tipi=PerformansGorevTipi.TOPLAMA,
+                gorev_id=gorev.id,
+                kullanici_id=kullanici_id,
+                sure_saniye=_toplama_sure_saniye(baslama, gorev.tamamlanma_tarihi),
+                depo_id=gorev.depo_id,
+                payload={"sevkiyat_id": gorev.sevkiyat_id, "palet_id": gorev.palet_id},
+            )
         self._gorev_repo.guncelle(gorev, auto_commit=False)
 
         # 2. Paleti devre dışı bırak
@@ -304,10 +337,12 @@ class GorevIptalUseCase:
         gorev_repo: IToplamaGoreviRepository,
         rezervasyon_repo: IPaletRezervasyonuRepository,
         log_repo: ISistemLogRepository,
+        performans_publisher: Optional[IPerformansEventPublisher] = None,
     ):
         self._gorev_repo = gorev_repo
         self._rezervasyon_repo = rezervasyon_repo
         self._log_repo = log_repo
+        self._performans = performans_publisher
 
     def execute(
         self,
@@ -319,7 +354,22 @@ class GorevIptalUseCase:
         if not gorev:
             raise KayitBulunamadiError("Toplama Görevi", gorev_id)
 
+        baslama = gorev.baslama_tarihi
+        atanan_id = gorev.atanan_kullanici_id
         gorev.iptal_et(neden)
+        if (
+            self._performans is not None
+            and gorev.id is not None
+            and atanan_id is not None
+        ):
+            self._performans.gorev_iptal(
+                gorev_tipi=PerformansGorevTipi.TOPLAMA,
+                gorev_id=gorev.id,
+                kullanici_id=atanan_id,
+                iptal_nedeni=neden,
+                sure_saniye=_toplama_sure_saniye(baslama, datetime.utcnow()),
+                depo_id=gorev.depo_id,
+            )
         self._gorev_repo.guncelle(gorev)
 
         # Rezervasyonu da iptal et (palet tekrar uygun hale gelir)
