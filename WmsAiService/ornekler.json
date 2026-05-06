@@ -57,7 +57,7 @@
   },
   {
     "input": "Bu ay toplam kaç adet 'giris' işlemi yapıldı?",
-    "query": "SELECT SUM(miktar) as toplam_giris, birim FROM ai_stok_hareketi_view WHERE hareket_tipi = 'giris' AND MONTH(tarih) = MONTH(CURDATE()) AND YEAR(tarih) = YEAR(CURDATE()) GROUP BY birim;"
+    "query": "SELECT COUNT(*) as islem_sayisi FROM ai_stok_hareketi_view WHERE hareket_tipi = 'giris' AND MONTH(tarih) = MONTH(CURDATE()) AND YEAR(tarih) = YEAR(CURDATE());"
   },
   {
     "input": "PLT-0001 numaralı paletin hareket geçmişini göster.",
@@ -158,5 +158,221 @@
   {
     "input": "Açıklamasında 'transfer' geçen hareketleri listele.",
     "query": "SELECT urun_adi, miktar, tarih FROM ai_stok_hareketi_view WHERE aciklama LIKE '%transfer%';"
+  },
+  {
+    "input": "Bekleyen siparişleri listele.",
+    "query": "SELECT siparis_no, musteri_adi, top_tutar, teslimat_tarihi FROM ai_siparis_view WHERE siparis_durumu = 'Bekleme';"
+  },
+  {
+    "input": "SIP-2026-0001 numaralı siparişin detaylarını getir.",
+    "query": "SELECT * FROM ai_siparis_view WHERE siparis_no = 'SIP-2026-0001';"
+  },
+  {
+    "input": "Aktif olan siparişlerin toplam tutarı ne kadar?",
+    "query": "SELECT SUM(top_tutar) as genel_toplam FROM ai_siparis_view WHERE aktif = 1;"
+  },
+  {
+    "input": "Henüz sevkiyatı başlamamış (sevkiyat durumu boş olan) siparişler hangileri?",
+    "query": "SELECT siparis_no, musteri_adi, teslimat_tarihi FROM ai_siparis_view WHERE sevkiyat_durumu IS NULL;"
+  },
+  {
+    "input": "Müşterilere göre toplam sipariş tutarlarını ve sipariş sayılarını getir.",
+    "query": "SELECT musteri_adi, COUNT(siparis_id) as siparis_sayisi, SUM(top_tutar) as toplam_tutar FROM ai_siparis_view GROUP BY musteri_adi ORDER BY toplam_tutar DESC;"
+  },
+  {
+    "input": "Mehmet Yılmaz'a ait siparişleri göster.",
+    "query": "SELECT siparis_no, siparis_durumu, top_miktar, top_tutar, teslimat_tarihi FROM ai_siparis_view WHERE musteri_adi = 'Mehmet Yılmaz';"
+  },
+  {
+    "input": "En yüksek tutarlı 5 siparişi listele.",
+    "query": "SELECT siparis_no, musteri_adi, top_tutar FROM ai_siparis_view ORDER BY top_tutar DESC LIMIT 5;"
+  },
+  {
+    "input": "Bugün oluşturulan siparişleri getir.",
+    "query": "SELECT siparis_no, musteri_adi, top_tutar, olusturma_tarihi FROM ai_siparis_view WHERE DATE(olusturma_tarihi) = CURDATE();"
+  },
+  {
+    "input": "Teslimat tarihi bu ay olan aktif siparişler hangileri?",
+    "query": "SELECT siparis_no, musteri_adi, teslimat_tarihi, top_tutar FROM ai_siparis_view WHERE aktif = 1 AND MONTH(teslimat_tarihi) = MONTH(CURDATE()) AND YEAR(teslimat_tarihi) = YEAR(CURDATE());"
+  },
+  {
+    "input": "İçerisinde 10'dan fazla kalem (ürün çeşidi) bulunan siparişleri listele.",
+    "query": "SELECT siparis_no, musteri_adi, kalem_sayisi, top_tutar FROM ai_siparis_view WHERE kalem_sayisi > 10;"
+  },
+  {
+    "input": "Miktarı 100'ün üzerinde olan siparişlerin ortalama tutarı nedir?",
+    "query": "SELECT AVG(top_tutar) as ortalama_tutar FROM ai_siparis_view WHERE top_miktar > 100;"
+  },
+  {
+    "input": "İrsaliyesi kesilmiş (irsaliye sayısı 0'dan büyük) siparişleri göster.",
+    "query": "SELECT siparis_no, musteri_adi, irsaliye_sayisi FROM ai_siparis_view WHERE irsaliye_sayisi > 0;"
+  },
+  {
+    "input": "34 DNM 325 plakalı tırın yaptığı sevkiyatları listele.",
+    "query": "SELECT sevkiyat_id, sofor_adi, depo_kapi, yukleme_tarihi FROM ai_sevkiyat_view WHERE tir_plaka = '34 DNM 325';"
+  },
+  {
+    "input": "Ahmet Deneme isimli şoförün taşıdığı siparişler hangileri?",
+    "query": "SELECT siparis_no, musteri_adi, siparis_top_miktar, yukleme_tarihi FROM ai_sevkiyat_view WHERE sofor_adi = 'Ahmet Deneme';"
+  },
+  {
+    "input": "Kapı A-01'den yüklemesi yapılan sevkiyatları getir.",
+    "query": "SELECT tir_plaka, sofor_adi, yukleme_tarihi, cikis_saati FROM ai_sevkiyat_view WHERE depo_kapi = 'Kapı A-01';"
+  },
+  {
+    "input": "Bugün Kapı A-01'den çıkan araçların plakalarını listele.",
+    "query": "SELECT tir_plaka, sofor_adi FROM ai_sevkiyat_view WHERE depo_kapi = 'Kapı A-01' AND DATE(yukleme_tarihi) = CURDATE();"
+  },
+  {
+    "input": "Çıkış saati 17:00 olan sevkiyat işlemlerini göster.",
+    "query": "SELECT sevkiyat_id, tir_plaka, sofor_adi, depo_kapi FROM ai_sevkiyat_view WHERE cikis_saati = '17:00:00';"
+  },
+  {
+    "input": "Çıkışı yapılmış ama henüz varış saati girilmemiş sevkiyatlar hangileri?",
+    "query": "SELECT tir_plaka, sofor_adi, depo_kapi, cikis_saati FROM ai_sevkiyat_view WHERE cikis_saati IS NOT NULL AND varis_saati IS NULL;"
+  },
+  {
+    "input": "Ahmet Deneme'nin taşıdığı toplam sipariş miktarı nedir?",
+    "query": "SELECT SUM(siparis_top_miktar) as genel_toplam_miktar FROM ai_sevkiyat_view WHERE sofor_adi = 'Ahmet Deneme';"
+  },
+  {
+    "input": "34 DNM 325 plakalı araçla giden siparişlerin müşterilerini ve teslimat tarihlerini listele.",
+    "query": "SELECT musteri_adi, siparis_no, teslimat_tarihi FROM ai_sevkiyat_view WHERE tir_plaka = '34 DNM 325';"
+  },
+  {
+    "input": "Hangi kapıdan toplam ne kadarlık ürün sevkiyatı yapıldı?",
+    "query": "SELECT depo_kapi, SUM(siparis_top_miktar) as toplam_miktar FROM ai_sevkiyat_view GROUP BY depo_kapi;"
+  },
+  {
+    "input": "Şoförlere göre atanan toplam sevkiyat sayısı nedir?",
+    "query": "SELECT sofor_adi, COUNT(sevkiyat_id) as sevkiyat_sayisi FROM ai_sevkiyat_view GROUP BY sofor_adi ORDER BY sevkiyat_sayisi DESC;"
+  },
+  {
+    "input": "Yerleştirme bekleyen paletleri listele.",
+    "query": "SELECT palet_no, urun_adi, koli_adedi, raf_kodu, kaynak FROM ai_palet_view WHERE palet_durumu = 'YerlestirmeBekliyor';"
+  },
+  {
+    "input": "PRD-20260422-0001 numaralı paletin nerede olduğunu ve detaylarını göster.",
+    "query": "SELECT urun_adi, koli_adedi, palet_durumu, raf_kodu, vardiya, uretim_tarihi FROM ai_palet_view WHERE palet_no = 'PRD-20260422-0001';"
+  },
+  {
+    "input": "A vardiyasında üretimden gelen paletler hangileri?",
+    "query": "SELECT palet_no, urun_adi, koli_adedi, uretim_tarihi FROM ai_palet_view WHERE vardiya = 'A' AND kaynak = 'uretim';"
+  },
+  {
+    "input": "Rafa yerleştirilmiş olan toplam palet sayısı nedir?",
+    "query": "SELECT COUNT(palet_id) as yerlesen_palet_sayisi FROM ai_palet_view WHERE palet_durumu = 'Yerlestirildi';"
+  },
+  {
+    "input": "MKB-X-00-00-00 rafında hangi paletler ve ürünler var?",
+    "query": "SELECT palet_no, urun_adi, koli_adedi, lot_no, son_kullanma_tarihi FROM ai_palet_view WHERE raf_kodu = 'MKB-X-00-00-00';"
+  },
+  {
+    "input": "Üretimden gelen paletlerin toplam net ağırlığı ne kadar?",
+    "query": "SELECT SUM(net_kg) as toplam_net_agirlik FROM ai_palet_view WHERE kaynak = 'uretim';"
+  },
+  {
+    "input": "DEV Makarna 500g ürününe ait yerleştirme bekleyen paletler nerede?",
+    "query": "SELECT palet_no, koli_adedi, raf_kodu FROM ai_palet_view WHERE urun_adi = 'DEV Makarna 500g' AND palet_durumu = 'YerlestirmeBekliyor';"
+  },
+  {
+    "input": "Staging (bekleme) alanında bulunan paletleri listele.",
+    "query": "SELECT palet_no, urun_adi, raf_kodu, koli_adedi FROM ai_palet_view WHERE raf_staging_mi = 1;"
+  },
+  {
+    "input": "Son kullanma tarihi bu ay içinde dolacak olan paletleri getir.",
+    "query": "SELECT palet_no, urun_adi, raf_kodu, son_kullanma_tarihi FROM ai_palet_view WHERE MONTH(son_kullanma_tarihi) = MONTH(CURDATE()) AND YEAR(son_kullanma_tarihi) = YEAR(CURDATE());"
+  },
+  {
+    "input": "Kategorilere göre depodaki toplam koli miktarlarını göster.",
+    "query": "SELECT kategori_adi, SUM(koli_adedi) as toplam_koli FROM ai_palet_view GROUP BY kategori_adi ORDER BY toplam_koli DESC;"
+  },
+  {
+    "input": "Bugün üretilen paletlerin listesini ver.",
+    "query": "SELECT palet_no, urun_adi, vardiya, uretim_hatti, koli_adedi FROM ai_palet_view WHERE DATE(uretim_tarihi) = CURDATE();"
+  },
+  {
+    "input": "Markalara göre sistemde aktif olan palet sayısını getir.",
+    "query": "SELECT marka_adi, COUNT(palet_id) as palet_sayisi FROM ai_palet_view WHERE aktif = 1 GROUP BY marka_adi;"
+  },
+  {
+    "input": "Sistemde toplam 5'ten fazla paleti bulunan ürünleri getir.",
+    "query": "SELECT urun_adi, COUNT(palet_id) as palet_sayisi FROM ai_palet_view GROUP BY urun_adi HAVING palet_sayisi > 5;"
+  },
+  {
+    "input": "Önümüzdeki 30 gün içinde son kullanma tarihi dolacak olan paletleri listele.",
+    "query": "SELECT palet_no, urun_adi, raf_kodu, son_kullanma_tarihi FROM ai_palet_view WHERE son_kullanma_tarihi BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY);"
+  },
+  {
+    "input": "Staging (bekleme) alanında olan ve adında 'Makarna' geçen ürünlerin paletlerini göster.",
+    "query": "SELECT palet_no, urun_adi, raf_kodu, koli_adedi FROM ai_palet_view WHERE raf_staging_mi = 1 AND urun_adi LIKE '%Makarna%';"
+  },
+  {
+    "input": "Net ağırlığı en yüksek olan 3 paleti listele.",
+    "query": "SELECT palet_no, urun_adi, net_kg, raf_kodu FROM ai_palet_view ORDER BY net_kg DESC LIMIT 3;"
+  },
+  {
+    "input": "Bugün vardiyalara göre üretimden gelen toplam koli miktarını göster.",
+    "query": "SELECT vardiya, SUM(koli_adedi) as toplam_koli FROM ai_palet_view WHERE DATE(uretim_tarihi) = CURDATE() AND kaynak = 'uretim' GROUP BY vardiya;"
+  },
+  {
+    "input": "L-2026-050 numaralı lota (partiye) ait paletlerin şu anki durumları ve konumları nedir?",
+    "query": "SELECT palet_no, palet_durumu, raf_kodu, urun_adi FROM ai_palet_view WHERE lot_no = 'L-2026-050';"
+  },
+  {
+    "input": "Sistemde pasif duruma düşmüş (aktif olmayan) paletleri listele.",
+    "query": "SELECT palet_no, urun_adi, palet_durumu, kaynak FROM ai_palet_view WHERE aktif = 0;"
+  },
+  {
+    "input": "8691234567890 barkodlu ürünün yerleştirilmiş paletlerinin toplam brüt ağırlığı nedir?",
+    "query": "SELECT SUM(brut_kg) as toplam_brut FROM ai_palet_view WHERE urun_barkod = '8691234567890' AND palet_durumu = 'Yerlestirildi';"
+  },
+  {
+    "input": "Son 7 gün içinde kabulü yapılan paletleri depo bölgelerine göre say.",
+    "query": "SELECT raf_bolge, COUNT(palet_id) as palet_sayisi FROM ai_palet_view WHERE kabul_tarihi >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) GROUP BY raf_bolge;"
+  },
+  {
+    "input": "Üretimden gelmiş olmasına rağmen makine kodu girilmemiş paletleri bul.",
+    "query": "SELECT palet_no, urun_adi, vardiya, uretim_hatti FROM ai_palet_view WHERE kaynak = 'uretim' AND makine_kodu IS NULL;"
+  },
+  {
+    "input": "Sipariş tutarı 10.000 TL ile 50.000 TL arasında olan bekleyen siparişleri listele.",
+    "query": "SELECT siparis_no, musteri_adi, top_tutar FROM ai_siparis_view WHERE siparis_durumu = 'Bekleme' AND top_tutar BETWEEN 10000 AND 50000;"
+  },
+  {
+    "input": "Teslimat tarihine 3 günden az kalmış olan veya tarihi geçmiş aktif siparişler hangileri?",
+    "query": "SELECT siparis_no, musteri_adi, teslimat_tarihi FROM ai_siparis_view WHERE aktif = 1 AND DATEDIFF(teslimat_tarihi, CURDATE()) < 3;"
+  },
+  {
+    "input": "A bloğunda (raf kodu A ile başlayan) bulunan paletlerin toplam brüt ağırlığı ne kadar?",
+    "query": "SELECT SUM(brut_kg) as toplam_brut_agirlik FROM ai_palet_view WHERE raf_kodu LIKE 'A%';"
+  },
+  {
+    "input": "Bugüne kadar kaç farklı şoför ile sevkiyat yapıldı?",
+    "query": "SELECT COUNT(DISTINCT sofor_adi) as farkli_sofor_sayisi FROM ai_sevkiyat_view;"
+  },
+  {
+    "input": "Adı 'Spagetti' kelimesi ile biten ürünlerin güncel stok durumları nedir?",
+    "query": "SELECT urun_adi, marka_adi, guncel_stok_miktari FROM ai_stok_durumu_view WHERE urun_adi LIKE '%Spagetti';"
+  },
+  {
+    "input": "Son kullanma tarihi geçmiş olmasına rağmen hala rafta 'Yerlestirildi' durumunda olan paletler var mı?",
+    "query": "SELECT palet_no, urun_adi, raf_kodu, son_kullanma_tarihi FROM ai_palet_view WHERE palet_durumu = 'Yerlestirildi' AND son_kullanma_tarihi < CURDATE();"
+  },
+  {
+    "input": "Son 3 gün içinde çıkışı yapılan ancak miktarı 50'nin altında olan hareketleri getir.",
+    "query": "SELECT urun_adi, miktar, tarih, aciklama FROM ai_stok_hareketi_view WHERE hareket_tipi = 'cikis' AND miktar < 50 AND tarih >= DATE_SUB(CURDATE(), INTERVAL 3 DAY);"
+  },
+  {
+    "input": "En yüksek tutarlı siparişi veren müşterinin adı ve sipariş tutarı nedir?",
+    "query": "SELECT musteri_adi, top_tutar FROM ai_siparis_view ORDER BY top_tutar DESC LIMIT 1;"
+  },
+  {
+    "input": "Hangi kategorilerde 'Stok Yok' durumunda olan ürünler bulunuyor?",
+    "query": "SELECT DISTINCT kategori_adi FROM ai_stok_durumu_view WHERE stok_durumu = 'Stok Yok';"
+  },
+  {
+    "input": "Bugün yapılan sevkiyatların varış saati girilmiş olanları ve girilmemiş olanları gruplayarak say.",
+    "query": "SELECT CASE WHEN varis_saati IS NULL THEN 'Varis Girilmedi' ELSE 'Varis Girildi' END as durum, COUNT(*) as sevkiyat_sayisi FROM ai_sevkiyat_view WHERE DATE(yukleme_tarihi) = CURDATE() GROUP BY durum;"
   }
 ]
