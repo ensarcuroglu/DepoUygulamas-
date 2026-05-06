@@ -229,8 +229,10 @@ ReactProje/
 
 WmsAiService/
 ├── main.py                    # FastAPI app entry point, endpoint tanımları (/api/ai/*)
-├── chains.py                  # LangChain LCEL pipeline (SQL üret → çalıştır → self-correct → cevapla)
-├── prompts.py                 # Sistem promptları, şema açıklaması, few-shot örnekleri (Türkçe)
+├── chains.py                  # LangChain LCEL pipeline (Dinamik Few-Shot SQL üret → çalıştır → self-correct → cevapla)
+├── prompts.py                 # Sistem promptları, şema açıklaması, statik few-shot örnekleri (fallback, Türkçe)
+├── example_selector.py        # Dinamik Few-Shot: ChromaDB + MiniLM-L6-v2 SemanticSimilarityExampleSelector (k=3)
+├── ornekler.json              # Vektör veritabanı kaynak verisi (40+ soru/SQL çifti)
 ├── answerer.py                # Cevap üretim katmanı (template-first; LLM yalnızca verbose modda)
 ├── list_renderer.py           # Çok-satır LIST sonuçlar için deterministik Türkçe template renderer
 ├── result_formatter.py        # SQL sonuçlarını yapılandırılmış formata çevirir (intent: SCALAR/EMPTY/LIST)
@@ -239,6 +241,158 @@ WmsAiService/
 ├── views.sql                  # 9 adet read-only MySQL view tanımı + depo_ai_reader GRANT'ları
 ├── requirements.txt           # Python bağımlılıkları
 ├── .env                       # Ortam değişkenleri (DB bağlantı, Ollama ayarları)
+├── wms_chroma_db/             # Persistent ChromaDB vektör deposu (ornekler.json embedding'leri)
+└── venv/                      # Python sanal ortam (generated)
+```
+
+> **Not:** Frontend'te TypeScript kullanılmıyor; tüm dosyalar `.js` / `.jsx`.
+
+---
+
+## Tech Stack
+
+### Backend
+- **Language/Runtime:** Python 3.x
+- **Framework:** FastAPI
+- **ORM:** SQLAlchemy (declarative)
+- **Database:** MySQL (PyMySQL driver, charset=utf8mb4)
+- **Migration:** Alembic + standalone `migrate_*.py` scriptleri
+- **Auth:** JWT (python-jose) + bcrypt (passlib), refresh token desteği
+- **Settings:** pydantic-settings (`.env` tabanlı)
+- **Rate limiting:** slowapi
+- **Scheduler:** APScheduler (rapor zamanlama, staging uyarı)
+- **Email:** fastapi-mail (SMTP)
+- **Lint:** ruff
+- **Type check:** pyright (basic mode)
+- **Test:** pytest, httpx (TestClient), factory-boy, pytest-cov
+
+### Frontend
+- **Framework:** React 19 + Vite 7
+- **Routing:** react-router-dom v7
+- **Styling:** Tailwind CSS v4 (@tailwindcss/vite plugin)
+- **State/Data fetching:** TanStack React Query v5
+- **Animation:** Framer Motion
+- **Charts:** Recharts
+- **Icons:** lucide-react
+- **Toast:** react-hot-toast
+- **Barcode/QR:** @zxing/library, html5-qrcode, qrcode.react, jsbarcode
+- **Export:** xlsx (Excel), jspdf + jspdf-autotable (PDF)
+- **HTTP:** Axios
+- **PWA:** vite-plugin-pwa + workbox
+- **HTTPS (dev):** vite-plugin-mkcert
+- **Lint:** ESLint 9 (flat config) + react-hooks + react-refresh
+- **Bundle analysis:** rollup-plugin-visualizer
+
+### WmsAiService (AI Sorgu Servisi)
+- **Language/Runtime:** Python 3.x
+- **Framework:** FastAPI
+- **LLM orchestration:** LangChain (LCEL) + langchain-ollama (ChatOllama)
+- **Local LLM:** Ollama (varsayılan model: `qwen2.5-coder:7b`)
+- **Database:** MySQL (PyMySQL driver, charset=utf8mb4) — read-only `depo_ai_reader` kullanıcısı
+- **SQL execution:** SQLAlchemy + LangChain `SQLDatabase` (view_support=True)
+- **Settings:** python-dotenv (`.env` tabanlı)
+
+---
+
+## Project Structure
+
+```
+BackendProje/
+├── main.py                    # FastAPI app entry point, router kayıtları, CORS, lifespan
+├── database.py                # SQLAlchemy engine + SessionLocal
+├── models.py                  # Tüm SQLAlchemy ORM modelleri (tek dosya)
+├── schemas.py                 # Legacy Pydantic modelleri (runtime büyük ölçüde DTO'lara taşındı; bazı testlerde kullanılır)
+├── limiter.py                 # slowapi rate limiter instance
+├── seed.py                    # İlk veri yükleme (admin, depocu)
+├── alembic/                   # Alembic migration yapılandırması
+│   └── versions/              # Migration dosyaları
+├── app/                       # Clean Architecture katmanları
+│   ├── core/                  # Domain katmanı
+│   │   ├── config.py          # Settings (pydantic-settings) + FeatureFlags
+│   │   ├── auth.py            # JWT + bcrypt helpers, get_current_user, require_role
+│   │   ├── constants.py       # Sabitler
+│   │   ├── barcode.py         # Barkod üretim yardımcıları
+│   │   ├── idempotency.py     # İdempotency key desteği
+│   │   ├── entities/          # Domain entity dataclass'ları
+│   │   ├── repositories/      # Abstract repository interface'leri
+│   │   ├── services/          # Domain service'ler (FEFO, kapasite, yerleştirme alg., palet giriş/çıkış)
+│   │   └── exceptions/        # Domain exception sınıfları
+│   ├── application/           # Uygulama katmanı
+│   │   ├── use_cases/         # Use case sınıfları
+│   │   ├── dto/               # Data Transfer Object'ler
+│   │   └── helpers.py         # Yardımcı fonksiyonlar
+│   ├── infrastructure/        # Altyapı katmanı
+│   │   ├── persistence/       # SQLAlchemy repository implementasyonları + mappers
+│   │   ├── di/                # Dependency Injection container + domain modülleri
+│   │   │   ├── container.py   # Ana re-export hub
+│   │   │   └── modules/       # Domain-odaklı DI modülleri
+│   │   ├── config/            # ERP config
+│   │   ├── services/          # Infra service implementasyonları (ERP, mock, SQL seri no)
+│   │   └── scheduler/         # APScheduler jobs (rapor, staging uyarı)
+│   └── api/                   # API katmanı
+│       └── v1/routers/        # FastAPI router dosyaları
+├── core/                      # Birleşik exception handler'lar (APIException + generic)
+├── tests/                     # Test altyapısı
+│   ├── conftest.py            # Merkezi fixture'lar (engine, db_session, client, auth)
+│   ├── factories/             # factory-boy factory'leri
+│   ├── unit/                  # Unit testler (+ iç içe dto/, entities/, routers/, services/, use_cases/)
+│   ├── integration/           # Integration testler (concurrency, idempotency, putaway E2E)
+│   └── api/routers/           # API endpoint testleri
+├── migrate_*.py               # Standalone migration scriptleri (elle çalıştırılır)
+├── uploads/                   # Kullanıcı yükleme dizini
+├── .env.example               # Ortam değişkeni şablonu
+├── .env.test                  # Test ortam değişkenleri
+├── pyproject.toml             # Pyright yapılandırması
+├── pytest.ini                 # Pytest marker ve filtreleri
+└── .coveragerc                # Coverage ayarları
+
+ReactProje/
+├── src/
+│   ├── main.jsx               # React entrypoint, PWA registration
+│   ├── App.jsx                # Route tanımları, PrivateRoute/RoleRoute guard│   ├── components/
+│   │   ├── layout/            # DashboardLayout, DepocuLayout, TerminalLayout, Header, Sidebar
+│   │   ├── common/            # Ortak UI bileşenleri
+│   │   ├── depocu/            # Depocu'ya özel bileşenler
+│   │   ├── palet/             # Palet bileşenleri
+│   │   ├── PrivateRoute.jsx   # Auth guard
+│   │   └── RoleRoute.jsx      # Role-based guard
+│   ├── pages/                 # Sayfa bileşenleri + alt dizinler
+│   │   ├── terminal/          # Mobil terminal sayfaları (GorevListesi, Yerlestirme, UretimKabul)
+│   │   └── depocu/            # Depocu ana sayfası, kabul seçim
+│   ├── utils/                 # Yardımcılar (barcode, exportUtils, hata)
+│   └── pwa/                   # PWA registration
+├── public/                    # Statik dosyalar, PWA ikonları
+├── vite.config.js             # Vite yapılandırması (proxy, PWA, chunks, security headers)
+├── eslint.config.js           # ESLint 9 flat config
+└── package.json               # npm bağımlılıklarıpocu/            # Depocu'ya özel bileşenler
+│   │   ├── palet/             # Palet bileşenleri
+│   │   ├── PrivateRoute.jsx   # Auth guard
+│   │   └── RoleRoute.jsx      # Role-based guard
+│   ├── pages/                 # Sayfa bileşenleri + alt dizinler
+│   │   ├── terminal/          # Mobil terminal sayfaları (GorevListesi, Yerlestirme, UretimKabul)
+│   │   └── depocu/            # Depocu ana sayfası, kabul seçim
+│   ├── utils/                 # Yardımcılar (barcode, exportUtils, hata)
+│   └── pwa/                   # PWA registration
+├── public/                    # Statik dosyalar, PWA ikonları
+├── vite.config.js             # Vite yapılandırması (proxy, PWA, chunks, security headers)
+├── eslint.config.js           # ESLint 9 flat config
+└── package.json               # npm bağımlılıkları
+
+WmsAiService/
+├── main.py                    # FastAPI app entry point, endpoint tanımları (/api/ai/*)
+├── chains.py                  # LangChain LCEL pipeline (Dinamik Few-Shot SQL üret → çalıştır → self-correct → cevapla)
+├── prompts.py                 # Sistem promptları, şema açıklaması, statik few-shot örnekleri (fallback, Türkçe)
+├── example_selector.py        # Dinamik Few-Shot: ChromaDB + MiniLM-L6-v2 SemanticSimilarityExampleSelector (k=3)
+├── ornekler.json              # Vektör veritabanı kaynak verisi (40+ soru/SQL çifti)
+├── answerer.py                # Cevap üretim katmanı (template-first; LLM yalnızca verbose modda)
+├── list_renderer.py           # Çok-satır LIST sonuçlar için deterministik Türkçe template renderer
+├── result_formatter.py        # SQL sonuçlarını yapılandırılmış formata çevirir (intent: SCALAR/EMPTY/LIST)
+├── sql_guard.py               # SQL güvenlik katmanı (SELECT-only, whitelist, yasaklı keyword'ler)
+├── memory.py                  # In-memory konuşma hafızası (session_id bazlı, LRU + TTL)
+├── views.sql                  # 9 adet read-only MySQL view tanımı + depo_ai_reader GRANT'ları
+├── requirements.txt           # Python bağımlılıkları
+├── .env                       # Ortam değişkenleri (DB bağlantı, Ollama ayarları)
+├── wms_chroma_db/             # Persistent ChromaDB vektör deposu (ornekler.json embedding'leri)
 └── venv/                      # Python sanal ortam (generated)
 ```
 
@@ -343,7 +497,7 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - Frontend: `ReactProje/.env.local` (isteğe bağlı)
 - Feature flag: `FEATURE_URETIM_PALET_PILOT_DEPO_IDS` (boş=kapalı, `TUMU`=tüm depolar, `1,3,5`=belirli depolar)
 - Palet veri kaynağı: `PALET_VERI_KAYNAGI` (`LOCAL`, `MOCK`, `ERP`)
-- WmsAiService: `WmsAiService/.env`. Zorunlu: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`. Opsiyonel: `OLLAMA_MODEL` (def: `qwen2.5-coder:7b`), `OLLAMA_BASE_URL` (def: `http://localhost:11434`), `OLLAMA_ANSWER_MODEL`, `LLM_TEMPERATURE` (def: `0`), `LLM_NUM_CTX` (def: `4096`), `LLM_TIMEOUT` (def: `120`), `MAX_CORRECTION_ATTEMPTS` (def: `2`), `ANSWER_NUM_PREDICT` (def: `40`)
+- WmsAiService: `WmsAiService/.env`. Zorunlu: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`. Opsiyonel: `OLLAMA_MODEL` (def: `qwen2.5-coder:7b`), `OLLAMA_BASE_URL` (def: `http://localhost:11434`), `OLLAMA_ANSWER_MODEL`, `LLM_TEMPERATURE` (def: `0`), `LLM_NUM_CTX` (def: `4096`), `LLM_TIMEOUT` (def: `120`), `MAX_CORRECTION_ATTEMPTS` (def: `2`), `ANSWER_NUM_PREDICT` (def: `40`), `FEW_SHOT_K` (def: `3`), `CHROMA_PERSIST_DIR` (def: `./wms_chroma_db`), `EMBEDDING_MODEL` (def: `sentence-transformers/all-MiniLM-L6-v2`)
 
 ### Stok Hesaplama
 - `Urun.stok_miktari` bir `column_property`; `Palet.koli_adedi` üzerinden aktif `Lot` kayıtlarından hesaplanır. **Ürün tablosunda saklanan stok sütunu yoktur.**
@@ -375,47 +529,6 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 
 ### Idempotency
 - Kritik yazma endpoint'leri `Idempotency-Key` header'ı destekler; tekrarlayan istekler aynı sonucu döner
-
-### Test Altyapısı
-- Test DB her `db_session` fixture'ında truncate edilir (izolasyon)
-- `factory-boy` factory'leri `tests/factories/` altında; `conftest.py`'daki `admin_user`, `depocu_user`, `lojistik_user` fixture'ları otomatik token üretir
-- Test marker'ları: `unit`, `integration`, `api`, `concurrency`
-- `.coveragerc` şu dosyaları hariç tutar: `_crud_legacy.py`, `migrate_*.py`, `seed.py`
-
----
-
-### WmsAiService — Mimari ve Kurallar
-
-#### Pipeline Akışı
-```
-Kullanıcı sorusu (Türkçe doğal dil)
-  → LangChain LCEL: ChatOllama ile SQL üret (few-shot + şema-aware)
-  → sql_guard: temizle + SELECT-only + whitelist doğrula
-  → SQLAlchemy execute → StructuredResult (intent: SCALAR / EMPTY / LIST)
-      → Hata? → self-correction loop (max N deneme, LLM'e hatayı geri ver)
-  → Answerer dispatch:
-      EMPTY  → sabit Türkçe cümle
-      SCALAR → deterministik şablon (LLM yok)
-      LIST   → deterministik template (list_renderer); verbose=True ise LLM dener + validation gate
-```
-
-#### Güvenlik Katmanı (`sql_guard.py`)
-- SELECT-only: INSERT/UPDATE/DELETE/DROP/ALTER ve diğer yasaklı keyword'ler reddedilir
-- Whitelist: Yalnızca `ALLOWED_TABLES` setindeki 9 `ai_*_view`'a erişim izni
-- SQL yorum satırları (injection vektörü) engellenir
-- Birden fazla SQL statement çalıştırılamaz
-
-#### Yeni View Ekleme Kuralları
-Yeni bir view eklendiğinde **üç dosya birlikte güncellenmelidir:**
-1. `views.sql` — view CREATE + GRANT
-2. `sql_guard.py` → `ALLOWED_TABLES` set'ine ekleme
-3. `prompts.py` → `SCHEMA_DESCRIPTION` + `FEW_SHOT_EXAMPLES` güncelleme
-
-#### Konuşma Hafızası
-- In-memory, thread-safe LRU + TTL (30 dk, max 200 session)
-- Session bazlı; `session_id` ile takip soruları desteklenir
-- Üretim ortamında Redis ile değiştirilmesi tavsiye edilir
-
 #### Cevap Üretim Stratejisi
 - **Template-first:** Çoğu cevap LLM çağrısı olmadan deterministik şablonlarla üretilir
 - LLM yalnızca `verbose=True` + LIST intent + validation gate başarılıysa kullanılır
@@ -437,3 +550,4 @@ Yeni bir view eklendiğinde **üç dosya birlikte güncellenmelidir:**
 - [ ] Davranış değişikliğinde mevcut testleri güncelle; yeni davranış için test yaz
 - [ ] Alakasız refactor yapma; değişiklikleri dar ve kapsamlı tut
 - [ ] WmsAiService'te yeni view eklerken: `views.sql` + `sql_guard.py` (ALLOWED_TABLES) + `prompts.py` (SCHEMA_DESCRIPTION + FEW_SHOT_EXAMPLES) üçlüsünü birlikte güncelle
+- [ ] Yeni soru/SQL örneği eklerken: `ornekler.json` + ChromaDB yeniden üretimi + `prompts.py` (FEW_SHOT_EXAMPLES fallback) üçlüsünü birlikte güncelle

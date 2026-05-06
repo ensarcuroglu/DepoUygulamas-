@@ -1,0 +1,162 @@
+[
+  {
+    "input": "Stokta kalmayan ürünleri listele.",
+    "query": "SELECT urun_id, urun_adi, marka_adi, kategori_adi FROM ai_stok_durumu_view WHERE stok_durumu = 'Stok Yok';"
+  },
+  {
+    "input": "Stoğu kritik seviyenin altına düşen ürünler hangileri?",
+    "query": "SELECT urun_adi, barkod, guncel_stok_miktari, kritik_stok_siniri, birim FROM ai_stok_durumu_view WHERE guncel_stok_miktari < kritik_stok_siniri AND stok_durumu != 'Stok Yok';"
+  },
+  {
+    "input": "Kartal markalı özel seri ürünleri göster.",
+    "query": "SELECT urun_adi, guncel_stok_miktari, stok_durumu FROM ai_stok_durumu_view WHERE marka_adi = 'KARTAL' AND kategori_adi = 'Özel Seri';"
+  },
+  {
+    "input": "Arbella markalı makarnaların toplam stok miktarı ne kadar?",
+    "query": "SELECT SUM(guncel_stok_miktari) as toplam_stok FROM ai_stok_durumu_view WHERE marka_adi = 'ARBELLA' AND kategori_adi = 'Makarna';"
+  },
+  {
+    "input": "Sistemde stok durumu yeterli olan kaç farklı ürün var?",
+    "query": "SELECT COUNT(urun_id) as urun_sayisi FROM ai_stok_durumu_view WHERE stok_durumu = 'Yeterli';"
+  },
+  {
+    "input": "Markalara göre depodaki toplam ürün miktarlarını getir.",
+    "query": "SELECT marka_adi, SUM(guncel_stok_miktari) as toplam_miktar FROM ai_stok_durumu_view GROUP BY marka_adi ORDER BY toplam_miktar DESC;"
+  },
+  {
+    "input": "Kategorilere göre stokta olmayan ürün sayısını listele.",
+    "query": "SELECT kategori_adi, COUNT(urun_id) as tukenen_urun_sayisi FROM ai_stok_durumu_view WHERE stok_durumu = 'Stok Yok' GROUP BY kategori_adi;"
+  },
+  {
+    "input": "Küçük kesme kategorisindeki Pastawilla ürünlerinden stoğu yeterli olanları getir.",
+    "query": "SELECT urun_adi, barkod, guncel_stok_miktari FROM ai_stok_durumu_view WHERE kategori_adi = 'Küçük Kesme' AND marka_adi = 'PASTAWILLA' AND stok_durumu = 'Yeterli';"
+  },
+  {
+    "input": "Adında 'DEV' geçen ürünlerin stok durumları nedir?",
+    "query": "SELECT urun_adi, marka_adi, guncel_stok_miktari, stok_durumu FROM ai_stok_durumu_view WHERE urun_adi LIKE '%DEV%';"
+  },
+  {
+    "input": "Stoğu en az olan 5 ürünü listele.",
+    "query": "SELECT urun_adi, marka_adi, guncel_stok_miktari FROM ai_stok_durumu_view ORDER BY guncel_stok_miktari ASC LIMIT 5;"
+  }, 
+  {
+    "input": "Bugün yapılan tüm giriş hareketlerini listele.",
+    "query": "SELECT urun_adi, miktar, birim, raf_kodu, tarih FROM ai_stok_hareketi_view WHERE hareket_tipi = 'giris' AND DATE(tarih) = CURDATE();"
+  },
+  {
+    "input": "Mal kabul girişi olarak kaydedilen son 10 hareketi getir.",
+    "query": "SELECT urun_adi, miktar, aciklama, tarih FROM ai_stok_hareketi_view WHERE aciklama LIKE 'Mal kabul girişi%' ORDER BY tarih DESC LIMIT 10;"
+  },
+  {
+    "input": "Üretimden gelen paletlerin kabul dökümünü göster.",
+    "query": "SELECT urun_adi, miktar, lot_no, palet_no, tarih FROM ai_stok_hareketi_view WHERE aciklama LIKE 'Üretim paleti kabulü%' ORDER BY tarih DESC;"
+  },
+  {
+    "input": "MKI-2026-00001 referans numaralı mal kabulünde hangi ürünler geldi?",
+    "query": "SELECT urun_adi, miktar, birim, tarih FROM ai_stok_hareketi_view WHERE aciklama LIKE '%MKI-2026-00001%';"
+  },
+  {
+    "input": "Bu ay toplam kaç adet 'giris' işlemi yapıldı?",
+    "query": "SELECT SUM(miktar) as toplam_giris, birim FROM ai_stok_hareketi_view WHERE hareket_tipi = 'giris' AND MONTH(tarih) = MONTH(CURDATE()) AND YEAR(tarih) = YEAR(CURDATE()) GROUP BY birim;"
+  },
+  {
+    "input": "PLT-0001 numaralı paletin hareket geçmişini göster.",
+    "query": "SELECT hareket_tipi, miktar, raf_kodu, tarih, kullanici_adi FROM ai_stok_hareketi_view WHERE palet_no = 'PLT-0001' OR aciklama LIKE '%PLT-0001%';"
+  },
+  {
+    "input": "Dün yapılan stok hareketlerinde hangi kullanıcılar işlem yaptı?",
+    "query": "SELECT DISTINCT kullanici_adi FROM ai_stok_hareketi_view WHERE DATE(tarih) = DATE_SUB(CURDATE(), INTERVAL 1 DAY);"
+  },
+  {
+    "input": "Hangi ürünlerden bugün giriş yapıldı?",
+    "query": "SELECT DISTINCT urun_adi FROM ai_stok_hareketi_view WHERE hareket_tipi = 'giris' AND DATE(tarih) = CURDATE();"
+  },
+  {
+    "input": "En son yapılan 5 stok hareketinin detaylarını ver.",
+    "query": "SELECT urun_adi, hareket_tipi, miktar, aciklama, tarih FROM ai_stok_hareketi_view ORDER BY tarih DESC LIMIT 5;"
+  },
+  {
+    "input": "Depo bazlı bugün yapılan giriş miktarları nedir?",
+    "query": "SELECT depo_adi, SUM(miktar) as toplam_miktar FROM ai_stok_hareketi_view WHERE hareket_tipi = 'giris' AND DATE(tarih) = CURDATE() GROUP BY depo_adi;"
+  },
+  {
+    "input": "Stok miktarı 0'dan büyük olan ürünleri listele.",
+    "query": "SELECT urun_adi, guncel_stok_miktari FROM ai_stok_durumu_view WHERE guncel_stok_miktari > 0;"
+  },
+  {
+    "input": "En fazla stoğa sahip 10 ürünü getir.",
+    "query": "SELECT urun_adi, marka_adi, guncel_stok_miktari FROM ai_stok_durumu_view ORDER BY guncel_stok_miktari DESC LIMIT 10;"
+  },
+  {
+    "input": "Hiç stoğu olmayan ürünlerin markalarını listele.",
+    "query": "SELECT DISTINCT marka_adi FROM ai_stok_durumu_view WHERE stok_durumu = 'Stok Yok';"
+  },
+  {
+    "input": "Ortalama stok miktarı nedir?",
+    "query": "SELECT AVG(guncel_stok_miktari) as ortalama_stok FROM ai_stok_durumu_view;"
+  },
+  {
+    "input": "En düşük stok seviyesine sahip ürün hangisi?",
+    "query": "SELECT urun_adi, guncel_stok_miktari FROM ai_stok_durumu_view ORDER BY guncel_stok_miktari ASC LIMIT 1;"
+  },
+  {
+    "input": "Kategorilere göre ortalama stok miktarlarını getir.",
+    "query": "SELECT kategori_adi, AVG(guncel_stok_miktari) as ortalama FROM ai_stok_durumu_view GROUP BY kategori_adi;"
+  },
+  {
+    "input": "Kritik seviyeye en yakın ürünleri listele.",
+    "query": "SELECT urun_adi, guncel_stok_miktari, kritik_stok_siniri, (guncel_stok_miktari - kritik_stok_siniri) as guvenli_fark FROM ai_stok_durumu_view WHERE guncel_stok_miktari > kritik_stok_siniri ORDER BY guvenli_fark ASC LIMIT 10;"
+  },
+  {
+    "input": "Belirli bir barkoda sahip ürünü getir.",
+    "query": "SELECT * FROM ai_stok_durumu_view WHERE barkod = '1234567890';"
+  },
+  {
+    "input": "Stok miktarı kritik sınırın altında veya sınırda olan ürünleri listele.",
+    "query": "SELECT urun_adi, guncel_stok_miktari, kritik_stok_siniri FROM ai_stok_durumu_view WHERE guncel_stok_miktari <= kritik_stok_siniri;"
+  },
+  {
+    "input": "En çok ürün çeşidine sahip marka hangisi?",
+    "query": "SELECT marka_adi, COUNT(*) as urun_sayisi FROM ai_stok_durumu_view GROUP BY marka_adi ORDER BY urun_sayisi DESC LIMIT 1;"
+  },
+  {
+    "input": "Bugün yapılan çıkış işlemlerini listele.",
+    "query": "SELECT urun_adi, miktar, tarih FROM ai_stok_hareketi_view WHERE hareket_tipi = 'cikis' AND DATE(tarih) = CURDATE();"
+  },
+  {
+    "input": "Son 7 günde yapılan stok girişlerini getir.",
+    "query": "SELECT urun_adi, miktar, tarih FROM ai_stok_hareketi_view WHERE hareket_tipi = 'giris' AND tarih >= DATE_SUB(CURDATE(), INTERVAL 7 DAY);"
+  },
+  {
+    "input": "En fazla giriş yapılan ürünleri listele.",
+    "query": "SELECT urun_adi, SUM(miktar) as toplam FROM ai_stok_hareketi_view WHERE hareket_tipi = 'giris' GROUP BY urun_adi ORDER BY toplam DESC LIMIT 10;"
+  },
+  {
+    "input": "En fazla çıkış yapılan ürün hangisi?",
+    "query": "SELECT urun_adi, SUM(miktar) as toplam FROM ai_stok_hareketi_view WHERE hareket_tipi = 'cikis' GROUP BY urun_adi ORDER BY toplam DESC LIMIT 1;"
+  },
+  {
+    "input": "Bugün yapılan işlemlerin toplam miktarı nedir?",
+    "query": "SELECT SUM(miktar) as toplam FROM ai_stok_hareketi_view WHERE DATE(tarih) = CURDATE();"
+  },
+  {
+    "input": "Son 1 ayda yapılan tüm stok hareketlerini listele.",
+    "query": "SELECT urun_adi, hareket_tipi, miktar, tarih FROM ai_stok_hareketi_view WHERE tarih >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH);"
+  },
+  {
+    "input": "Depolara göre toplam çıkış miktarlarını getir.",
+    "query": "SELECT depo_adi, SUM(miktar) as toplam FROM ai_stok_hareketi_view WHERE hareket_tipi = 'cikis' GROUP BY depo_adi;"
+  },
+  {
+    "input": "En aktif kullanıcı kim?",
+    "query": "SELECT kullanici_adi, COUNT(*) as islem_sayisi FROM ai_stok_hareketi_view GROUP BY kullanici_adi ORDER BY islem_sayisi DESC LIMIT 1;"
+  },
+  {
+    "input": "Bugün yapılan işlemlerde en çok kullanılan raf hangisi?",
+    "query": "SELECT raf_kodu, COUNT(*) as sayi FROM ai_stok_hareketi_view WHERE DATE(tarih) = CURDATE() GROUP BY raf_kodu ORDER BY sayi DESC LIMIT 1;"
+  },
+  {
+    "input": "Açıklamasında 'transfer' geçen hareketleri listele.",
+    "query": "SELECT urun_adi, miktar, tarih FROM ai_stok_hareketi_view WHERE aciklama LIKE '%transfer%';"
+  }
+]

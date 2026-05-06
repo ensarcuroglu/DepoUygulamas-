@@ -8,3 +8,6 @@ sqlalchemy
 pymysql
 cryptography
 python-dotenv
+chromadb
+sentence-transformers
+langchain-chroma

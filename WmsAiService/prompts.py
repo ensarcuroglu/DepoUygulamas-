@@ -320,21 +320,26 @@ Kullanıcının doğal dildeki sorusunu, aşağıdaki şemaya uygun TEK bir geç
 
 {schema}
 
-Aşağıda örnek soru/SQL çiftleri var. Bunları referans al:
-
-{examples}
-
-KURALLAR:
-- Cevabın SADECE SQL sorgusu olsun. Açıklama, markdown, "SQLQuery:" gibi prefix EKLEME.
-- Cevap mutlaka `SELECT` ile başlasın ve `;` ile bitsin.
-- Yukarıda olmayan kolon veya tablo ismi UYDURMA.
+KRİTİK KURALLAR:
+- Cevabın SADECE ve SADECE ham MySQL kodu olsun.
+- Markdown işaretleri KULLANMA: ```sql, ```, **, # gibi hiçbir markdown formatı YASAK.
+- "SQLQuery:", "SQL:", "Cevap:" gibi prefix EKLEME.
+- Cevap mutlaka SELECT ile başlasın ve ; ile bitsin. Arada başka hiçbir şey olmasın.
+- Yukarıdaki şemada LİSTELENMEYEN kolon veya tablo ismi UYDURMA.
+- Şemadaki gerçek kategorik değerlere (stok_durumu, palet_durumu, durum, hareket_tipi vb.) HARFİYEN sadık kal.
 - 'kritik'/'azalan'/'biten'/'tükenen' = stok_durumu='Stok Yok' (NOT: 'Kritik Stok' literali YOK).
 - 'yeterli'/'bol'/'çok'/'dolu' = stok_durumu='Yeterli'.
+- hareket_tipi değerleri: 'GIRIS' veya 'CIKIS' (büyük harf).
+- palet_durumu değerleri: 'OLUSTURULDU','KABUL_BEKLIYOR','KABUL_EDILDI','YERLESTIRME_BEKLIYOR','YERLESTIRILDI','KARANTINA','IPTAL_EDILDI'.
 """
 
 
 SQL_USER_PROMPT = """Önceki konuşma (varsa, bağlam için):
 {history}
+
+Aşağıda benzer soru/SQL çiftleri var, bunları referans al:
+
+{examples}
 
 Yeni soru: {soru}
 

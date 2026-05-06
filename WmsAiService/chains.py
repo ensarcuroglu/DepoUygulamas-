@@ -1,9 +1,11 @@
 """
-LangChain LCEL pipeline'ı.
+LangChain LCEL pipeline’ı.
 
 Akış:
     soru + history
-        -> SQL üret  (ChatOllama, temp=0, few-shot)
+        -> Dinamik Few-Shot: SemanticSimilarityExampleSelector (k=3, ChromaDB)
+           kullanıcı sorusuna en yakın örnekleri seç
+        -> SQL üret  (ChatOllama, temp=0, dinamik örneklerle)
         -> clean & validate (sql_guard)
         -> SQLAlchemy ile execute, structured rows + intent çıkar
             -> hata olursa: self-correction loop (max N iter)
@@ -26,6 +28,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
 from answerer import Answerer, ListAnswerLLM
+from example_selector import select_and_format
 from prompts import (
     SCHEMA_DESCRIPTION,
     SQL_CORRECTION_PROMPT,
@@ -115,6 +118,12 @@ def build_answerer() -> Answerer:
 # ----------------------------------------------------------------------------
 
 def build_sql_prompt() -> ChatPromptTemplate:
+    """SQL üretim promptu.
+
+    {examples} artık partial değil — invoke anında dinamik olarak enjekte edilir.
+    Bu sayede SemanticSimilarityExampleSelector ile seçilen örnekler
+    her sorgu için farklı olabilir.
+    """
     return ChatPromptTemplate.from_messages(
         [
             ("system", SQL_SYSTEM_PROMPT),
@@ -122,7 +131,6 @@ def build_sql_prompt() -> ChatPromptTemplate:
         ]
     ).partial(
         schema=SCHEMA_DESCRIPTION,
-        examples=render_few_shot_block(),
     )
 
 
@@ -158,7 +166,21 @@ class WmsAiPipeline:
     # --- adımlar ---
 
     def _generate_sql(self, soru: str, history: str) -> str:
-        raw = self.sql_chain.invoke({"soru": soru, "history": history})
+        """Dinamik few-shot ile SQL üret.
+
+        1. SemanticSimilarityExampleSelector ile en yakın k=3 örneği seç
+        2. Seçilen örnekleri formatlayıp prompt'a enjekte et
+        3. LLM'den ham SQL al, temizle ve doğrula
+        """
+        examples = select_and_format(soru)
+        if not examples:
+            # Fallback: statik örnekler
+            examples = render_few_shot_block()
+            logger.debug("Dinamik örnek seçimi boş, statik fallback kullanılıyor.")
+
+        raw = self.sql_chain.invoke(
+            {"soru": soru, "history": history, "examples": examples}
+        )
         logger.debug("LLM raw SQL output: %s", raw)
         return clean_and_validate(raw)
 
