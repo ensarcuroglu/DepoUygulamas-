@@ -84,3 +84,14 @@ class IOperatorVardiyaMetrikleriRepository(ABC):
         """Tarih aralığı + opsiyonel kullanıcı/depo filtresi ile sorgu.
         İsim ve depo adı görüntüleme alanları doldurulur."""
         ...
+
+    @abstractmethod
+    def leaderboard_getir(
+        self,
+        vardiya_tarihi: date,
+        depo_id: Optional[int] = None,
+        limit: int = 20,
+    ) -> List[OperatorVardiyaMetrikleri]:
+        """Verilen gün için aktif çalışmış operatörleri döner.
+        Sıralama use case katmanında UPH'a göre yapılır (DB'de UPH yok)."""
+        ...

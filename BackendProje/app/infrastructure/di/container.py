@@ -264,4 +264,5 @@ from app.infrastructure.di.modules.operator_performans_di import (  # noqa: F401
     get_performans_event_publisher,
     get_operator_kpi_service,
     get_metrikler_aggregasyon_uc,
+    get_operator_performans_sorgu_uc,
 )

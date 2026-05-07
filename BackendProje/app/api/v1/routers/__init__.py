@@ -28,6 +28,7 @@ from .uretim_paletleri import router as uretim_paletleri_router
 from .etiket_sablonlari import router as etiket_sablonlari_router
 from .talep_tahmini import router as talep_tahmini_router
 from .ai_proxy import router as ai_proxy_router
+from .operator_performans import router as operator_performans_router
 
 __all__ = [
     "urunler_router",
@@ -60,4 +61,5 @@ __all__ = [
     "etiket_sablonlari_router",
     "talep_tahmini_router",
     "ai_proxy_router",
+    "operator_performans_router",
 ]

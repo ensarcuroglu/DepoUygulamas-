@@ -19,7 +19,10 @@ from sqlalchemy.orm import Session
 from database import get_db
 from app.core.services.operator_kpi_service import OperatorKpiService
 from app.core.services.performans_event_publisher import IPerformansEventPublisher
-from app.application.use_cases import MetriklerAggregasyonUseCase
+from app.application.use_cases import (
+    MetriklerAggregasyonUseCase,
+    OperatorPerformansSorguUseCase,
+)
 from app.infrastructure.persistence.repositories import (
     SqlAlchemyGorevPerformansEventRepository,
     SqlAlchemyOperatorVardiyaMetrikleriRepository,
@@ -65,3 +68,9 @@ def get_metrikler_aggregasyon_uc(
     kpi_service: OperatorKpiService = Depends(get_operator_kpi_service),
 ) -> MetriklerAggregasyonUseCase:
     return MetriklerAggregasyonUseCase(event_repo, metrik_repo, kpi_service)
+
+
+def get_operator_performans_sorgu_uc(
+    metrik_repo=Depends(get_operator_vardiya_metrikleri_repo),
+) -> OperatorPerformansSorguUseCase:
+    return OperatorPerformansSorguUseCase(metrik_repo)

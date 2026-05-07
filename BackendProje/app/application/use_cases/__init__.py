@@ -189,6 +189,7 @@ from .talep_tahmini_use_cases import (
 from .operator_performans_use_cases import (
     AggregasyonSonucDTO,
     MetriklerAggregasyonUseCase,
+    OperatorPerformansSorguUseCase,
 )
 
 __all__ = [
@@ -280,4 +281,5 @@ __all__ = [
     "RiskliUrunlerListeleUseCase", "BacktestOzetGetirUseCase",
     # Operatör Performans (LMS)
     "MetriklerAggregasyonUseCase", "AggregasyonSonucDTO",
+    "OperatorPerformansSorguUseCase",
 ]

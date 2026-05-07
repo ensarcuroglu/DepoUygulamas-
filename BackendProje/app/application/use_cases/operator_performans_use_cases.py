@@ -15,7 +15,16 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import date, timedelta
+from typing import List, Optional
 
+from app.application.dto.operator_performans_dto import (
+    KendiPerformansOzetDTO,
+    LeaderboardItemDTO,
+    LeaderboardResponseDTO,
+    OperatorMetrikItemDTO,
+    OperatorOzetListResponseDTO,
+)
 from app.core.repositories.operator_performans_repository import (
     IGorevPerformansEventRepository,
     IOperatorVardiyaMetrikleriRepository,
@@ -89,3 +98,93 @@ class MetriklerAggregasyonUseCase:
             guncellenen_vardiya=guncellenen,
             bekleyen_kalan=bekleyen_kalan,
         )
+
+
+class OperatorPerformansSorguUseCase:
+    """KPI okuma uçları — özet, kullanıcı detay, leaderboard, /me."""
+
+    def __init__(self, metrik_repo: IOperatorVardiyaMetrikleriRepository) -> None:
+        self._metrik_repo = metrik_repo
+
+    def ozet_getir(
+        self,
+        baslangic: Optional[date] = None,
+        bitis: Optional[date] = None,
+        depo_id: Optional[int] = None,
+        kullanici_id: Optional[int] = None,
+        skip: int = 0,
+        limit: int = 200,
+    ) -> OperatorOzetListResponseDTO:
+        kayitlar = self._metrik_repo.getir_aralik(
+            kullanici_id=kullanici_id,
+            depo_id=depo_id,
+            baslangic=baslangic,
+            bitis=bitis,
+            skip=skip,
+            limit=limit,
+        )
+        items = [OperatorMetrikItemDTO.from_entity(m) for m in kayitlar]
+        return OperatorOzetListResponseDTO(items=items, toplam=len(items))
+
+    def kullanici_detay_getir(
+        self,
+        kullanici_id: int,
+        baslangic: Optional[date] = None,
+        bitis: Optional[date] = None,
+        limit: int = 90,
+    ) -> List[OperatorMetrikItemDTO]:
+        kayitlar = self._metrik_repo.getir_aralik(
+            kullanici_id=kullanici_id,
+            baslangic=baslangic,
+            bitis=bitis,
+            skip=0,
+            limit=limit,
+        )
+        return [OperatorMetrikItemDTO.from_entity(m) for m in kayitlar]
+
+    def leaderboard_getir(
+        self,
+        vardiya_tarihi: Optional[date] = None,
+        depo_id: Optional[int] = None,
+        limit: int = 10,
+    ) -> LeaderboardResponseDTO:
+        gun = vardiya_tarihi or date.today()
+        kayitlar = self._metrik_repo.leaderboard_getir(
+            vardiya_tarihi=gun, depo_id=depo_id, limit=limit
+        )
+        # UPH'a göre azalan sıralama (entity property'si üzerinden)
+        kayitlar.sort(key=lambda m: (m.uph, m.toplam_gorev), reverse=True)
+        items: list[LeaderboardItemDTO] = []
+        for sira, m in enumerate(kayitlar[:limit], start=1):
+            items.append(
+                LeaderboardItemDTO(
+                    sira=sira,
+                    kullanici_id=m.kullanici_id,
+                    operator_adi=m.operator_adi,
+                    depo_id=m.depo_id,
+                    depo_adi=m.depo_adi,
+                    toplam_gorev=m.toplam_gorev,
+                    toplam_aktif_saniye=m.toplam_aktif_saniye,
+                    uph=m.uph,
+                    hata_orani=m.hata_orani,
+                )
+            )
+        return LeaderboardResponseDTO(vardiya_tarihi=gun, items=items)
+
+    def kendi_metriklerim(
+        self, kullanici_id: int, gun_sayisi: int = 7
+    ) -> KendiPerformansOzetDTO:
+        bugun = date.today()
+        baslangic = bugun - timedelta(days=max(0, gun_sayisi - 1))
+        kayitlar = self._metrik_repo.getir_aralik(
+            kullanici_id=kullanici_id,
+            baslangic=baslangic,
+            bitis=bugun,
+            skip=0,
+            limit=gun_sayisi,
+        )
+        items = [OperatorMetrikItemDTO.from_entity(m) for m in kayitlar]
+        bugun_kaydi = next(
+            (i for i in items if i.vardiya_tarihi == bugun), None
+        )
+        return KendiPerformansOzetDTO(bugun=bugun_kaydi, son_gunler=items)

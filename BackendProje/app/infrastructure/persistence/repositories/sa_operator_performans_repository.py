@@ -160,6 +160,36 @@ class SqlAlchemyOperatorVardiyaMetrikleriRepository(
         )
         return operator_vardiya_to_entity(orm) if orm else None
 
+    def leaderboard_getir(
+        self,
+        vardiya_tarihi: date,
+        depo_id: Optional[int] = None,
+        limit: int = 20,
+    ) -> List[OperatorVardiyaMetrikleri]:
+        q = self._db.query(
+            OperatorVardiyaMetrikleriORM,
+            Kullanici.ad_soyad,
+            Depo.isim,
+        ).join(
+            Kullanici, Kullanici.id == OperatorVardiyaMetrikleriORM.kullanici_id
+        ).outerjoin(
+            Depo, Depo.id == OperatorVardiyaMetrikleriORM.depo_id
+        ).filter(
+            OperatorVardiyaMetrikleriORM.vardiya_tarihi == vardiya_tarihi,
+            OperatorVardiyaMetrikleriORM.toplam_aktif_saniye > 0,
+        )
+
+        if depo_id is not None:
+            q = q.filter(OperatorVardiyaMetrikleriORM.depo_id == depo_id)
+
+        sonuclar: List[OperatorVardiyaMetrikleri] = []
+        for orm, ad_soyad, depo_adi in q.limit(max(limit * 5, 100)).all():
+            entity = operator_vardiya_to_entity(orm)
+            entity.operator_adi = ad_soyad
+            entity.depo_adi = depo_adi
+            sonuclar.append(entity)
+        return sonuclar
+
     def getir_aralik(
         self,
         kullanici_id: Optional[int] = None,

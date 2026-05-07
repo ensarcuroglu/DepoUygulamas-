@@ -57,6 +57,7 @@ from app.api.v1.routers import ( # noqa: E402
     etiket_sablonlari_router as v1_etiket_sablonlari_router,
     talep_tahmini_router as v1_talep_tahmini_router,
     ai_proxy_router as v1_ai_proxy_router,
+    operator_performans_router as v1_operator_performans_router,
 )
 
 _scheduler = RaporScheduler()
@@ -167,6 +168,9 @@ app.include_router(v1_talep_tahmini_router)
 app.include_router(v1_auth_router)
 app.include_router(v1_dashboard_router)
 app.include_router(v1_ai_proxy_router)
+
+# LMS Faz 2 — Operatör Performans (KPI okuma uçları)
+app.include_router(v1_operator_performans_router)
 
 
 @app.get("/")

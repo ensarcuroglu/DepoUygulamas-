@@ -114,6 +114,13 @@ from .talep_tahmini_dto import (
     TalepTahminUrunOzetDTO,
     TalepTrendDTO,
 )
+from .operator_performans_dto import (
+    KendiPerformansOzetDTO,
+    LeaderboardItemDTO,
+    LeaderboardResponseDTO,
+    OperatorMetrikItemDTO,
+    OperatorOzetListResponseDTO,
+)
 
 __all__ = [
     # Ürün
@@ -168,4 +175,8 @@ __all__ = [
     "GunlukTahminDTO", "GunlukTalepDTO", "TalepTahminResponseDTO",
     "TalepTahminUrunOzetDTO", "TalepTrendDTO",
     "RiskliUrunDTO", "BacktestOzetDTO",
+    # Operatör Performans (LMS)
+    "OperatorMetrikItemDTO", "OperatorOzetListResponseDTO",
+    "LeaderboardItemDTO", "LeaderboardResponseDTO",
+    "KendiPerformansOzetDTO",
 ]
