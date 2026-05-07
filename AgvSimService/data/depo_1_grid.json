@@ -1,0 +1,23 @@
+{
+  "_aciklama": "MVP örnek grid — 20x10 koridor, 6 raf, 1 şarj. Raflar (x,y) hücreleri RAF tipinde; yaklasma_x/y geçilebilir koridor hücresi.",
+  "depo_id": 1,
+  "genislik": 20,
+  "yukseklik": 10,
+  "raflar": [
+    { "raf_id": 101, "kod": "A-01", "x": 3, "y": 2, "yaklasma_x": 3, "yaklasma_y": 3 },
+    { "raf_id": 102, "kod": "A-02", "x": 5, "y": 2, "yaklasma_x": 5, "yaklasma_y": 3 },
+    { "raf_id": 103, "kod": "A-03", "x": 7, "y": 2, "yaklasma_x": 7, "yaklasma_y": 3 },
+    { "raf_id": 201, "kod": "B-01", "x": 12, "y": 6, "yaklasma_x": 12, "yaklasma_y": 5 },
+    { "raf_id": 202, "kod": "B-02", "x": 14, "y": 6, "yaklasma_x": 14, "yaklasma_y": 5 },
+    { "raf_id": 203, "kod": "B-03", "x": 16, "y": 6, "yaklasma_x": 16, "yaklasma_y": 5 }
+  ],
+  "engeller": [],
+  "sarj_konumlari": [
+    { "x": 0, "y": 9 },
+    { "x": 1, "y": 9 }
+  ],
+  "_baslangic_robot_konumlari": [
+    { "id": "AGV-01", "x": 0, "y": 9 },
+    { "id": "AGV-02", "x": 1, "y": 9 }
+  ]
+}
