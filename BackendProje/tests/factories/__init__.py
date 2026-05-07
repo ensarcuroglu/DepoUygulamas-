@@ -16,6 +16,10 @@ from tests.factories.rapor_sablonu_factory import RaporSablonuFactory, RaporLogu
 from tests.factories.stok_sayim_factory import StokSayimFactory, StokSayimKalemiFactory
 from tests.factories.mal_kabul_irsaliye_factory import MalKabulIrsaliyeFactory, MalKabulKalemiFactory
 from tests.factories.yerlestirme_gorevi_factory import YerlestirmeGoreviFactory
+from tests.factories.operator_performans_factory import (
+    GorevPerformansEventFactory,
+    OperatorVardiyaMetrikleriFactory,
+)
 
 ALL_FACTORIES = [
     KullaniciFactory, MarkaFactory, KategoriFactory, DepoFactory, ZonFactory,
@@ -27,6 +31,7 @@ ALL_FACTORIES = [
     StokSayimFactory, StokSayimKalemiFactory,
     MalKabulIrsaliyeFactory, MalKabulKalemiFactory,
     YerlestirmeGoreviFactory,
+    GorevPerformansEventFactory, OperatorVardiyaMetrikleriFactory,
 ]
 
 __all__ = [
@@ -53,5 +58,7 @@ __all__ = [
     "MalKabulIrsaliyeFactory",
     "MalKabulKalemiFactory",
     "YerlestirmeGoreviFactory",
+    "GorevPerformansEventFactory",
+    "OperatorVardiyaMetrikleriFactory",
     "ALL_FACTORIES",
 ]
