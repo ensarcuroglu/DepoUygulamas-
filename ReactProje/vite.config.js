@@ -127,6 +127,16 @@ export default defineConfig({
     },
 
     proxy: {
+      // AGV servisi (port 8002) — /api öncesinde eşleşmesi için ÖNCE tanımlı
+      '/api/agv': {
+        target: 'http://127.0.0.1:8002',
+        changeOrigin: true,
+      },
+      '/ws/agv': {
+        target: 'ws://127.0.0.1:8002',
+        ws: true,
+        changeOrigin: true,
+      },
       // React'tan gelen istekleri Python (FastAPI/Uvicorn) backend'ine yönlendirir
       '/api': {
         target: 'http://127.0.0.1:8000',

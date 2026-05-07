@@ -104,4 +104,9 @@ export const queryKeys = {
         kullanici: (kullaniciId, params = {}) =>
             ['operatorPerformans', 'kullanici', kullaniciId, params],
     },
+    agv: {
+        all: ['agv'],
+        grid: () => ['agv', 'grid'],
+        robotlar: () => ['agv', 'robotlar'],
+    },
 };
