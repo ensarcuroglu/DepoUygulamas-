@@ -7,12 +7,22 @@
 
 import { Canvas } from '@react-three/fiber';
 import React, { Suspense, Component } from 'react';
-import { OrbitControls, Stats, Environment } from '@react-three/drei';
+import { OrbitControls, Stats, Environment, Html } from '@react-three/drei';
 
 import { useAgvStore } from '../../../stores/agvStore';
 import DepoZemini from './DepoZemini';
 import RobotMesh from './Robot';
 import RobotYollari from './RobotYollari';
+
+function SahneFallback() {
+    return (
+        <Html center>
+            <div className="rounded-lg bg-slate-900/80 px-3 py-2 text-xs text-slate-200 shadow-lg backdrop-blur">
+                3D modeller yükleniyor…
+            </div>
+        </Html>
+    );
+}
 
 class ErrorBoundary extends Component {
     constructor(props) {
@@ -85,9 +95,13 @@ export default function DepoSahnesi() {
                     shadow-camera-top={buyukKenar}
                     shadow-camera-bottom={-buyukKenar}
                 />
-                <Environment preset="warehouse" />
-
-                <Suspense fallback={null}>
+                <Suspense fallback={<SahneFallback />}>
+                    {/*
+                     * Environment HDR'ı drei CDN'inden async yüklüyor — Suspense İÇİNDE
+                     * olmalı. Aksi halde app-level Suspense devreye girer ve sayfa
+                     * tamamen LoadingSpinner'a (beyaz) düşer.
+                     */}
+                    <Environment preset="warehouse" />
                     <DepoZemini grid={grid} />
                     <RobotYollari />
 

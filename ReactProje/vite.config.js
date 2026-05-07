@@ -115,12 +115,27 @@ export default defineConfig({
     https: true,
     host: true, // Vite'in 0.0.0.0 üzerinden yerel ağa açılmasını sağlar
     allowedHosts: true, // BÜTÜN TÜNEL LİNKLERİNE İZİN VEREN SATIR
-    
+
     // =======================================================
     // EKLENEN KISIM: ZAP Güvenlik Başlıkları (Security Headers)
     // =======================================================
     headers: {
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http: wss: ws:;",
+      // CSP açıklaması:
+      // - blob:/data: → Three.js GLB içindeki gömülü texture'ları blob URL'e dönüştürüp
+      //   fetch eder; ayrıca workbox/PWA SW data URL'leri kullanır.
+      // - https://fonts.googleapis.com (style) + https://fonts.gstatic.com (font) → Google Fonts
+      // - worker-src blob: → Three.js DRACO/Meshopt decoder'ları blob worker yükleyebilir
+      'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "img-src 'self' data: blob: https:",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        "connect-src 'self' blob: data: https: http: wss: ws:",
+        "worker-src 'self' blob:",
+        "child-src 'self' blob:",
+        "media-src 'self' blob: data:",
+      ].join('; ') + ';',
       'X-Frame-Options': 'DENY',
       'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
       'X-Content-Type-Options': 'nosniff'
@@ -136,15 +151,6 @@ export default defineConfig({
         target: 'ws://127.0.0.1:8002',
         ws: true,
         changeOrigin: true,
-        configure: (proxy) => {
-          proxy.on('error', (err) => {
-            if (err.code === 'ECONNRESET') {
-              // React Hot-Reload veya sayfa yenilemede sıkça oluşan zararsız hatayı gizle
-              return;
-            }
-            console.error('Vite WS Proxy Error:', err.message);
-          });
-        }
       },
       // React'tan gelen istekleri Python (FastAPI/Uvicorn) backend'ine yönlendirir
       '/api': {
@@ -160,16 +166,16 @@ export default defineConfig({
         manualChunks: {
           // Temel React kütüphaneleri (her sayfada lazım olanlar)
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          
+
           // Sadece grafik olan sayfalarda yüklenecek
           'chart-vendor': ['recharts'],
-          
+
           // Sadece Excel/Raporlama işlemlerinde yüklenecek
           'excel-vendor': ['xlsx'],
-          
+
           // Sadece PDF çıktısı alınan yerlerde yüklenecek
           'pdf-vendor': ['jspdf', 'jspdf-autotable'],
-          
+
           // Sadece Terminal ve Barkod okuma sayfalarında yüklenecek
           'barcode-vendor': ['@zxing/library', 'html5-qrcode', 'qrcode.react'],
 
