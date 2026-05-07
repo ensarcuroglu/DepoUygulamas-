@@ -136,6 +136,15 @@ export default defineConfig({
         target: 'ws://127.0.0.1:8002',
         ws: true,
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            if (err.code === 'ECONNRESET') {
+              // React Hot-Reload veya sayfa yenilemede sıkça oluşan zararsız hatayı gizle
+              return;
+            }
+            console.error('Vite WS Proxy Error:', err.message);
+          });
+        }
       },
       // React'tan gelen istekleri Python (FastAPI/Uvicorn) backend'ine yönlendirir
       '/api': {

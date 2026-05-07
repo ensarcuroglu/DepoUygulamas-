@@ -1,23 +1,32 @@
 {
-  "_aciklama": "MVP örnek grid — 20x10 koridor, 6 raf, 1 şarj. Raflar (x,y) hücreleri RAF tipinde; yaklasma_x/y geçilebilir koridor hücresi.",
+  "_aciklama": "MVP örnek grid — 20x12 koridor, 14 raf, 2 şarj. Raflar (x,y) hücreleri RAF tipinde; yaklasma_x/y geçilebilir koridor hücresi.",
   "depo_id": 1,
   "genislik": 20,
-  "yukseklik": 10,
+  "yukseklik": 12,
   "raflar": [
-    { "raf_id": 101, "kod": "A-01", "x": 3, "y": 2, "yaklasma_x": 3, "yaklasma_y": 3 },
-    { "raf_id": 102, "kod": "A-02", "x": 5, "y": 2, "yaklasma_x": 5, "yaklasma_y": 3 },
-    { "raf_id": 103, "kod": "A-03", "x": 7, "y": 2, "yaklasma_x": 7, "yaklasma_y": 3 },
-    { "raf_id": 201, "kod": "B-01", "x": 12, "y": 6, "yaklasma_x": 12, "yaklasma_y": 5 },
-    { "raf_id": 202, "kod": "B-02", "x": 14, "y": 6, "yaklasma_x": 14, "yaklasma_y": 5 },
-    { "raf_id": 203, "kod": "B-03", "x": 16, "y": 6, "yaklasma_x": 16, "yaklasma_y": 5 }
+    { "raf_id": 101, "kod": "A-01", "x": 2, "y": 3, "yaklasma_x": 2, "yaklasma_y": 4 },
+    { "raf_id": 102, "kod": "A-02", "x": 4, "y": 3, "yaklasma_x": 4, "yaklasma_y": 4 },
+    { "raf_id": 103, "kod": "A-03", "x": 6, "y": 3, "yaklasma_x": 6, "yaklasma_y": 4 },
+    { "raf_id": 104, "kod": "A-04", "x": 8, "y": 3, "yaklasma_x": 8, "yaklasma_y": 4 },
+    { "raf_id": 105, "kod": "A-05", "x": 10, "y": 3, "yaklasma_x": 10, "yaklasma_y": 4 },
+    { "raf_id": 106, "kod": "A-06", "x": 12, "y": 3, "yaklasma_x": 12, "yaklasma_y": 4 },
+    { "raf_id": 107, "kod": "A-07", "x": 14, "y": 3, "yaklasma_x": 14, "yaklasma_y": 4 },
+
+    { "raf_id": 201, "kod": "B-01", "x": 2, "y": 7, "yaklasma_x": 2, "yaklasma_y": 6 },
+    { "raf_id": 202, "kod": "B-02", "x": 4, "y": 7, "yaklasma_x": 4, "yaklasma_y": 6 },
+    { "raf_id": 203, "kod": "B-03", "x": 6, "y": 7, "yaklasma_x": 6, "yaklasma_y": 6 },
+    { "raf_id": 204, "kod": "B-04", "x": 8, "y": 7, "yaklasma_x": 8, "yaklasma_y": 6 },
+    { "raf_id": 205, "kod": "B-05", "x": 10, "y": 7, "yaklasma_x": 10, "yaklasma_y": 6 },
+    { "raf_id": 206, "kod": "B-06", "x": 12, "y": 7, "yaklasma_x": 12, "yaklasma_y": 6 },
+    { "raf_id": 207, "kod": "B-07", "x": 14, "y": 7, "yaklasma_x": 14, "yaklasma_y": 6 }
   ],
   "engeller": [],
   "sarj_konumlari": [
-    { "x": 0, "y": 9 },
-    { "x": 1, "y": 9 }
+    { "x": 0, "y": 11 },
+    { "x": 1, "y": 11 }
   ],
   "_baslangic_robot_konumlari": [
-    { "id": "AGV-01", "x": 0, "y": 9 },
-    { "id": "AGV-02", "x": 1, "y": 9 }
+    { "id": "AGV-01", "x": 0, "y": 11 },
+    { "id": "AGV-02", "x": 1, "y": 11 }
   ]
 }

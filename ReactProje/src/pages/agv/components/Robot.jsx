@@ -15,8 +15,8 @@ import * as THREE from 'three';
 
 import { useAgvStore } from '../../../stores/agvStore';
 
-const LERP_FAKTOR = 0.18;
-const ROTATION_LERP_FAKTOR = 0.15;
+const LERP_FAKTOR = 0.06;
+const ROTATION_LERP_FAKTOR = 0.08;
 
 const DURUM_RENK = {
     Bos: '#9ca3af',
@@ -86,12 +86,12 @@ export default function RobotMesh({ robotId }) {
             }}
             onPointerOut={() => setHovered(false)}
         >
-            {/* AGV Modeli */}
-            <Clone object={amrScene} castShadow />
+            {/* AGV Modeli - Daha gerçekçi boyutlandırma */}
+            <Clone object={amrScene} scale={0.6} castShadow />
 
-            {/* Durum Göstergesi (LED Glow) */}
-            <mesh position={[0, 1.2, 0]}>
-                <sphereGeometry args={[0.1, 16, 16]} />
+            {/* Durum Göstergesi (LED Glow) - Boyuta göre hizalandı */}
+            <mesh position={[0, 0.8, 0]}>
+                <sphereGeometry args={[0.08, 16, 16]} />
                 <meshStandardMaterial
                     color={renk}
                     emissive={renk}
@@ -102,13 +102,13 @@ export default function RobotMesh({ robotId }) {
 
             {/* Yük Modeli (Sadece taşıyor veya bırakıyor iken) */}
             {(durum === 'Tasiyor' || durum === 'Birakiyor') && (
-                // Palet genellikle robotun üstünde bir yüksekliğe yerleşir
-                <Clone object={paletScene} position={[0, 0.4, 0]} castShadow />
+                // Palet robotun boyutuna ve platform yüksekliğine göre ayarlandı
+                <Clone object={paletScene} scale={0.6} position={[0, 0.28, 0]} castShadow />
             )}
 
             {/* Kullanıcı Etkileşim Balonu (Glassmorphism Tooltip) */}
             {hovered && (
-                <Html position={[0, 1.5, 0]} center className="pointer-events-none">
+                <Html position={[0, 1.2, 0]} center className="pointer-events-none">
                     <div className="flex w-32 flex-col items-center justify-center rounded-lg border border-white/10 bg-slate-900/80 p-2 text-[11px] text-white shadow-xl backdrop-blur-md transition-all">
                         <span className="font-bold text-blue-400">AGV-{robotId}</span>
                         <span className="mt-1 font-medium">{durum}</span>

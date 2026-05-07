@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     # Servisler arası kimlik (BackendProje ile aynı değer olmalı)
     INTERNAL_API_KEY: str = ""
 
-    # Tick loop frekansı (Hz). 5-10 arası önerilir.
-    TICK_HZ: int = 5
+    # Tick loop frekansı (Hz). Daha yavaş ilerleme için 2'ye düşürüldü.
+    TICK_HZ: int = 2
 
     # CORS — frontend'in bağlanabileceği origin'ler
     CORS_ALLOW_ORIGINS: str = "https://localhost:5173"
