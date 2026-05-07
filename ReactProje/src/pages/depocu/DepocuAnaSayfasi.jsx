@@ -24,11 +24,14 @@ import {
     Factory,
     Clock,
     TrendingUp,
+    Trophy,
+    Activity,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { getBekleyenGorevOzet } from '../../services/api';
 import { hataMetni } from '../../utils/hata';
+import { useKendiPerformansimQuery } from '../../queries/operatorPerformansQueries';
 
 // Operatörün en sık kullandığı ana işlemler (Büyük Grid)
 const ANA_ISLEMLER = [
@@ -45,7 +48,6 @@ const ANA_ISLEMLER = [
 
 // Daha az sıklıkla kullanılan veya izleme amaçlı ekranlar (Liste Görünümü)
 const ALT_ISLEMLER = [
-    { label: 'Performansım', icon: TrendingUp, to: '/depocu/performansim' },
     { label: 'İrsaliye ve Belgeler', icon: FileText, to: '/depocu/irsaliyeler' },
     { label: 'Destek / Arıza Bildir', icon: HelpCircle, to: '/depocu/destek' },
 ];
@@ -70,6 +72,10 @@ export default function DepocuAnaSayfasi() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [ozet, setOzet] = useState(null);
+
+    // Performans verisi
+    const performansQuery = useKendiPerformansimQuery({ gun_sayisi: 1 });
+    const bugunPerformans = performansQuery.data?.bugun;
 
     const yukle = useCallback(() =>
         getBekleyenGorevOzet()
@@ -165,6 +171,41 @@ export default function DepocuAnaSayfasi() {
                     {/* Watermark Icon */}
                     <div className="absolute -right-6 -bottom-6 opacity-10 pointer-events-none">
                         <DurumIcon className="w-48 h-48 text-white" />
+                    </div>
+                </div>
+            </motion.section>
+
+            {/* PERFORMANS ÖZETİ (Mini Kart) */}
+            <motion.section 
+                variants={itemVariants}
+                onClick={() => navigate('/depocu/performansim')}
+                className="group relative cursor-pointer active:scale-[0.98] transition-transform"
+            >
+                <div className="rounded-[28px] border border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-[#121316]/80 backdrop-blur-md p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex items-center justify-between overflow-hidden">
+                    {/* Arkaplan parlaması */}
+                    <div className="absolute right-0 top-0 w-32 h-32 bg-amber-400/10 dark:bg-amber-500/10 rounded-full blur-2xl -mr-10 -mt-10 transition-opacity group-hover:opacity-100 opacity-50 pointer-events-none" />
+                    
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/20 text-white">
+                            <Trophy className="h-7 w-7" strokeWidth={2.5} />
+                        </div>
+                        <div>
+                            <p className="text-[11px] font-bold tracking-widest text-slate-500 dark:text-slate-400 uppercase mb-0.5">
+                                Günlük Performans
+                            </p>
+                            <div className="flex items-end gap-1.5">
+                                <h3 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white leading-none">
+                                    {bugunPerformans?.uph ? new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 1 }).format(bugunPerformans.uph) : '0'}
+                                </h3>
+                                <span className="text-sm font-bold text-slate-400 mb-[2px]">UPH</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="relative z-10 flex flex-col items-end justify-center">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400 group-hover:bg-amber-50 dark:group-hover:bg-amber-500/10 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
+                        </div>
                     </div>
                 </div>
             </motion.section>

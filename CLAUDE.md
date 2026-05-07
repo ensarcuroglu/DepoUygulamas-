@@ -4,7 +4,7 @@ This file is the operational reference for AI coding agents working in this repo
 
 ## Project Overview
 
-**Depo Yönetim Sistemi (WMS)** — Full-stack warehouse management system with lot/pallet tracking, putaway/pick task workflows, production pallet intake, and mobile terminal PWA. FastAPI backend (Clean Architecture) + React (Vite) frontend + AI doğal dil sorgu servisi (LangChain + Ollama).
+**Depo Yönetim Sistemi (WMS)** — Full-stack warehouse management system with lot/pallet tracking, putaway/pick task workflows, production pallet intake, mobile terminal PWA, and operatör performans (LMS) modülü (transactional outbox + APScheduler aggregator → vardiya KPI'ları + UPH leaderboard). FastAPI backend (Clean Architecture) + React (Vite) frontend + AI doğal dil sorgu servisi (LangChain + Ollama).
 
 ---
 
@@ -497,6 +497,7 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - Frontend: `ReactProje/.env.local` (isteğe bağlı)
 - Feature flag: `FEATURE_URETIM_PALET_PILOT_DEPO_IDS` (boş=kapalı, `TUMU`=tüm depolar, `1,3,5`=belirli depolar)
 - Palet veri kaynağı: `PALET_VERI_KAYNAGI` (`LOCAL`, `MOCK`, `ERP`)
+- Migration drift kontrolü (LMS): `DEPO_STRICT_MIGRATION=1` → drift halinde startup'ı durdur (production önerilir); `DEPO_SKIP_MIGRATION_CHECK=1` → kontrolü atla (acil durum)
 - WmsAiService: `WmsAiService/.env`. Zorunlu: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`. Opsiyonel: `OLLAMA_MODEL` (def: `qwen2.5-coder:7b`), `OLLAMA_BASE_URL` (def: `http://localhost:11434`), `OLLAMA_ANSWER_MODEL`, `LLM_TEMPERATURE` (def: `0`), `LLM_NUM_CTX` (def: `4096`), `LLM_TIMEOUT` (def: `120`), `MAX_CORRECTION_ATTEMPTS` (def: `2`), `ANSWER_NUM_PREDICT` (def: `40`), `FEW_SHOT_K` (def: `3`), `CHROMA_PERSIST_DIR` (def: `./wms_chroma_db`), `EMBEDDING_MODEL` (def: `sentence-transformers/all-MiniLM-L6-v2`)
 
 ### Stok Hesaplama
@@ -520,6 +521,7 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - **Alembic** resmi migration aracıdır ama projede standalone `migrate_*.py` scriptleri de bulunur (elle çalıştırılır, tekrar çalıştırmaya dayanıklı değil)
 - Yeni migration: `alembic revision --autogenerate -m "aciklama"` → `alembic upgrade head`
 - `models.py` değiştirildiğinde migration gerekir
+- **Migration yazmak yeterli değildir** — her ortamda `alembic upgrade head` koşturulmalı; aksi halde `1146 Table doesn't exist` çıkar. `main.py` lifespan'inde `_migration_drift_kontrol` startup'ta drift'i loglar (prod'da `DEPO_STRICT_MIGRATION=1` ile boot durdurulur)
 
 ### Vite Dev Server
 - HTTPS zorunlu (mkcert plugin'i); dev URL: `https://localhost:5173`
@@ -529,6 +531,13 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 
 ### Idempotency
 - Kritik yazma endpoint'leri `Idempotency-Key` header'ı destekler; tekrarlayan istekler aynı sonucu döner
+
+### Operatör Performans (LMS)
+- **Transactional Outbox:** Yerleştirme/toplama use case'leri `IPerformansEventPublisher` ile `gorev_performans_eventleri` tablosuna event yazar (use case transaction'ında atomik). Faz 1 default: `DbOutboxPerformansEventPublisher`; Faz 5'te RabbitMQ implementasyonu aynı arayüzle takılabilir.
+- **Aggregator:** `MetriklerAggregasyonUseCase` APScheduler ile her 5 dk çalışır; outbox'tan okuyup `operator_vardiya_metrikleri` tablosuna upsert eder, event'leri `aggregate_edildi=True` işaretler. İdempotenttir.
+- **Vardiya = takvim günü** (UTC); UPH okuma sırasında `(yerlestirme + toplama) / (toplam_aktif_saniye / 3600)` formülüyle hesaplanır, saklanmaz. Hata oranı = `iptal / (tamamlanan + iptal)`.
+- **Endpoint'ler:** `/api/operator-performans/{ozet, leaderboard, me, kullanici/{id}}` — admin/lojistik tüm operatörler, depocu yalnız `/me` ve kendi id'siyle `/kullanici/{id}` (aksi 403); leaderboard tüm rollere açık (gamification).
+- **Migration:** `e2f3a4b5c6d7_operator_performans_modulu`. Yeni schema değişikliği eklenirken `alembic upgrade head` mutlaka koşturulmalı; aksi halde startup `_migration_drift_kontrol` log/hata verir.
 #### Cevap Üretim Stratejisi
 - **Template-first:** Çoğu cevap LLM çağrısı olmadan deterministik şablonlarla üretilir
 - LLM yalnızca `verbose=True` + LIST intent + validation gate başarılıysa kullanılır
@@ -544,7 +553,8 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - [ ] Backend değişikliği sonrası: `ruff check .` ve `pytest -m unit` çalıştır
 - [ ] Frontend değişikliği sonrası: `npm run lint` çalıştır
 - [ ] Tüm isimlendirmede Türkçe konvansiyonu koru (model, endpoint, değişken)
-- [ ] ORM model değişikliğinde Alembic migration oluştur
+- [ ] ORM model değişikliğinde Alembic migration oluştur **ve `alembic upgrade head` ile uygula** (yazılmış migration uygulanmadıkça prod'da `1146 Table doesn't exist` verir)
+- [ ] Yeni yerleştirme/toplama görev geçişi eklenirken LMS publisher hook'unu (`IPerformansEventPublisher`) çağırmayı unutma — outbox akışı kırılır
 - [ ] Yeni API endpoint'i eklerken ilgili use case + router + DI factory + test factory zincirini tamamla
 - [ ] Mevcut query key pattern'ine uy (`queryKeys.js`)
 - [ ] Davranış değişikliğinde mevcut testleri güncelle; yeni davranış için test yaz
