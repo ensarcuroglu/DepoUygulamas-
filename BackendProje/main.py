@@ -1,5 +1,8 @@
 import _ml_models_path  # noqa: F401  # ml_models paketini sys.path'e ekler
 
+import os
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -63,8 +66,63 @@ from app.api.v1.routers import ( # noqa: E402
 _scheduler = RaporScheduler()
 
 
+def _migration_drift_kontrol() -> None:
+    """Startup'ta DB şeması ile kod arasındaki Alembic uyumunu doğrular.
+
+    Migration head'i yazılmış ama uygulanmamışsa kullanıcıya 1146 ("Table
+    doesn't exist") hatası dönmeden önce burada anlamlı bir hata fırlatır.
+
+    Çevre değişkenleriyle davranış:
+      - `DEPO_SKIP_MIGRATION_CHECK=1` → kontrolü tamamen atlar (acil durum kapısı)
+      - `DEPO_STRICT_MIGRATION=1`     → drift varsa RuntimeError ile boot'u durdur
+        (production için önerilir; dev'de varsayılan olarak yalnız uyarı verir)
+    """
+    if os.environ.get("DEPO_SKIP_MIGRATION_CHECK", "").strip() == "1":
+        logger.info("Migration drift kontrolü DEPO_SKIP_MIGRATION_CHECK ile atlandı.")
+        return
+
+    try:
+        from alembic.config import Config
+        from alembic.script import ScriptDirectory
+        from alembic.runtime.migration import MigrationContext
+        from database import engine
+    except Exception as exc:
+        logger.warning("Migration drift kontrolü atlandı (import hatası): %s", exc)
+        return
+
+    alembic_ini = Path(__file__).resolve().parent / "alembic.ini"
+    if not alembic_ini.exists():
+        logger.warning("alembic.ini bulunamadı: %s — drift kontrolü atlandı.", alembic_ini)
+        return
+
+    try:
+        cfg = Config(str(alembic_ini))
+        script = ScriptDirectory.from_config(cfg)
+        kod_head = script.get_current_head()
+        with engine.connect() as conn:
+            db_revision = MigrationContext.configure(conn).get_current_revision()
+    except Exception as exc:
+        logger.error("Migration drift kontrolü başarısız (DB erişim?): %s", exc)
+        return
+
+    if db_revision == kod_head:
+        logger.info("Migration drift yok — DB head = %s", kod_head)
+        return
+
+    mesaj = (
+        f"DB MIGRATION DRIFT: kod head={kod_head!r}, db revision={db_revision!r}. "
+        f"`alembic upgrade head` çalıştırın. Acil durumda DEPO_SKIP_MIGRATION_CHECK=1 "
+        f"ile bu kontrolü atlayabilirsiniz (önerilmez)."
+    )
+    if os.environ.get("DEPO_STRICT_MIGRATION", "").strip() == "1":
+        logger.error(mesaj)
+        raise RuntimeError(mesaj)
+    logger.warning(mesaj)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _migration_drift_kontrol()
     _scheduler.start()
     # Süresi dolmuş idempotency kayıtlarını temizle
     try:
