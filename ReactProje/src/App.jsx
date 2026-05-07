@@ -53,6 +53,8 @@ const UretimPaletleriPage = lazy(() => import('./pages/UretimPaletleriPage'));
 const UretimPaletiKabulPage = lazy(() => import('./pages/UretimPaletiKabulPage'));
 const EtiketSablonlariPage = lazy(() => import('./pages/EtiketSablonlariPage'));
 const AiAsistanPage = lazy(() => import('./pages/AiAsistanPage'));
+const OperatorPerformansPage = lazy(() => import('./pages/OperatorPerformansPage'));
+const PerformansimPage = lazy(() => import('./pages/depocu/PerformansimPage'));
 
 // Terminal Sayfaları
 const GorevListesiPage = lazy(() => import('./pages/terminal/GorevListesiPage'));
@@ -114,6 +116,7 @@ function App() {
                     <Route path="/depocu/sevkiyat" element={<SevkiyatlarPage />} />
                     <Route path="/depocu/irsaliyeler" element={<IrsaliyelerPage />} />
                     <Route path="/depocu/destek" element={<DestekMasasiPage />} />
+                    <Route path="/depocu/performansim" element={<PerformansimPage />} />
                     <Route path="/depocu/profil" element={<ProfilAyarlariPage />} />
                   </Route>
                 </Route>
@@ -161,6 +164,7 @@ function App() {
                   <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
                     <Route path="/inbound-dashboard" element={<InboundDashboardPage />} />
                     <Route path="/kpi-dashboard" element={<KpiDashboardPage />} />
+                    <Route path="/operator-performans" element={<OperatorPerformansPage />} />
                   </Route>
 
                   {/* Stok Sayımı (Admin) */}

@@ -96,4 +96,12 @@ export const queryKeys = {
         all: ['aiAsistan'],
         sema: () => ['aiAsistan', 'sema'],
     },
+    operatorPerformans: {
+        all: ['operatorPerformans'],
+        ozet: (params = {}) => ['operatorPerformans', 'ozet', params],
+        leaderboard: (params = {}) => ['operatorPerformans', 'leaderboard', params],
+        benim: (params = {}) => ['operatorPerformans', 'me', params],
+        kullanici: (kullaniciId, params = {}) =>
+            ['operatorPerformans', 'kullanici', kullaniciId, params],
+    },
 };

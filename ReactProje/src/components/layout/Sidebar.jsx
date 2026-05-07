@@ -31,6 +31,7 @@ import {
     Factory,
     Tag,
     Sparkles,
+    Trophy,
 } from 'lucide-react';
 
 /* ───────────────────────────────────────────
@@ -70,6 +71,7 @@ const menuGroups = [
             ] : []),
             { path: '/inbound-dashboard', label: 'Inbound Panel', icon: BarChart3, roles: ['admin', 'lojistik'], badge: null },
             { path: '/kpi-dashboard', label: 'KPI Paneli', icon: TrendingUp, roles: ['admin', 'lojistik'], badge: null },
+            { path: '/operator-performans', label: 'Operatör Performansı', icon: Trophy, roles: ['admin', 'lojistik'], badge: 'Yeni' },
         ],
     },
     {

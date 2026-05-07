@@ -22,7 +22,8 @@ import {
     Truck,
     FileText,
     Factory,
-    Clock
+    Clock,
+    TrendingUp,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
@@ -44,6 +45,7 @@ const ANA_ISLEMLER = [
 
 // Daha az sıklıkla kullanılan veya izleme amaçlı ekranlar (Liste Görünümü)
 const ALT_ISLEMLER = [
+    { label: 'Performansım', icon: TrendingUp, to: '/depocu/performansim' },
     { label: 'İrsaliye ve Belgeler', icon: FileText, to: '/depocu/irsaliyeler' },
     { label: 'Destek / Arıza Bildir', icon: HelpCircle, to: '/depocu/destek' },
 ];
