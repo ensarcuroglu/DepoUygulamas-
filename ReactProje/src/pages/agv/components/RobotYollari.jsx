@@ -23,10 +23,12 @@ export default function RobotYollari() {
                 key={robotId}
                 points={points}
                 color={ROTA_RENGI}
-                lineWidth={2}
+                lineWidth={2.5}
                 transparent
-                opacity={0.65}
-                dashed={false}
+                opacity={0.8}
+                dashed={true}
+                dashScale={2}
+                dashSize={1}
             />
         );
     });

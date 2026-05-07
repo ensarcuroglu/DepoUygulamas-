@@ -1,15 +1,12 @@
 /**
  * Depo zemini + raflar + şarj noktaları.
- *
- * Raflar `<Instances>` ile tek draw call'da render edilir (1000+ raf bile tek mesh).
- * Statik — `grid` referansı sadece snapshot'ta değişir.
+ * Modeller public/models/ dizininden yüklenir.
  */
 
-import { Instance, Instances } from '@react-three/drei';
+import { Instance, Instances, useGLTF, Clone } from '@react-three/drei';
+import { useMemo } from 'react';
 
-const ZEMIN_RENGI = '#1f2937';
-const RAF_RENGI = '#3b82f6';
-const SARJ_RENGI = '#22c55e';
+const ZEMIN_RENGI = '#1e293b';
 
 export default function DepoZemini({ grid }) {
     const { genislik, yukseklik } = grid;
@@ -20,45 +17,72 @@ export default function DepoZemini({ grid }) {
     const merkezZ = yukseklik / 2 - 0.5;
     const buyukKenar = Math.max(genislik, yukseklik);
 
+    const { scene: rafScene } = useGLTF('/models/Raf.glb');
+    const { scene: chargerScene } = useGLTF('/models/AMR_Charger.glb');
+    const { scene: zeminScene } = useGLTF('/models/Zemin.glb');
+
+    // Raf modelinin içindeki tüm mesh'leri bul (Çoklu material/mesh içeren modeller için)
+    const rafMeshes = useMemo(() => {
+        const meshes = [];
+        rafScene.traverse((c) => {
+            if (c.isMesh) meshes.push(c);
+        });
+        return meshes;
+    }, [rafScene]);
+
     return (
         <group>
-            {/* Zemin */}
+            {/* Zemin (Yansıtıcı koyu zemin + İsteğe bağlı Zemin modeli) */}
             <mesh
                 position={[merkezX, -0.05, merkezZ]}
                 rotation={[-Math.PI / 2, 0, 0]}
                 receiveShadow
             >
                 <planeGeometry args={[genislik, yukseklik]} />
-                <meshStandardMaterial color={ZEMIN_RENGI} />
+                <meshStandardMaterial color={ZEMIN_RENGI} roughness={0.2} metalness={0.8} />
             </mesh>
+
+            <Clone object={zeminScene} position={[merkezX, -0.04, merkezZ]} receiveShadow />
 
             {/* Grid çizgileri */}
             <gridHelper
-                args={[buyukKenar, buyukKenar, '#374151', '#111827']}
-                position={[merkezX, 0, merkezZ]}
+                args={[buyukKenar, buyukKenar, '#334155', '#0f172a']}
+                position={[merkezX, 0.01, merkezZ]}
             />
 
-            {/* Raflar (instanced) */}
-            {raflar.length > 0 && (
-                <Instances limit={Math.max(raflar.length, 1)}>
-                    <boxGeometry args={[0.85, 1.2, 0.85]} />
-                    <meshStandardMaterial color={RAF_RENGI} />
-                    {raflar.map((raf) => (
-                        <Instance
-                            key={raf.raf_id}
-                            position={[raf.x, 0.6, raf.y]}
-                        />
-                    ))}
-                </Instances>
-            )}
+            {/* Raflar (instanced, performansı korumak için) */}
+            {raflar.length > 0 &&
+                rafMeshes.map((mesh, idx) => (
+                    <Instances
+                        key={`raf-mesh-${idx}`}
+                        limit={Math.max(raflar.length, 1)}
+                        castShadow
+                        receiveShadow
+                    >
+                        <primitive object={mesh.geometry} attach="geometry" />
+                        <primitive object={mesh.material} attach="material" />
+                        {raflar.map((raf) => (
+                            <Instance
+                                key={raf.raf_id}
+                                position={[raf.x, 0, raf.y]}
+                            />
+                        ))}
+                    </Instances>
+                ))}
 
             {/* Şarj noktaları */}
             {sarjlar.map((s, i) => (
-                <mesh key={`sarj-${i}`} position={[s.x, 0.05, s.y]}>
-                    <cylinderGeometry args={[0.4, 0.4, 0.1, 16]} />
-                    <meshStandardMaterial color={SARJ_RENGI} />
-                </mesh>
+                <Clone
+                    key={`sarj-${i}`}
+                    object={chargerScene}
+                    position={[s.x, 0, s.y]}
+                    castShadow
+                />
             ))}
         </group>
     );
 }
+
+useGLTF.preload('/models/Raf.glb');
+useGLTF.preload('/models/AMR_Charger.glb');
+useGLTF.preload('/models/Zemin.glb');
