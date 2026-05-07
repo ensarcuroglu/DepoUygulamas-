@@ -155,7 +155,10 @@ export default defineConfig({
           'barcode-vendor': ['@zxing/library', 'html5-qrcode', 'qrcode.react'],
 
           // İkonlar ve bildirimler
-          'ui-vendor': ['lucide-react', 'react-hot-toast']
+          'ui-vendor': ['lucide-react', 'react-hot-toast'],
+
+          // Sadece /agv-izleme sayfasında yüklenecek (Three.js + R3F + zustand)
+          'agv-vendor': ['three', '@react-three/fiber', '@react-three/drei', 'zustand']
         }
       }
     },

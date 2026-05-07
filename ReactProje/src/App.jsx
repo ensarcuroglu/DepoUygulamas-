@@ -55,6 +55,7 @@ const EtiketSablonlariPage = lazy(() => import('./pages/EtiketSablonlariPage'));
 const AiAsistanPage = lazy(() => import('./pages/AiAsistanPage'));
 const OperatorPerformansPage = lazy(() => import('./pages/OperatorPerformansPage'));
 const PerformansimPage = lazy(() => import('./pages/depocu/PerformansimPage'));
+const AgvIzlemePage = lazy(() => import('./pages/agv/AgvIzlemePage'));
 
 // Terminal Sayfaları
 const GorevListesiPage = lazy(() => import('./pages/terminal/GorevListesiPage'));
@@ -185,6 +186,13 @@ function App() {
                     <Route path="/zonlar" element={<ZonlarPage />} />
                     <Route path="/yerlestirme-gorevleri" element={<YerlestirmeGorevleriPage />} />
                   </Route>
+
+                  {/* AGV İzleme — Feature Flag */}
+                  {import.meta.env.VITE_FEATURE_AGV_ENABLED === 'true' && (
+                    <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
+                      <Route path="/agv-izleme" element={<AgvIzlemePage />} />
+                    </Route>
+                  )}
 
                   {/* Toplama Görevleri — Faz 1 */}
                   <Route element={<RoleRoute allowedRoles={['admin', 'depocu', 'lojistik']} />}>
