@@ -32,6 +32,7 @@ import {
     Tag,
     Sparkles,
     Trophy,
+    Bot,
 } from 'lucide-react';
 
 /* ───────────────────────────────────────────
@@ -90,6 +91,9 @@ const menuGroups = [
         items: [
             { path: '/zonlar', label: 'Zon Yönetimi', icon: Warehouse, roles: ['admin', 'lojistik'], badge: null },
             { path: '/yerlestirme-gorevleri', label: 'Görev Takibi', icon: ClipboardList, roles: ['admin', 'lojistik'], badge: null },
+            ...(import.meta.env.VITE_FEATURE_AGV_ENABLED === 'true' ? [
+                { path: '/agv-izleme', label: 'AGV İzleme', icon: Bot, roles: ['admin', 'lojistik'], badge: 'Beta' },
+            ] : []),
         ],
     },
     {

@@ -20,8 +20,13 @@ from app.api.v1.routers import gorevler as gorevler_router
 from app.api.v1.routers import robotlar as robotlar_router
 from app.api.v1.routers import ws as ws_router
 from app.core.entities.robot import Robot, RobotDurum, Yon
+from app.core.services.wms_callback_port import (
+    IWmsCallbackPort,
+    NoOpWmsCallbackPort,
+)
 from app.core.services.world import World, set_world
 from app.infrastructure.grid_loader import gridi_jsondan_yukle
+from app.infrastructure.wms_client import HttpWmsCallbackPort
 from app.infrastructure.ws_broadcaster import WsBroadcaster, set_broadcaster
 from app.runtime.tick_loop import TickLoop
 from config import settings
@@ -57,6 +62,19 @@ def _robotlari_olustur(world: World, grid_path: str) -> None:
     log.info("AGV robotlari olusturuldu: %s", [r.id for r in world.robotlar.values()])
 
 
+def _build_wms_callback() -> IWmsCallbackPort:
+    """INTERNAL_API_KEY tanımlıysa HttpWmsCallbackPort, aksi halde NoOp."""
+    if settings.INTERNAL_API_KEY:
+        return HttpWmsCallbackPort(
+            wms_base_url=settings.WMS_BASE_URL,
+            api_key=settings.INTERNAL_API_KEY,
+        )
+    log.warning(
+        "INTERNAL_API_KEY tanimli degil — WMS callback NoOp moduda (gorev WMS'te kapanmaz)"
+    )
+    return NoOpWmsCallbackPort()
+
+
 @asynccontextmanager
 async def lifespan(app_: FastAPI):
     grid = gridi_jsondan_yukle(settings.GRID_JSON_PATH)
@@ -67,15 +85,17 @@ async def lifespan(app_: FastAPI):
     broadcaster = WsBroadcaster()
     set_broadcaster(broadcaster)
 
-    tick = TickLoop(world, broadcaster, settings.TICK_HZ)
+    wms_callback = _build_wms_callback()
+    tick = TickLoop(world, broadcaster, settings.TICK_HZ, wms_callback=wms_callback)
     tick.start()
     log.info(
-        "AGV servisi hazir — grid=%dx%d, raf=%d, robot=%d, tick=%dHz",
+        "AGV servisi hazir — grid=%dx%d, raf=%d, robot=%d, tick=%dHz, wms=%s",
         grid.genislik,
         grid.yukseklik,
         len(grid.raflar),
         len(world.robotlar),
         settings.TICK_HZ,
+        type(wms_callback).__name__,
     )
     try:
         yield

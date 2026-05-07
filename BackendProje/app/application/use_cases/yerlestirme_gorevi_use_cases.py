@@ -21,6 +21,14 @@ from app.core.entities.zon import ZonTipi
 from app.core.entities.operator_performans import PerformansGorevTipi
 from app.core.exceptions import KayitBulunamadiError, GecersizIslemError, YetkisizIslemError
 from app.core.services.performans_event_publisher import IPerformansEventPublisher
+from app.core.services.agv_dispatcher import (
+    AgvDispatchPayload,
+    IAgvDispatcher,
+)
+
+import logging as _logging
+
+_log_agv = _logging.getLogger(__name__)
 
 
 def _gorev_sure_saniye(baslama, bitis) -> int:
@@ -166,11 +174,13 @@ class YerlestirmeGoreviOlusturUseCase:
         palet_repo: IPaletRepository,
         raf_repo: IRafRepository,
         log_repo: ISistemLogRepository,
+        agv_dispatcher: Optional[IAgvDispatcher] = None,
     ):
         self._repo = repo
         self._palet_repo = palet_repo
         self._raf_repo = raf_repo
         self._log_repo = log_repo
+        self._agv_dispatcher = agv_dispatcher
 
     def execute(
         self, dto: YerlestirmeGoreviOlusturRequestDTO, kullanici_id: int
@@ -206,7 +216,45 @@ class YerlestirmeGoreviOlusturUseCase:
                 yeni_veri={"palet_id": dto.palet_id, "onerilen_raf_id": dto.onerilen_raf_id},
             )
         )
+
+        # AGV dispatch hook (fire-and-forget — feature flag dispatcher içinde
+        # kontrol edilir; NoOp dispatcher default).
+        if self._agv_dispatcher is not None:
+            try:
+                self._agv_dispatch(kaydedilen, palet, raf.depo_id)
+            except Exception:  # noqa: BLE001 — dispatch görev transaction'ını bozmamalı
+                _log_agv.exception(
+                    "AGV dispatch beklenmeyen hata, gorev=%s",
+                    getattr(kaydedilen, "id", None),
+                )
+
         return YerlestirmeGoreviResponseDTO.from_entity(kaydedilen)
+
+    def _agv_dispatch(self, gorev: YerlestirmeGorevi, palet, depo_id: int | None) -> None:
+        """Görev → AGV payload eşlemesi.
+
+        Kaynak rafı:
+        - YERLESTIRME tipi: palet'in mevcut konumu (gorev.kaynak_raf_id None olur).
+        - TRANSFER / BELIRSIZ_KONUM: gorev.kaynak_raf_id zaten set.
+        """
+        if depo_id is None or gorev.id is None:
+            return
+
+        kaynak_raf_id = gorev.kaynak_raf_id or getattr(palet, "raf_id", None)
+        if kaynak_raf_id is None:
+            return  # Palet konumsuz → AGV'ye gönderemeyiz
+
+        self._agv_dispatcher.dispatch_yerlestirme(
+            AgvDispatchPayload(
+                wms_gorev_id=gorev.id,
+                wms_gorev_tipi=gorev.tip,
+                depo_id=depo_id,
+                kaynak_raf_id=kaynak_raf_id,
+                hedef_raf_id=gorev.onerilen_raf_id,
+                palet_id=gorev.palet_id,
+                oncelik=gorev.oncelik,
+            )
+        )
 
 
 class SonrakiGorevisiniAlUseCase:

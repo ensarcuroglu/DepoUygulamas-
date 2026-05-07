@@ -85,8 +85,11 @@ class TickUseCase:
             return
 
         if d == RobotDurum.TAMAMLANDI_BILDIRIM:
-            # Faz 3: WMS callback burada tetiklenecek (asyncio.create_task).
-            # MVP: doğrudan BOS'a dön.
+            # Faz 3: TickLoop runtime bu event'i izliyor ve async olarak
+            # WMS callback'i tetikliyor. Robot LOKALDE BOS'a dönmesine
+            # rağmen WMS callback başarısız olursa görev WMS tarafında
+            # kapanmaz; runtime fırsatçı retry yapmaz, log'a yazar.
+            # (Eventual consistency tasarım kararı — bkz. plan §13.2.)
             gorev_id = robot.aktif_gorev_id
             gorev = world.aktif_gorevler.pop(gorev_id, None) if gorev_id else None
             if gorev is not None:
@@ -94,13 +97,24 @@ class TickUseCase:
             robot.aktif_gorev_id = None
             robot.rota = None
             robot.durum_gecisi(RobotDurum.BOS)
-            events.append(
-                {
-                    "olay": "gorev_tamamlandi",
-                    "robot_id": robot.id,
-                    "gorev_id": gorev_id,
-                }
-            )
+            event = {
+                "olay": "gorev_tamamlandi",
+                "robot_id": robot.id,
+                "gorev_id": gorev_id,
+            }
+            if gorev is not None:
+                # WMS callback için gerekli alanlar (TickLoop runtime kullanır;
+                # WS frontend ekstra alanları ignore eder)
+                event.update(
+                    {
+                        "wms_gorev_id": gorev.wms_gorev_id,
+                        "wms_gorev_tipi": gorev.wms_gorev_tipi,
+                        "gerceklesen_raf_id": gorev.hedef_raf_id,
+                        "sim_baslama_tick": gorev.baslama_tick,
+                        "sim_tamamlanma_tick": gorev.tamamlanma_tick,
+                    }
+                )
+            events.append(event)
             return
 
     def _ilerle(self, robot: Robot) -> None:

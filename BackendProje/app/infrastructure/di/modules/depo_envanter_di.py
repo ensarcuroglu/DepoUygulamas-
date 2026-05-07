@@ -4,6 +4,12 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from database import get_db
+
+
+def _get_agv_dispatcher_lazy():
+    """Lazy import — circular import'u önlemek için import çağrı içinde."""
+    from app.infrastructure.di.modules.agv_di import get_agv_dispatcher
+    return get_agv_dispatcher()
 from app.infrastructure.persistence.repositories import (
     SqlAlchemyDepoRepository,
     SqlAlchemyZonRepository,
@@ -397,8 +403,11 @@ def get_yerlestirme_gorevi_olustur_uc(
     palet_repo=Depends(get_palet_repo),
     raf_repo=Depends(get_raf_repo),
     log_repo=Depends(get_log_repo),
+    agv_dispatcher=Depends(_get_agv_dispatcher_lazy),
 ):
-    return YerlestirmeGoreviOlusturUseCase(repo, palet_repo, raf_repo, log_repo)
+    return YerlestirmeGoreviOlusturUseCase(
+        repo, palet_repo, raf_repo, log_repo, agv_dispatcher=agv_dispatcher,
+    )
 
 
 def get_sonraki_gorevini_al_uc(

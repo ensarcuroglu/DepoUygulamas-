@@ -266,3 +266,10 @@ from app.infrastructure.di.modules.operator_performans_di import (  # noqa: F401
     get_metrikler_aggregasyon_uc,
     get_operator_performans_sorgu_uc,
 )
+from app.infrastructure.di.modules.agv_di import (  # noqa: F401
+    AGV_KULLANICI_ADI,
+    get_agv_dispatcher,
+    get_agv_kullanici_id,
+    get_agv_yerlestirme_tamamla_uc,
+    reset_agv_dispatcher_cache,
+)

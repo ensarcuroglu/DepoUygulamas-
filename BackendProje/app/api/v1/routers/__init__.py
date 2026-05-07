@@ -29,6 +29,7 @@ from .etiket_sablonlari import router as etiket_sablonlari_router
 from .talep_tahmini import router as talep_tahmini_router
 from .ai_proxy import router as ai_proxy_router
 from .operator_performans import router as operator_performans_router
+from .agv_callbacks import router as agv_callbacks_router
 
 __all__ = [
     "urunler_router",
@@ -62,4 +63,5 @@ __all__ = [
     "talep_tahmini_router",
     "ai_proxy_router",
     "operator_performans_router",
+    "agv_callbacks_router",
 ]

@@ -106,6 +106,23 @@ class Settings(BaseSettings):
         alias="FEATURE_URETIM_PALET_PILOT_DEPO_IDS",
     )
 
+    feature_agv_dispatch_depo_ids: str = Field(
+        "",
+        alias="FEATURE_AGV_DISPATCH_DEPO_IDS",
+    )
+
+    agv_sim_service_url: str = Field(
+        "http://127.0.0.1:8002",
+        alias="AGV_SIM_SERVICE_URL",
+    )
+    agv_sim_service_timeout: float = Field(
+        2.0,
+        alias="AGV_SIM_SERVICE_TIMEOUT",
+        ge=0.1,
+    )
+
+    internal_api_key: Optional[str] = Field(None, alias="INTERNAL_API_KEY")
+
     palet_veri_kaynagi: str = Field("LOCAL", alias="PALET_VERI_KAYNAGI")
     erp_api_url: Optional[str] = Field(None, alias="ERP_API_URL")
     erp_api_key: Optional[str] = Field(None, alias="ERP_API_KEY")
@@ -189,6 +206,18 @@ class Settings(BaseSettings):
             return []
 
     @property
+    def feature_agv_dispatch_depo_id_list(self) -> list[int]:
+        raw = self.feature_agv_dispatch_depo_ids.strip()
+        if not raw:
+            return []
+        if raw.upper() == "TUMU":
+            return [-1]
+        try:
+            return [int(item.strip()) for item in raw.split(",") if item.strip()]
+        except ValueError:
+            return []
+
+    @property
     def clean_test_data_allowed_db_names(self) -> list[str]:
         return [item.lower() for item in _parse_csv(self.clean_test_data_allowed_dbs)]
 
@@ -238,11 +267,13 @@ class FeatureFlags:
     # Empty list: feature is disabled for every warehouse.
     # [-1]: full rollout ("TUMU").
     pilot_depo_ids: list[int] = field(default_factory=list)
+    agv_dispatch_depo_ids: list[int] = field(default_factory=list)
 
     @classmethod
     def from_settings(cls, settings: Settings) -> "FeatureFlags":
         return cls(
             pilot_depo_ids=settings.feature_uretim_palet_pilot_depo_id_list,
+            agv_dispatch_depo_ids=settings.feature_agv_dispatch_depo_id_list,
         )
 
     @classmethod
@@ -250,13 +281,20 @@ class FeatureFlags:
         return cls.from_settings(load_settings(use_env_file=False))
 
     def uretim_paleti_aktif_mi(self, depo_id: int | None) -> bool:
-        if not self.pilot_depo_ids:
+        return self._depo_aktif_mi(self.pilot_depo_ids, depo_id)
+
+    def agv_dispatch_aktif_mi(self, depo_id: int | None) -> bool:
+        return self._depo_aktif_mi(self.agv_dispatch_depo_ids, depo_id)
+
+    @staticmethod
+    def _depo_aktif_mi(depo_listesi: list[int], depo_id: int | None) -> bool:
+        if not depo_listesi:
             return False
-        if -1 in self.pilot_depo_ids:
+        if -1 in depo_listesi:
             return True
         if depo_id is None:
             return False
-        return depo_id in self.pilot_depo_ids
+        return depo_id in depo_listesi
 
 
 @lru_cache(maxsize=1)

@@ -61,6 +61,7 @@ from app.api.v1.routers import ( # noqa: E402
     talep_tahmini_router as v1_talep_tahmini_router,
     ai_proxy_router as v1_ai_proxy_router,
     operator_performans_router as v1_operator_performans_router,
+    agv_callbacks_router as v1_agv_callbacks_router,
 )
 
 _scheduler = RaporScheduler()
@@ -229,6 +230,7 @@ app.include_router(v1_ai_proxy_router)
 
 # LMS Faz 2 — Operatör Performans (KPI okuma uçları)
 app.include_router(v1_operator_performans_router)
+app.include_router(v1_agv_callbacks_router)
 
 
 @app.get("/")
@@ -247,6 +249,12 @@ def ana_sayfa():
 # AI Asistan Servisi Başlatma
 # .\venv\Scripts\Activate.ps1
 # uvicorn main:app --host 127.0.0.1 --port 8001 
+
+# AVG Simülasyon Başlatma
+# .\venv\Scripts\Activate.ps1
+# uvicorn main:app --host 127.0.0.1 --port 8002
+# komut ile istek testi
+# curl -X POST http://127.0.0.1:8002/api/agv/gorevler -H "Content-Type: application/json" -d "{\"wms_gorev_id\":1,\"wms_gorev_tipi\":\"Yerlestirme\",\"kaynak_raf_id\":101,\"hedef_raf_id\":201}"
 
 # KAMERA İZNİ İÇİN FARKLI TERMİNALLERDE ÇALIŞTIRMA KODU:
 # ssh -R 80:localhost:5173 nokey@localhost.run
