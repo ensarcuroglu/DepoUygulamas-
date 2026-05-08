@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.core.entities.grid import Cell
 from app.core.entities.path import Path
 from app.core.entities.robot import (
     BIRAKMA_TICK,
@@ -15,6 +16,12 @@ from app.core.entities.robot import (
     RobotDurum,
 )
 from app.core.exceptions import GecersizDurumGecisi
+from app.core.services.batarya import (
+    BATARYA_KRITIK,
+    BATARYA_OTONOM_ESIK,
+    en_yakin_sarj,
+    tick_uygula as batarya_tick_uygula,
+)
 from app.core.services.rota_planlayici import (
     planla_ve_rezerve_et,
     rezervasyonu_birak,
@@ -41,6 +48,7 @@ class TickUseCase:
             try:
                 self._tick_robot(world, robot, events)
                 self._deadlock_kontrol(world, robot, events)
+                self._batarya_uygula(world, robot, events)
             except GecersizDurumGecisi as e:
                 robot.hata_durumuna_al()
                 rezervasyonu_birak(world, robot)
@@ -59,7 +67,22 @@ class TickUseCase:
         self, world: World, robot: Robot, events: list[dict[str, Any]]
     ) -> None:
         d = robot.durum
-        if d in (RobotDurum.BOS, RobotDurum.HATA_DURUYOR):
+        if d == RobotDurum.HATA_DURUYOR:
+            return
+        if d == RobotDurum.BOS:
+            # Otonom şarja dönüş: BOS robot rotası varsa ilerlet
+            if robot.sarja_donuyor and robot.rota is not None:
+                self._ilerle(robot)
+                if robot.rota.tamamlandi_mi():
+                    rezervasyonu_birak(world, robot)
+                    robot.rota = None
+                    events.append(
+                        {
+                            "olay": "sarjda",
+                            "robot_id": robot.id,
+                            "batarya": round(robot.batarya_yuzde, 1),
+                        }
+                    )
             return
 
         if d == RobotDurum.KAYNAGA_GIDIYOR:
@@ -143,6 +166,66 @@ class TickUseCase:
         robot.yon_guncelle(dx, dy)
         robot.x, robot.y = sonraki.x, sonraki.y
         robot.rota.ilerle()
+
+    # ── batarya simülasyonu (Faz 5) ──
+
+    def _batarya_uygula(
+        self, world: World, robot: Robot, events: list[dict[str, Any]]
+    ) -> None:
+        hucre = Cell(robot.x, robot.y)
+        hucre_tipi = world.grid.cell_tipi(hucre)
+        onceki = robot.batarya_yuzde
+        batarya_tick_uygula(robot, hucre_tipi)
+
+        # Otonom şarja dönüş — yalnız BOS robot, görev yok, henüz dönmüyor ve
+        # şarj hücresinde değilse
+        from app.core.entities.grid import CellTipi as _CT
+        if (
+            robot.durum == RobotDurum.BOS
+            and robot.aktif_gorev_id is None
+            and not robot.sarja_donuyor
+            and robot.batarya_yuzde < BATARYA_KRITIK
+            and hucre_tipi != _CT.SARJ
+        ):
+            self._sarja_yonlendir(world, robot, events)
+
+        # Kritik altı: HATA_DURUYOR'a düşür
+        if (
+            robot.durum != RobotDurum.HATA_DURUYOR
+            and robot.batarya_yuzde <= BATARYA_OTONOM_ESIK
+            and onceki > BATARYA_OTONOM_ESIK
+        ):
+            robot.hata_durumuna_al()
+            rezervasyonu_birak(world, robot)
+            events.append(
+                {
+                    "olay": "batarya_bitti",
+                    "robot_id": robot.id,
+                    "batarya": round(robot.batarya_yuzde, 1),
+                }
+            )
+
+    def _sarja_yonlendir(
+        self, world: World, robot: Robot, events: list[dict[str, Any]]
+    ) -> None:
+        hedef = en_yakin_sarj(robot, world.grid.sarj_konumlari)
+        if hedef is None:
+            return
+        rota = planla_ve_rezerve_et(world, robot, hedef)
+        if rota is None:
+            return
+        robot.rota = Path(cells=rota)
+        robot.sarja_donuyor = True
+        # BOS robot durumunu koru; `_tick_robot` BOS+sarja_donuyor için ayrıca
+        # rota'yı ilerletir (yarı-otonom).
+        events.append(
+            {
+                "olay": "sarja_donuyor",
+                "robot_id": robot.id,
+                "batarya": round(robot.batarya_yuzde, 1),
+                "hedef": [hedef.x, hedef.y],
+            }
+        )
 
     # ── deadlock tespiti + kurtarma (Faz 4) ──
 

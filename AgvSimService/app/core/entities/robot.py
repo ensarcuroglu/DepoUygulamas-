@@ -65,6 +65,11 @@ class Robot:
     rota: Optional[Path] = None
     aktif_gorev_id: Optional[str] = None
     bekleme_kalani: int = 0   # YUKLUYOR / BIRAKIYOR sırasında geri sayım
+    # Faz 5: Batarya simülasyonu (yüzde 0..100). Hareket/bekleme'de azalır,
+    # SARJ konumunda BOS iken artar. `sarja_donuyor` flag'i düşük seviyede
+    # otomatik şarja dönüşü ifade eder (yeni durum açmamak için bayrak).
+    batarya_yuzde: float = 100.0
+    sarja_donuyor: bool = False
 
     def durum_gecisi(self, hedef: RobotDurum) -> None:
         if hedef not in _GECISLER.get(self.durum, set()):

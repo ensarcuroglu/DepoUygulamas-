@@ -21,6 +21,7 @@ export default function GorevPaneli() {
     const tickNo = useAgvStore((s) => s.tickNo);
     const kuyruk = useAgvStore((s) => s.kuyrukUzunlugu);
     const aktif = useAgvStore((s) => s.aktifGorevSayisi);
+    const aktifGorevler = useAgvStore((s) => s.aktifGorevler);
     const robotIds = useAgvStore((s) => s.robotIds);
     const olaylar = useAgvStore((s) => s.sonOlaylar);
 
@@ -30,6 +31,25 @@ export default function GorevPaneli() {
                 <Satir etiket="Tick" deger={tickNo} />
                 <Satir etiket="Kuyruk" deger={kuyruk} />
                 <Satir etiket="Aktif görev" deger={aktif} />
+            </Kart>
+
+            <Kart baslik={`Aktif Görevler (${aktifGorevler.length})`}>
+                {aktifGorevler.length === 0 && (
+                    <div className="text-xs text-gray-400">Aktif görev yok</div>
+                )}
+                {aktifGorevler.map((g) => (
+                    <div
+                        key={g.gorev_id}
+                        className="flex items-center justify-between text-[11px]"
+                    >
+                        <span className="font-mono text-gray-700">
+                            {g.robot_id ?? '—'} · #{g.wms_gorev_id ?? g.gorev_id}
+                        </span>
+                        <span className="text-gray-500">
+                            {g.kaynak_raf_id} → {g.hedef_raf_id}
+                        </span>
+                    </div>
+                ))}
             </Kart>
 
             <Kart baslik={`Robotlar (${robotIds.length})`}>
@@ -67,10 +87,23 @@ function RobotSatir({ robotId }) {
     const robot = useAgvStore((s) => s.robots[robotId]);
     if (!robot) return null;
     const renk = DURUM_RENK[robot.durum] ?? 'text-gray-500';
+    const batarya = robot.batarya ?? 100;
+    const bataryaRenk =
+        batarya < 20 ? 'text-red-600' : batarya < 50 ? 'text-amber-600' : 'text-emerald-600';
     return (
         <div className="flex items-center justify-between text-xs">
-            <span className="font-mono text-gray-700">{robot.id}</span>
-            <span className={`font-medium ${renk}`}>{robot.durum}</span>
+            <span className="font-mono text-gray-700">
+                {robot.id}
+                {robot.sarja_donuyor && (
+                    <span className="ml-1 text-[10px] text-amber-600">⚡</span>
+                )}
+            </span>
+            <span className="flex items-center gap-2">
+                <span className={`text-[10px] tabular-nums ${bataryaRenk}`}>
+                    %{batarya}
+                </span>
+                <span className={`font-medium ${renk}`}>{robot.durum}</span>
+            </span>
         </div>
     );
 }

@@ -37,9 +37,16 @@ class World:
         self.robotlar[robot.id] = robot
 
     def bos_robot_bul(self) -> Optional[Robot]:
+        # Şarja dönen veya bataryası kritik olan robotlar görev almasın
+        from app.core.services.batarya import BATARYA_KRITIK
         for r in self.robotlar.values():
-            if r.durum == RobotDurum.BOS:
-                return r
+            if r.durum != RobotDurum.BOS:
+                continue
+            if r.sarja_donuyor:
+                continue
+            if r.batarya_yuzde < BATARYA_KRITIK:
+                continue
+            return r
         return None
 
     def diger_robot_konumlari(self, kendisi: Robot) -> set:
@@ -56,8 +63,30 @@ class World:
                 "yon": r.yon.value,
                 "gorev_id": r.aktif_gorev_id,
                 "rota_kalan": r.rota.kalan_uzunluk if r.rota else 0,
+                "batarya": round(r.batarya_yuzde, 1),
+                "sarja_donuyor": r.sarja_donuyor,
             }
             for r in self.robotlar.values()
+        ]
+
+    def aktif_gorev_listesi(self) -> list[dict]:
+        """WS delta için özet — frontend görev paneli kullanır."""
+        # robot_id'yi bulmak için ters arama
+        gorev_to_robot: dict[str, str] = {}
+        for r in self.robotlar.values():
+            if r.aktif_gorev_id:
+                gorev_to_robot[r.aktif_gorev_id] = r.id
+        return [
+            {
+                "gorev_id": g.gorev_id,
+                "wms_gorev_id": g.wms_gorev_id,
+                "wms_gorev_tipi": g.wms_gorev_tipi,
+                "kaynak_raf_id": g.kaynak_raf_id,
+                "hedef_raf_id": g.hedef_raf_id,
+                "robot_id": gorev_to_robot.get(g.gorev_id),
+                "baslama_tick": g.baslama_tick,
+            }
+            for g in self.aktif_gorevler.values()
         ]
 
     def snapshot_tam(self) -> dict:
@@ -94,6 +123,7 @@ class World:
             "robotlar": self.robot_dict_listesi(),
             "kuyruk_uzunlugu": len(self.gorev_kuyrugu),
             "aktif_gorev_sayisi": len(self.aktif_gorevler),
+            "aktif_gorevler": self.aktif_gorev_listesi(),
         }
 
 

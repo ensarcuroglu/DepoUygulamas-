@@ -4,7 +4,7 @@ This file is the operational reference for AI coding agents working in this repo
 
 ## Project Overview
 
-**Depo Yönetim Sistemi (WMS)** — Full-stack warehouse management system with lot/pallet tracking, putaway/pick task workflows, production pallet intake, mobile terminal PWA, and operatör performans (LMS) modülü (transactional outbox + APScheduler aggregator → vardiya KPI'ları + UPH leaderboard). FastAPI backend (Clean Architecture) + React (Vite) frontend + AI doğal dil sorgu servisi (LangChain + Ollama).
+**Depo Yönetim Sistemi (WMS)** — Full-stack warehouse management system with lot/pallet tracking, putaway/pick task workflows, production pallet intake, mobile terminal PWA, and operatör performans (LMS) modülü (transactional outbox + APScheduler aggregator → vardiya KPI'ları + UPH leaderboard). FastAPI backend (Clean Architecture) + React (Vite) frontend + AI doğal dil sorgu servisi (LangChain + Ollama) + AGV/AMR simülasyon servisi (in-memory world + Three.js 3D izleme).
 
 ---
 
@@ -80,6 +80,22 @@ npm run build
 npm run preview
 ```
 
+### AgvSimService (AGV/AMR simülasyonu — `AgvSimService/`)
+
+```bash
+cd AgvSimService
+
+# Dependency kurulumu
+pip install -r requirements.txt
+pip install -r requirements-test.txt
+
+# Development server (port 8002 — BackendProje 8000'de çalışırken)
+uvicorn main:app --reload --host 127.0.0.1 --port 8002
+
+# Test (DB gerekmez — tamamen in-memory)
+pytest
+```
+
 ### WmsAiService (LangChain + Ollama — `WmsAiService/`)
 
 ```bash
@@ -144,6 +160,15 @@ mysql -u root -p depo_yonetim < views.sql
 - **Database:** MySQL (PyMySQL driver, charset=utf8mb4) — read-only `depo_ai_reader` kullanıcısı
 - **SQL execution:** SQLAlchemy + LangChain `SQLDatabase` (view_support=True)
 - **Settings:** python-dotenv (`.env` tabanlı)
+
+### AgvSimService (AGV/AMR Simülasyonu)
+- **Language/Runtime:** Python 3.x; **DB yok** — in-memory `World` singleton (process-local), restart'ta WMS'ten yeniden senkron
+- **Framework:** FastAPI + asyncio tick loop (TICK_HZ Hz)
+- **Pathfinding:** A* + Cooperative-light A* (zaman-uzay `ReservationTable`, vertex+swap conflict, WAIT izni); deadlock detect (4 tick replan, 16 tick HATA_DURUYOR); batarya simülasyonu + otonom şarja dönüş
+- **Frontend (entegre):** Three.js + @react-three/fiber + @react-three/drei + zustand. Yüksek frekans veri React state'e yazılmaz — `useAgvStore.getState()` ile useFrame içinde lerp
+- **Servisler arası:** `BackendProje → AGV` HTTP push (görev dispatch), `AGV → BackendProje` HTTP callback (`/api/agv-callbacks/gorev-tamamlandi`); `INTERNAL_API_KEY` shared secret
+- **WS protokolü:** `/ws/agv` snapshot+delta+event (frontend Vite proxy üzerinden)
+- **Tek süreç zorunlu** (replica/cluster yok); WMS authoritative, AGV stateless-from-DB
 
 ---
 
@@ -499,6 +524,8 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - Palet veri kaynağı: `PALET_VERI_KAYNAGI` (`LOCAL`, `MOCK`, `ERP`)
 - Migration drift kontrolü (LMS): `DEPO_STRICT_MIGRATION=1` → drift halinde startup'ı durdur (production önerilir); `DEPO_SKIP_MIGRATION_CHECK=1` → kontrolü atla (acil durum)
 - WmsAiService: `WmsAiService/.env`. Zorunlu: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`. Opsiyonel: `OLLAMA_MODEL` (def: `qwen2.5-coder:7b`), `OLLAMA_BASE_URL` (def: `http://localhost:11434`), `OLLAMA_ANSWER_MODEL`, `LLM_TEMPERATURE` (def: `0`), `LLM_NUM_CTX` (def: `4096`), `LLM_TIMEOUT` (def: `120`), `MAX_CORRECTION_ATTEMPTS` (def: `2`), `ANSWER_NUM_PREDICT` (def: `40`), `FEW_SHOT_K` (def: `3`), `CHROMA_PERSIST_DIR` (def: `./wms_chroma_db`), `EMBEDDING_MODEL` (def: `sentence-transformers/all-MiniLM-L6-v2`)
+- AgvSimService: `AgvSimService/.env`. Zorunlu: `INTERNAL_API_KEY` (BackendProje ile aynı). Opsiyonel: `WMS_BASE_URL` (def: `http://127.0.0.1:8000`), `TICK_HZ` (def: `2`), `CORS_ALLOW_ORIGINS` (def: `https://localhost:5173`), `GRID_JSON_PATH` (def: `./data/depo_1_grid.json`), `WS_MAX_QUEUE` (def: `32`).
+- BackendProje AGV entegrasyonu: `FEATURE_AGV_DISPATCH_DEPO_IDS` (boş=kapalı, `TUMU`=tüm depolar, `1,3,5`=belirli depolar), `AGV_SIM_SERVICE_URL` (def: `http://127.0.0.1:8002`), `AGV_SIM_SERVICE_TIMEOUT` (def: `2.0`), `INTERNAL_API_KEY`. Frontend: `VITE_FEATURE_AGV_ENABLED=true` ile `/agv-izleme` route + sidebar item açılır.
 
 ### Stok Hesaplama
 - `Urun.stok_miktari` bir `column_property`; `Palet.koli_adedi` üzerinden aktif `Lot` kayıtlarından hesaplanır. **Ürün tablosunda saklanan stok sütunu yoktur.**
@@ -531,6 +558,14 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 
 ### Idempotency
 - Kritik yazma endpoint'leri `Idempotency-Key` header'ı destekler; tekrarlayan istekler aynı sonucu döner
+
+### AGV Simülasyon Servisi
+- **Tek süreç:** AgvSimService asla replica/multiple worker ile çalıştırılmaz — `World` in-memory singleton.
+- **DB yazmaz:** Kalıcılık BackendProje'de; AGV restart'ta WMS'ten in-flight görevleri yeniden çekmez (Faz 5'te orphan toleranslı). Dispatcher fire-and-forget — başarısızsa görev WMS'te `Bekliyor` kalır, operatör manuel devralır.
+- **Servis arası kimlik:** `X-Internal-Api-Key` her iki yönde zorunlu; key yoksa router'lar 503 döner.
+- **Pathfinding:** Cooperative-light CA* (zaman-uzay reservation table) + klasik A* fallback. Yeni hareket eklenirken `app/core/services/rota_planlayici.py`'yi tek nokta olarak kullan; doğrudan `a_star`/`cooperative_a_star` çağırma.
+- **WS proxy:** Frontend HTTPS, AGV plain HTTP/WS. Vite `/ws/agv` ws:true proxy `/api` proxy'sinden ÖNCE tanımlanır.
+- **Yüksek frekans veri:** `robots[id]` tick başına değişir → React state'e yazma; `useAgvStore.getState()` ile useFrame içinde oku, lerp et. Aksi halde 5-10 Hz re-render tüm sayfayı yavaşlatır.
 
 ### Operatör Performans (LMS)
 - **Transactional Outbox:** Yerleştirme/toplama use case'leri `IPerformansEventPublisher` ile `gorev_performans_eventleri` tablosuna event yazar (use case transaction'ında atomik). Faz 1 default: `DbOutboxPerformansEventPublisher`; Faz 5'te RabbitMQ implementasyonu aynı arayüzle takılabilir.

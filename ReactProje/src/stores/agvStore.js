@@ -31,6 +31,7 @@ const initialState = {
 
     kuyrukUzunlugu: 0,
     aktifGorevSayisi: 0,
+    aktifGorevler: [],     // Faz 5: aktif görev listesi (delta'dan, gorev_id, robot_id, ...)
 
     selectedRobotId: null, // Faz 4: kullanıcı 3D'de bir robotu tıkladığında
 };
@@ -71,6 +72,7 @@ export const useAgvStore = create((set) => ({
             robots,
             kuyrukUzunlugu: msg.kuyruk_uzunlugu ?? state.kuyrukUzunlugu,
             aktifGorevSayisi: msg.aktif_gorev_sayisi ?? state.aktifGorevSayisi,
+            aktifGorevler: msg.aktif_gorevler ?? state.aktifGorevler,
         };
     }),
 
