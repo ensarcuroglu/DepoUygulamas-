@@ -9,6 +9,7 @@ from typing import Optional
 from app.core.entities.agv_gorev import AgvGorev
 from app.core.entities.grid import Grid
 from app.core.entities.robot import Robot, RobotDurum
+from app.core.services.reservation_table import ReservationTable
 
 
 class World:
@@ -24,6 +25,11 @@ class World:
         self.aktif_gorevler: dict[str, AgvGorev] = {}
         self.tick_no: int = 0
         self.lock: asyncio.Lock = asyncio.Lock()
+        # Faz 4: kooperatif zaman-uzay rezervasyonları
+        self.reservation_table = ReservationTable()
+        # Robot bazlı deadlock takibi: stuck_tick_count, son_konum
+        self.robot_stuck: dict[str, int] = {}
+        self.robot_son_konum: dict[str, tuple[int, int]] = {}
 
     def robot_ekle(self, robot: Robot) -> None:
         if robot.id in self.robotlar:

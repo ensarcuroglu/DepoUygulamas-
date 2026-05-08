@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.core.entities.grid import Cell
 from app.core.entities.path import Path
 from app.core.entities.robot import (
     BIRAKMA_TICK,
@@ -16,19 +15,35 @@ from app.core.entities.robot import (
     RobotDurum,
 )
 from app.core.exceptions import GecersizDurumGecisi
-from app.core.services.pathfinding import a_star
+from app.core.services.rota_planlayici import (
+    planla_ve_rezerve_et,
+    rezervasyonu_birak,
+)
 from app.core.services.world import World
+
+# Deadlock parametreleri (tick cinsinden)
+DEADLOCK_REPLAN_ESIK = 4   # 4 tick hareketsiz → replan dene
+DEADLOCK_HATA_ESIK = 16    # 16 tick hala hareketsiz → HATA_DURUYOR
+
+_HAREKET_HALI = {
+    RobotDurum.KAYNAGA_GIDIYOR,
+    RobotDurum.TASIYOR,
+}
 
 
 class TickUseCase:
     def execute(self, world: World) -> list[dict[str, Any]]:
         world.tick_no += 1
         events: list[dict[str, Any]] = []
+        # Geçmiş rezervasyonları temizle (memory leak guard)
+        world.reservation_table.prune_before(world.tick_no)
         for robot in list(world.robotlar.values()):
             try:
                 self._tick_robot(world, robot, events)
+                self._deadlock_kontrol(world, robot, events)
             except GecersizDurumGecisi as e:
                 robot.hata_durumuna_al()
+                rezervasyonu_birak(world, robot)
                 events.append(
                     {
                         "olay": "robot_hata",
@@ -96,6 +111,7 @@ class TickUseCase:
                 gorev.tamamlanma_tick = world.tick_no
             robot.aktif_gorev_id = None
             robot.rota = None
+            rezervasyonu_birak(world, robot)
             robot.durum_gecisi(RobotDurum.BOS)
             event = {
                 "olay": "gorev_tamamlandi",
@@ -128,6 +144,93 @@ class TickUseCase:
         robot.x, robot.y = sonraki.x, sonraki.y
         robot.rota.ilerle()
 
+    # ── deadlock tespiti + kurtarma (Faz 4) ──
+
+    def _deadlock_kontrol(
+        self, world: World, robot: Robot, events: list[dict[str, Any]]
+    ) -> None:
+        """Robot N tick boyunca aynı hücredeyse kurtar.
+
+        - 4 tick stuck → rota'yı temizle, kooperatif replan dene.
+        - 16 tick stuck → HATA_DURUYOR (operatör müdahalesi gerekli).
+        """
+        if robot.durum not in _HAREKET_HALI:
+            world.robot_stuck.pop(robot.id, None)
+            world.robot_son_konum[robot.id] = (robot.x, robot.y)
+            return
+
+        son = world.robot_son_konum.get(robot.id)
+        konum = (robot.x, robot.y)
+        if son != konum:
+            world.robot_son_konum[robot.id] = konum
+            world.robot_stuck[robot.id] = 0
+            return
+
+        stuck = world.robot_stuck.get(robot.id, 0) + 1
+        world.robot_stuck[robot.id] = stuck
+
+        if stuck == DEADLOCK_REPLAN_ESIK:
+            self._replan_dene(world, robot, events)
+        elif stuck >= DEADLOCK_HATA_ESIK:
+            robot.hata_durumuna_al()
+            rezervasyonu_birak(world, robot)
+            world.robot_stuck.pop(robot.id, None)
+            events.append(
+                {
+                    "olay": "deadlock_hata",
+                    "robot_id": robot.id,
+                    "neden": f"{DEADLOCK_HATA_ESIK} tick stuck",
+                    "gorev_id": robot.aktif_gorev_id,
+                }
+            )
+
+    def _replan_dene(
+        self, world: World, robot: Robot, events: list[dict[str, Any]]
+    ) -> None:
+        gorev_id = robot.aktif_gorev_id
+        if gorev_id is None:
+            return
+        gorev = world.aktif_gorevler.get(gorev_id)
+        if gorev is None:
+            return
+
+        # Hedefi mevcut duruma göre seç
+        if robot.durum == RobotDurum.KAYNAGA_GIDIYOR:
+            hedef = world.grid.yaklasma_konumu(gorev.kaynak_raf_id)
+        elif robot.durum == RobotDurum.TASIYOR:
+            hedef = world.grid.yaklasma_konumu(gorev.hedef_raf_id)
+        else:
+            return
+
+        # Eski rezervasyonları temizle, kooperatif replan
+        rezervasyonu_birak(world, robot)
+        rota = planla_ve_rezerve_et(world, robot, hedef)
+        if rota is None:
+            events.append(
+                {
+                    "olay": "deadlock_replan_basarisiz",
+                    "robot_id": robot.id,
+                    "gorev_id": gorev_id,
+                }
+            )
+            return
+        robot.rota = Path(cells=rota)
+        events.append(
+            {
+                "olay": "deadlock_replan",
+                "robot_id": robot.id,
+                "gorev_id": gorev_id,
+                "yeni_uzunluk": len(rota),
+            }
+        )
+        events.append(
+            {
+                "olay": "rota_hesaplandi",
+                "robot_id": robot.id,
+                "rota": [[c.x, c.y] for c in rota],
+            }
+        )
+
     def _tasimaya_gecir(
         self,
         world: World,
@@ -136,6 +239,7 @@ class TickUseCase:
     ) -> None:
         if robot.aktif_gorev_id is None:
             robot.hata_durumuna_al()
+            rezervasyonu_birak(world, robot)
             events.append(
                 {
                     "olay": "robot_hata",
@@ -147,6 +251,7 @@ class TickUseCase:
         gorev = world.aktif_gorevler.get(robot.aktif_gorev_id)
         if gorev is None:
             robot.hata_durumuna_al()
+            rezervasyonu_birak(world, robot)
             events.append(
                 {
                     "olay": "robot_hata",
@@ -157,10 +262,10 @@ class TickUseCase:
             return
 
         hedef = world.grid.yaklasma_konumu(gorev.hedef_raf_id)
-        engeller = world.diger_robot_konumlari(robot)
-        rota_cells = a_star(world.grid, Cell(robot.x, robot.y), hedef, engeller)
+        rota_cells = planla_ve_rezerve_et(world, robot, hedef)
         if rota_cells is None:
             robot.hata_durumuna_al()
+            rezervasyonu_birak(world, robot)
             events.append(
                 {
                     "olay": "rota_bulunamadi",

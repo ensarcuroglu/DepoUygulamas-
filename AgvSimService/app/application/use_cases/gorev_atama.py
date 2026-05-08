@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.core.entities.grid import Cell
 from app.core.entities.path import Path
 from app.core.entities.robot import RobotDurum
-from app.core.services.pathfinding import a_star
+from app.core.services.rota_planlayici import planla_ve_rezerve_et
 from app.core.services.world import World
 
 
@@ -25,8 +24,7 @@ class GorevAtamaUseCase:
 
         gorev = world.gorev_kuyrugu.pop(0)
         kaynak = world.grid.yaklasma_konumu(gorev.kaynak_raf_id)
-        engeller = world.diger_robot_konumlari(bos_robot)
-        rota_cells = a_star(world.grid, Cell(bos_robot.x, bos_robot.y), kaynak, engeller)
+        rota_cells = planla_ve_rezerve_et(world, bos_robot, kaynak)
         if rota_cells is None:
             world.gorev_kuyrugu.insert(0, gorev)
             events.append(

@@ -51,6 +51,7 @@ class ErrorBoundary extends Component {
 export default function DepoSahnesi() {
     const grid = useAgvStore((s) => s.grid);
     const robotIds = useAgvStore((s) => s.robotIds);
+    const setSelectedRobotId = useAgvStore((s) => s.setSelectedRobotId);
 
     if (!grid) {
         return (
@@ -77,6 +78,7 @@ export default function DepoSahnesi() {
                 }}
                 dpr={[1, 1.5]}
                 shadows
+                onPointerMissed={() => setSelectedRobotId(null)}
             >
                 <color attach="background" args={['#0f172a']} />
                 

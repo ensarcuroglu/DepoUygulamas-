@@ -31,12 +31,18 @@ const initialState = {
 
     kuyrukUzunlugu: 0,
     aktifGorevSayisi: 0,
+
+    selectedRobotId: null, // Faz 4: kullanıcı 3D'de bir robotu tıkladığında
 };
 
 export const useAgvStore = create((set) => ({
     ...initialState,
 
     setConnectionState: (patch) => set(patch),
+
+    setSelectedRobotId: (id) => set((state) => (
+        state.selectedRobotId === id ? state : { selectedRobotId: id }
+    )),
 
     applySnapshot: (msg) => {
         const robots = {};
@@ -77,8 +83,8 @@ export const useAgvStore = create((set) => ({
             (msg.olay === 'gorev_tamamlandi' || msg.olay === 'rota_bulunamadi')
             && msg.robot_id
         ) {
-            // eslint-disable-next-line no-unused-vars
             const { [msg.robot_id]: _silinen, ...kalan } = rotalar;
+            void _silinen;
             rotalar = kalan;
         }
         return { sonOlaylar: olaylar, rotalar };

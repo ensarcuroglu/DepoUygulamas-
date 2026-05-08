@@ -11,6 +11,7 @@ import { useAgvWebSocket } from '../../hooks/useAgvWebSocket';
 import BaglanitiDurumu from './components/BaglanitiDurumu';
 import DepoSahnesi from './components/DepoSahnesi';
 import GorevPaneli from './components/GorevPaneli';
+import SeciliRobotPaneli from './components/SeciliRobotPaneli';
 
 export default function AgvIzlemePage() {
     useAgvWebSocket();
@@ -31,7 +32,8 @@ export default function AgvIzlemePage() {
                 <main className="relative flex-1 bg-slate-900">
                     <DepoSahnesi />
                 </main>
-                <aside className="w-72 shrink-0 border-l border-gray-200 bg-gray-50">
+                <aside className="flex w-72 shrink-0 flex-col overflow-y-auto border-l border-gray-200 bg-gray-50">
+                    <SeciliRobotPaneli />
                     <GorevPaneli />
                 </aside>
             </div>

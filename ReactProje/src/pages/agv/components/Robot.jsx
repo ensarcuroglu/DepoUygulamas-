@@ -9,7 +9,7 @@
  */
 
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Html, useGLTF, Clone } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -36,6 +36,8 @@ export default function RobotMesh({ robotId }) {
     // Sadece durum'a ve bataryaya subscribe ol
     const durum = useAgvStore((s) => s.robots[robotId]?.durum);
     const batarya = useAgvStore((s) => s.robots[robotId]?.batarya) ?? 100;
+    const isSelected = useAgvStore((s) => s.selectedRobotId === robotId);
+    const setSelectedRobotId = useAgvStore((s) => s.setSelectedRobotId);
     const renk = DURUM_RENK[durum] ?? '#9ca3af';
 
     const { scene: amrScene } = useGLTF('/models/AMR.glb');
@@ -83,11 +85,27 @@ export default function RobotMesh({ robotId }) {
             onPointerOver={(e) => {
                 e.stopPropagation();
                 setHovered(true);
+                document.body.style.cursor = 'pointer';
             }}
-            onPointerOut={() => setHovered(false)}
+            onPointerOut={() => {
+                setHovered(false);
+                document.body.style.cursor = 'auto';
+            }}
+            onClick={(e) => {
+                e.stopPropagation();
+                setSelectedRobotId(isSelected ? null : robotId);
+            }}
         >
             {/* AGV Modeli - Daha gerçekçi boyutlandırma */}
-            <Clone object={amrScene} scale={0.6} castShadow />
+            <Clone object={amrScene} scale={isSelected ? 0.7 : 0.6} castShadow />
+
+            {/* Seçim halkası — yere yakın yatay daire (sadece seçiliyken) */}
+            {isSelected && (
+                <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <ringGeometry args={[0.55, 0.7, 32]} />
+                    <meshBasicMaterial color="#60a5fa" transparent opacity={0.85} />
+                </mesh>
+            )}
 
             {/* Durum Göstergesi (LED Glow) - Boyuta göre hizalandı */}
             <mesh position={[0, 0.8, 0]}>
