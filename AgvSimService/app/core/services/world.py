@@ -91,6 +91,12 @@ class World:
 
     def snapshot_tam(self) -> dict:
         """WS bağlantısının ilk mesajı — grid + tüm robotlar."""
+        from app.core.entities.grid import CellTipi
+        engeller: list[dict[str, int]] = []
+        for y, satir in enumerate(self.grid.hucreler):
+            for x, tip in enumerate(satir):
+                if tip == CellTipi.ENGEL:
+                    engeller.append({"x": x, "y": y})
         return {
             "tick_no": self.tick_no,
             "ts": time.time(),
@@ -111,6 +117,7 @@ class World:
                 "sarj_konumlari": [
                     {"x": c.x, "y": c.y} for c in self.grid.sarj_konumlari
                 ],
+                "engeller": engeller,
             },
             "robotlar": self.robot_dict_listesi(),
         }

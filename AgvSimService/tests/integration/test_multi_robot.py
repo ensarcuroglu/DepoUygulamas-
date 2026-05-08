@@ -19,14 +19,15 @@ from app.infrastructure.grid_loader import gridi_jsondan_yukle
 
 @pytest.fixture
 def real_world() -> World:
-    """data/depo_1_grid.json'dan yüklü 4 robotlu world."""
+    """data/depo_1_grid.json'dan yüklü 4 robotlu world (yeni 40x24 layout)."""
     grid = gridi_jsondan_yukle("data/depo_1_grid.json")
     w = World(grid=grid)
+    # Robotlar şarj cell'lerinin kuzey komşusunda (y=21).
     konumlar = [
-        ("AGV-01", 0, 11),
-        ("AGV-02", 1, 11),
-        ("AGV-03", 2, 11),
-        ("AGV-04", 3, 11),
+        ("AGV-01", 2, 21),
+        ("AGV-02", 6, 21),
+        ("AGV-03", 10, 21),
+        ("AGV-04", 14, 21),
     ]
     for rid, x, y in konumlar:
         w.robot_ekle(Robot(id=rid, x=x, y=y))
@@ -34,17 +35,19 @@ def real_world() -> World:
 
 
 def test_4_robot_paralel_8_gorev_hicbir_robot_hata_dusmez(real_world: World):
-    """4 robot, 8 görev (peş peşe atanır) — hepsi 600 tick içinde tamamlanmalı."""
+    """4 robot, 8 görev (peş peşe atanır) — hepsi MAX_TICK içinde tamamlanmalı."""
     w = real_world
+    # Yeni raf ID'leri: 101..103 (A), 201..203 (B), 301-302 (C), 401-402 (D),
+    # 501-502 (E), 601-602 (F).
     gorev_ciftleri = [
-        (101, 207),
-        (102, 206),
-        (103, 205),
-        (104, 204),
-        (203, 105),
-        (202, 106),
-        (201, 107),
-        (107, 101),
+        (101, 602),
+        (102, 601),
+        (103, 502),
+        (201, 501),
+        (202, 402),
+        (203, 401),
+        (301, 203),
+        (302, 103),
     ]
     for i, (kaynak, hedef) in enumerate(gorev_ciftleri, start=1):
         w.gorev_kuyrugu.append(
@@ -60,7 +63,7 @@ def test_4_robot_paralel_8_gorev_hicbir_robot_hata_dusmez(real_world: World):
     tick = TickUseCase()
     atama = GorevAtamaUseCase()
     olaylar: list[dict] = []
-    MAX_TICK = 600
+    MAX_TICK = 1500  # Yeni grid 40x24 — daha uzun mesafeler
     for _ in range(MAX_TICK):
         olaylar.extend(tick.execute(w))
         olaylar.extend(atama.execute(w))
@@ -100,36 +103,36 @@ def test_3_robot_dar_kanal_swap_recovery_yapar(real_world: World):
     # 3 robot karşılıklı geçişe zorlanır:
     w.gorev_kuyrugu.extend(
         [
-            # AGV-01: sol uçtan sağ uca
+            # AGV-01: sol blok → sağ blok
             AgvGorev(
                 gorev_id="g-A",
                 wms_gorev_id=2001,
                 wms_gorev_tipi="Yerlestirme",
                 kaynak_raf_id=101,
-                hedef_raf_id=107,
+                hedef_raf_id=103,
             ),
-            # AGV-02: sağ uçtan sol uca (zıt yön)
+            # AGV-02: sağ → sol (zıt yön)
             AgvGorev(
                 gorev_id="g-B",
                 wms_gorev_id=2002,
                 wms_gorev_tipi="Yerlestirme",
-                kaynak_raf_id=107,
+                kaynak_raf_id=103,
                 hedef_raf_id=101,
             ),
-            # AGV-03: orta — alt rafa
+            # AGV-03: orta — alt blok
             AgvGorev(
                 gorev_id="g-C",
                 wms_gorev_id=2003,
                 wms_gorev_tipi="Yerlestirme",
-                kaynak_raf_id=104,
-                hedef_raf_id=204,
+                kaynak_raf_id=102,
+                hedef_raf_id=601,
             ),
         ]
     )
 
     tick = TickUseCase()
     atama = GorevAtamaUseCase()
-    for _ in range(800):
+    for _ in range(2000):
         tick.execute(w)
         atama.execute(w)
         if not w.gorev_kuyrugu and not w.aktif_gorevler:

@@ -97,18 +97,18 @@ export default function RobotMesh({ robotId }) {
             }}
         >
             {/* AGV Modeli - Daha gerçekçi boyutlandırma */}
-            <Clone object={amrScene} scale={isSelected ? 0.7 : 0.6} castShadow />
+            <Clone object={amrScene} scale={isSelected ? 0.25 : 0.2} castShadow />
 
             {/* Seçim halkası — yere yakın yatay daire (sadece seçiliyken) */}
             {isSelected && (
-                <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                <mesh position={[-1.75, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                     <ringGeometry args={[0.55, 0.7, 32]} />
                     <meshBasicMaterial color="#60a5fa" transparent opacity={0.85} />
                 </mesh>
             )}
 
             {/* Durum Göstergesi (LED Glow) - Boyuta göre hizalandı */}
-            <mesh position={[0, 0.8, 0]}>
+            <mesh position={[-1.4, 1, 0]}>
                 <sphereGeometry args={[0.08, 16, 16]} />
                 <meshStandardMaterial
                     color={renk}
