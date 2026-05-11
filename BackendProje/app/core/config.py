@@ -111,6 +111,11 @@ class Settings(BaseSettings):
         alias="FEATURE_AGV_DISPATCH_DEPO_IDS",
     )
 
+    feature_doc_ai_pilot_depo_ids: str = Field(
+        "",
+        alias="FEATURE_DOC_AI_PILOT_DEPO_IDS",
+    )
+
     agv_sim_service_url: str = Field(
         "http://127.0.0.1:8002",
         alias="AGV_SIM_SERVICE_URL",
@@ -119,6 +124,15 @@ class Settings(BaseSettings):
         2.0,
         alias="AGV_SIM_SERVICE_TIMEOUT",
         ge=0.1,
+    )
+    doc_ai_service_url: str = Field(
+        "http://127.0.0.1:8003",
+        alias="DOC_AI_SERVICE_URL",
+    )
+    doc_ai_service_timeout: float = Field(
+        120.0,
+        alias="DOC_AI_SERVICE_TIMEOUT",
+        ge=1.0,
     )
 
     internal_api_key: Optional[str] = Field(None, alias="INTERNAL_API_KEY")
@@ -218,6 +232,18 @@ class Settings(BaseSettings):
             return []
 
     @property
+    def feature_doc_ai_pilot_depo_id_list(self) -> list[int]:
+        raw = self.feature_doc_ai_pilot_depo_ids.strip()
+        if not raw:
+            return []
+        if raw.upper() == "TUMU":
+            return [-1]
+        try:
+            return [int(item.strip()) for item in raw.split(",") if item.strip()]
+        except ValueError:
+            return []
+
+    @property
     def clean_test_data_allowed_db_names(self) -> list[str]:
         return [item.lower() for item in _parse_csv(self.clean_test_data_allowed_dbs)]
 
@@ -268,12 +294,14 @@ class FeatureFlags:
     # [-1]: full rollout ("TUMU").
     pilot_depo_ids: list[int] = field(default_factory=list)
     agv_dispatch_depo_ids: list[int] = field(default_factory=list)
+    doc_ai_pilot_depo_ids: list[int] = field(default_factory=list)
 
     @classmethod
     def from_settings(cls, settings: Settings) -> "FeatureFlags":
         return cls(
             pilot_depo_ids=settings.feature_uretim_palet_pilot_depo_id_list,
             agv_dispatch_depo_ids=settings.feature_agv_dispatch_depo_id_list,
+            doc_ai_pilot_depo_ids=settings.feature_doc_ai_pilot_depo_id_list,
         )
 
     @classmethod
@@ -285,6 +313,9 @@ class FeatureFlags:
 
     def agv_dispatch_aktif_mi(self, depo_id: int | None) -> bool:
         return self._depo_aktif_mi(self.agv_dispatch_depo_ids, depo_id)
+
+    def doc_ai_aktif_mi(self, depo_id: int | None) -> bool:
+        return self._depo_aktif_mi(self.doc_ai_pilot_depo_ids, depo_id)
 
     @staticmethod
     def _depo_aktif_mi(depo_listesi: list[int], depo_id: int | None) -> bool:

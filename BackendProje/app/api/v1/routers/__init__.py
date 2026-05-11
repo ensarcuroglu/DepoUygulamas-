@@ -19,6 +19,8 @@ from .raporlar import router as raporlar_router
 from .auth import router as auth_router
 from .dashboard import router as dashboard_router
 from .mal_kabul_irsaliyeleri import router as mal_kabul_irsaliyeleri_router
+from .belge_taslaklari import router as belge_taslaklari_router
+from .mal_kabul import router as mal_kabul_router
 from .stok_islemleri import router as stok_islemleri_router
 from .yerlestirme_gorevleri import router as yerlestirme_gorevleri_router
 from .mobil_terminal import router as mobil_terminal_router
@@ -53,6 +55,8 @@ __all__ = [
     "auth_router",
     "dashboard_router",
     "mal_kabul_irsaliyeleri_router",
+    "belge_taslaklari_router",
+    "mal_kabul_router",
     "stok_islemleri_router",
     "yerlestirme_gorevleri_router",
     "mobil_terminal_router",

@@ -266,6 +266,15 @@ from app.infrastructure.di.modules.operator_performans_di import (  # noqa: F401
     get_metrikler_aggregasyon_uc,
     get_operator_performans_sorgu_uc,
 )
+from app.infrastructure.di.modules.belge_taslagi import (  # noqa: F401
+    get_belge_taslagi_repo,
+    get_belge_taslagi_listele_uc,
+    get_belge_taslagi_getir_uc,
+    get_belge_taslagi_olustur_uc,
+    get_belge_taslagi_onayla_uc,
+    get_belge_taslagi_reddet_uc,
+    get_doc_ai_client,
+)
 from app.infrastructure.di.modules.agv_di import (  # noqa: F401
     AGV_KULLANICI_ADI,
     get_agv_dispatcher,

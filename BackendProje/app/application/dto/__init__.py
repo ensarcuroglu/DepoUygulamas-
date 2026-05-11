@@ -105,6 +105,13 @@ from .mal_kabul_irsaliye_dto import (
     InboundKpiResponseDTO,
     OperatorVerimDTO,
 )
+from .belge_taslagi_dto import (
+    BelgeTaslagiKalemOnayDTO,
+    BelgeTaslagiOlusturRequestDTO,
+    BelgeTaslagiOnaylaRequestDTO,
+    BelgeTaslagiReddetRequestDTO,
+    BelgeTaslagiResponseDTO,
+)
 from .talep_tahmini_dto import (
     BacktestOzetDTO,
     GunlukTahminDTO,
@@ -171,6 +178,10 @@ __all__ = [
     "MalKabulIrsaliyeResponseDTO", "MalKabulKalemiIstisnaRequestDTO",
     "InboundDashboardResponseDTO", "InboundIrsaliyeOzetDTO",
     "InboundKpiResponseDTO", "OperatorVerimDTO",
+    # Belge Taslagi
+    "BelgeTaslagiKalemOnayDTO", "BelgeTaslagiOlusturRequestDTO",
+    "BelgeTaslagiOnaylaRequestDTO", "BelgeTaslagiReddetRequestDTO",
+    "BelgeTaslagiResponseDTO",
     # Talep Tahmini
     "GunlukTahminDTO", "GunlukTalepDTO", "TalepTahminResponseDTO",
     "TalepTahminUrunOzetDTO", "TalepTrendDTO",

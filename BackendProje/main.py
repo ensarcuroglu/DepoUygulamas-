@@ -51,6 +51,8 @@ from app.api.v1.routers import ( # noqa: E402
     auth_router as v1_auth_router,
     dashboard_router as v1_dashboard_router,
     mal_kabul_irsaliyeleri_router as v1_mal_kabul_irsaliyeleri_router,
+    belge_taslaklari_router as v1_belge_taslaklari_router,
+    mal_kabul_router as v1_mal_kabul_router,
     stok_islemleri_router as v1_stok_islemleri_router,
     yerlestirme_gorevleri_router as v1_yerlestirme_gorevleri_router,
     mobil_terminal_router as v1_mobil_terminal_router,
@@ -208,6 +210,8 @@ app.include_router(v1_sevkiyat_planlama_router)
 app.include_router(v1_stok_sayim_router)
 app.include_router(v1_raporlar_router)
 app.include_router(v1_mal_kabul_irsaliyeleri_router)
+app.include_router(v1_belge_taslaklari_router)
+app.include_router(v1_mal_kabul_router)
 app.include_router(v1_stok_islemleri_router)
 app.include_router(v1_yerlestirme_gorevleri_router)
 app.include_router(v1_mobil_terminal_router)

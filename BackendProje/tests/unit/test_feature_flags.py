@@ -51,6 +51,15 @@ class TestFeatureFlags:
         assert ff.pilot_depo_ids == []
         assert ff.uretim_paleti_aktif_mi(depo_id=1) is False
 
+    def test_doc_ai_pilot_depo_icinde(self):
+        ff = FeatureFlags(doc_ai_pilot_depo_ids=[2, 4])
+        assert ff.doc_ai_aktif_mi(depo_id=2) is True
+        assert ff.doc_ai_aktif_mi(depo_id=99) is False
+
+    def test_doc_ai_tumu_sentinel(self):
+        ff = FeatureFlags(doc_ai_pilot_depo_ids=[-1])
+        assert ff.doc_ai_aktif_mi(depo_id=99) is True
+
     def test_from_env_gecersiz_deger(self, monkeypatch):
         monkeypatch.setenv("FEATURE_URETIM_PALET_PILOT_DEPO_IDS", "abc,xyz")
         ff = FeatureFlags.from_env()

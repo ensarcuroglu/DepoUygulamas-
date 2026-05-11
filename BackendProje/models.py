@@ -645,7 +645,41 @@ class MalKabulKalemi(Base):
 
 
 # ========================
-# RAPOR ŞABLONU
+# BELGE TASLAGI
+# ========================
+
+class BelgeTaslagi(Base):
+    __tablename__ = "belge_taslaklari"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    kaynak_dosya_yolu: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    belge_tipi: Mapped[str] = mapped_column(String(50), default="IRSALIYE", nullable=False, index=True)
+    ham_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    durum: Mapped[str] = mapped_column(String(30), default="KABUL_BEKLIYOR", nullable=False, index=True)
+    confidence_skoru: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    olusturan_kullanici_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("kullanicilar.id"), nullable=True, index=True
+    )
+    depo_id: Mapped[int] = mapped_column(Integer, ForeignKey("depolar.id"), nullable=False, index=True)
+    mal_kabul_irsaliye_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("mal_kabul_irsaliyeleri.id"), nullable=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.now(), index=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        server_default=func.now(),
+        server_onupdate=func.now(),
+    )
+
+    olusturan_kullanici: Mapped[Optional["Kullanici"]] = relationship("Kullanici")
+    depo: Mapped["Depo"] = relationship("Depo")
+    mal_kabul_irsaliye: Mapped[Optional["MalKabulIrsaliye"]] = relationship("MalKabulIrsaliye")
+
+
+# ========================
+# RAPOR SABLONU
 # ========================
 
 class RaporSablonu(Base):

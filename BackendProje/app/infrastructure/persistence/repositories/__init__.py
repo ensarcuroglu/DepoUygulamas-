@@ -23,6 +23,7 @@ from .sa_rapor_repository import (
 from .sa_stok_sayim_repository import SqlAlchemyStokSayimRepository
 from .sa_dashboard_repository import SqlAlchemyDashboardRepository
 from .sa_mal_kabul_irsaliye_repository import SqlAlchemyMalKabulIrsaliyeRepository
+from .sa_belge_taslagi_repository import SqlAlchemyBelgeTaslagiRepository
 from .sa_yerlestirme_gorevi_repository import SqlAlchemyYerlestirmeGoreviRepository
 from .sa_toplama_gorevi_repository import SqlAlchemyToplamaGoreviRepository
 from .sa_palet_rezervasyonu_repository import SqlAlchemyPaletRezervasyonuRepository
@@ -59,6 +60,7 @@ __all__ = [
     "SqlAlchemyStokSayimRepository",
     "SqlAlchemyDashboardRepository",
     "SqlAlchemyMalKabulIrsaliyeRepository",
+    "SqlAlchemyBelgeTaslagiRepository",
     "SqlAlchemyYerlestirmeGoreviRepository",
     "SqlAlchemyToplamaGoreviRepository",
     "SqlAlchemyPaletRezervasyonuRepository",
