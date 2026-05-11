@@ -64,6 +64,7 @@ const GorevListesiPage = lazy(() => import('./pages/terminal/GorevListesiPage'))
 const YerlestirmePage = lazy(() => import('./pages/terminal/YerlestirmePage'));
 const TerminalOzetPage = lazy(() => import('./pages/terminal/TerminalOzetPage'));
 const TerminalUretimKabulPage = lazy(() => import('./pages/terminal/TerminalUretimKabulPage'));
+const BelgeFotograflaPage = lazy(() => import('./pages/terminal/BelgeFotograflaPage'));
 
 /**
  * Varsayılan yönlendirme: Depocu → /depocu, Lojistik → /stok-hareketleri, Admin → /dashboard
@@ -239,6 +240,9 @@ function App() {
                     )}
                     <Route path="/terminal/yerlestirme" element={<YerlestirmePage />} />
                     <Route path="/terminal/ozet" element={<TerminalOzetPage />} />
+                    {import.meta.env.VITE_FEATURE_DOC_AI_ENABLED === 'true' && (
+                      <Route path="/terminal/belge-fotografla" element={<BelgeFotograflaPage />} />
+                    )}
                   </Route>
                 </Route>
               </Route>

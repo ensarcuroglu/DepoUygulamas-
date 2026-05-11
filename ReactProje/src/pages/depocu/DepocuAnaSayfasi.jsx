@@ -17,6 +17,7 @@ import {
     HelpCircle,
     ArrowRight,
     Scan,
+    ScanText,
     ClipboardList,
     CheckCircle2,
     Truck,
@@ -38,6 +39,9 @@ const ANA_ISLEMLER = [
     { label: 'Görevler',   icon: ClipboardList, to: '/terminal/gorevler',          color: 'text-blue-700 dark:text-blue-400',       bg: 'bg-blue-50 dark:bg-blue-500/10'    },
     { label: 'Yerleştir',  icon: Scan,          to: '/terminal/yerlestirme',        color: 'text-indigo-700 dark:text-indigo-400',  bg: 'bg-indigo-50 dark:bg-indigo-500/10'  },
     { label: 'İrsaliyeli', icon: PackageCheck,  to: '/depocu/kabul/irsaliyeli',     color: 'text-emerald-700 dark:text-emerald-400',bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+    ...(import.meta.env.VITE_FEATURE_DOC_AI_ENABLED === 'true' ? [
+        { label: 'Belge Çek', icon: ScanText,   to: '/terminal/belge-fotografla',  color: 'text-teal-700 dark:text-teal-400',     bg: 'bg-teal-50 dark:bg-teal-500/10'    },
+    ] : []),
     ...(import.meta.env.VITE_FEATURE_URETIM_PALET_ENABLED === 'true' ? [
         { label: 'Üretimden', icon: Factory,    to: '/depocu/kabul/uretimden',      color: 'text-amber-700 dark:text-amber-400',    bg: 'bg-amber-50 dark:bg-amber-500/10'   },
     ] : []),
