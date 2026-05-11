@@ -78,6 +78,12 @@ export const queryKeys = {
         lists: () => ['malKabulIrsaliyeleri', 'list'],
         list: (params = {}) => ['malKabulIrsaliyeleri', 'list', params],
     },
+    belgeTaslaklari: {
+        all: ['belgeTaslaklari'],
+        lists: () => ['belgeTaslaklari', 'list'],
+        list: (params = {}) => ['belgeTaslaklari', 'list', params],
+        detail: (id) => ['belgeTaslaklari', 'detail', id],
+    },
     destek: {
         all: ['destek'],
         lists: () => ['destek', 'list'],
