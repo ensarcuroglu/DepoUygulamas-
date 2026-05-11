@@ -96,6 +96,30 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8002
 pytest
 ```
 
+### DocAiService (Belge AI mikroservisi — `DocAiService/`)
+
+```bash
+cd DocAiService
+
+# Dependency kurulumu
+pip install -r requirements.txt
+pip install -r requirements-test.txt
+copy .env.example .env
+
+# Ollama model (env ile değiştirilebilir; VLM için image input destekleyen model seç)
+ollama pull qwen3-vl:4b
+
+# Development server (port 8003)
+uvicorn main:app --reload --host 127.0.0.1 --port 8003
+
+# Test
+pytest
+pytest tests/test_confidence_scoring.py
+
+# Health check
+curl -H "X-Internal-Api-Key: <key>" http://127.0.0.1:8003/healthz
+```
+
 ### WmsAiService (LangChain + Ollama — `WmsAiService/`)
 
 ```bash
@@ -169,6 +193,15 @@ mysql -u root -p depo_yonetim < views.sql
 - **Servisler arası:** `BackendProje → AGV` HTTP push (görev dispatch), `AGV → BackendProje` HTTP callback (`/api/agv-callbacks/gorev-tamamlandi`); `INTERNAL_API_KEY` shared secret
 - **WS protokolü:** `/ws/agv` snapshot+delta+event (frontend Vite proxy üzerinden)
 - **Tek süreç zorunlu** (replica/cluster yok); WMS authoritative, AGV stateless-from-DB
+
+### DocAiService (Belge AI Mikroservisi)
+- **Language/Runtime:** Python 3.x
+- **Framework:** FastAPI + pydantic-settings
+- **Pipeline:** text PDF için `pdfplumber`; taranmış PDF/JPG için `pypdfium2` + Pillow render ve Ollama VLM; karar `BelgeTipiDedektoru` + hibrit dispatcher üzerinden verilir
+- **Local LLM:** Ollama (`OLLAMA_TEXT_MODEL`, `OLLAMA_VLM_MODEL`; varsayılan şablonda `qwen3-vl:4b`)
+- **Servisler arası:** `BackendProje → DocAiService` HTTP; `X-Internal-Api-Key` shared secret; `Idempotency-Key` yükleme akışında korunur
+- **Database:** DB yok; taslak kayıtları BackendProje'de authoritative kalır
+- **Port:** local development için `127.0.0.1:8003`
 
 ---
 
@@ -526,6 +559,7 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - WmsAiService: `WmsAiService/.env`. Zorunlu: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`. Opsiyonel: `OLLAMA_MODEL` (def: `qwen2.5-coder:7b`), `OLLAMA_BASE_URL` (def: `http://localhost:11434`), `OLLAMA_ANSWER_MODEL`, `LLM_TEMPERATURE` (def: `0`), `LLM_NUM_CTX` (def: `4096`), `LLM_TIMEOUT` (def: `120`), `MAX_CORRECTION_ATTEMPTS` (def: `2`), `ANSWER_NUM_PREDICT` (def: `40`), `FEW_SHOT_K` (def: `3`), `CHROMA_PERSIST_DIR` (def: `./wms_chroma_db`), `EMBEDDING_MODEL` (def: `sentence-transformers/all-MiniLM-L6-v2`)
 - AgvSimService: `AgvSimService/.env`. Zorunlu: `INTERNAL_API_KEY` (BackendProje ile aynı). Opsiyonel: `WMS_BASE_URL` (def: `http://127.0.0.1:8000`), `TICK_HZ` (def: `2`), `CORS_ALLOW_ORIGINS` (def: `https://localhost:5173`), `GRID_JSON_PATH` (def: `./data/depo_1_grid.json`), `WS_MAX_QUEUE` (def: `32`).
 - BackendProje AGV entegrasyonu: `FEATURE_AGV_DISPATCH_DEPO_IDS` (boş=kapalı, `TUMU`=tüm depolar, `1,3,5`=belirli depolar), `AGV_SIM_SERVICE_URL` (def: `http://127.0.0.1:8002`), `AGV_SIM_SERVICE_TIMEOUT` (def: `2.0`), `INTERNAL_API_KEY`. Frontend: `VITE_FEATURE_AGV_ENABLED=true` ile `/agv-izleme` route + sidebar item açılır.
+- DocAiService: `DocAiService/.env`. Zorunlu: `INTERNAL_API_KEY` (BackendProje ile aynı). Opsiyonel: `WMS_BASE_URL` (def: `http://127.0.0.1:8000`), `OLLAMA_BASE_URL` (def: `http://127.0.0.1:11434`), `OLLAMA_TEXT_MODEL`, `OLLAMA_VLM_MODEL`, `LLM_TIMEOUT`, `MAX_FILE_SIZE_MB`, `CORS_ALLOW_ORIGINS`. Backend entegrasyonu: `FEATURE_DOC_AI_PILOT_DEPO_IDS`, `DOC_AI_SERVICE_URL` (local def: `http://127.0.0.1:8003`), `DOC_AI_SERVICE_TIMEOUT`, `INTERNAL_API_KEY`. Frontend: `VITE_FEATURE_DOC_AI_ENABLED=true`.
 
 ### Stok Hesaplama
 - `Urun.stok_miktari` bir `column_property`; `Palet.koli_adedi` üzerinden aktif `Lot` kayıtlarından hesaplanır. **Ürün tablosunda saklanan stok sütunu yoktur.**
@@ -543,6 +577,7 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - `BackendProje/.coverage` — test coverage veritabanı
 - `BackendProje/alembic/versions/` — otomatik üretilen migration dosyaları (sadece alembic ile oluştur)
 - `WmsAiService/__pycache__/`, `WmsAiService/venv/`
+- `DocAiService/__pycache__/`, `DocAiService/.venv/`, `DocAiService/venv/`
 
 ### Migration Kuralları
 - **Alembic** resmi migration aracıdır ama projede standalone `migrate_*.py` scriptleri de bulunur (elle çalıştırılır, tekrar çalıştırmaya dayanıklı değil)
@@ -566,6 +601,14 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - **Pathfinding:** Cooperative-light CA* (zaman-uzay reservation table) + klasik A* fallback. Yeni hareket eklenirken `app/core/services/rota_planlayici.py`'yi tek nokta olarak kullan; doğrudan `a_star`/`cooperative_a_star` çağırma.
 - **WS proxy:** Frontend HTTPS, AGV plain HTTP/WS. Vite `/ws/agv` ws:true proxy `/api` proxy'sinden ÖNCE tanımlanır.
 - **Yüksek frekans veri:** `robots[id]` tick başına değişir → React state'e yazma; `useAgvStore.getState()` ile useFrame içinde oku, lerp et. Aksi halde 5-10 Hz re-render tüm sayfayı yavaşlatır.
+
+### DocAiService Belge AI Modülü
+- **Servis sınırı:** DocAiService DB'ye yazmaz; dosyayı analiz eder ve irsaliye taslağı JSON'u döner. Taslak kaydı, inceleme kuyruğu, onay/red ve WMS etkileri BackendProje'de kalır.
+- **Auth:** `/healthz` ve `/api/extract/irsaliye` dahil tüm non-OPTIONS isteklerde `X-Internal-Api-Key` zorunlu; key eksik, yanlış veya yapılandırılmamışsa bilinçli olarak `503` döner.
+- **Hibrit pipeline:** Text PDF akışı önce denenir; metin yetersizse veya belge taranmış/JPG ise VLM akışına düşer. `OLLAMA_TEXT_MODEL` ve `OLLAMA_VLM_MODEL` env'den değiştirilebilir; VLM modeli image input desteklemelidir.
+- **Yapı:** `app/api/v1/routers/{healthz.py,extraction.py}` public HTTP yüzeyi; `app/application/use_cases/{text_pdf_extract_uc.py,hibrit_extract_uc.py}` orchestration; `app/application/prompts.py` LLM sözleşmesi; `app/core/entities/irsaliye_taslagi.py` şema; `app/core/services/confidence_calculator.py` güven skoru; `app/infrastructure/{extraction,llm}` dosya okuma ve Ollama client katmanı.
+- **Port ve çalıştırma:** Local port `8003`; `uvicorn main:app --reload --host 127.0.0.1 --port 8003`. Health doğrulaması için `curl -H "X-Internal-Api-Key: <key>" http://127.0.0.1:8003/healthz`.
+- **Testler:** `cd DocAiService && pytest`; riskli şema/prompt değişikliğinde `tests/test_text_pdf_extraction.py`, `tests/test_vlm_extraction.py`, `tests/test_hibrit_dispatcher.py`, `tests/test_confidence_scoring.py` birlikte çalıştırılır.
 
 ### Operatör Performans (LMS)
 - **Transactional Outbox:** Yerleştirme/toplama use case'leri `IPerformansEventPublisher` ile `gorev_performans_eventleri` tablosuna event yazar (use case transaction'ında atomik). Faz 1 default: `DbOutboxPerformansEventPublisher`; Faz 5'te RabbitMQ implementasyonu aynı arayüzle takılabilir.
@@ -594,5 +637,8 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - [ ] Mevcut query key pattern'ine uy (`queryKeys.js`)
 - [ ] Davranış değişikliğinde mevcut testleri güncelle; yeni davranış için test yaz
 - [ ] Alakasız refactor yapma; değişiklikleri dar ve kapsamlı tut
+- [ ] DocAiService'te yeni irsaliye şema alanı eklerken `app/application/prompts.py` + `app/core/entities/irsaliye_taslagi.py` + few-shot/fixture testleri + `confidence_calculator.py` senkron güncelle
+- [ ] DocAiService extraction değişikliğinde text PDF, scanned PDF/JPG, hibrit dispatcher ve güven skoru testlerini birlikte çalıştır
+- [ ] DocAiService entegrasyonunda `INTERNAL_API_KEY`, `X-Internal-Api-Key` ve `Idempotency-Key` sözleşmesini bozma; DocAiService DB'ye yazmaz, BackendProje authoritative kalır
 - [ ] WmsAiService'te yeni view eklerken: `views.sql` + `sql_guard.py` (ALLOWED_TABLES) + `prompts.py` (SCHEMA_DESCRIPTION + FEW_SHOT_EXAMPLES) üçlüsünü birlikte güncelle
 - [ ] Yeni soru/SQL örneği eklerken: `ornekler.json` + ChromaDB yeniden üretimi + `prompts.py` (FEW_SHOT_EXAMPLES fallback) üçlüsünü birlikte güncelle

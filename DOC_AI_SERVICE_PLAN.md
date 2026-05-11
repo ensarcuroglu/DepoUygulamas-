@@ -130,10 +130,10 @@ Yeni `DocAiService` (port **8003**), fiziksel depo belgelerini (irsaliye/fatura,
 
 ### Faz 7 — CLAUDE.md & Dokümantasyon
 
-- [ ] `CLAUDE.md` → DocAiService bölümü (yapı, env, port 8003, çalıştırma komutu, hibrit pipeline notu)
-- [ ] `CLAUDE.md` → "AI Agent Development Checklist" → DocAiService değişiklikleri için yeni kalemler (yeni şema alanı eklerken `prompts.py` + `IrsaliyeTaslagiSchema` + few-shot üçlüsü senkron)
-- [ ] `DocAiService/README.md` — kurulum, model çekme komutları, troubleshooting
-- [ ] `auto memory` → `project_doc_ai_modulu.md` ekle, `MEMORY.md` index'e referans
+- [x] `CLAUDE.md` → DocAiService bölümü (yapı, env, port 8003, çalıştırma komutu, hibrit pipeline notu)
+- [x] `CLAUDE.md` → "AI Agent Development Checklist" → DocAiService değişiklikleri için yeni kalemler (yeni şema alanı eklerken `prompts.py` + `IrsaliyeTaslagiSchema` + few-shot üçlüsü senkron)
+- [x] `DocAiService/README.md` — kurulum, model çekme komutları, troubleshooting
+- [x] `auto memory` → `project_doc_ai_modulu.md` ekle, `MEMORY.md` index'e referans
 
 ---
 
