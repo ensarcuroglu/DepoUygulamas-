@@ -171,7 +171,7 @@ const numericIdOrNull = (value) => {
     return Number.isFinite(number) && number > 0 ? number : null;
 };
 
-const inputClass = 'h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-500 dark:focus:ring-sky-900/40 dark:disabled:bg-slate-800';
+const inputClass = 'h-11 w-full rounded-xl border border-slate-200/60 bg-slate-50/50 px-4 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800/60 dark:bg-slate-950/50 dark:text-slate-100 dark:focus:border-sky-500 dark:focus:bg-slate-900';
 
 const Field = ({ label, icon: Icon, confidence, children }) => (
     <div>
@@ -320,7 +320,7 @@ function BelgeTaslagiEditor({
                         <button
                             type="button"
                             onClick={() => navigate('/mal-kabul/belge-yukle')}
-                            className="mb-3 inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                            className="mb-3 inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border border-slate-200/60 bg-white/80 px-4 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800/60 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
                             <ArrowLeft className="h-4 w-4" />
                             Yükleme ekranı
@@ -331,7 +331,7 @@ function BelgeTaslagiEditor({
                         <h1 className="mt-1 text-2xl font-bold tracking-tight">Önizleme ve onay</h1>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex h-9 items-center rounded-md bg-white px-3 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-800">
+                        <span className="inline-flex h-9 items-center rounded-full bg-white/80 px-4 text-sm font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm dark:bg-slate-900/80 dark:text-slate-300 dark:ring-slate-800/60">
                             {taslak?.durum}
                         </span>
                         <AlanGuvenRozeti confidence={confidence} className="h-9 px-3 text-sm" />
@@ -346,7 +346,7 @@ function BelgeTaslagiEditor({
 
                 <div className="grid gap-5 xl:grid-cols-[minmax(340px,440px)_minmax(0,1fr)]">
                     <aside className="space-y-4">
-                        <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                        <section className="rounded-xl border border-slate-200/60 bg-white/90 p-5 shadow-sm backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/90">
                             <div className="mb-3 flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-2">
                                     <FileSearch className="h-5 w-5 text-sky-600 dark:text-sky-400" />
@@ -354,7 +354,7 @@ function BelgeTaslagiEditor({
                                 </div>
                                 {fileName && <span className="max-w-[180px] truncate text-xs text-slate-500">{fileName}</span>}
                             </div>
-                            <div className="h-[520px] overflow-hidden rounded-md border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-950">
+                            <div className="h-[520px] overflow-hidden rounded-xl border border-slate-200/60 bg-slate-100/50 dark:border-slate-800/60 dark:bg-slate-950/50">
                                 {localPreviewUrl && previewIsImage ? (
                                     <img src={localPreviewUrl} alt="Belge önizleme" className="h-full w-full object-contain" />
                                 ) : localPreviewUrl && previewIsPdf ? (
@@ -373,8 +373,8 @@ function BelgeTaslagiEditor({
                             </div>
                         </section>
 
-                        <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                            <h2 className="mb-3 font-semibold">AI çıktısı</h2>
+                        <section className="rounded-xl border border-slate-200/60 bg-white/90 p-5 shadow-sm backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/90">
+                            <h2 className="mb-4 font-semibold">AI çıktısı</h2>
                             <dl className="grid gap-3 text-sm">
                                 <div className="flex items-center justify-between gap-4">
                                     <dt className="text-slate-500 dark:text-slate-400">Model</dt>
@@ -393,10 +393,12 @@ function BelgeTaslagiEditor({
                     </aside>
 
                     <main className="space-y-5">
-                        <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                            <div className="mb-4 flex items-center gap-2">
-                                <ClipboardCheck className="h-5 w-5 text-sky-600 dark:text-sky-400" />
-                                <h2 className="font-semibold">Mal kabul bilgileri</h2>
+                        <section className="rounded-xl border border-slate-200/60 bg-white/90 p-5 shadow-sm backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/90">
+                            <div className="mb-5 flex items-center gap-2">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400">
+                                    <ClipboardCheck className="h-5 w-5" />
+                                </div>
+                                <h2 className="text-lg font-semibold">Mal kabul bilgileri</h2>
                             </div>
 
                             <div className="grid gap-4 lg:grid-cols-2">
@@ -478,7 +480,7 @@ function BelgeTaslagiEditor({
                             </div>
                         </section>
 
-                        <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                        <section className="rounded-xl border border-slate-200/60 bg-white/90 p-5 shadow-sm backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/90">
                             <KalemTablosu
                                 kalemler={kalemler}
                                 onChange={setKalemler}
@@ -487,12 +489,12 @@ function BelgeTaslagiEditor({
                             />
                         </section>
 
-                        <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
+                        <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/60 bg-white/80 p-4 shadow-lg backdrop-blur-xl dark:border-slate-800/60 dark:bg-slate-900/80">
                             <button
                                 type="button"
                                 onClick={handleReject}
                                 disabled={isClosed || isBusy}
-                                className="inline-flex h-11 items-center gap-2 rounded-md border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300 dark:border-rose-900 dark:bg-slate-900 dark:text-rose-300 dark:hover:bg-rose-950/30 dark:disabled:border-slate-800 dark:disabled:text-slate-600"
+                                className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-xl border border-rose-200 bg-white px-5 text-sm font-semibold text-rose-700 transition-all duration-300 hover:bg-rose-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/60 dark:bg-slate-900 dark:text-rose-400 dark:hover:bg-rose-950/30"
                             >
                                 {rejectMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
                                 Reddet
@@ -502,7 +504,7 @@ function BelgeTaslagiEditor({
                                 type="button"
                                 onClick={handleApprove}
                                 disabled={isClosed || isBusy}
-                                className="inline-flex h-11 items-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
+                                className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white transition-all duration-300 hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-emerald-600 dark:hover:bg-emerald-500"
                             >
                                 {approveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                                 Mal kabul oluştur

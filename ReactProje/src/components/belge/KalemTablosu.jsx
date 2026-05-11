@@ -57,7 +57,7 @@ const FieldLabel = ({ children, confidence }) => (
     </div>
 );
 
-const inputClass = 'h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-500 dark:focus:ring-sky-900/40 dark:disabled:bg-slate-800';
+const inputClass = 'h-11 w-full rounded-xl border border-slate-200/60 bg-slate-50/50 px-4 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800/60 dark:bg-slate-950/50 dark:text-slate-100 dark:focus:border-sky-500 dark:focus:bg-slate-900';
 
 export default function KalemTablosu({
     kalemler,
@@ -113,7 +113,7 @@ export default function KalemTablosu({
                     type="button"
                     onClick={addRow}
                     disabled={readonly}
-                    className="inline-flex h-10 items-center gap-2 rounded-md bg-slate-900 px-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
+                    className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition-all duration-300 hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white dark:hover:shadow-white/20"
                 >
                     <Plus className="h-4 w-4" />
                     Satır ekle
@@ -121,7 +121,7 @@ export default function KalemTablosu({
             </div>
 
             {rows.length === 0 ? (
-                <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
+                <div className="rounded-xl border-2 border-dashed border-slate-300/80 bg-slate-50/50 px-4 py-10 text-center text-sm text-slate-500 transition-colors dark:border-slate-700/80 dark:bg-slate-900/30 dark:text-slate-400">
                     Taslakta kalem bulunamadı. Onay için en az bir kalem ekleyin.
                 </div>
             ) : (
@@ -131,11 +131,11 @@ export default function KalemTablosu({
                         return (
                             <div
                                 key={row.local_id || index}
-                                className="rounded-md border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                                className="rounded-2xl border border-slate-200/60 bg-white/60 p-4 shadow-sm backdrop-blur-md transition-all hover:shadow-md dark:border-slate-800/60 dark:bg-slate-900/60"
                             >
                                 <div className="mb-3 flex items-center justify-between gap-3">
                                     <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-100 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100/80 text-xs text-slate-600 shadow-sm dark:bg-slate-800/80 dark:text-slate-300">
                                             {index + 1}
                                         </span>
                                         Satır
@@ -145,7 +145,7 @@ export default function KalemTablosu({
                                         onClick={() => removeRow(index)}
                                         disabled={readonly || rows.length === 1}
                                         title="Satırı sil"
-                                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:text-slate-300 dark:text-slate-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+                                        className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-400"
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </button>

@@ -10,27 +10,27 @@ const guvenSeviyesi = (confidence) => {
     if (score === null) {
         return {
             label: 'Belirsiz',
-            className: 'bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700',
+            className: 'bg-slate-500/10 text-slate-600 ring-slate-500/20 dark:text-slate-400',
         };
     }
 
     if (score >= 0.85) {
         return {
             label: 'Yüksek',
-            className: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800',
+            className: 'bg-emerald-500/10 text-emerald-600 ring-emerald-500/20 dark:text-emerald-400',
         };
     }
 
     if (score >= 0.5) {
         return {
             label: 'Orta',
-            className: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-800',
+            className: 'bg-amber-500/10 text-amber-600 ring-amber-500/20 dark:text-amber-400',
         };
     }
 
     return {
         label: 'Düşük',
-        className: 'bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:ring-rose-800',
+        className: 'bg-rose-500/10 text-rose-600 ring-rose-500/20 dark:text-rose-400',
     };
 };
 

@@ -161,7 +161,7 @@ export default function BelgeYuklePage() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
-                    <section className="space-y-4 rounded-md border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <section className="space-y-4 rounded-xl border border-slate-200/60 bg-white/90 p-5 shadow-sm backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/90">
                         <div>
                             <label htmlFor="depo_id" className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
                                 <Warehouse className="h-4 w-4 text-slate-500" />
@@ -172,7 +172,7 @@ export default function BelgeYuklePage() {
                                 value={effectiveDepoId}
                                 onChange={(event) => setSelectedDepoId(event.target.value)}
                                 disabled={isUploading || depolarQuery.isLoading}
-                                className="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-500 dark:focus:ring-sky-900/40"
+                                className="h-11 w-full rounded-xl border border-slate-200/60 bg-slate-50/50 px-4 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800/60 dark:bg-slate-950/50 dark:text-slate-100 dark:focus:border-sky-500 dark:focus:bg-slate-900"
                             >
                                 <option value="">Depo seçin</option>
                                 {depolar.map((depo) => (
@@ -181,8 +181,8 @@ export default function BelgeYuklePage() {
                             </select>
                         </div>
 
-                        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
-                            <div className="flex gap-2">
+                        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+                            <div className="flex gap-3">
                                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                                 <p>AI çıktısı onaydan önce mutlaka kontrol edilmelidir. Eksik ürün eşleşmeleri önizlemede düzeltilebilir.</p>
                             </div>
@@ -191,7 +191,7 @@ export default function BelgeYuklePage() {
                         <button
                             type="submit"
                             disabled={isUploading || !file || !effectiveDepoId}
-                            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-sky-600 px-4 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
+                            className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 text-sm font-semibold text-white transition-all duration-300 hover:bg-sky-500 hover:shadow-lg hover:shadow-sky-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:hover:scale-100 disabled:hover:shadow-none dark:disabled:bg-slate-800"
                         >
                             {isUploading ? 'İşleniyor...' : 'Taslak oluştur'}
                             <ArrowRight className="h-4 w-4" />
@@ -203,9 +203,9 @@ export default function BelgeYuklePage() {
                                     <span>Yükleme</span>
                                     <span>%{progress}</span>
                                 </div>
-                                <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800">
+                                <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                                     <div
-                                        className="h-2 rounded-full bg-sky-500 transition-all"
+                                        className="h-full rounded-full bg-sky-500 transition-all duration-500 ease-out"
                                         style={{ width: `${progress}%` }}
                                     />
                                 </div>
@@ -213,7 +213,7 @@ export default function BelgeYuklePage() {
                         )}
                     </section>
 
-                    <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <section className="rounded-xl border border-slate-200/60 bg-white/90 p-5 shadow-sm backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/90">
                         <input
                             ref={inputRef}
                             type="file"
@@ -230,29 +230,31 @@ export default function BelgeYuklePage() {
                                 onDragEnter={handleDrag}
                                 onDragOver={handleDrag}
                                 onDragLeave={handleDrag}
-                                className={`flex min-h-[420px] w-full flex-col items-center justify-center rounded-md border-2 border-dashed px-6 text-center transition ${
+                                className={`group flex min-h-[420px] w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 text-center transition-all duration-300 ${
                                     dragActive
-                                        ? 'border-sky-400 bg-sky-50 dark:border-sky-500 dark:bg-sky-950/30'
-                                        : 'border-slate-300 bg-slate-50 hover:border-sky-300 hover:bg-sky-50/50 dark:border-slate-700 dark:bg-slate-950/40 dark:hover:border-sky-700 dark:hover:bg-sky-950/20'
+                                        ? 'border-sky-500 bg-sky-50/80 dark:bg-sky-500/10'
+                                        : 'border-slate-300/80 bg-slate-50/50 hover:border-sky-400 hover:bg-sky-50/30 dark:border-slate-700/80 dark:bg-slate-950/30 dark:hover:border-sky-500/80 dark:hover:bg-sky-900/20'
                                 }`}
                             >
-                                <UploadCloud className="h-12 w-12 text-sky-500" />
-                                <span className="mt-4 text-lg font-semibold text-slate-900 dark:text-slate-100">
+                                <div className={`rounded-full p-4 transition-colors duration-300 ${dragActive ? 'bg-sky-100 dark:bg-sky-500/20' : 'bg-slate-100 group-hover:bg-sky-50 dark:bg-slate-800 dark:group-hover:bg-sky-900/30'}`}>
+                                    <UploadCloud className={`h-8 w-8 ${dragActive ? 'text-sky-600 dark:text-sky-400' : 'text-slate-500 group-hover:text-sky-500 dark:text-slate-400 dark:group-hover:text-sky-400'}`} />
+                                </div>
+                                <span className="mt-4 text-base font-semibold text-slate-800 dark:text-slate-200">
                                     Belgeyi buraya bırakın
                                 </span>
                                 <span className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                                     veya dosya seçmek için tıklayın
                                 </span>
-                                <span className="mt-4 rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:ring-slate-700">
+                                <span className="mt-6 inline-flex rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-slate-500 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm dark:bg-slate-900/80 dark:text-slate-400 dark:ring-slate-700/60">
                                     PDF, PNG, JPG
                                 </span>
                             </button>
                         ) : (
                             <div className="space-y-4">
-                                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-3 dark:border-slate-800 dark:bg-slate-950/40">
+                                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/60 bg-slate-50/80 p-3 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-950/50">
                                     <div className="flex min-w-0 items-center gap-3">
-                                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
-                                            {isImage ? <Image className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+                                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
+                                            {isImage ? <Image className="h-5 w-5 text-sky-600 dark:text-sky-400" /> : <FileText className="h-5 w-5 text-sky-600 dark:text-sky-400" />}
                                         </div>
                                         <div className="min-w-0">
                                             <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{file.name}</p>
@@ -260,7 +262,7 @@ export default function BelgeYuklePage() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="inline-flex h-8 items-center gap-1 rounded-md bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:ring-emerald-900">
+                                        <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-600 ring-1 ring-emerald-500/20 dark:text-emerald-400">
                                             <CheckCircle2 className="h-3.5 w-3.5" />
                                             Hazır
                                         </span>
@@ -269,14 +271,14 @@ export default function BelgeYuklePage() {
                                             onClick={clearFile}
                                             disabled={isUploading}
                                             title="Dosyayı kaldır"
-                                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-60 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                                            className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                                         >
                                             <X className="h-4 w-4" />
                                         </button>
                                     </div>
                                 </div>
 
-                                <div className="h-[420px] overflow-hidden rounded-md border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-950">
+                                <div className="h-[420px] overflow-hidden rounded-xl border border-slate-200/60 bg-slate-100/50 dark:border-slate-800/60 dark:bg-slate-950/50">
                                     {isImage ? (
                                         <img src={previewUrl} alt="Belge önizleme" className="h-full w-full object-contain" />
                                     ) : isPdf ? (
