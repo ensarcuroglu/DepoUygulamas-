@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from app.application.use_cases import (
     BelgeTaslagiGetirUseCase,
+    BelgeTaslagiIncelemeKuyruguUseCase,
     BelgeTaslagiListeleUseCase,
     BelgeTaslagiOlusturUseCase,
     BelgeTaslagiOnaylaUseCase,
@@ -31,6 +32,12 @@ def get_belge_taslagi_listele_uc(
     repo=Depends(get_belge_taslagi_repo),
 ):
     return BelgeTaslagiListeleUseCase(repo)
+
+
+def get_belge_taslagi_inceleme_kuyrugu_uc(
+    repo=Depends(get_belge_taslagi_repo),
+):
+    return BelgeTaslagiIncelemeKuyruguUseCase(repo)
 
 
 def get_belge_taslagi_getir_uc(

@@ -26,12 +26,15 @@ class SqlAlchemyBelgeTaslagiRepository(IBelgeTaslagiRepository):
         limit: int = 100,
         durum: Optional[str] = None,
         depo_id: Optional[int] = None,
+        max_confidence: Optional[float] = None,
     ) -> list[BelgeTaslagi]:
         query = self._db.query(BelgeTaslagiORM)
         if durum:
             query = query.filter(BelgeTaslagiORM.durum == durum)
         if depo_id:
             query = query.filter(BelgeTaslagiORM.depo_id == depo_id)
+        if max_confidence is not None:
+            query = query.filter(BelgeTaslagiORM.confidence_skoru < max_confidence)
         orm_list = (
             query.order_by(BelgeTaslagiORM.created_at.desc())
             .offset(skip)

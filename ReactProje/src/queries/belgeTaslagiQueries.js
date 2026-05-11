@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+    getBelgeIncelemeKuyrugu,
     getBelgeTaslagi,
     getBelgeTaslaklari,
     onaylaBelgeTaslagi,
@@ -29,6 +30,15 @@ export function useBelgeTaslagiQuery(id, options = {}) {
         queryKey: queryKeys.belgeTaslaklari.detail(id),
         queryFn: () => getBelgeTaslagi(id).then(responseData),
         enabled: Boolean(id),
+        ...options,
+    });
+}
+
+export function useBelgeIncelemeKuyruguQuery(params = {}, options = {}) {
+    return useQuery({
+        queryKey: queryKeys.belgeTaslaklari.reviewQueue(params),
+        queryFn: () => getBelgeIncelemeKuyrugu(params).then(responseData),
+        placeholderData: (previousData) => previousData,
         ...options,
     });
 }

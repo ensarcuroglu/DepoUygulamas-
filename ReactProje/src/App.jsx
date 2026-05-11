@@ -43,6 +43,7 @@ const StokSayimPage = lazy(() => import('./pages/StokSayimPage'));
 const MalKabulIrsaliyeleriPage = lazy(() => import('./pages/MalKabulIrsaliyeleriPage'));
 const BelgeYuklePage = lazy(() => import('./pages/MalKabul/BelgeYuklePage'));
 const BelgeTaslagiOnizlemePage = lazy(() => import('./pages/MalKabul/BelgeTaslagiOnizlemePage'));
+const BelgeIncelemeKuyruguPage = lazy(() => import('./pages/admin/BelgeIncelemeKuyruguPage'));
 const InboundDashboardPage = lazy(() => import('./pages/InboundDashboardPage'));
 const KpiDashboardPage = lazy(() => import('./pages/KpiDashboardPage'));
 const ZonlarPage = lazy(() => import('./pages/ZonlarPage'));
@@ -168,6 +169,10 @@ function App() {
                   <Route element={<RoleRoute allowedRoles={['admin', 'lojistik', 'depocu']} />}>
                     <Route path="/mal-kabul/belge-yukle" element={<BelgeYuklePage />} />
                     <Route path="/mal-kabul/taslak/:id" element={<BelgeTaslagiOnizlemePage />} />
+                  </Route>
+
+                  <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>
+                    <Route path="/admin/belge-inceleme-kuyrugu" element={<BelgeIncelemeKuyruguPage />} />
                   </Route>
 
                   {/* Inbound Dashboard + KPI */}

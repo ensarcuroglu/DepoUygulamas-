@@ -16,6 +16,7 @@ from app.application.dto import (
 )
 from app.application.use_cases import (
     BelgeTaslagiGetirUseCase,
+    BelgeTaslagiIncelemeKuyruguUseCase,
     BelgeTaslagiListeleUseCase,
     BelgeTaslagiOlusturUseCase,
     BelgeTaslagiOnaylaUseCase,
@@ -26,6 +27,7 @@ from app.core.exceptions import YetkisizIslemError
 from app.core.idempotency import idempotency_kaydet, idempotency_kontrol
 from app.infrastructure.di.container import (
     get_belge_taslagi_getir_uc,
+    get_belge_taslagi_inceleme_kuyrugu_uc,
     get_belge_taslagi_listele_uc,
     get_belge_taslagi_olustur_uc,
     get_belge_taslagi_onayla_uc,
@@ -78,6 +80,25 @@ def belge_taslaklari_listele(
             raise YetkisizIslemError("Bu depo icin belge taslagi goruntuleme yetkiniz yok.")
         depo_id = kullanici_depo_id or depo_id
     return uc.execute(skip=skip, limit=limit, durum=durum, depo_id=depo_id)
+
+
+@router.get("/inceleme-kuyrugu", response_model=list[BelgeTaslagiResponseDTO])
+def belge_taslaklari_inceleme_kuyrugu(
+    skip: int = 0,
+    limit: int = Query(default=100, le=500),
+    depo_id: Optional[int] = Query(None),
+    max_confidence: float = Query(default=0.6, gt=0.0, le=1.0),
+    current_user: Kullanici = Depends(require_role("admin", "lojistik")),
+    uc: BelgeTaslagiIncelemeKuyruguUseCase = Depends(
+        get_belge_taslagi_inceleme_kuyrugu_uc
+    ),
+):
+    return uc.execute(
+        skip=skip,
+        limit=limit,
+        depo_id=depo_id,
+        max_confidence=max_confidence,
+    )
 
 
 @router.get("/{taslak_id}", response_model=BelgeTaslagiResponseDTO)

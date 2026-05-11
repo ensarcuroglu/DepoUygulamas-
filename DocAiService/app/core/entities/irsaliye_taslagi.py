@@ -14,23 +14,23 @@ class ConfidenceMixin(BaseModel):
 
 
 class MetinAlani(ConfidenceMixin):
-    value: str = Field(..., min_length=1)
+    value: str | None = None
 
     @field_validator("value")
     @classmethod
-    def _strip_value(cls, value: str) -> str:
+    def _strip_value(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
         stripped = value.strip()
-        if not stripped:
-            raise ValueError("value must not be empty")
-        return stripped
+        return stripped or None
 
 
 class TarihAlani(ConfidenceMixin):
-    value: date
+    value: date | None = None
 
 
 class SayisalAlan(ConfidenceMixin):
-    value: Decimal = Field(..., ge=0)
+    value: Decimal | None = Field(None, ge=0)
 
 
 class IrsaliyeKalemiSchema(BaseModel):
@@ -40,6 +40,10 @@ class IrsaliyeKalemiSchema(BaseModel):
     ad: MetinAlani
     miktar: SayisalAlan
     birim: MetinAlani
+    lot_no: MetinAlani | None = None
+    palet_no: MetinAlani | None = None
+    uretim_tarihi: TarihAlani | None = None
+    son_kullanma_tarihi: TarihAlani | None = None
 
     @computed_field
     @property
@@ -60,8 +64,10 @@ class IrsaliyeTaslagiSchema(BaseModel):
     tedarikci: MetinAlani
     irsaliye_no: MetinAlani
     tarih: TarihAlani
-    kalemler: list[IrsaliyeKalemiSchema] = Field(..., min_length=1)
+    kalemler: list[IrsaliyeKalemiSchema] = Field(default_factory=list)
     toplam: SayisalAlan | None = None
+    missing_fields: list[str] = Field(default_factory=list)
+    validation_errors: list[str] = Field(default_factory=list)
 
     @computed_field
     @property
@@ -80,6 +86,8 @@ class IrsaliyeTaslagiSchema(BaseModel):
                     kalem.birim.confidence,
                 ]
             )
+        if not self.kalemler:
+            values.extend([0.0, 0.0, 0.0, 0.0])
         if self.toplam is not None:
             values.append(self.toplam.confidence)
         return round(sum(values) / len(values), 4)

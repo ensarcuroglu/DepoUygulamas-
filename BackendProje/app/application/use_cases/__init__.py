@@ -146,6 +146,7 @@ from .mal_kabul_irsaliye_use_cases import (
 )
 from .belge_taslagi_use_cases import (
     BelgeTaslagiGetirUseCase,
+    BelgeTaslagiIncelemeKuyruguUseCase,
     BelgeTaslagiListeleUseCase,
     BelgeTaslagiOlusturUseCase,
     BelgeTaslagiOnaylaUseCase,
@@ -267,7 +268,8 @@ __all__ = [
     "InboundDashboardUseCase",
     "InboundKpiUseCase",
     # Belge Taslagi
-    "BelgeTaslagiGetirUseCase", "BelgeTaslagiListeleUseCase",
+    "BelgeTaslagiGetirUseCase", "BelgeTaslagiIncelemeKuyruguUseCase",
+    "BelgeTaslagiListeleUseCase",
     "BelgeTaslagiOlusturUseCase", "BelgeTaslagiOnaylaUseCase",
     "BelgeTaslagiReddetUseCase",
     # Yerleştirme Görevi

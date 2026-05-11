@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from app.application.prompts import SYSTEM_PROMPT, build_irsaliye_text_prompt
 from app.core.entities.belge import Belge, BelgeTipi, ExtractionSonucu
 from app.core.entities.irsaliye_taslagi import IrsaliyeTaslagiSchema
+from app.core.services.confidence_calculator import normalize_irsaliye_confidence
 from app.infrastructure.llm.ollama_text_client import OllamaTextClient
 
 
@@ -29,8 +30,10 @@ class TextPdfExtractor:
             system_prompt=SYSTEM_PROMPT,
             user_prompt=build_irsaliye_text_prompt(raw_text),
         )
+        normalized_payload = normalize_irsaliye_confidence(payload)
+        normalized_payload.pop("confidence_score", None)
         try:
-            taslak = IrsaliyeTaslagiSchema.model_validate(payload)
+            taslak = IrsaliyeTaslagiSchema.model_validate(normalized_payload)
         except ValidationError as exc:
             raise TextPdfExtractionError("LLM yaniti irsaliye semasina uymuyor") from exc
 

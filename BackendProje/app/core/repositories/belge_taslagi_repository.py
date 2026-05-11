@@ -16,6 +16,7 @@ class IBelgeTaslagiRepository(ABC):
         limit: int = 100,
         durum: Optional[str] = None,
         depo_id: Optional[int] = None,
+        max_confidence: Optional[float] = None,
     ) -> list[BelgeTaslagi]:
         ...
 

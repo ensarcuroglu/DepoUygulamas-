@@ -16,6 +16,7 @@ TEST_MODEL = "qwen3-vl:4b"
 
 @pytest.fixture(autouse=True)
 def settings_env(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DOC_AI_ENV_FILE", "__test_missing.env")
     monkeypatch.setenv("INTERNAL_API_KEY", TEST_KEY)
     monkeypatch.setenv("OLLAMA_BASE_URL", "http://ollama.test")
     monkeypatch.setenv("OLLAMA_TEXT_MODEL", TEST_MODEL)

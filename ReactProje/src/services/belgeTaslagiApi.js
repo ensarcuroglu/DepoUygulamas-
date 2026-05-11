@@ -30,6 +30,9 @@ export const uploadBelgeTaslagi = ({
 export const getBelgeTaslaklari = (params = {}) =>
     api.get('/belge-taslaklari/', { params });
 
+export const getBelgeIncelemeKuyrugu = (params = {}) =>
+    api.get('/belge-taslaklari/inceleme-kuyrugu', { params });
+
 export const getBelgeTaslagi = (id) =>
     api.get(`/belge-taslaklari/${id}`);
 

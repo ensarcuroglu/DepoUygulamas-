@@ -69,6 +69,7 @@ const menuGroups = [
             { path: '/gelen-mal/irsaliyeli', label: 'İrsaliyeli Kabul', icon: ClipboardCheck, roles: ['admin', 'lojistik'], badge: null },
             ...(import.meta.env.VITE_FEATURE_DOC_AI_ENABLED === 'true' ? [
                 { path: '/mal-kabul/belge-yukle', label: 'Belge AI Kabul', icon: FileUp, roles: ['admin', 'lojistik', 'depocu'], badge: 'AI' },
+                { path: '/admin/belge-inceleme-kuyrugu', label: 'İnceleme Kuyruğu', icon: ClipboardList, roles: ['admin', 'lojistik'], badge: null },
             ] : []),
             ...(import.meta.env.VITE_FEATURE_URETIM_PALET_ENABLED === 'true' ? [
                 { path: '/gelen-mal/uretimden', label: 'Üretimden Kabul', icon: Scan, roles: ['admin', 'lojistik'], badge: null },

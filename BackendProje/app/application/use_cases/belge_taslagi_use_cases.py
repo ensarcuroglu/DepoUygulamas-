@@ -109,12 +109,35 @@ class BelgeTaslagiListeleUseCase:
         limit: int = 100,
         durum: Optional[str] = None,
         depo_id: Optional[int] = None,
+        max_confidence: Optional[float] = None,
     ) -> list[BelgeTaslagiResponseDTO]:
         taslaklar = self._repo.getir_hepsi(
             skip=skip,
             limit=limit,
             durum=durum,
             depo_id=depo_id,
+            max_confidence=max_confidence,
+        )
+        return [BelgeTaslagiResponseDTO.from_entity(taslak) for taslak in taslaklar]
+
+
+class BelgeTaslagiIncelemeKuyruguUseCase:
+    def __init__(self, repo: IBelgeTaslagiRepository):
+        self._repo = repo
+
+    def execute(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        depo_id: Optional[int] = None,
+        max_confidence: float = 0.6,
+    ) -> list[BelgeTaslagiResponseDTO]:
+        taslaklar = self._repo.getir_hepsi(
+            skip=skip,
+            limit=limit,
+            durum=BelgeTaslagiDurum.KABUL_BEKLIYOR,
+            depo_id=depo_id,
+            max_confidence=max_confidence,
         )
         return [BelgeTaslagiResponseDTO.from_entity(taslak) for taslak in taslaklar]
 

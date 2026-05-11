@@ -268,6 +268,7 @@ from app.infrastructure.di.modules.operator_performans_di import (  # noqa: F401
 )
 from app.infrastructure.di.modules.belge_taslagi import (  # noqa: F401
     get_belge_taslagi_repo,
+    get_belge_taslagi_inceleme_kuyrugu_uc,
     get_belge_taslagi_listele_uc,
     get_belge_taslagi_getir_uc,
     get_belge_taslagi_olustur_uc,

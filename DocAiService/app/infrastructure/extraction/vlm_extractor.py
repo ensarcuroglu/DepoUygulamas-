@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from app.application.prompts import SYSTEM_PROMPT, VLM_IRSALIYE_PROMPT
 from app.core.entities.belge import Belge, BelgeTipi, ExtractionSonucu
 from app.core.entities.irsaliye_taslagi import IrsaliyeTaslagiSchema
+from app.core.services.confidence_calculator import normalize_irsaliye_confidence
 from app.infrastructure.extraction.image_renderer import ImageRenderer
 from app.infrastructure.llm.ollama_vlm_client import OllamaVlmClient
 
@@ -27,8 +28,10 @@ class VlmExtractor:
             user_prompt=VLM_IRSALIYE_PROMPT,
             image_base64=rendered.image_base64,
         )
+        normalized_payload = normalize_irsaliye_confidence(payload)
+        normalized_payload.pop("confidence_score", None)
         try:
-            taslak = IrsaliyeTaslagiSchema.model_validate(payload)
+            taslak = IrsaliyeTaslagiSchema.model_validate(normalized_payload)
         except ValidationError as exc:
             raise VlmExtractionError("VLM yaniti irsaliye semasina uymuyor") from exc
 

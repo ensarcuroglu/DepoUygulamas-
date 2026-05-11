@@ -83,6 +83,7 @@ export const queryKeys = {
         lists: () => ['belgeTaslaklari', 'list'],
         list: (params = {}) => ['belgeTaslaklari', 'list', params],
         detail: (id) => ['belgeTaslaklari', 'detail', id],
+        reviewQueue: (params = {}) => ['belgeTaslaklari', 'reviewQueue', params],
     },
     destek: {
         all: ['destek'],
