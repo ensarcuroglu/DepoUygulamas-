@@ -11,7 +11,7 @@ from app.core.config import get_settings
 from main import app
 
 TEST_KEY = "test-internal-key"
-TEST_MODEL = "qwen2.5:7b"
+TEST_MODEL = "qwen3-vl:4b"
 
 
 @pytest.fixture(autouse=True)

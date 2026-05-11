@@ -2,7 +2,7 @@
 
 ## Approach
 
-Yeni `DocAiService` (port **8003**), fiziksel depo belgelerini (irsaliye/fatura, PDF veya görüntü) yapılandırılmış JSON'a çeviren bağımsız bir mikroservistir. Hibrit pipeline kullanır: text-tabanlı PDF için `pdfplumber` + LLM (qwen2.5:7b), taranmış PDF/JPG/PNG için VLM (qwen2.5-vl:7b veya minicpm-v:8b). Çıktı, `BackendProje`'de `BelgeTaslagi` (KABUL_BEKLIYOR) olarak kaydedilir; depocu mobil terminal/dashboard üzerinden taslağı görsel doğrulayıp onaylar — manuel veri girişi sıfıra iner. Mimari `WmsAiService` (LangChain/Ollama deseni) ve `AgvSimService` (sibling FastAPI + INTERNAL_API_KEY deseni) üzerine inşa edilir.
+Yeni `DocAiService` (port **8003**), fiziksel depo belgelerini (irsaliye/fatura, PDF veya görüntü) yapılandırılmış JSON'a çeviren bağımsız bir mikroservistir. Hibrit pipeline kullanır: text-tabanlı PDF için `pdfplumber` + LLM (qwen3-vl:4b), taranmış PDF/JPG/PNG için VLM (qwen3-vl:4b veya minicpm-v:8b). Çıktı, `BackendProje`'de `BelgeTaslagi` (KABUL_BEKLIYOR) olarak kaydedilir; depocu mobil terminal/dashboard üzerinden taslağı görsel doğrulayıp onaylar — manuel veri girişi sıfıra iner. Mimari `WmsAiService` (LangChain/Ollama deseni) ve `AgvSimService` (sibling FastAPI + INTERNAL_API_KEY deseni) üzerine inşa edilir.
 
 ## Scope
 
@@ -34,7 +34,7 @@ Yeni `DocAiService` (port **8003**), fiziksel depo belgelerini (irsaliye/fatura,
 - [ ] `DocAiService/main.py` — FastAPI app, CORS, lifespan, `/healthz` endpoint
 - [ ] `DocAiService/requirements.txt` — fastapi, uvicorn, pydantic, pydantic-settings, httpx, pdfplumber, pillow, ollama, python-multipart
 - [ ] `DocAiService/requirements-test.txt` — pytest, pytest-asyncio, httpx
-- [ ] `DocAiService/.env.example` — `INTERNAL_API_KEY`, `WMS_BASE_URL=http://127.0.0.1:8000`, `OLLAMA_BASE_URL`, `OLLAMA_TEXT_MODEL=qwen2.5:7b`, `OLLAMA_VLM_MODEL=qwen2.5-vl:7b`, `LLM_TIMEOUT=120`, `MAX_FILE_SIZE_MB=25`, `CORS_ALLOW_ORIGINS=https://localhost:5173`
+- [ ] `DocAiService/.env.example` — `INTERNAL_API_KEY`, `WMS_BASE_URL=http://127.0.0.1:8000`, `OLLAMA_BASE_URL`, `OLLAMA_TEXT_MODEL=qwen3-vl:4b`, `OLLAMA_VLM_MODEL=qwen3-vl:4b`, `LLM_TIMEOUT=120`, `MAX_FILE_SIZE_MB=25`, `CORS_ALLOW_ORIGINS=https://localhost:5173`
 - [ ] `DocAiService/app/core/config.py` — pydantic-settings tabanlı `Settings` (BackendProje deseni)
 - [ ] `DocAiService/app/api/middleware/auth.py` — `X-Internal-Api-Key` zorunlu middleware (AgvSimService deseni); 401 yerine 503 döner
 - [ ] `DocAiService/app/api/v1/routers/healthz.py` — `/healthz` (Ollama bağlantı + model varlık kontrolü)
@@ -58,7 +58,7 @@ Yeni `DocAiService` (port **8003**), fiziksel depo belgelerini (irsaliye/fatura,
 
 ### Faz 2 — VLM Pipeline & Hibrit Dispatcher (2-3 gün)
 
-- [ ] `ollama pull qwen2.5-vl:7b` (alternatif: `minicpm-v:8b` — daha küçük VRAM)
+- [ ] `ollama pull qwen3-vl:4b` (alternatif: `minicpm-v:8b` — daha küçük VRAM)
 - [ ] `DocAiService/app/infrastructure/llm/ollama_vlm_client.py` — base64 image + prompt → Ollama `/api/chat` (multimodal)
 - [ ] `DocAiService/app/infrastructure/extraction/image_renderer.py` — `pdf2image` veya `pypdfium2` ile PDF sayfa → PIL Image
 - [ ] `DocAiService/app/infrastructure/extraction/vlm_extractor.py` — image → VLM → JSON parse
@@ -152,6 +152,6 @@ Yeni `DocAiService` (port **8003**), fiziksel depo belgelerini (irsaliye/fatura,
 
 ## Open Questions
 
-1. **VLM model seçimi kesin mi?** — qwen2.5-vl:7b VRAM ihtiyacı (~5GB). Eğer GPU yoksa CPU'da 30-60s/belge çok yavaş; minicpm-v:8b daha verimli ama Türkçe kalitesi test edilmeli. Faz 2 başında 2 model üzerinde 5 örnekle benchmark yapılmalı.
+1. **VLM model seçimi kesin mi?** — qwen3-vl:4b VRAM ihtiyacı (~5GB). Eğer GPU yoksa CPU'da 30-60s/belge çok yavaş; minicpm-v:8b daha verimli ama Türkçe kalitesi test edilmeli. Faz 2 başında 2 model üzerinde 5 örnekle benchmark yapılmalı.
 2. **Belge depolama:** Yüklenen orijinal dosya nerede saklanacak? `BackendProje/uploads/belge_taslaklari/<id>/` mı, S3/MinIO mu? Plan şu an local filesystem varsayıyor (mevcut `uploads/` deseni). Production için ayrıştırma gerekebilir.
 3. **Ürün kodu eşleştirme:** Tedarikçi belgesindeki ürün kodu WMS `urun_kodu` ile birebir eşleşmiyorsa? Faz 6'da fuzzy match (rapidfuzz) + manuel eşleştirme UI'ı eklenmeli mi yoksa ayrı bir Faz 8 mi olsun?

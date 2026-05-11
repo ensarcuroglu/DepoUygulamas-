@@ -45,7 +45,7 @@ def sample_payload() -> dict:
 def settings_env(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("INTERNAL_API_KEY", TEST_KEY)
     monkeypatch.setenv("OLLAMA_BASE_URL", "http://ollama.test")
-    monkeypatch.setenv("OLLAMA_TEXT_MODEL", "qwen2.5:7b")
+    monkeypatch.setenv("OLLAMA_TEXT_MODEL", "qwen3-vl:4b")
     get_settings.cache_clear()
     extraction_module._IDEMPOTENCY_CACHE.clear()
     yield

@@ -59,8 +59,8 @@ class Settings(BaseSettings):
     internal_api_key: str | None = Field(None, alias="INTERNAL_API_KEY")
     wms_base_url: str = Field("http://127.0.0.1:8000", alias="WMS_BASE_URL")
     ollama_base_url: str = Field("http://127.0.0.1:11434", alias="OLLAMA_BASE_URL")
-    ollama_text_model: str = Field("qwen2.5:7b", alias="OLLAMA_TEXT_MODEL")
-    ollama_vlm_model: str = Field("qwen3.5:4b", alias="OLLAMA_VLM_MODEL")
+    ollama_text_model: str = Field("qwen3-vl:4b", alias="OLLAMA_TEXT_MODEL")
+    ollama_vlm_model: str = Field("qwen3-vl:4b", alias="OLLAMA_VLM_MODEL")
     llm_timeout: float = Field(120.0, alias="LLM_TIMEOUT", ge=1.0)
     max_file_size_mb: int = Field(25, alias="MAX_FILE_SIZE_MB", ge=1)
     cors_allow_origins_raw: str = Field(

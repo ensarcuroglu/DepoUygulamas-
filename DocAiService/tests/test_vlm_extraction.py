@@ -33,7 +33,7 @@ def sample_payload() -> dict:
 @pytest.fixture(autouse=True)
 def settings_env(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("OLLAMA_BASE_URL", "http://ollama.test")
-    monkeypatch.setenv("OLLAMA_VLM_MODEL", "qwen3.5:4b")
+    monkeypatch.setenv("OLLAMA_VLM_MODEL", "qwen3-vl:4b")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -52,7 +52,7 @@ def test_vlm_extractor_maps_image_payload_to_schema():
             )
 
     class FakeVlmClient:
-        model = "qwen3.5:4b"
+        model = "qwen3-vl:4b"
 
         async def chat_image_json(
             self,
@@ -75,7 +75,7 @@ def test_vlm_extractor_maps_image_payload_to_schema():
     )
 
     assert result.belge_tipi is BelgeTipi.IMAGE
-    assert result.model == "qwen3.5:4b"
+    assert result.model == "qwen3-vl:4b"
     assert result.taslak.confidence_score > 0.7
     assert result.metadata["image_width"] == 640
 
@@ -84,7 +84,7 @@ def test_ollama_vlm_client_uses_configurable_local_model():
     settings = load_settings(use_env_file=False)
     client = OllamaVlmClient(settings)
 
-    assert client.model == "qwen3.5:4b"
+    assert client.model == "qwen3-vl:4b"
 
 
 def test_ollama_vlm_client_sends_image_payload(monkeypatch: pytest.MonkeyPatch):
@@ -125,5 +125,5 @@ def test_ollama_vlm_client_sends_image_payload(monkeypatch: pytest.MonkeyPatch):
 
     assert parsed["tedarikci"]["value"] == "A"
     assert captured["url"] == "http://ollama.test/api/chat"
-    assert captured["payload"]["model"] == "qwen3.5:4b"
+    assert captured["payload"]["model"] == "qwen3-vl:4b"
     assert captured["payload"]["messages"][1]["images"] == ["base64-image"]
