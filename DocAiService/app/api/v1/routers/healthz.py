@@ -71,6 +71,7 @@ async def healthz(settings: Settings = Depends(get_settings)) -> dict:
         "ollama": {
             "base_url": settings.ollama_base_url,
             "text_model": settings.ollama_text_model,
+            "vlm_model": settings.ollama_vlm_model,
             "text_model_available": True,
         },
     }

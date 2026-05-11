@@ -20,10 +20,11 @@ log = logging.getLogger("doc-ai")
 async def lifespan(app_: FastAPI):
     settings = get_settings()
     log.info(
-        "DocAiService hazir: wms=%s ollama=%s text_model=%s",
+        "DocAiService hazir: wms=%s ollama=%s text_model=%s vlm_model=%s",
         settings.wms_base_url,
         settings.ollama_base_url,
         settings.ollama_text_model,
+        settings.ollama_vlm_model,
     )
     try:
         yield

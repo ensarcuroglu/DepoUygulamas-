@@ -7,20 +7,23 @@ from typing import Literal
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile, status
 from pydantic import BaseModel
 
+from app.application.use_cases.hibrit_extract_uc import HibritExtractUseCase
 from app.application.use_cases.text_pdf_extract_uc import (
     FileTooLargeError,
-    TextPdfExtractUseCase,
     UnsupportedDocumentTypeError,
 )
 from app.core.config import Settings, get_settings
 from app.core.entities.belge import BelgeTipi
 from app.core.entities.irsaliye_taslagi import IrsaliyeTaslagiSchema
 from app.core.services.belge_tipi_dedektoru import BelgeTipiAlgilamaError, BelgeTipiDedektoru
+from app.infrastructure.extraction.image_renderer import ImageRenderer, ImageRenderingError
 from app.infrastructure.extraction.text_pdf_extractor import (
     TextPdfExtractionError,
     TextPdfExtractor,
 )
+from app.infrastructure.extraction.vlm_extractor import VlmExtractionError, VlmExtractor
 from app.infrastructure.llm.ollama_text_client import OllamaTextClient, OllamaTextClientError
+from app.infrastructure.llm.ollama_vlm_client import OllamaVlmClient, OllamaVlmClientError
 
 router = APIRouter(prefix="/api/extract", tags=["Extraction"])
 
@@ -36,22 +39,28 @@ class ExtractionResponseDTO(BaseModel):
 _IDEMPOTENCY_CACHE: dict[str, ExtractionResponseDTO] = {}
 
 
-def get_text_pdf_extract_uc(settings: Settings = Depends(get_settings)) -> TextPdfExtractUseCase:
-    llm_client = OllamaTextClient(settings)
-    extractor = TextPdfExtractor(llm_client)
+def get_hibrit_extract_uc(settings: Settings = Depends(get_settings)) -> HibritExtractUseCase:
+    text_llm_client = OllamaTextClient(settings)
+    text_extractor = TextPdfExtractor(text_llm_client)
+    vlm_llm_client = OllamaVlmClient(settings)
+    vlm_extractor = VlmExtractor(vlm_llm_client, ImageRenderer())
     detector = BelgeTipiDedektoru()
-    return TextPdfExtractUseCase(
+    return HibritExtractUseCase(
         max_file_size_mb=settings.max_file_size_mb,
         detector=detector,
-        extractor=extractor,
+        text_extractor=text_extractor,
+        vlm_extractor=vlm_extractor,
     )
+
+
+get_text_pdf_extract_uc = get_hibrit_extract_uc
 
 
 @router.post("/irsaliye", response_model=ExtractionResponseDTO)
 async def extract_irsaliye(
     file: UploadFile = File(...),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
-    uc: TextPdfExtractUseCase = Depends(get_text_pdf_extract_uc),
+    uc: HibritExtractUseCase = Depends(get_text_pdf_extract_uc),
 ) -> ExtractionResponseDTO:
     if idempotency_key and idempotency_key in _IDEMPOTENCY_CACHE:
         return _IDEMPOTENCY_CACHE[idempotency_key]
@@ -77,7 +86,16 @@ async def extract_irsaliye(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
+    except OllamaVlmClientError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
     except TextPdfExtractionError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except ImageRenderingError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except VlmExtractionError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     response = ExtractionResponseDTO(

@@ -119,3 +119,28 @@ Simdi bu irsaliye metnini ayni JSON semasina donustur:
 {document_text}
 ---
 """
+
+
+VLM_IRSALIYE_PROMPT = """\
+Bu gorsel bir depo irsaliyesi veya faturasindan alindi.
+Gorseldeki tedarikci, irsaliye/sevk numarasi, tarih ve kalem tablosunu oku.
+Tablodaki her satir icin urun kodu, urun adi, miktar ve birimi ayri alanlara yaz.
+
+Sadece su JSON semasina uyan gecerli JSON dondur:
+{
+  "tedarikci": {"value": "string", "confidence": 0.0-1.0},
+  "irsaliye_no": {"value": "string", "confidence": 0.0-1.0},
+  "tarih": {"value": "YYYY-MM-DD", "confidence": 0.0-1.0},
+  "kalemler": [
+    {
+      "urun_kodu": {"value": "string", "confidence": 0.0-1.0},
+      "ad": {"value": "string", "confidence": 0.0-1.0},
+      "miktar": {"value": number, "confidence": 0.0-1.0},
+      "birim": {"value": "string", "confidence": 0.0-1.0}
+    }
+  ],
+  "toplam": {"value": number, "confidence": 0.0-1.0}
+}
+
+Belirsiz alanlarda confidence dusur. Gorunmeyen bilgi icin uydurma yapma.
+"""
