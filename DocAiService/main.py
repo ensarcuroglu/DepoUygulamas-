@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.middleware.auth import InternalApiKeyMiddleware
-from app.api.v1.routers import healthz_router
+from app.api.v1.routers import extraction_router, healthz_router
 from app.core.config import get_settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -50,3 +50,4 @@ app.add_middleware(
 )
 
 app.include_router(healthz_router)
+app.include_router(extraction_router)
