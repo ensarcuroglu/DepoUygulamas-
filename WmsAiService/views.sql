@@ -293,4 +293,13 @@ GRANT SELECT ON depo_yonetim.ai_siparis_view        TO 'depo_ai_reader'@'localho
 GRANT SELECT ON depo_yonetim.ai_sevkiyat_view       TO 'depo_ai_reader'@'localhost';
 GRANT SELECT ON depo_yonetim.ai_stok_hareketi_view  TO 'depo_ai_reader'@'localhost';
 GRANT SELECT ON depo_yonetim.ai_depo_doluluk_view   TO 'depo_ai_reader'@'localhost';
+GRANT SELECT ON depo_yonetim.ai_stok_durumu_view    TO 'depo_ai_reader'@'%';
+GRANT SELECT ON depo_yonetim.ai_palet_view          TO 'depo_ai_reader'@'%';
+GRANT SELECT ON depo_yonetim.ai_lot_view            TO 'depo_ai_reader'@'%';
+GRANT SELECT ON depo_yonetim.ai_irsaliye_view       TO 'depo_ai_reader'@'%';
+GRANT SELECT ON depo_yonetim.ai_mal_kabul_view      TO 'depo_ai_reader'@'%';
+GRANT SELECT ON depo_yonetim.ai_siparis_view        TO 'depo_ai_reader'@'%';
+GRANT SELECT ON depo_yonetim.ai_sevkiyat_view       TO 'depo_ai_reader'@'%';
+GRANT SELECT ON depo_yonetim.ai_stok_hareketi_view  TO 'depo_ai_reader'@'%';
+GRANT SELECT ON depo_yonetim.ai_depo_doluluk_view   TO 'depo_ai_reader'@'%';
 FLUSH PRIVILEGES;

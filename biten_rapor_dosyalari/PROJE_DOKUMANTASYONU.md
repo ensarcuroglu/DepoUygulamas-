@@ -116,7 +116,7 @@ Domain katmanı hiçbir dış bağımlılık içermez. Tüm bağımlılıklar **
 ## 4. Proje Dizin Yapısı
 
 ```
-DepoUygulaması/
+DepoUygulamasi/
 ├── BackendProje/                    # FastAPI Backend
 │   ├── main.py                      # Uygulama giriş noktası
 │   ├── database.py                  # SQLAlchemy bağlantı (kök)

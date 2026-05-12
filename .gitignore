@@ -1,6 +1,8 @@
 # Ortam değişkenleri (şifre, API key vb.)
 .env
 .env.test
+infra/env/*.local
+infra/env/*.secret
 
 # Python
 __pycache__/

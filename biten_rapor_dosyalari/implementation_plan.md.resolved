@@ -69,7 +69,7 @@ Ancak **frontend'de `YerlestirmeGorevleriPage.jsx` sadece 2 aksiyonu expose ediy
 
 ### Değişiklik 1: İrsaliye Detayına "Yerleştirmeye Git" Butonu
 
-#### [MODIFY] [MalKabulIrsaliyeleriPage.jsx](file:///d:/Ensar%20Dosya/DepoUygulaması/ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx)
+#### [MODIFY] [MalKabulIrsaliyeleriPage.jsx](file:///d:/Ensar%20Dosya/DepoUygulamasi/ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx)
 
 **Satır 723-728** arasındaki pasif "Yerleştirme devam ediyor..." bilgi kartını, tıklanabilir bir navigasyon butonuna dönüştür:
 
@@ -101,7 +101,7 @@ Ancak **frontend'de `YerlestirmeGorevleriPage.jsx` sadece 2 aksiyonu expose ediy
 
 ### Değişiklik 2: Görev Takibi Ekranına Aksiyon Butonları Eklenmesi
 
-#### [MODIFY] [YerlestirmeGorevleriPage.jsx](file:///d:/Ensar%20Dosya/DepoUygulaması/ReactProje/src/pages/YerlestirmeGorevleriPage.jsx)
+#### [MODIFY] [YerlestirmeGorevleriPage.jsx](file:///d:/Ensar%20Dosya/DepoUygulamasi/ReactProje/src/pages/YerlestirmeGorevleriPage.jsx)
 
 Bu değişiklik birden fazla bölümü kapsar:
 

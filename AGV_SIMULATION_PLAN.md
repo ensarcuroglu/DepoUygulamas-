@@ -11,7 +11,7 @@
 ### 1.1 Repo Yapısı (üst seviye)
 
 ```
-DepoUygulaması/
+DepoUygulamasi/
 ├── BackendProje/      # FastAPI + Clean Arch (4 katman) — WMS authoritative
 ├── ReactProje/        # React 19 + Vite 7 — tek SPA, üç layout (Dashboard/Depocu/Terminal)
 ├── WmsAiService/      # Sibling FastAPI servisi (LangChain + Ollama)

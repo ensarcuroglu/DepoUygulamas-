@@ -1,0 +1,178 @@
+name: depo-dev
+
+x-python-service: &python-service
+  build:
+    context: .
+    dockerfile: infra/docker/python-service.Dockerfile
+  env_file:
+    - ./infra/env/dev.env
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  volumes:
+    - .:/workspace
+
+services:
+  mysql:
+    image: mysql:8.4
+    env_file:
+      - ./infra/env/dev.env
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./infra/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+
+  backend-init:
+    <<: *python-service
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+      args:
+        SERVICE_DIR: BackendProje
+    working_dir: /workspace/BackendProje
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: >
+      sh -c "python seed.py &&
+             alembic stamp head &&
+             python seed_agv_user.py"
+    restart: "no"
+
+  ai-views:
+    image: mysql:8.4
+    env_file:
+      - ./infra/env/dev.env
+    depends_on:
+      backend-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./WmsAiService/views.sql:/views.sql:ro
+    command: >
+      sh -c "mysql -hmysql -uroot -p$${MYSQL_ROOT_PASSWORD} depo_yonetim < /views.sql"
+    restart: "no"
+
+  backend:
+    <<: *python-service
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+      args:
+        SERVICE_DIR: BackendProje
+    working_dir: /workspace/BackendProje
+    depends_on:
+      mysql:
+        condition: service_healthy
+      backend-init:
+        condition: service_completed_successfully
+      ai-views:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    command: >
+      uvicorn main:app --reload
+      --reload-exclude .pytest_cache --reload-exclude .pytest_cache/*
+      --reload-exclude __pycache__ --reload-exclude __pycache__/*
+      --reload-exclude venv --reload-exclude venv/*
+      --reload-exclude .venv --reload-exclude .venv/*
+      --host 0.0.0.0 --port 8000
+
+  wms-ai:
+    <<: *python-service
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+      args:
+        SERVICE_DIR: WmsAiService
+    working_dir: /workspace/WmsAiService
+    environment:
+      DB_USER: depo_ai_reader
+      DB_PASSWORD: depo_ai_reader_dev
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ai-views:
+        condition: service_completed_successfully
+    ports:
+      - "8001:8001"
+    command: >
+      uvicorn main:app --reload
+      --reload-exclude .pytest_cache --reload-exclude .pytest_cache/*
+      --reload-exclude __pycache__ --reload-exclude __pycache__/*
+      --reload-exclude venv --reload-exclude venv/*
+      --reload-exclude .venv --reload-exclude .venv/*
+      --host 0.0.0.0 --port 8001
+
+  agv-sim:
+    <<: *python-service
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+      args:
+        SERVICE_DIR: AgvSimService
+    working_dir: /workspace/AgvSimService
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "8002:8002"
+    command: >
+      uvicorn main:app --reload
+      --reload-exclude .pytest_cache --reload-exclude .pytest_cache/*
+      --reload-exclude __pycache__ --reload-exclude __pycache__/*
+      --reload-exclude venv --reload-exclude venv/*
+      --reload-exclude .venv --reload-exclude .venv/*
+      --host 0.0.0.0 --port 8002
+
+  doc-ai:
+    <<: *python-service
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+      args:
+        SERVICE_DIR: DocAiService
+    working_dir: /workspace/DocAiService
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "8003:8003"
+    command: >
+      uvicorn main:app --reload
+      --reload-exclude .pytest_cache --reload-exclude .pytest_cache/*
+      --reload-exclude __pycache__ --reload-exclude __pycache__/*
+      --reload-exclude venv --reload-exclude venv/*
+      --reload-exclude .venv --reload-exclude .venv/*
+      --host 0.0.0.0 --port 8003
+
+  frontend:
+    build:
+      context: .
+      dockerfile: infra/docker/frontend-dev.Dockerfile
+    env_file:
+      - ./infra/env/dev.env
+    working_dir: /workspace/ReactProje
+    depends_on:
+      backend:
+        condition: service_started
+      agv-sim:
+        condition: service_started
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./ReactProje:/workspace/ReactProje
+      - react_node_modules:/workspace/ReactProje/node_modules
+    command: npm run dev -- --host 0.0.0.0
+
+volumes:
+  mysql_data:
+  react_node_modules:

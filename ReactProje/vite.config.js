@@ -1,15 +1,21 @@
 import { defineConfig } from 'vite'
+import { env } from 'node:process'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import mkcert from 'vite-plugin-mkcert'
 import { visualizer } from "rollup-plugin-visualizer"
 import { VitePWA } from 'vite-plugin-pwa'
 
+const devHttps = env.VITE_DEV_HTTPS !== 'false'
+const backendProxyTarget = env.VITE_BACKEND_PROXY_TARGET || 'http://127.0.0.1:8000'
+const agvProxyTarget = env.VITE_AGV_PROXY_TARGET || 'http://127.0.0.1:8002'
+const agvWsProxyTarget = env.VITE_AGV_WS_PROXY_TARGET || 'ws://127.0.0.1:8002'
+
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    mkcert(),
+    ...(devHttps ? [mkcert()] : []),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,
@@ -112,7 +118,7 @@ export default defineConfig({
     }),
   ],
   server: {
-    https: true,
+    https: devHttps,
     host: true, // Vite'in 0.0.0.0 üzerinden yerel ağa açılmasını sağlar
     allowedHosts: true, // BÜTÜN TÜNEL LİNKLERİNE İZİN VEREN SATIR
 
@@ -144,17 +150,17 @@ export default defineConfig({
     proxy: {
       // AGV servisi (port 8002) — /api öncesinde eşleşmesi için ÖNCE tanımlı
       '/api/agv': {
-        target: 'http://127.0.0.1:8002',
+        target: agvProxyTarget,
         changeOrigin: true,
       },
       '/ws/agv': {
-        target: 'ws://127.0.0.1:8002',
+        target: agvWsProxyTarget,
         ws: true,
         changeOrigin: true,
       },
       // React'tan gelen istekleri Python (FastAPI/Uvicorn) backend'ine yönlendirir
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: backendProxyTarget,
         changeOrigin: true,
       }
     }

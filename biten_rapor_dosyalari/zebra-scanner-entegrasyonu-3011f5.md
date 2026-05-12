@@ -1,6 +1,6 @@
 # Zebra El Terminali Barkod Okuma Profesyonelleştirme Planı
 
-Mevcut DepoUygulaması projesindeki barkod okuma akışlarını analiz edip, Zebra fiziksel scanner donanımı ile endüstri standardına uygun, güvenilir entegrasyon önerileri sunan plan.
+Mevcut DepoUygulamasi projesindeki barkod okuma akışlarını analiz edip, Zebra fiziksel scanner donanımı ile endüstri standardına uygun, güvenilir entegrasyon önerileri sunan plan.
 
 ---
 

@@ -8,55 +8,55 @@
 
 ## 2) Mevcut As-Is Akış (Özet)
 1. Kullanıcı `Mal Kabul İrsaliyesi` oluşturuyor (`Taslak`).
-2. UI’den durum manuel `Onaylandi` yapılıyor ([`ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx:412`](/d:/Ensar Dosya/DepoUygulaması/ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx:412)).
-3. `Stok İşlemleri` ekranında `Onaylandi` irsaliyeler listeleniyor ([`ReactProje/src/pages/StokHareketleriPage.jsx:169`](/d:/Ensar Dosya/DepoUygulaması/ReactProje/src/pages/StokHareketleriPage.jsx:169)).
-4. Operatör paletleri tarayıp `toplu-giris` çağırıyor; referans irsaliye no ayrı parametre olarak gönderiliyor ([`ReactProje/src/pages/StokHareketleriPage.jsx:321`](/d:/Ensar Dosya/DepoUygulaması/ReactProje/src/pages/StokHareketleriPage.jsx:321), [`ReactProje/src/pages/StokHareketleriPage.jsx:322`](/d:/Ensar Dosya/DepoUygulaması/ReactProje/src/pages/StokHareketleriPage.jsx:322)).
+2. UI’den durum manuel `Onaylandi` yapılıyor ([`ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx:412`](/d:/Ensar Dosya/DepoUygulamasi/ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx:412)).
+3. `Stok İşlemleri` ekranında `Onaylandi` irsaliyeler listeleniyor ([`ReactProje/src/pages/StokHareketleriPage.jsx:169`](/d:/Ensar Dosya/DepoUygulamasi/ReactProje/src/pages/StokHareketleriPage.jsx:169)).
+4. Operatör paletleri tarayıp `toplu-giris` çağırıyor; referans irsaliye no ayrı parametre olarak gönderiliyor ([`ReactProje/src/pages/StokHareketleriPage.jsx:321`](/d:/Ensar Dosya/DepoUygulamasi/ReactProje/src/pages/StokHareketleriPage.jsx:321), [`ReactProje/src/pages/StokHareketleriPage.jsx:322`](/d:/Ensar Dosya/DepoUygulamasi/ReactProje/src/pages/StokHareketleriPage.jsx:322)).
 5. Ayrı bir putaway/terminal akışı da mevcut (görev al, palet okut, raf okut, yerleştir).
 
 ## 3) Kritik Bulgular (P0)
 
 ### K1) Onay akışı ile putaway otomasyonu kopuk (mimari kırık)
-- Sistemde `IrsaliyeOnaylaVeGorevOlusturUseCase` var ([`BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:283`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:283)) ve DI’da tanımlı ([`BackendProje/app/infrastructure/di/modules/siparis_lojistik_di.py:230`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/infrastructure/di/modules/siparis_lojistik_di.py:230)).
-- Ancak router onay için bunu kullanmıyor; genel `PUT` ile status değiştiriyor ([`BackendProje/app/api/v1/routers/mal_kabul_irsaliyeleri.py:71`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/api/v1/routers/mal_kabul_irsaliyeleri.py:71), [`BackendProje/app/api/v1/routers/mal_kabul_irsaliyeleri.py:76`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/api/v1/routers/mal_kabul_irsaliyeleri.py:76), [`BackendProje/app/infrastructure/di/modules/siparis_lojistik_di.py:215`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/infrastructure/di/modules/siparis_lojistik_di.py:215)).
+- Sistemde `IrsaliyeOnaylaVeGorevOlusturUseCase` var ([`BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:283`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:283)) ve DI’da tanımlı ([`BackendProje/app/infrastructure/di/modules/siparis_lojistik_di.py:230`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/infrastructure/di/modules/siparis_lojistik_di.py:230)).
+- Ancak router onay için bunu kullanmıyor; genel `PUT` ile status değiştiriyor ([`BackendProje/app/api/v1/routers/mal_kabul_irsaliyeleri.py:71`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/api/v1/routers/mal_kabul_irsaliyeleri.py:71), [`BackendProje/app/api/v1/routers/mal_kabul_irsaliyeleri.py:76`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/api/v1/routers/mal_kabul_irsaliyeleri.py:76), [`BackendProje/app/infrastructure/di/modules/siparis_lojistik_di.py:215`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/infrastructure/di/modules/siparis_lojistik_di.py:215)).
 - **Ayrı bir onay endpoint’i (`POST /{id}/onayla`) mevcut değil** — tüm durum geçişleri genel güncelleme endpoint’i üzerinden yapılıyor.
-- Frontend’de onay butonu doğrudan `updateMalKabulIrsaliye(id, { durum: ‘Onaylandi’ })` çağırıyor ([`ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx:177`](/d:/Ensar Dosya/DepoUygulaması/ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx:177)), yani `MalKabulIrsaliyeGuncelleUseCase`’e düşüyor.
+- Frontend’de onay butonu doğrudan `updateMalKabulIrsaliye(id, { durum: ‘Onaylandi’ })` çağırıyor ([`ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx:177`](/d:/Ensar Dosya/DepoUygulamasi/ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx:177)), yani `MalKabulIrsaliyeGuncelleUseCase`’e düşüyor.
 - Sonuç: “Onay” ile otomatik palet+görev üretimi tetiklenmiyor; eski/yeni akış aynı anda yaşıyor.
 
 ### K2) Frontend/Backend endpoint uyuşmazlığı (görev çekme kırık)
-- Backend: `POST /yerlestirme-gorevleri/siradaki-al` ([`BackendProje/app/api/v1/routers/yerlestirme_gorevleri.py:103`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/api/v1/routers/yerlestirme_gorevleri.py:103)).
-- Frontend: `POST /yerlestirme-gorevleri/sonraki-gorevi-al` ([`ReactProje/src/services/api.js:380`](/d:/Ensar Dosya/DepoUygulaması/ReactProje/src/services/api.js:380)).
+- Backend: `POST /yerlestirme-gorevleri/siradaki-al` ([`BackendProje/app/api/v1/routers/yerlestirme_gorevleri.py:103`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/api/v1/routers/yerlestirme_gorevleri.py:103)).
+- Frontend: `POST /yerlestirme-gorevleri/sonraki-gorevi-al` ([`ReactProje/src/services/api.js:380`](/d:/Ensar Dosya/DepoUygulamasi/ReactProje/src/services/api.js:380)).
 - Sonuç: Terminalde “Sıradaki görevi al” çağrısı üretimde 404/başarısızlık riski taşır.
 
 ### K3) Depo seçimi görev atamasını etkilemiyor (yanlış depodan görev alma riski)
-- Terminal depo seçiyor ve sadece yerleştirirken `depo_id` gönderiyor ([`ReactProje/src/pages/terminal/YerlestirmePage.jsx:130`](/d:/Ensar Dosya/DepoUygulaması/ReactProje/src/pages/terminal/YerlestirmePage.jsx:130)).
-- Görev çekme çağrısı depo parametresiz ([`ReactProje/src/pages/terminal/YerlestirmePage.jsx:76`](/d:/Ensar Dosya/DepoUygulaması/ReactProje/src/pages/terminal/YerlestirmePage.jsx:76)).
-- Backend görev çekme sadece `Bekliyor` filtresi ile çalışıyor ([`BackendProje/app/infrastructure/persistence/repositories/sa_yerlestirme_gorevi_repository.py:76`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/infrastructure/persistence/repositories/sa_yerlestirme_gorevi_repository.py:76)).
-- Görev entity’sinde `depo_id` yok ([`BackendProje/app/core/entities/yerlestirme_gorevi.py:50`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/core/entities/yerlestirme_gorevi.py:50)).
+- Terminal depo seçiyor ve sadece yerleştirirken `depo_id` gönderiyor ([`ReactProje/src/pages/terminal/YerlestirmePage.jsx:130`](/d:/Ensar Dosya/DepoUygulamasi/ReactProje/src/pages/terminal/YerlestirmePage.jsx:130)).
+- Görev çekme çağrısı depo parametresiz ([`ReactProje/src/pages/terminal/YerlestirmePage.jsx:76`](/d:/Ensar Dosya/DepoUygulamasi/ReactProje/src/pages/terminal/YerlestirmePage.jsx:76)).
+- Backend görev çekme sadece `Bekliyor` filtresi ile çalışıyor ([`BackendProje/app/infrastructure/persistence/repositories/sa_yerlestirme_gorevi_repository.py:76`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/infrastructure/persistence/repositories/sa_yerlestirme_gorevi_repository.py:76)).
+- Görev entity’sinde `depo_id` yok ([`BackendProje/app/core/entities/yerlestirme_gorevi.py:50`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/core/entities/yerlestirme_gorevi.py:50)).
 - Sonuç: Operatör yanlış depo görevini çekebilir; saha operasyonu bozulur.
 
 ### K4) “Tek transaction” iddiası bozuluyor (atomiklik riski)
-- Use-case tek transaction hedefliyor ([`BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:298`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:298), [`BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:408`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:408)).
-- Ama görev repo `olustur` içinde doğrudan commit ediyor ([`BackendProje/app/infrastructure/persistence/repositories/sa_yerlestirme_gorevi_repository.py:44`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/infrastructure/persistence/repositories/sa_yerlestirme_gorevi_repository.py:44), [`BackendProje/app/infrastructure/persistence/repositories/sa_yerlestirme_gorevi_repository.py:48`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/infrastructure/persistence/repositories/sa_yerlestirme_gorevi_repository.py:48)).
+- Use-case tek transaction hedefliyor ([`BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:298`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:298), [`BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:408`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:408)).
+- Ama görev repo `olustur` içinde doğrudan commit ediyor ([`BackendProje/app/infrastructure/persistence/repositories/sa_yerlestirme_gorevi_repository.py:44`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/infrastructure/persistence/repositories/sa_yerlestirme_gorevi_repository.py:44), [`BackendProje/app/infrastructure/persistence/repositories/sa_yerlestirme_gorevi_repository.py:48`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/infrastructure/persistence/repositories/sa_yerlestirme_gorevi_repository.py:48)).
 - Sonuç: hata durumunda kısmi kayıt kalabilir (palet/hareket/görev senkronu bozulabilir).
 
 ### K5) Seçilen mal kabul belgesi ile taranan paletler arasında bağ yok
-- UI seçilen irsaliye no’yu payload’a ekliyor ([`ReactProje/src/pages/StokHareketleriPage.jsx:322`](/d:/Ensar Dosya/DepoUygulaması/ReactProje/src/pages/StokHareketleriPage.jsx:322)).
-- Ancak taranan paletler tek tek sadece `palet_sorgula` ile doğrulanıyor ([`ReactProje/src/pages/StokHareketleriPage.jsx:251`](/d:/Ensar Dosya/DepoUygulaması/ReactProje/src/pages/StokHareketleriPage.jsx:251)); belge-paleti eşleştiren bir kontrol zinciri yok.
+- UI seçilen irsaliye no’yu payload’a ekliyor ([`ReactProje/src/pages/StokHareketleriPage.jsx:322`](/d:/Ensar Dosya/DepoUygulamasi/ReactProje/src/pages/StokHareketleriPage.jsx:322)).
+- Ancak taranan paletler tek tek sadece `palet_sorgula` ile doğrulanıyor ([`ReactProje/src/pages/StokHareketleriPage.jsx:251`](/d:/Ensar Dosya/DepoUygulamasi/ReactProje/src/pages/StokHareketleriPage.jsx:251)); belge-paleti eşleştiren bir kontrol zinciri yok.
 - Sonuç: Operatör farklı irsaliyeye ait paleti yanlış belge altında girişleyebilir (izlenebilirlik riski).
 
 ## 4) Yüksek Öncelikli Bulgular (P1)
 
 ### Y1) UI “Raf opsiyonel”, backend “raf zorunlu”
-- Formda raf alanı opsiyonel gösteriliyor ([`ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx:596`](/d:/Ensar Dosya/DepoUygulaması/ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx:596)).
-- Palet giriş service raf_id zorunlu diyor ([`BackendProje/app/core/services/palet_giris_service.py:77`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/core/services/palet_giris_service.py:77)).
+- Formda raf alanı opsiyonel gösteriliyor ([`ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx:596`](/d:/Ensar Dosya/DepoUygulamasi/ReactProje/src/pages/MalKabulIrsaliyeleriPage.jsx:596)).
+- Palet giriş service raf_id zorunlu diyor ([`BackendProje/app/core/services/palet_giris_service.py:77`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/core/services/palet_giris_service.py:77)).
 - Sonuç: kullanıcı doğal akışta bloklanıyor.
 
 ### Y2) STAGING tespiti kod desenine hard-coded
-- STAGING bulma ve sevkiyat engeli raf kod desenine bağlı ([`BackendProje/app/infrastructure/persistence/repositories/sa_raf_repository.py:73`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/infrastructure/persistence/repositories/sa_raf_repository.py:73), [`BackendProje/app/core/services/palet_cikis_service.py:200`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/core/services/palet_cikis_service.py:200)).
+- STAGING bulma ve sevkiyat engeli raf kod desenine bağlı ([`BackendProje/app/infrastructure/persistence/repositories/sa_raf_repository.py:73`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/infrastructure/persistence/repositories/sa_raf_repository.py:73), [`BackendProje/app/core/services/palet_cikis_service.py:200`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/core/services/palet_cikis_service.py:200)).
 - Sonuç: kod standardı değişirse kritik kurallar sessizce bozulabilir.
 
 ### Y3) Onay+görev use-case semantiği riskli
-- Use-case kalemleri `giris_yapildi` yapıp sonra irsaliyeyi `onayla` ediyor ([`BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:390`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:390), [`BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:392`](/d:/Ensar Dosya/DepoUygulaması/BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:392)).
+- Use-case kalemleri `giris_yapildi` yapıp sonra irsaliyeyi `onayla` ediyor ([`BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:390`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:390), [`BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:392`](/d:/Ensar Dosya/DepoUygulamasi/BackendProje/app/application/use_cases/mal_kabul_irsaliye_use_cases.py:392)).
 - **Not:** K4 ile doğrudan ilişkili — `gorev_repo.olustur()` use-case transaction'ı dışında commit ediyor, bu durumda `giris_yapildi` ve `onayla` henüz commit edilmemiş iken görevler DB'ye yazılmış oluyor.
 - Sonuç: fiziksel yerleştirme bitmeden “giriş yapıldı” semantiği oluşuyor; süreç raporlaması yanıltıcı olabilir.
 

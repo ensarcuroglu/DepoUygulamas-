@@ -1,6 +1,7 @@
 fastapi
 httpx
 uvicorn[standard]
+alembic
 sqlalchemy
 pymysql
 cryptography

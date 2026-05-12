@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     db_password: str = Field("", alias="DB_PASSWORD")
     db_host: str = Field("localhost", alias="DB_HOST")
     db_port: int = Field(3306, alias="DB_PORT", ge=1, le=65535)
-    db_name: str = Field("depo_db", alias="DB_NAME")
+    db_name: str = Field("depo_yonetim", alias="DB_NAME")
 
     jwt_secret_key: Optional[str] = Field(None, alias="JWT_SECRET_KEY")
     jwt_algorithm: str = Field("HS256", alias="JWT_ALGORITHM")

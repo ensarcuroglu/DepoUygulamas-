@@ -8,7 +8,7 @@ pytest --cov=app --cov-report=term --disable-warnings -q --tb=short
 Not
 Aşağıdaki çıktı önceki test çalıştırmasına aittir. 1 failed problemi çözülmüştür; coverage analizi için tablo dikkate alınmalıdır.
 
-(.venv) PS D:\Ensar Dosya\DepoUygulaması\BackendProje> pytest --cov=app --cov-report=term --disable-warnings -q --tb=short
+(.venv) PS D:\Ensar Dosya\DepoUygulamasi\BackendProje> pytest --cov=app --cov-report=term --disable-warnings -q --tb=short
 ................................................................................................... [ 12%]
 ................................................................................................... [ 25%]
 ................................................................................................... [ 37%]
