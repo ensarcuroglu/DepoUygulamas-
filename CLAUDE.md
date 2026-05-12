@@ -67,7 +67,7 @@ cd ReactProje
 # Dependency kurulumu
 npm install
 
-# Development server (https://localhost:5173, HTTPS + mkcert)
+# Development server (manual local; HTTPS/HTTP env'e bagli)
 npm run dev
 
 # Lint (ESLint 9 flat config)
@@ -137,6 +137,37 @@ ollama pull qwen2.5-coder:7b
 # DB view'larını oluştur (ilk kurulumda bir kez)
 mysql -u root -p depo_yonetim < views.sql
 ```
+
+### Docker Compose Dev Stack
+
+```bash
+# Repo kokunden tum yerel stack'i baslat
+docker compose up -d
+
+# Ilk kurulumda veya Dockerfile/dependency degisikliginde
+docker compose up --build
+
+# Durum ve log kontrolu
+docker compose ps
+docker compose logs -f backend
+docker compose logs -f doc-ai
+
+# Stack'i durdur
+docker compose down
+
+# Temiz dev DB kurulumu icin volume dahil sifirla
+docker compose down -v --remove-orphans
+docker compose up -d
+
+# Opsiyonel: Ollama'yi container icinde calistir
+docker compose -f compose.yml -f compose.ollama.yml up -d
+docker compose -f compose.yml -f compose.ollama.yml exec ollama ollama pull qwen2.5-coder:7b
+docker compose -f compose.yml -f compose.ollama.yml exec ollama ollama pull qwen3-vl:4b
+```
+
+- Ana uygulama: `http://localhost:5173`; Backend docs: `http://localhost:8000/docs`.
+- Compose calisirken servisleri ayrica `uvicorn` ile baslatma; port cakismasi olusur.
+- `backend-init` ve `ai-views` one-shot servislerdir; islerini bitirip `Exited` gorunmeleri normaldir.
 
 > **Not:** Frontend'te TypeScript kullanılmıyor; tüm dosyalar `.js` / `.jsx`.
 
@@ -549,6 +580,15 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 
 ## Project-Specific Rules and Gotchas
 
+### Docker Compose Dev Ortami
+- Yerel gelistirme icin onerilen giris noktasi repo kokundeki `compose.yml` dosyasidir. Compose project name sabittir: `depo-dev`.
+- Proje klasoru ASCII tutulmalidir: `D:\Ensar Dosya\DepoUygulamasi`. Turkce karakterli eski path'leri dokumanlara veya tooling ayarlarina geri ekleme.
+- Tracked dev env `infra/env/dev.env` icindedir. Kisisel secret/override dosyalari `infra/env/*.local` veya `infra/env/*.secret` olarak tutulur ve git'e alinmaz.
+- Fresh dev DB bootstrap akisi `backend-init` icindedir: `python seed.py && alembic stamp head && python seed_agv_user.py`. Bu sadece local dev kolayligi icindir; gercek migration degisikliklerinde Alembic migration uretme ve uygulama kuralini bozma.
+- `ai-views`, `WmsAiService/views.sql` dosyasini MySQL'e uygular ve sonra cikar. `backend-init` ve `ai-views` icin `Exited` basarili durum olabilir.
+- Bind mount nedeniyle cache/venv klasorleri runtime watcher'a takilabilir. `.dockerignore`, `WATCHFILES_IGNORE_PERMISSION_DENIED=true` ve `--reload-exclude` ayarlarini koru.
+- Saglik kontrol adresleri: frontend `http://localhost:5173`, backend `http://localhost:8000`, WMS AI `http://localhost:8001/health`, AGV `http://localhost:8002/healthz`, Doc AI `http://localhost:8003/healthz`.
+
 ### Ortam Değişkenleri
 - Backend: `BackendProje/.env` (şablon: `.env.example`). Zorunlu: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `JWT_SECRET_KEY` (min 32 karakter)
 - Test: `BackendProje/.env.test` → DB adı `depo_db_test` olmalı (`test` ifadesi içermezse güvenlik kontrolü hata verir)
@@ -586,8 +626,9 @@ api (routers) → application (use cases + DTOs) → core (entities + repositori
 - **Migration yazmak yeterli değildir** — her ortamda `alembic upgrade head` koşturulmalı; aksi halde `1146 Table doesn't exist` çıkar. `main.py` lifespan'inde `_migration_drift_kontrol` startup'ta drift'i loglar (prod'da `DEPO_STRICT_MIGRATION=1` ile boot durdurulur)
 
 ### Vite Dev Server
-- HTTPS zorunlu (mkcert plugin'i); dev URL: `https://localhost:5173`
-- `/api` prefix'li istekler `http://127.0.0.1:8000`'a proxy edilir
+- Docker Compose dev varsayilani HTTP'dir: `http://localhost:5173` (`VITE_DEV_HTTPS=false`).
+- Manuel local calistirmada `VITE_DEV_HTTPS=true` ile mkcert/HTTPS kullanilabilir.
+- `/api` prefix'li istekler `VITE_BACKEND_PROXY_TARGET` ile yonlendirilir; Compose hedefi `http://backend:8000`, manuel local hedef `http://127.0.0.1:8000`.
 - `server.host: true` — LAN erişimi açık
 - Build chunk'ları elle bölünmüş: `react-vendor`, `chart-vendor`, `excel-vendor`, `pdf-vendor`, `barcode-vendor`, `ui-vendor`
 

@@ -258,7 +258,12 @@ def ana_sayfa():
 # .\venv\Scripts\Activate.ps1
 # uvicorn main:app --host 127.0.0.1 --port 8002
 # komut ile istek testi
-# curl -X POST http://127.0.0.1:8002/api/agv/gorevler -H "Content-Type: application/json" -d "{\"wms_gorev_id\":1,\"wms_gorev_tipi\":\"Yerlestirme\",\"kaynak_raf_id\":101,\"hedef_raf_id\":201}"
+# curl.exe -X POST "http://127.0.0.1:8002/api/agv/gorevler" -H "Content-Type: application/json" -H "X-Internal-Api-Key: dev-only-internal-api-key-change-me-0123456789abcdef" -d "{\"wms_gorev_id\":1,\"wms_gorev_tipi\":\"Yerlestirme\",\"kaynak_raf_id\":101,\"hedef_raf_id\":201}"
+
+
+# DocAiService Başlatma
+# .\venv\Scripts\Activate.ps1
+# uvicorn main:app --host 127.0.0.1 --port 8003
 
 # KAMERA İZNİ İÇİN FARKLI TERMİNALLERDE ÇALIŞTIRMA KODU:
 # ssh -R 80:localhost:5173 nokey@localhost.run
@@ -277,3 +282,12 @@ def ana_sayfa():
 
 # CLOUDFLARED İLE HTTPS TUNNEL AÇMA KODU (Geliştirme sırasında güvenli bağlantı için)
 # & "C:\Program Files (x86)\cloudflared\cloudflared.exe" tunnel --protocol http2 --url https://localhost:4173 --no-tls-verify
+
+# BAŞLATMA KODU (Docker Compose ile)
+# docker compose up -d
+
+# DURDURMAK İÇİN 
+# docker compose down
+
+# LOG İZLEMEK İÇİN
+# docker compose logs -f backend

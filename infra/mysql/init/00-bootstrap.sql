@@ -9,5 +9,7 @@ CREATE USER IF NOT EXISTS 'depo_ai_reader'@'%' IDENTIFIED BY 'depo_ai_reader_dev
 CREATE USER IF NOT EXISTS 'depo_ai_reader'@'localhost' IDENTIFIED BY 'depo_ai_reader_dev';
 GRANT SELECT ON depo_yonetim.* TO 'depo_ai_reader'@'%';
 GRANT SELECT ON depo_yonetim.* TO 'depo_ai_reader'@'localhost';
+GRANT SHOW VIEW ON depo_yonetim.* TO 'depo_ai_reader'@'%';
+GRANT SHOW VIEW ON depo_yonetim.* TO 'depo_ai_reader'@'localhost';
 
 FLUSH PRIVILEGES;
