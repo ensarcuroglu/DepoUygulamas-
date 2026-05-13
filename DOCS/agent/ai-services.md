@@ -44,8 +44,9 @@ mysql -u root -p depo_yonetim < views.sql
 - Yeni WmsAiService modulleri: `vector_config.py`, `slash_commands.py`, `semantic_router.py`, `docs_rag.py`, `chat_orchestrator.py`, `ingest_docs.py`.
 - Duz metin sorularda semantic router calisir. `/sql <soru>` Text-to-SQL, `/docs <soru>` dokuman RAG rotasini zorlar.
 - RAG cevaplari sadece getirilen dokuman baglamina dayandirilir; baglam yoksa `Bu konuda bilgi bulamadim` doner.
-- RAG kaynaklari icin ozel alan: `DOCS/rag/**/*.md`. `DOCS/rag/_templates/` altindaki dosyalar sadece sablondur ve indekslenmez.
+- RAG kaynaklari icin **tek alan**: `DOCS/rag/**/*.md`. CLAUDE.md, `DOCS/agent/**`, README dosyalari ve `DOCKER_DEV.md` operatore donen yanitlarda gozukmemesi icin korpus disinda tutulur. `DOCS/rag/_templates/` altindaki dosyalar sadece sablondur ve indekslenmez.
 - Yeni Chroma koleksiyonlari: `wms_ai_router_intents`, `wms_ai_docs_chunks`.
+- Markdown chunking `ingest_docs.py` icinde LlamaIndex `MarkdownNodeParser` + `SentenceSplitter` ile yapilir; heading hiyerarsisi korunur ve her chunk govdesinin basina `Title > H2 > H3` breadcrumb eklenir (`breadcrumb` metadata alanina da yazilir). LlamaIndex import edilemezse otomatik olarak eski heading+karakter splitter'a duser. Runtime (Chroma + LangChain) degismez; LlamaIndex sadece ingestion adiminda calisir.
 
 ```bash
 cd WmsAiService

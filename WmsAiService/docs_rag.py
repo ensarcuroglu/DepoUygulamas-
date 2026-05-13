@@ -15,7 +15,14 @@ logger = logging.getLogger(__name__)
 
 NO_INFO_ANSWER = "Bu konuda bilgi bulamadım"
 RAG_TOP_K = int(os.getenv("RAG_TOP_K", "4"))
-RAG_MAX_DISTANCE = float(os.getenv("RAG_MAX_DISTANCE", "1.15"))
+# En iyi chunk bu distance'in altinda olmazsa LLM cagrilmaz, dogrudan
+# "bilgi bulamadim" doner. Normalize MiniLM L2 distance icin ~0.9
+# yaklasik cosine similarity 0.6'ya denk gelir; bunun altinda eslesme
+# anlamli kabul edilir.
+RAG_STRICT_DISTANCE = float(os.getenv("RAG_STRICT_DISTANCE", "0.9"))
+# Bu distance'in altindaki chunk'lar LLM baglamina dahil edilir; ust sinir
+# olarak strict_distance + window seklinde dusunulebilir.
+RAG_MAX_DISTANCE = float(os.getenv("RAG_MAX_DISTANCE", "1.05"))
 RAG_NUM_PREDICT = int(os.getenv("RAG_NUM_PREDICT", "300"))
 
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b")
@@ -25,9 +32,13 @@ LLM_NUM_CTX = int(os.getenv("LLM_NUM_CTX", "4096"))
 
 RAG_SYSTEM_PROMPT = """Sen WMS Dokuman Bilgi Asistani'sin.
 Asagidaki BAGLAM bilgilerini kullanarak soruyu cevapla.
-Cevabi sadece baglama dayandir. Bilgi baglamda yoksa tam olarak "Bu konuda bilgi bulamadım" de.
-Uydurma, tahmin yapma ve baglam disi proje bilgisi ekleme.
-Cevabi kisa, is odakli ve Markdown uyumlu yaz."""
+
+KURALLAR:
+- Cevabi sadece baglama dayandir. Baglam disi proje bilgisi ekleme.
+- Soru baglamin asil konusuyla ortusmuyorsa tam olarak "Bu konuda bilgi bulamadım" de. Kelime ortusmesi yeterli degildir; konu ortusmesi gerekir.
+- Ornek: Baglam FEFO surecini anlatiyorsa ve soru "sistem nasil calisir" gibi genel bir konuysa, FEFO adimlarini genel sistem cevabi olarak sunma; "Bu konuda bilgi bulamadım" de.
+- Uydurma, tahmin yapma, baglamdan cikarim genisletmesi yapma.
+- Cevabi kisa, is odakli ve Markdown uyumlu yaz."""
 
 RAG_USER_PROMPT = """BAGLAM:
 {context}
@@ -104,6 +115,22 @@ class RagPipeline:
         except Exception as exc:  # noqa: BLE001
             logger.warning("RAG retrieval basarisiz: %s", exc)
             return self._no_context(str(exc))
+
+        best_distance = min((float(distance) for _, distance in docs_and_scores), default=None)
+        if best_distance is None or best_distance > RAG_STRICT_DISTANCE:
+            return self._no_context(
+                "en iyi chunk strict esiginin uzerinde",
+                strict_distance=RAG_STRICT_DISTANCE,
+                best_distance=round(best_distance, 4) if best_distance is not None else None,
+                matches=[
+                    {
+                        "distance": round(float(distance), 4),
+                        "source_path": doc.metadata.get("source_path"),
+                        "section": doc.metadata.get("section"),
+                    }
+                    for doc, distance in docs_and_scores
+                ],
+            )
 
         filtered = [
             (doc, float(distance))

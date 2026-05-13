@@ -59,7 +59,7 @@ Tüm servis env'leri. CLAUDE.md, bu dosyaya işaret eder.
 - `ROUTER_COLLECTION_NAME` (def `wms_ai_router_intents`)
 - `DOCS_COLLECTION_NAME` (def `wms_ai_docs_chunks`)
 - `ROUTER_TOP_K`, `ROUTER_CONFIDENCE_THRESHOLD`, `ROUTER_CONFIDENCE_MARGIN`
-- `RAG_TOP_K`, `RAG_MAX_DISTANCE`, `RAG_NUM_PREDICT`
+- `RAG_TOP_K` (def 4), `RAG_STRICT_DISTANCE` (def 0.9; en iyi chunk bu esigin uzerindeyse LLM cagrilmaz, "bilgi bulamadim" doner), `RAG_MAX_DISTANCE` (def 1.05; bu esige kadar olan chunk'lar baglama dahil edilir), `RAG_NUM_PREDICT` (def 300)
 
 ## AgvSimService (`AgvSimService/.env`)
 

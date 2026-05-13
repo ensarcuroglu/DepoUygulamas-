@@ -10,7 +10,7 @@ AI coding agent için operasyonel referans. Detaylı dokümanlar `docs/agent/` a
 
 - `BackendProje/` — FastAPI backend (Clean Architecture: api → application → core / infrastructure).
 - `ReactProje/` — React 19 + Vite 7 frontend (PWA, TanStack Query). TypeScript yok.
-- `WmsAiService/` — LangChain + Ollama doğal dil → SQL servisi (read-only view'lar).
+- `WmsAiService/` — LangChain + Ollama doğal dil → SQL servisi (read-only view'lar) + doküman RAG asistanı (Chroma; ingestion'da LlamaIndex `MarkdownNodeParser`).
 - `DocAiService/` — Belge AI mikroservisi (text PDF + VLM); irsaliye taslağı çıkarır, DB yazmaz.
 - `AgvSimService/` — AGV/AMR simülasyonu (in-memory world, asyncio tick loop, A*/CA*).
 - `backend-worker` (compose servisi) — `python -m app.infrastructure.messaging.operator_performans_consumer`; `RABBITMQ_ENABLED=true` iken LMS event'lerini queue'dan tüketir. `false` iken boş döngüde bekler.
