@@ -9,11 +9,15 @@ Kullanım (main.py lifespan):
 """
 
 import logging
+from app.core.config import get_settings
 from app.infrastructure.scheduler.rapor_scheduler import zamanlama_kontrol
 from app.infrastructure.scheduler.staging_uyari_job import staging_uyari_kontrol
 from app.infrastructure.scheduler.talep_tahmin_job import talep_tahmin_precompute
 from app.infrastructure.scheduler.operator_metrik_aggregator_job import (
     operator_metrikleri_aggregate_et,
+)
+from app.infrastructure.scheduler.rabbitmq_outbox_relay_job import (
+    rabbitmq_outbox_relay,
 )
 
 logger = logging.getLogger(__name__)
@@ -59,6 +63,19 @@ class RaporScheduler:
                 max_instances=1,
                 coalesce=True,
             )
+            # RabbitMQ outbox relay — RABBITMQ_ENABLED=true ise her 10 saniye
+            if get_settings().rabbitmq_enabled:
+                from apscheduler.triggers.interval import IntervalTrigger
+
+                self._scheduler.add_job(
+                    rabbitmq_outbox_relay,
+                    IntervalTrigger(seconds=10),
+                    id="rabbitmq_outbox_relay",
+                    replace_existing=True,
+                    max_instances=1,
+                    coalesce=True,
+                )
+                logger.info("RabbitMQ outbox relay job aktif (her 10 sn)")
         except ImportError:
             logger.warning("apscheduler kurulu değil — zamanlı görevler devre dışı")
 

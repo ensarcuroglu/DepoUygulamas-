@@ -266,6 +266,12 @@ from app.infrastructure.di.modules.operator_performans_di import (  # noqa: F401
     get_metrikler_aggregasyon_uc,
     get_operator_performans_sorgu_uc,
 )
+from app.infrastructure.di.modules.messaging_di import (  # noqa: F401
+    get_rabbitmq_topology,
+    get_rabbitmq_connection_factory,
+    get_rabbitmq_performans_publisher,
+    get_rabbitmq_outbox_relay_uc,
+)
 from app.infrastructure.di.modules.belge_taslagi import (  # noqa: F401
     get_belge_taslagi_repo,
     get_belge_taslagi_inceleme_kuyrugu_uc,
