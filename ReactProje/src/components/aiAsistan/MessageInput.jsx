@@ -4,7 +4,7 @@ import { motion as Motion } from 'framer-motion';
 
 const COMMANDS = [
   { command: '/sql', label: 'SQL', hint: 'Veri ve metrik', icon: Database },
-  { command: '/docs', label: 'Docs', hint: 'Kilavuz ve surec', icon: BookOpenText },
+  { command: '/docs', label: 'Docs', hint: 'Kılavuz ve süreç', icon: BookOpenText },
 ];
 
 export default function MessageInput({ value, onChange, onSubmit, disabled, placeholder }) {
@@ -43,7 +43,15 @@ export default function MessageInput({ value, onChange, onSubmit, disabled, plac
     >
       <div className="relative">
         {showCommands && (
-          <div className="absolute bottom-full left-3 z-20 mb-2 flex w-[min(360px,calc(100vw-3rem))] flex-col gap-1 rounded-2xl border border-slate-200/80 bg-white/95 p-1.5 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/95">
+          <Motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+            className="absolute bottom-full left-0 z-20 mb-2 flex w-[min(360px,calc(100vw-3rem))] flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-[0_8px_30px_-8px_rgba(0,0,0,0.18)] dark:border-white/10 dark:bg-zinc-900 dark:shadow-[0_8px_30px_-8px_rgba(0,0,0,0.6)]"
+          >
+            <div className="border-b border-zinc-100 px-3 py-1.5 font-['JetBrains_Mono'] text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-500 dark:border-white/[0.06] dark:text-zinc-500">
+              komutlar
+            </div>
             {COMMANDS.map((item) => {
               const IconComponent = item.icon;
               return (
@@ -51,33 +59,29 @@ export default function MessageInput({ value, onChange, onSubmit, disabled, plac
                   key={item.command}
                   type="button"
                   onClick={() => pickCommand(item.command)}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-slate-100 dark:hover:bg-white/10"
+                  className="flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-amber-50/70 dark:hover:bg-amber-400/[0.06]"
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300">
-                    <IconComponent className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[13px] font-semibold text-slate-800 dark:text-slate-100">
-                      {item.command}{' '}
-                      <span className="text-slate-500 dark:text-slate-400">{item.label}</span>
+                  <IconComponent className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-400" strokeWidth={1.75} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-['JetBrains_Mono'] text-[12.5px] font-medium text-zinc-900 dark:text-zinc-100">
+                      {item.command}
                     </span>
-                    <span className="block text-[11.5px] text-slate-500 dark:text-slate-400">
+                    <span className="block text-[11.5px] text-zinc-500 dark:text-zinc-400">
                       {item.hint}
                     </span>
                   </span>
                 </button>
               );
             })}
-          </div>
+          </Motion.div>
         )}
 
         <div
           className={[
-            'group relative flex w-full items-end gap-2 rounded-[1.75rem] border bg-white/70 p-2 pl-4 pr-2 backdrop-blur-xl transition-all duration-300 ease-out sm:gap-3 sm:pl-6',
-            'border-slate-200/80 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.08),0_1px_0_rgba(255,255,255,0.8)_inset]',
-            'focus-within:border-indigo-400/50 focus-within:bg-white/95 focus-within:shadow-[0_8px_30px_-8px_rgba(99,102,241,0.25),0_1px_0_rgba(255,255,255,1)_inset]',
-            'dark:border-white/10 dark:bg-slate-900/60 dark:shadow-[0_1px_0_rgba(255,255,255,0.05)_inset]',
-            'dark:focus-within:border-indigo-400/40 dark:focus-within:bg-slate-900/80 dark:focus-within:shadow-[0_8px_30px_-8px_rgba(99,102,241,0.15)]',
+            'relative flex w-full items-end gap-2 rounded-2xl border bg-white px-3 py-2 transition-all duration-200 ease-out sm:gap-3',
+            'border-zinc-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)]',
+            'focus-within:border-amber-500 focus-within:shadow-[0_0_0_3px_rgba(245,158,11,0.12),0_2px_8px_-2px_rgba(0,0,0,0.06)]',
+            'dark:border-white/10 dark:bg-zinc-900 dark:focus-within:border-amber-400/60 dark:focus-within:shadow-[0_0_0_3px_rgba(245,158,11,0.10)]',
             disabled ? 'pointer-events-none opacity-70' : '',
           ].join(' ')}
         >
@@ -88,38 +92,55 @@ export default function MessageInput({ value, onChange, onSubmit, disabled, plac
             onKeyDown={handleKeyDown}
             rows={1}
             disabled={disabled}
-            placeholder={placeholder ?? 'Bir soru yazin...'}
-            className="min-h-[44px] flex-1 resize-none bg-transparent py-3 text-[15px] leading-relaxed text-slate-800 placeholder-slate-400 outline-none disabled:opacity-60 [scrollbar-width:none] dark:text-slate-100 dark:placeholder-slate-500 sm:text-base"
+            placeholder={placeholder ?? 'Bir soru yaz, ya da / ile komut seç…'}
+            className="min-h-[40px] flex-1 resize-none bg-transparent px-1.5 py-2.5 text-[15px] leading-relaxed text-zinc-900 caret-amber-600 placeholder-zinc-400 outline-none disabled:opacity-60 [scrollbar-width:none] dark:text-zinc-100 dark:caret-amber-400 dark:placeholder-zinc-500 sm:text-[15.5px]"
           />
 
-          <div className="flex h-[44px] shrink-0 items-center">
+          <div className="flex h-[40px] shrink-0 items-center">
             <Motion.button
-              whileHover={canSend ? { scale: 1.05 } : {}}
-              whileTap={canSend ? { scale: 0.95 } : {}}
+              whileHover={canSend ? { scale: 1.04 } : {}}
+              whileTap={canSend ? { scale: 0.94 } : {}}
               type="submit"
               disabled={!canSend}
-              aria-label="Gonder"
+              aria-label="Gönder"
               className={[
-                'flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-300 sm:h-11 sm:w-11',
+                'flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-200',
                 canSend
-                  ? 'bg-slate-900 text-white shadow-md dark:bg-white dark:text-slate-900'
-                  : 'bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-slate-500',
+                  ? 'bg-amber-500 text-white shadow-[0_2px_6px_-1px_rgba(245,158,11,0.45)] hover:bg-amber-600 dark:bg-amber-400 dark:text-zinc-950 dark:hover:bg-amber-300'
+                  : 'bg-zinc-100 text-zinc-400 dark:bg-white/[0.06] dark:text-zinc-600',
               ].join(' ')}
             >
               {disabled ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <ArrowUp className="h-5 w-5" strokeWidth={2.5} />
+                <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
               )}
             </Motion.button>
           </div>
         </div>
       </div>
 
-      <div className="mt-2.5 flex justify-center px-4 text-center">
-        <p className="text-[11px] font-medium tracking-wide text-slate-400 dark:text-slate-500 sm:text-[12px]">
-          AI Asistan SQL ve dokuman yanitlarini tek sohbet akisi icinde yonlendirir.
-        </p>
+      <div className="mt-2 flex items-center justify-center gap-2 px-2">
+        <kbd className="rounded border border-zinc-200 bg-white px-1.5 font-['JetBrains_Mono'] text-[10px] font-medium text-zinc-500 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-400">
+          ↵
+        </kbd>
+        <span className="font-['JetBrains_Mono'] text-[10.5px] tracking-wide text-zinc-400 dark:text-zinc-500">
+          gönder
+        </span>
+        <span className="text-zinc-300 dark:text-zinc-700">·</span>
+        <kbd className="rounded border border-zinc-200 bg-white px-1.5 font-['JetBrains_Mono'] text-[10px] font-medium text-zinc-500 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-400">
+          ⇧↵
+        </kbd>
+        <span className="font-['JetBrains_Mono'] text-[10.5px] tracking-wide text-zinc-400 dark:text-zinc-500">
+          satır
+        </span>
+        <span className="text-zinc-300 dark:text-zinc-700">·</span>
+        <kbd className="rounded border border-zinc-200 bg-white px-1.5 font-['JetBrains_Mono'] text-[10px] font-medium text-zinc-500 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-400">
+          /
+        </kbd>
+        <span className="font-['JetBrains_Mono'] text-[10.5px] tracking-wide text-zinc-400 dark:text-zinc-500">
+          komut
+        </span>
       </div>
     </form>
   );

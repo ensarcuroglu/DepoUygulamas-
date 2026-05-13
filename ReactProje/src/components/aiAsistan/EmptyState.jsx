@@ -1,43 +1,43 @@
 import { motion as Motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
 import SampleQuestions from './SampleQuestions';
 
 export default function EmptyState({ samples, onPick, disabled }) {
   return (
     <Motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className="mx-auto flex w-full max-w-2xl flex-col items-center gap-6 px-4 py-8 text-center sm:gap-8 sm:py-12"
+      transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+      className="mx-auto flex w-full max-w-2xl flex-col gap-10 py-12 sm:py-16"
     >
-      <Motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
-        className="group relative"
-      >
-        {/* Yavaşça dönen AI Aurası */}
-        <div className="absolute -inset-4 -z-10 animate-[spin_8s_linear_infinite] rounded-full bg-gradient-to-r from-indigo-500/20 via-fuchsia-500/20 to-cyan-500/20 blur-2xl transition-opacity duration-700 group-hover:opacity-100 dark:from-indigo-500/30 dark:via-fuchsia-500/30 dark:to-cyan-500/30 sm:-inset-6" />
-        
-        {/* Sabit Pulse Efekti */}
-        <div className="absolute inset-0 -z-10 animate-pulse rounded-full bg-indigo-400/20 blur-xl dark:bg-indigo-500/30" />
-        
-        {/* İkon Konteyneri */}
-        <div className="flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-white/50 bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-white shadow-[0_8px_32px_-8px_rgba(99,102,241,0.6)] backdrop-blur-md transition-transform duration-300 hover:scale-105 sm:h-20 sm:w-20 sm:rounded-[1.5rem]">
-          <Sparkles className="h-7 w-7 sm:h-9 sm:w-9" strokeWidth={1.5} />
-        </div>
-      </Motion.div>
-
-      <div className="space-y-3 px-2">
-        <h2 className="bg-gradient-to-br from-slate-800 via-slate-700 to-slate-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent dark:from-white dark:via-slate-200 dark:to-slate-400 sm:text-3xl">
-          Nasıl yardımcı olabilirim?
+      <div className="flex flex-col gap-3">
+        <span className="font-['JetBrains_Mono'] text-[11px] font-medium uppercase tracking-[0.18em] text-amber-600 dark:text-amber-400">
+          {/* Editorial role label — differentiation anchor */}
+          asistan / hazır
+        </span>
+        <h2 className="text-[34px] font-semibold leading-[1.05] tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-[44px]">
+          Bir soru sor.{' '}
+          <span className="font-['Instrument_Serif'] text-[40px] italic font-normal text-zinc-500 dark:text-zinc-400 sm:text-[50px]">
+            yanıt veriyim.
+          </span>
         </h2>
-        <p className="mx-auto max-w-md text-[14px] leading-relaxed text-slate-500 dark:text-slate-400 sm:text-[15px]">
-          Stok, palet, irsaliye, sipariş ve sevkiyat verileriniz hakkında doğal dilde sorular sorun. Anında <span className="font-medium text-indigo-500 dark:text-indigo-400">SQL üretip</span> cevaplayayım.
+        <p className="max-w-xl text-[14.5px] leading-relaxed text-zinc-600 dark:text-zinc-400 sm:text-[15.5px]">
+          Stok, palet, irsaliye, sipariş ve sevkiyat hakkında doğal dilde sor;{' '}
+          <span className="font-['JetBrains_Mono'] text-[13px] text-zinc-800 dark:text-zinc-200">SQL</span>{' '}
+          üretip cevaplayım. Dokümana sormak için{' '}
+          <span className="rounded bg-amber-100/70 px-1.5 py-0.5 font-['JetBrains_Mono'] text-[12.5px] font-medium text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">
+            /docs
+          </span>{' '}
+          önekini kullan.
         </p>
       </div>
 
-      <div className="mt-2 w-full sm:mt-4">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <span className="font-['JetBrains_Mono'] text-[10.5px] font-medium uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">
+            örnek sorular
+          </span>
+          <span className="h-px flex-1 bg-zinc-200 dark:bg-white/[0.08]" />
+        </div>
         <SampleQuestions samples={samples} onPick={onPick} disabled={disabled} />
       </div>
     </Motion.div>

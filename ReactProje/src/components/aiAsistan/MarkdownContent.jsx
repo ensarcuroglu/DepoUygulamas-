@@ -8,7 +8,7 @@ function renderInline(text) {
       return (
         <code
           key={index}
-          className="rounded bg-slate-100 px-1 py-0.5 text-[0.92em] text-slate-700 dark:bg-white/10 dark:text-slate-200"
+          className="rounded bg-zinc-100 px-1 py-0.5 font-['JetBrains_Mono'] text-[0.88em] text-zinc-800 dark:bg-white/10 dark:text-zinc-200"
         >
           {part.slice(1, -1)}
         </code>

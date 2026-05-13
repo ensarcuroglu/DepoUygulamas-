@@ -34,41 +34,41 @@ export default function MessageDetailPanel({ uretilenSql, debug, route, sources 
     try {
       await navigator.clipboard.writeText(uretilenSql);
       setSqlCopied(true);
-      toast.success('SQL kopyalandi');
+      toast.success('SQL kopyalandı');
       setTimeout(() => setSqlCopied(false), 2000);
     } catch {
-      toast.error('Kopyalanamadi');
+      toast.error('Kopyalanamadı');
     }
   };
 
   const handleExport = () => {
     if (!rows.length) {
-      toast.error('Disa aktarilacak veri yok');
+      toast.error('Dışa aktarılacak veri yok');
       return;
     }
     exportToExcel(rows, `ai-asistan-sonuc-${Date.now()}`);
   };
 
   return (
-    <div className="mt-3 w-full">
+    <div className="w-full">
       <Motion.button
         type="button"
         whileTap={{ scale: 0.97 }}
         onClick={() => setOpen((v) => !v)}
-        className="group inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3.5 py-1.5 text-[12px] font-medium text-slate-600 shadow-[0_2px_8px_-4px_rgba(15,23,42,0.08)] backdrop-blur-md transition-all duration-300 hover:border-indigo-300/80 hover:bg-white hover:text-indigo-600 dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:border-indigo-400/50 dark:hover:bg-slate-800/90 dark:hover:text-indigo-300 sm:px-4 sm:py-2"
+        className="group inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 font-['JetBrains_Mono'] text-[11px] font-medium uppercase tracking-wider text-zinc-600 transition hover:border-amber-400 hover:text-amber-700 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-amber-400/40 dark:hover:text-amber-300"
       >
         {isDocs ? (
-          <BookOpenText className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2} />
+          <BookOpenText className="h-3.5 w-3.5" strokeWidth={1.75} />
         ) : (
-          <FileTerminal className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2} />
+          <FileTerminal className="h-3.5 w-3.5" strokeWidth={1.75} />
         )}
-        {isDocs ? 'Kaynaklar' : 'Sorgu Detaylari'}
+        {isDocs ? 'kaynaklar' : 'sorgu detayları'}
         <Motion.span
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-          className="ml-0.5 opacity-70 group-hover:opacity-100"
+          className="ml-0.5 opacity-60 group-hover:opacity-100"
         >
-          <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2.5} />
+          <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.25} />
         </Motion.span>
       </Motion.button>
 
@@ -78,108 +78,118 @@ export default function MessageDetailPanel({ uretilenSql, debug, route, sources 
             initial={{ opacity: 0, height: 0, marginTop: 0 }}
             animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
             exit={{ opacity: 0, height: 0, marginTop: 0 }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden"
           >
-            <div className="space-y-4 rounded-[1.25rem] border border-slate-200/80 bg-white/60 p-3.5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 sm:p-5">
+            <div className="space-y-5 rounded-xl border border-zinc-200 bg-white p-4 dark:border-white/[0.08] dark:bg-zinc-900/60 sm:p-5">
               {isDocs && sources.length > 0 && (
-                <div>
-                  <div className="mb-2 flex items-center justify-between px-1">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:text-[12px]">
-                      <BookOpenText className="h-3.5 w-3.5" /> Dokuman Kaynaklari
+                <section>
+                  <header className="mb-2.5 flex items-center gap-2">
+                    <BookOpenText className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" strokeWidth={2} />
+                    <span className="font-['JetBrains_Mono'] text-[10.5px] font-medium uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                      doküman kaynakları
                     </span>
-                  </div>
-                  <div className="space-y-2">
+                  </header>
+                  <div className="divide-y divide-zinc-100 overflow-hidden rounded-md border border-zinc-200 dark:divide-white/[0.06] dark:border-white/[0.08]">
                     {sources.map((source, index) => (
                       <div
                         key={`${source.source_path}-${source.chunk_id ?? index}`}
-                        className="rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 text-[12.5px] text-slate-600 dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-300"
+                        className="bg-white px-3 py-2.5 dark:bg-zinc-900/60"
                       >
-                        <div className="font-mono text-[12px] text-slate-800 dark:text-slate-100">
+                        <div className="font-['JetBrains_Mono'] text-[12px] font-medium text-zinc-800 dark:text-zinc-100">
                           {source.source_path}
                         </div>
-                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11.5px] text-slate-500 dark:text-slate-400">
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-['JetBrains_Mono'] text-[11px] text-zinc-500 dark:text-zinc-400">
                           {source.section && <span>{source.section}</span>}
-                          {source.score !== undefined && <span>score {source.score}</span>}
+                          {source.score !== undefined && (
+                            <span>score <span className="text-amber-600 dark:text-amber-400">{source.score}</span></span>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
+                </section>
               )}
 
               {!isDocs && (
-                <div>
-                  <div className="mb-2 flex items-center justify-between px-1">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:text-[12px]">
-                      <Code2 className="h-3.5 w-3.5" /> Uretilen SQL
-                    </span>
+                <section>
+                  <header className="mb-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Code2 className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" strokeWidth={2} />
+                      <span className="font-['JetBrains_Mono'] text-[10.5px] font-medium uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                        üretilen sql
+                      </span>
+                    </div>
                     <button
                       type="button"
                       onClick={handleCopySql}
-                      className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 text-[11.5px] font-medium text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-300"
+                      className="inline-flex h-6 items-center gap-1.5 rounded border border-zinc-200 bg-white px-2 font-['JetBrains_Mono'] text-[10.5px] font-medium text-zinc-500 transition hover:border-amber-400 hover:text-amber-700 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-amber-400/40 dark:hover:text-amber-300"
                     >
                       {sqlCopied ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-500" />
+                        <Check className="h-3 w-3 text-emerald-500" strokeWidth={2.5} />
                       ) : (
-                        <Copy className="h-3.5 w-3.5" />
+                        <Copy className="h-3 w-3" strokeWidth={2} />
                       )}
-                      {sqlCopied ? 'Kopyalandi' : 'Kopyala'}
+                      {sqlCopied ? 'kopyalandı' : 'kopyala'}
                     </button>
-                  </div>
-                  <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-[#0D1117] shadow-inner dark:border-white/10">
-                    <div className="absolute left-0 top-0 flex h-7 w-full items-center gap-1.5 bg-slate-800/50 px-3">
-                      <div className="h-2.5 w-2.5 rounded-full bg-rose-500/80" />
-                      <div className="h-2.5 w-2.5 rounded-full bg-amber-500/80" />
-                      <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
+                  </header>
+                  <div className="relative overflow-hidden rounded-md border border-zinc-900 bg-[#0a0a0a] dark:border-white/[0.06]">
+                    <div className="border-b border-white/[0.06] px-3 py-1.5 font-['JetBrains_Mono'] text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                      sql
                     </div>
-                    <pre className="overflow-x-auto p-4 pt-10 text-[13px] leading-relaxed text-slate-300 [scrollbar-width:thin] sm:text-[13.5px]">
+                    <pre className="overflow-x-auto p-4 font-['JetBrains_Mono'] text-[12.5px] leading-relaxed text-zinc-200 [scrollbar-width:thin] sm:text-[13px]">
                       <code>{uretilenSql || '-'}</code>
                     </pre>
                   </div>
-                </div>
+                </section>
               )}
 
               {!isDocs && rows.length > 0 && (
-                <div>
-                  <div className="mb-2 flex items-center justify-between px-1">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:text-[12px]">
-                      <Database className="h-3.5 w-3.5" /> Sonuc ({rowCount} satir)
-                    </span>
+                <section>
+                  <header className="mb-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Database className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" strokeWidth={2} />
+                      <span className="font-['JetBrains_Mono'] text-[10.5px] font-medium uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                        sonuç
+                      </span>
+                      <span className="font-['JetBrains_Mono'] text-[10.5px] tracking-wider text-zinc-400 dark:text-zinc-500">
+                        {rowCount} satır
+                      </span>
+                    </div>
                     <button
                       type="button"
                       onClick={handleExport}
-                      className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 text-[11.5px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+                      className="inline-flex h-6 items-center gap-1.5 rounded border border-emerald-300/70 bg-emerald-50 px-2 font-['JetBrains_Mono'] text-[10.5px] font-medium text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300 dark:hover:bg-emerald-400/20"
                     >
-                      <Download className="h-3.5 w-3.5" /> Excel'e Indir
+                      <Download className="h-3 w-3" strokeWidth={2} /> excel
                     </button>
-                  </div>
+                  </header>
 
-                  <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900/50">
+                  <div className="overflow-hidden rounded-md border border-zinc-200 bg-white dark:border-white/[0.08] dark:bg-zinc-900/60">
                     <div className="max-h-[300px] overflow-auto [scrollbar-width:thin]">
-                      <table className="min-w-full text-[13px]">
-                        <thead className="sticky top-0 z-10 border-b border-slate-200/80 bg-slate-50/95 backdrop-blur-sm dark:border-white/10 dark:bg-slate-800/95">
+                      <table className="min-w-full font-['JetBrains_Mono'] text-[12px] tabular-nums">
+                        <thead className="sticky top-0 z-10 border-b border-zinc-200 bg-zinc-50 dark:border-white/[0.08] dark:bg-zinc-900">
                           <tr>
                             {columns.map((col) => (
                               <th
                                 key={col}
-                                className="whitespace-nowrap px-4 py-2.5 text-left font-semibold text-slate-700 dark:text-slate-200"
+                                className="whitespace-nowrap px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.12em] text-zinc-600 dark:text-zinc-300"
                               >
                                 {col}
                               </th>
                             ))}
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                        <tbody className="divide-y divide-zinc-100 dark:divide-white/[0.04]">
                           {previewRows.map((row, rowIndex) => (
                             <tr
                               key={rowIndex}
-                              className="transition-colors hover:bg-slate-50/80 dark:hover:bg-white/[0.03]"
+                              className="transition-colors hover:bg-amber-50/40 dark:hover:bg-amber-400/[0.04]"
                             >
                               {columns.map((col) => (
                                 <td
                                   key={col}
-                                  className="whitespace-nowrap px-4 py-2 text-slate-600 dark:text-slate-300"
+                                  className="whitespace-nowrap px-3 py-1.5 text-zinc-700 dark:text-zinc-300"
                                 >
                                   {formatValue(row[col])}
                                 </td>
@@ -190,30 +200,32 @@ export default function MessageDetailPanel({ uretilenSql, debug, route, sources 
                       </table>
                     </div>
                     {rowCount > previewRows.length && (
-                      <div className="border-t border-slate-200/80 bg-slate-50/50 px-4 py-2 text-center text-[11px] font-medium text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 sm:text-[12px]">
-                        Ilk {previewRows.length} satir gosteriliyor. Tum {rowCount} satiri gormek icin Excel'e indirin.
+                      <div className="border-t border-zinc-200 bg-zinc-50 px-3 py-1.5 text-center font-['JetBrains_Mono'] text-[10.5px] tracking-wide text-zinc-500 dark:border-white/[0.08] dark:bg-white/[0.02] dark:text-zinc-400">
+                        ilk {previewRows.length} satır · tümü için excel'e aktar
                       </div>
                     )}
                   </div>
-                </div>
+                </section>
               )}
 
               {!isDocs && debug?.duzeltme_logu?.length > 1 && (
-                <div>
-                  <span className="mb-2 block px-1 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:text-[12px]">
-                    Duzeltme Logu
-                  </span>
+                <section>
+                  <header className="mb-2 flex items-center gap-2">
+                    <span className="font-['JetBrains_Mono'] text-[10.5px] font-medium uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                      düzeltme logu
+                    </span>
+                  </header>
                   <ul className="space-y-1.5">
                     {debug.duzeltme_logu.map((line, index) => (
                       <li
                         key={index}
-                        className="rounded-lg border border-amber-200/50 bg-amber-50/80 px-3 py-2 font-mono text-[11.5px] leading-relaxed text-amber-900 shadow-sm dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200"
+                        className="rounded-md border-l-2 border-amber-400 bg-amber-50/70 px-3 py-2 font-['JetBrains_Mono'] text-[11.5px] leading-relaxed text-amber-900 dark:border-amber-400/60 dark:bg-amber-400/[0.06] dark:text-amber-200"
                       >
                         {line}
                       </li>
                     ))}
                   </ul>
-                </div>
+                </section>
               )}
             </div>
           </Motion.div>
