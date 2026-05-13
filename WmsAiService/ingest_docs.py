@@ -35,6 +35,7 @@ CHUNK_OVERLAP = 180
 
 DOC_SOURCE_PATTERNS = [
     "CLAUDE.md",
+    "DOCS/rag/**/*.md",
     "DOCS/agent/**/*.md",
     "DOCS/project_doc_ai_modulu.md",
     "DOCKER_DEV.md",
@@ -141,6 +142,10 @@ def iter_source_paths() -> Iterable[Path]:
                 continue
             if "biten_rapor_dosyalari" in path.parts:
                 continue
+            if "DOCS" in path.parts and "rag" in path.parts:
+                rag_parts = path.relative_to(REPO_ROOT / "DOCS" / "rag").parts
+                if any(part.startswith("_") for part in rag_parts):
+                    continue
             resolved = path.resolve()
             if resolved in seen:
                 continue
