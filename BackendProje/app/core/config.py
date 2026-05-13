@@ -157,6 +157,30 @@ class Settings(BaseSettings):
         ge=1.0,
     )
 
+    rabbitmq_enabled: bool = Field(False, alias="RABBITMQ_ENABLED")
+    rabbitmq_url: str = Field(
+        "amqp://guest:guest@localhost:5672/",
+        alias="RABBITMQ_URL",
+    )
+    rabbitmq_exchange: str = Field("depo.events", alias="RABBITMQ_EXCHANGE")
+    rabbitmq_queue: str = Field(
+        "depo.lms.operator_metrikleri",
+        alias="RABBITMQ_QUEUE",
+    )
+    rabbitmq_dlx: str = Field("depo.events.dlx", alias="RABBITMQ_DLX")
+    rabbitmq_prefetch: int = Field(
+        20,
+        alias="RABBITMQ_PREFETCH",
+        ge=1,
+        le=10000,
+    )
+    rabbitmq_relay_batch_size: int = Field(
+        100,
+        alias="RABBITMQ_RELAY_BATCH_SIZE",
+        ge=1,
+        le=10000,
+    )
+
     @field_validator("db_user", "db_host", "db_name")
     @classmethod
     def _required_str(cls, value: str) -> str:

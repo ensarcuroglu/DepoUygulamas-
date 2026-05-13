@@ -53,7 +53,8 @@
       "Bash(python -m pytest tests/unit/services/test_stok_cikis_domain_service.py tests/unit/use_cases/test_cikis_akisi_faz5.py -x -q)",
       "Bash(export PATH=\"$HOME/.local/bin:$PATH\")",
       "Bash(ruff check *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(docker compose *)"
     ]
   }
 }

@@ -31,6 +31,22 @@ services:
       retries: 30
       start_period: 20s
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    env_file:
+      - ./infra/env/dev.env
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
   backend-init:
     <<: *python-service
     build:
@@ -175,4 +191,5 @@ services:
 
 volumes:
   mysql_data:
+  rabbitmq_data:
   react_node_modules:
