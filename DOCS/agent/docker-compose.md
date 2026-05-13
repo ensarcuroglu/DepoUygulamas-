@@ -36,6 +36,13 @@ docker compose -f compose.yml -f compose.ollama.yml exec ollama ollama pull qwen
 - WMS AI: `http://localhost:8001/health`
 - AGV: `http://localhost:8002/healthz`
 - Doc AI: `http://localhost:8003/healthz`
+- RabbitMQ Management: `http://localhost:15672` (`guest`/`guest`)
+
+## RabbitMQ + Backend-Worker
+
+- `rabbitmq` servisi `rabbitmq:3-management` imajını kullanır; AMQP 5672, Mgmt UI 15672. Volume: `rabbitmq_data`.
+- `backend-worker` servisi backend ile aynı image'ı kullanır; entry: `python -m app.infrastructure.messaging.operator_performans_consumer`. `RABBITMQ_ENABLED=false` iken boş döngüde bekler (`restart: unless-stopped` ile container ayakta kalır).
+- Runtime mode değişikliği: `infra/env/dev.env` içindeki `RABBITMQ_ENABLED` güncelle, ardından `docker compose up -d backend backend-worker` ile recreate. Detay: `docs/agent/rabbitmq-operations.md`.
 
 ## Kurallar ve Gotchas
 

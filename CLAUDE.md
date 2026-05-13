@@ -13,6 +13,7 @@ AI coding agent için operasyonel referans. Detaylı dokümanlar `docs/agent/` a
 - `WmsAiService/` — LangChain + Ollama doğal dil → SQL servisi (read-only view'lar).
 - `DocAiService/` — Belge AI mikroservisi (text PDF + VLM); irsaliye taslağı çıkarır, DB yazmaz.
 - `AgvSimService/` — AGV/AMR simülasyonu (in-memory world, asyncio tick loop, A*/CA*).
+- `backend-worker` (compose servisi) — `python -m app.infrastructure.messaging.operator_performans_consumer`; `RABBITMQ_ENABLED=true` iken LMS event'lerini queue'dan tüketir. `false` iken boş döngüde bekler.
 
 ## Common Commands
 
@@ -71,6 +72,28 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8002
 pytest
 ```
 
+### RabbitMQ (LMS event hatti)
+
+```bash
+# Servis ayaga kaldir (compose icinden)
+docker compose up -d rabbitmq backend backend-worker
+
+# Mode degistir
+# infra/env/dev.env veya BackendProje/.env icinde:
+#   RABBITMQ_ENABLED=true   -> relay + consumer aktif
+#   RABBITMQ_ENABLED=false  -> eski 5dk APScheduler aggregator
+
+# Queue / exchange inceleme
+docker compose exec rabbitmq rabbitmqctl list_queues name messages
+docker compose exec rabbitmq rabbitmqctl list_exchanges name type durable
+
+# DLQ temizle
+docker compose exec rabbitmq rabbitmqctl purge_queue depo.lms.operator_metrikleri.dlq
+
+# Broker gerektiren testler (opsiyonel)
+cd BackendProje && pytest -m rabbitmq
+```
+
 ## Development Rules
 
 - Değişiklik yapmadan önce ilgili dosyaları oku.
@@ -96,10 +119,12 @@ pytest
 - WmsAiService port: **8001**
 - AgvSimService port: **8002**
 - DocAiService port: **8003**
+- RabbitMQ AMQP: **5672** / Management UI: `http://localhost:15672` (`guest`/`guest`)
 - Docker Compose project name: `depo-dev`
 - Proje yolu ASCII olmalı: `D:\Ensar Dosya\DepoUygulamasi`
 - Varsayılan VLM model (DocAi): `qwen3-vl:4b`
 - Varsayılan WMS AI model: `qwen2.5-coder:7b`
+- `RABBITMQ_ENABLED=false` default — LMS event'leri için eski APScheduler 5dk polling aggregator çalışır. `true` yapıldığında relay + consumer worker akışı devreye girer; bkz. `docs/agent/rabbitmq-operations.md`.
 
 ## Do Not Touch
 
@@ -117,3 +142,4 @@ pytest
 - Frontend detayları: `docs/agent/frontend-notes.md`
 - AI servis detayları: `docs/agent/ai-services.md`
 - Ortam değişkenleri: `docs/agent/env-reference.md`
+- RabbitMQ operasyon ve runbook: `docs/agent/rabbitmq-operations.md`

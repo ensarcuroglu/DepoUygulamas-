@@ -30,6 +30,16 @@ Tüm servis env'leri. CLAUDE.md, bu dosyaya işaret eder.
 - `DOC_AI_SERVICE_URL` (local def `http://127.0.0.1:8003`), `DOC_AI_SERVICE_TIMEOUT`.
 - `INTERNAL_API_KEY` — AGV ve DocAi ile **paylaşılan** shared secret.
 
+**RabbitMQ (LMS event hattı):**
+- `RABBITMQ_ENABLED` (def `false`) — `true` ile relay + consumer worker akışı, `false` ile eski 5dk APScheduler aggregator.
+- `RABBITMQ_URL` (def `amqp://guest:guest@localhost:5672/`; compose: `amqp://guest:guest@rabbitmq:5672/`).
+- `RABBITMQ_EXCHANGE` (def `depo.events`).
+- `RABBITMQ_QUEUE` (def `depo.lms.operator_metrikleri`).
+- `RABBITMQ_DLX` (def `depo.events.dlx`).
+- `RABBITMQ_PREFETCH` (def `20`) — consumer prefetch sayısı.
+- `RABBITMQ_RELAY_BATCH_SIZE` (def `100`) — outbox relay batch.
+- Detaylı operasyon: `docs/agent/rabbitmq-operations.md`.
+
 ## WmsAiService (`WmsAiService/.env`)
 
 **Zorunlu:** `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME` (`depo_ai_reader` read-only kullanıcı önerilir).
