@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 from app.application.dto.operator_performans_dto import (
     KendiPerformansOzetDTO,
@@ -25,6 +25,7 @@ from app.application.dto.operator_performans_dto import (
     OperatorMetrikItemDTO,
     OperatorOzetListResponseDTO,
 )
+from app.core.entities.operator_performans import GorevPerformansEvent
 from app.core.repositories.operator_performans_repository import (
     IGorevPerformansEventRepository,
     IOperatorVardiyaMetrikleriRepository,
@@ -42,7 +43,12 @@ class AggregasyonSonucDTO:
 
 
 class MetriklerAggregasyonUseCase:
-    """Outbox event'leri tüketip vardiya metriklerini günceller."""
+    """Outbox event'leri tüketip vardiya metriklerini günceller.
+
+    `eventleri_isle` çekirdeği iki tüketici tarafından paylaşılır:
+      * DB polling aggregator (APScheduler) — `execute()` çağırır
+      * RabbitMQ consumer worker — her mesajda `eventleri_isle([event])`
+    """
 
     def __init__(
         self,
@@ -56,8 +62,15 @@ class MetriklerAggregasyonUseCase:
         self._kpi = kpi_service
         self._batch_limit = batch_limit
 
-    def execute(self) -> AggregasyonSonucDTO:
-        eventler = self._event_repo.bekleyen_eventleri_getir(limit=self._batch_limit)
+    def eventleri_isle(
+        self, eventler: Sequence[GorevPerformansEvent]
+    ) -> AggregasyonSonucDTO:
+        """Verilen event listesini vardiya metriklerine aggregate eder.
+
+        Çağıran bu listeyi `bekleyen_eventleri_getir`'den veya tek tek
+        consumer mesajlarından sağlayabilir. İşlenen event'ler DB'de
+        `aggregate_edildi=True` olarak işaretlenir.
+        """
         if not eventler:
             return AggregasyonSonucDTO(
                 islenen_event=0, guncellenen_vardiya=0, bekleyen_kalan=0
@@ -87,17 +100,24 @@ class MetriklerAggregasyonUseCase:
             )
 
         bekleyen_kalan = max(0, len(eventler) - len(islenen_event_idleri))
-        logger.info(
-            "Performans aggregasyon: islenen=%d, vardiya_guncellendi=%d, kalan~%d",
-            len(islenen_event_idleri),
-            guncellenen,
-            bekleyen_kalan,
-        )
         return AggregasyonSonucDTO(
             islenen_event=len(islenen_event_idleri),
             guncellenen_vardiya=guncellenen,
             bekleyen_kalan=bekleyen_kalan,
         )
+
+    def execute(self) -> AggregasyonSonucDTO:
+        """DB polling girişi — APScheduler aggregator job tarafından çağrılır."""
+        eventler = self._event_repo.bekleyen_eventleri_getir(limit=self._batch_limit)
+        sonuc = self.eventleri_isle(eventler)
+        if sonuc.islenen_event:
+            logger.info(
+                "Performans aggregasyon: islenen=%d, vardiya_guncellendi=%d, kalan~%d",
+                sonuc.islenen_event,
+                sonuc.guncellenen_vardiya,
+                sonuc.bekleyen_kalan,
+            )
+        return sonuc
 
 
 class OperatorPerformansSorguUseCase:

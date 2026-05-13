@@ -54,19 +54,11 @@ class RaporScheduler:
                 max_instances=1,
                 coalesce=True,
             )
-            # Operatör performans metrikleri aggregator — her 5 dakikada bir
-            self._scheduler.add_job(
-                operator_metrikleri_aggregate_et,
-                CronTrigger(minute="*/5"),
-                id="operator_metrikleri_aggregate",
-                replace_existing=True,
-                max_instances=1,
-                coalesce=True,
-            )
-            # RabbitMQ outbox relay — RABBITMQ_ENABLED=true ise her 10 saniye
-            if get_settings().rabbitmq_enabled:
+            settings = get_settings()
+            if settings.rabbitmq_enabled:
                 from apscheduler.triggers.interval import IntervalTrigger
 
+                # RabbitMQ outbox relay — her 10 saniye
                 self._scheduler.add_job(
                     rabbitmq_outbox_relay,
                     IntervalTrigger(seconds=10),
@@ -75,7 +67,20 @@ class RaporScheduler:
                     max_instances=1,
                     coalesce=True,
                 )
-                logger.info("RabbitMQ outbox relay job aktif (her 10 sn)")
+                logger.info(
+                    "RabbitMQ mode aktif: outbox relay job (10 sn), "
+                    "DB polling aggregator devre disi (consumer worker yapacak)"
+                )
+            else:
+                # Faz 1 fallback: DB polling aggregator — her 5 dakikada bir
+                self._scheduler.add_job(
+                    operator_metrikleri_aggregate_et,
+                    CronTrigger(minute="*/5"),
+                    id="operator_metrikleri_aggregate",
+                    replace_existing=True,
+                    max_instances=1,
+                    coalesce=True,
+                )
         except ImportError:
             logger.warning("apscheduler kurulu değil — zamanlı görevler devre dışı")
 
