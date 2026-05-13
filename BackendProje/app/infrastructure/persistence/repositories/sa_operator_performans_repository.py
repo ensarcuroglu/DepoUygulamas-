@@ -75,6 +75,69 @@ class SqlAlchemyGorevPerformansEventRepository(IGorevPerformansEventRepository):
             self._db.flush()
         return guncellenen
 
+    def yayinlanmamis_eventleri_getir(
+        self, limit: int = 100
+    ) -> List[GorevPerformansEvent]:
+        ormlar = (
+            self._db.query(GorevPerformansEventORM)
+            .filter(GorevPerformansEventORM.rabbitmq_yayinlandi.is_(False))
+            .order_by(GorevPerformansEventORM.olusturma_tarihi.asc())
+            .limit(limit)
+            .all()
+        )
+        return [gorev_performans_event_to_entity(o) for o in ormlar]
+
+    def yayinlandi_isaretle(
+        self,
+        event_id: int,
+        yayin_tarihi: Optional[datetime] = None,
+        auto_commit: bool = True,
+    ) -> bool:
+        tarih = yayin_tarihi or datetime.utcnow()
+        guncellenen = (
+            self._db.query(GorevPerformansEventORM)
+            .filter(GorevPerformansEventORM.id == event_id)
+            .update(
+                {
+                    "rabbitmq_yayinlandi": True,
+                    "rabbitmq_yayin_tarihi": tarih,
+                    "rabbitmq_son_hata": None,
+                },
+                synchronize_session=False,
+            )
+        )
+        if auto_commit:
+            self._db.commit()
+        else:
+            self._db.flush()
+        return guncellenen > 0
+
+    def yayin_hatasi_kaydet(
+        self,
+        event_id: int,
+        hata: str,
+        auto_commit: bool = True,
+    ) -> bool:
+        # Hata mesajını TEXT alanına sığacak şekilde kırp.
+        kisa_hata = (hata or "")[:2000]
+        guncellenen = (
+            self._db.query(GorevPerformansEventORM)
+            .filter(GorevPerformansEventORM.id == event_id)
+            .update(
+                {
+                    "rabbitmq_deneme_sayisi":
+                        GorevPerformansEventORM.rabbitmq_deneme_sayisi + 1,
+                    "rabbitmq_son_hata": kisa_hata,
+                },
+                synchronize_session=False,
+            )
+        )
+        if auto_commit:
+            self._db.commit()
+        else:
+            self._db.flush()
+        return guncellenen > 0
+
 
 class SqlAlchemyOperatorVardiyaMetrikleriRepository(
     IOperatorVardiyaMetrikleriRepository

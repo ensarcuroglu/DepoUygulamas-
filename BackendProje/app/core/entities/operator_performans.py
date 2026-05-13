@@ -41,9 +41,13 @@ class GorevPerformansEvent:
     `sure_saniye` yalnızca GOREV_TAMAMLANDI olayında doludur ve
     `tamamlanma_tarihi - baslama_tarihi` farkını taşır. İptal olaylarında
     `iptal_nedeni` doludur.
+
+    RabbitMQ alanları outbox relay (Faz 3) tarafından doldurulur; consumer
+    idempotency için `event_uuid` kullanır.
     """
 
     id: Optional[int] = None
+    event_uuid: Optional[str] = None
     event_tipi: str = PerformansEventTipi.GOREV_TAMAMLANDI
     gorev_tipi: str = PerformansGorevTipi.YERLESTIRME
     gorev_id: int = 0
@@ -53,6 +57,10 @@ class GorevPerformansEvent:
     iptal_nedeni: Optional[str] = None
     payload: Optional[dict] = None
     aggregate_edildi: bool = False
+    rabbitmq_yayinlandi: bool = False
+    rabbitmq_yayin_tarihi: Optional[datetime] = None
+    rabbitmq_deneme_sayisi: int = 0
+    rabbitmq_son_hata: Optional[str] = None
     olusturma_tarihi: datetime = field(default_factory=datetime.utcnow)
 
 

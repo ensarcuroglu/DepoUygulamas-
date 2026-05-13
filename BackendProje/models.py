@@ -1058,9 +1058,19 @@ class GorevPerformansEvent(Base):
             "kullanici_id",
             "olusturma_tarihi",
         ),
+        Index(
+            "ix_gorev_performans_event_relay_outbox",
+            "rabbitmq_yayinlandi",
+            "olusturma_tarihi",
+        ),
+        UniqueConstraint(
+            "event_uuid",
+            name="uq_gorev_performans_eventleri_event_uuid",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    event_uuid: Mapped[str] = mapped_column(String(36), nullable=False)
     event_tipi: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
     gorev_tipi: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     gorev_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
@@ -1076,6 +1086,16 @@ class GorevPerformansEvent(Base):
     aggregate_edildi: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="0", nullable=False, index=True
     )
+    rabbitmq_yayinlandi: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="0", nullable=False, index=True
+    )
+    rabbitmq_yayin_tarihi: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    rabbitmq_deneme_sayisi: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    rabbitmq_son_hata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     olusturma_tarihi: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,

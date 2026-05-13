@@ -15,6 +15,7 @@ from app.core.entities.operator_performans import (
 def gorev_performans_event_to_entity(orm: GorevPerformansEventORM) -> GorevPerformansEvent:
     return GorevPerformansEvent(
         id=orm.id,
+        event_uuid=orm.event_uuid,
         event_tipi=orm.event_tipi,
         gorev_tipi=orm.gorev_tipi,
         gorev_id=orm.gorev_id,
@@ -24,12 +25,17 @@ def gorev_performans_event_to_entity(orm: GorevPerformansEventORM) -> GorevPerfo
         iptal_nedeni=orm.iptal_nedeni,
         payload=orm.payload,
         aggregate_edildi=orm.aggregate_edildi,
+        rabbitmq_yayinlandi=orm.rabbitmq_yayinlandi,
+        rabbitmq_yayin_tarihi=orm.rabbitmq_yayin_tarihi,
+        rabbitmq_deneme_sayisi=orm.rabbitmq_deneme_sayisi,
+        rabbitmq_son_hata=orm.rabbitmq_son_hata,
         olusturma_tarihi=orm.olusturma_tarihi,
     )
 
 
 def gorev_performans_event_to_orm(entity: GorevPerformansEvent) -> GorevPerformansEventORM:
     return GorevPerformansEventORM(
+        event_uuid=entity.event_uuid,
         event_tipi=entity.event_tipi,
         gorev_tipi=entity.gorev_tipi,
         gorev_id=entity.gorev_id,
@@ -39,6 +45,10 @@ def gorev_performans_event_to_orm(entity: GorevPerformansEvent) -> GorevPerforma
         iptal_nedeni=entity.iptal_nedeni,
         payload=entity.payload,
         aggregate_edildi=entity.aggregate_edildi,
+        rabbitmq_yayinlandi=entity.rabbitmq_yayinlandi,
+        rabbitmq_yayin_tarihi=entity.rabbitmq_yayin_tarihi,
+        rabbitmq_deneme_sayisi=entity.rabbitmq_deneme_sayisi,
+        rabbitmq_son_hata=entity.rabbitmq_son_hata,
     )
 
 

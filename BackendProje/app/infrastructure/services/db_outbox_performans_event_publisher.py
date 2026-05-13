@@ -13,6 +13,7 @@ RabbitMQ adapter eklenebilir; use case kodu değişmez.
 
 from __future__ import annotations
 
+import uuid
 from typing import Optional
 
 from app.core.entities.operator_performans import (
@@ -109,6 +110,7 @@ class DbOutboxPerformansEventPublisher(IPerformansEventPublisher):
             return
 
         event = GorevPerformansEvent(
+            event_uuid=str(uuid.uuid4()),
             event_tipi=event_tipi,
             gorev_tipi=gorev_tipi,
             gorev_id=gorev_id,

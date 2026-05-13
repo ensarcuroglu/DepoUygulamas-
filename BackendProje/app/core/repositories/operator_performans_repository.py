@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 
 from app.core.entities.operator_performans import (
@@ -40,6 +40,37 @@ class IGorevPerformansEventRepository(ABC):
     ) -> int:
         """Verilen event id'lerini `aggregate_edildi=True` olarak işaretler.
         İşaretlenen kayıt sayısını döner."""
+        ...
+
+    @abstractmethod
+    def yayinlanmamis_eventleri_getir(
+        self, limit: int = 100
+    ) -> List[GorevPerformansEvent]:
+        """`rabbitmq_yayinlandi=False` event'leri olusturma_tarihi ASC sırasıyla
+        döner. RabbitMQ outbox relay job tarafından çağrılır."""
+        ...
+
+    @abstractmethod
+    def yayinlandi_isaretle(
+        self,
+        event_id: int,
+        yayin_tarihi: Optional[datetime] = None,
+        auto_commit: bool = True,
+    ) -> bool:
+        """Event'i `rabbitmq_yayinlandi=True` ve `rabbitmq_yayin_tarihi=yayin_tarihi`
+        olarak işaretler. Başarılı broker confirm sonrası çağrılır."""
+        ...
+
+    @abstractmethod
+    def yayin_hatasi_kaydet(
+        self,
+        event_id: int,
+        hata: str,
+        auto_commit: bool = True,
+    ) -> bool:
+        """`rabbitmq_deneme_sayisi`'ni 1 arttırır, `rabbitmq_son_hata`'ya
+        özet hata mesajını yazar. Relay tarafında broker hatası alındığında
+        çağrılır."""
         ...
 
 

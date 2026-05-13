@@ -4,6 +4,7 @@ GorevPerformansEventFactory     — append-only outbox event log
 OperatorVardiyaMetrikleriFactory — vardiya KPI özeti
 """
 
+import uuid
 from datetime import date, datetime
 
 import factory
@@ -17,6 +18,7 @@ class GorevPerformansEventFactory(BaseFactory):
     class Meta:
         model = GorevPerformansEvent
 
+    event_uuid = factory.LazyFunction(lambda: str(uuid.uuid4()))
     event_tipi = "GOREV_TAMAMLANDI"
     gorev_tipi = "yerlestirme"
     gorev_id = factory.Sequence(lambda n: 1000 + n)
@@ -26,6 +28,10 @@ class GorevPerformansEventFactory(BaseFactory):
     iptal_nedeni = None
     payload = None
     aggregate_edildi = False
+    rabbitmq_yayinlandi = False
+    rabbitmq_yayin_tarihi = None
+    rabbitmq_deneme_sayisi = 0
+    rabbitmq_son_hata = None
     olusturma_tarihi = factory.LazyFunction(datetime.utcnow)
 
 
