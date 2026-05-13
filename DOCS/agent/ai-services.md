@@ -55,6 +55,28 @@ python ingest_docs.py --all
 
 Yeni RAG dokumani eklemek icin `DOCS/rag/_templates/surec-dokumani-template.md` dosyasini `DOCS/rag/<konu>.md` olarak kopyalayip doldur. Dokuman degistikten sonra `python ingest_docs.py --docs` veya router ornekleri de yenilenecekse `python ingest_docs.py --all` calistir.
 
+### Dokuman Yazim Rehberi
+
+- **Tek dosya = tek konu.** Karisik konu retrieval'i bozar.
+- **YAML front-matter zorunlu:** `id`, `audience` (operatore donen dokumanlar `operator`), `aliases`, `related`, `updated`, `verified`. `verified: false` ise icerik kod-turevi ve operasyon ekibince dogrulanmamis demektir.
+- **Bolum basliklari sablona uymali:** `Amac`, `Kapsam`, `Temel Kurallar`, `Adimlar`, `Istisnalar`, `Dogrulanmasi Gereken Kurallar` (opsiyonel), `Ornek Sorular`, `Kisa Cevap Ozeti`. `ingest_docs.py` heading'e gore boler; bolum adlari section metadata'sina yazilir.
+- **Kod blogu kullanmayin** (bash/SQL/python). Embedding'i bozar ve operatore zaten anlamsizdir. Dev dokumantasyonu icin `DOCS/agent/` kullanin (orasi RAG korpusuna girmez).
+- **Dogrulanmamis kurallari isaretle:** `> ⚠️ DOĞRULANMASI GEREKEN KURAL` notu + `Dogrulanmasi Gereken Kurallar` bolumu. Ayrica `DOCS/rag/_review/dogrulama-bekliyor.md` dosyasina entity/use case satir referansiyla kaydet.
+- **Aliases bolumune es anlamlilari ekle.** "FEFO" ile birlikte "son kullanma onceligi", "SKT onceligi" yazilirsa retrieval kalitesi artar.
+- **`_templates/` ve `_review/` underscore prefix tasir.** `ingest_docs.py:iter_source_paths` bunlari atlar.
+
+### Retrieval Kalite Testi
+
+Her doc degisikligi sonrasi:
+
+```bash
+cd WmsAiService
+python ingest_docs.py --docs
+pytest tests/test_rag_retrieval_quality.py -v -s
+```
+
+Gold-set `tests/data/rag_goldset.yaml`'da; her doc icin literal+paraphrase+negative sorular vardir. Hedef: **recall@4 >= 0.85**, negatif sorular %100 reddedilmeli (`RAG_STRICT_DISTANCE` esiginin uzerinde olmali). Esige takilirsan dokumana mudahale et (eksik alias, paraphrase, ornek soru); embedding modeli veya prompt'a dokunma.
+
 ### Stratejik Notlar
 
 - **Template-first:** Çoğu cevap LLM çağrısı olmadan deterministik şablonla üretilir.

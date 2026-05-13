@@ -1,0 +1,178 @@
+# RAG Retrieval Gold-Set
+#
+# Bu dosya, docs RAG retrieval kalitesini olcer.
+# Her madde icin:
+#   - question: kullanicinin soracagi tipik soru
+#   - kind: "literal" | "paraphrase" | "negative"
+#   - expected_source_path: pozitif sorularda hedef doc (literal+paraphrase)
+#   - expected_section: opsiyonel; section eslesmesi de zorunlu ise
+#   - expected_no_info: true ise retrieval'in hicbir chunk getirmemesi (veya
+#       en iyi chunk strict thresholdun uzerinde olmasi) beklenir
+#   - notes: gerekirse aciklama
+#
+# Hedefler:
+#   - recall@4 >= 0.85 (pozitif sorular icin)
+#   - negatif sorular %100 reddedilmeli
+#
+# Test runner: WmsAiService/tests/test_rag_retrieval_quality.py
+
+# ---------------------------------------------------------------------------
+# FEFO
+# ---------------------------------------------------------------------------
+- question: "FEFO mantigi nedir?"
+  kind: literal
+  expected_source_path: DOCS/rag/fefo-sureci.md
+
+- question: "Son kullanma tarihi en yakin urun neden once oneriliyor?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/fefo-sureci.md
+
+- question: "FEFO ile FIFO arasindaki fark nedir?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/fefo-sureci.md
+
+- question: "Blokeli stok FEFO sirasina dahil edilir mi?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/fefo-sureci.md
+
+# ---------------------------------------------------------------------------
+# Glossary
+# ---------------------------------------------------------------------------
+- question: "Lot nedir?"
+  kind: literal
+  expected_source_path: DOCS/rag/glossary.md
+
+- question: "SKT ne demek?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/glossary.md
+
+- question: "Karantina ne anlama gelir?"
+  kind: literal
+  expected_source_path: DOCS/rag/glossary.md
+
+- question: "UPH metrigi nedir?"
+  kind: literal
+  expected_source_path: DOCS/rag/glossary.md
+
+# ---------------------------------------------------------------------------
+# Sistem Genel Bakis
+# ---------------------------------------------------------------------------
+- question: "Sistem nasil calisir?"
+  kind: literal
+  expected_source_path: DOCS/rag/sistem-genel-bakis.md
+
+- question: "Bir paletin depoya girisinden cikisina kadar surec nedir?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/sistem-genel-bakis.md
+
+- question: "Hangi rol hangi ekrani gorur?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/sistem-genel-bakis.md
+
+- question: "AI asistan sistemin neresinde duruyor?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/sistem-genel-bakis.md
+
+# ---------------------------------------------------------------------------
+# Mal Kabul
+# ---------------------------------------------------------------------------
+- question: "Mal kabul nasil yapilir?"
+  kind: literal
+  expected_source_path: DOCS/rag/mal-kabul-sureci.md
+
+- question: "Mal kabul irsaliyesi onaylandiktan sonra degistirilebilir mi?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/mal-kabul-sureci.md
+
+- question: "Bir palet hasarli geldiginde ne yapilir?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/mal-kabul-sureci.md
+
+- question: "Mal kabul irsaliyesi neden Kapandi durumuna gecmiyor?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/mal-kabul-sureci.md
+
+# ---------------------------------------------------------------------------
+# Yerlestirme (Putaway)
+# ---------------------------------------------------------------------------
+- question: "Yerlestirme gorevi nasil olusuyor?"
+  kind: literal
+  expected_source_path: DOCS/rag/yerlestirme-putaway-sureci.md
+
+- question: "Onerilen raf disinda farkli rafa yerlestirebilir miyim?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/yerlestirme-putaway-sureci.md
+
+- question: "Putaway nedir?"
+  kind: literal
+  expected_source_path: DOCS/rag/yerlestirme-putaway-sureci.md
+
+- question: "Yerlestirme gorevi zaman asimina ugrarsa ne olur?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/yerlestirme-putaway-sureci.md
+
+# ---------------------------------------------------------------------------
+# Toplama (Pick)
+# ---------------------------------------------------------------------------
+- question: "Toplama nasil yapilir?"
+  kind: literal
+  expected_source_path: DOCS/rag/toplama-pick-sureci.md
+
+- question: "Operator FEFO disinda farkli palet alabilir mi?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/toplama-pick-sureci.md
+
+- question: "Pick gorevi neden iptal oldu?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/toplama-pick-sureci.md
+
+- question: "Toplama tamamlandiktan sonra palet stoktan ne zaman dusuyor?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/toplama-pick-sureci.md
+
+# ---------------------------------------------------------------------------
+# Sevkiyat
+# ---------------------------------------------------------------------------
+- question: "Sevkiyat nasil baslar?"
+  kind: literal
+  expected_source_path: DOCS/rag/sevkiyat-sureci.md
+
+- question: "Tir plaka sevkiyat sirasinda degistirilebilir mi?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/sevkiyat-sureci.md
+
+- question: "Cikis stok hareketi ne zaman yaziliyor?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/sevkiyat-sureci.md
+
+- question: "TeslimEdildi olan sevkiyatta duzeltme yapilabilir mi?"
+  kind: paraphrase
+  expected_source_path: DOCS/rag/sevkiyat-sureci.md
+
+# ---------------------------------------------------------------------------
+# Negatif sorular — strict gate ile reddedilmeli
+# ---------------------------------------------------------------------------
+- question: "Mars'taki depo nasil calisir?"
+  kind: negative
+  expected_no_info: true
+  notes: "Alakasiz konu; strict-gate reddetmeli."
+
+- question: "Python'da bir REST API nasil yazilir?"
+  kind: negative
+  expected_no_info: true
+  notes: "Dev sorusu; korpusta yok."
+
+- question: "Bu aksam yemekte ne yapsam?"
+  kind: negative
+  expected_no_info: true
+  notes: "Domain disi tamamen."
+
+- question: "Hava bugun nasil olacak?"
+  kind: negative
+  expected_no_info: true
+  notes: "Domain disi."
+
+- question: "RabbitMQ kuyruk yapilandirmasi nasil yapilir?"
+  kind: negative
+  expected_no_info: true
+  notes: "Dev/ops konusu; korpus dev dokumanlarini icermez."

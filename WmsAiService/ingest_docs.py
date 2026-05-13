@@ -128,9 +128,34 @@ def build_markdown_documents() -> list[Document]:
     chunker, backend = _get_chunker()
     documents: list[Document] = []
     for path in iter_source_paths():
-        text = path.read_text(encoding="utf-8", errors="replace")
+        raw_text = path.read_text(encoding="utf-8", errors="replace")
         rel_path = path.relative_to(REPO_ROOT).as_posix()
+        front_matter, text = _split_front_matter(raw_text)
         title = extract_title(text, path.stem)
+        # Aliases icin tek bir gizli chunk: retrieval'da "FEFO" / "SKT onceligi"
+        # gibi terimlere dogrudan vurus saglar.
+        aliases = _coerce_str_list(front_matter.get("aliases"))
+        audience = front_matter.get("audience") or "operator"
+        verified = bool(front_matter.get("verified", False))
+        if aliases:
+            alias_chunk_text = f"{title}\n\nEs anlamlilar / aliases:\n- " + "\n- ".join(aliases)
+            documents.append(
+                Document(
+                    page_content=alias_chunk_text,
+                    metadata={
+                        "source_path": rel_path,
+                        "title": title,
+                        "section": "Aliases",
+                        "breadcrumb": f"{title} > Aliases",
+                        "chunk_id": f"{rel_path}:aliases",
+                        "sha256": _sha256(alias_chunk_text),
+                        "chunker": backend,
+                        "audience": audience,
+                        "verified": verified,
+                        "kind": "aliases",
+                    },
+                )
+            )
         for index, chunk in enumerate(chunker(text, title), 1):
             content = chunk["text"].strip()
             if not content:
@@ -146,10 +171,91 @@ def build_markdown_documents() -> list[Document]:
                         "chunk_id": f"{rel_path}:{index}",
                         "sha256": _sha256(content),
                         "chunker": backend,
+                        "audience": audience,
+                        "verified": verified,
+                        "kind": "body",
                     },
                 )
             )
     return documents
+
+
+def _split_front_matter(text: str) -> tuple[dict[str, object], str]:
+    """YAML front-matter'i govdeden ayir. Front-matter yoksa bos dict doner."""
+    stripped = text.lstrip()
+    if not stripped.startswith("---"):
+        return {}, text
+    # Sadece dosya basindaki bloga bak; aksi halde govdeyi olduğu gibi birak.
+    leading_offset = len(text) - len(stripped)
+    after_open = stripped[3:]
+    # Kapanis "---" satirini bul (newline ile sinirli).
+    closing = after_open.find("\n---")
+    if closing == -1:
+        return {}, text
+    fm_text = after_open[:closing]
+    body_start_in_stripped = 3 + closing + len("\n---")
+    # Kapanistan sonra newline varsa onu da yutalim.
+    if body_start_in_stripped < len(after_open) + 3:
+        # after_open[closing+4] yerine stripped'de pozisyon
+        pass
+    body = stripped[body_start_in_stripped:].lstrip("\n")
+    front_matter = _parse_simple_yaml(fm_text)
+    return front_matter, body
+
+
+def _parse_simple_yaml(text: str) -> dict[str, object]:
+    """Bagimsiz, ek bagimlilik istemeyen yalin YAML parser.
+
+    Sadece bu projedeki front-matter formatini destekler:
+      - `anahtar: deger`
+      - `anahtar: [a, b]`  (flow list)
+      - `anahtar:` ardindan `- madde` satirlari (block list)
+    Karmasik YAML icin yyaml/PyYAML kullanilmaz; bagimlilik eklemek bu modul
+    icin oransiz olur.
+    """
+    result: dict[str, object] = {}
+    current_key: str | None = None
+    current_list: list[str] | None = None
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if line.startswith(("  - ", "\t- ", "- ")) and current_key is not None:
+            item = line.split("- ", 1)[1].strip().strip("\"'")
+            if current_list is None:
+                current_list = []
+                result[current_key] = current_list
+            current_list.append(item)
+            continue
+        if ":" in line:
+            current_list = None
+            key, _, value = line.partition(":")
+            key = key.strip()
+            value = value.strip()
+            if not value:
+                current_key = key
+                result[key] = []
+                continue
+            if value.startswith("[") and value.endswith("]"):
+                inner = value[1:-1].strip()
+                items = [v.strip().strip("\"'") for v in inner.split(",") if v.strip()]
+                result[key] = items
+            else:
+                lowered = value.lower()
+                if lowered in {"true", "false"}:
+                    result[key] = lowered == "true"
+                else:
+                    result[key] = value.strip("\"'")
+            current_key = key
+    return result
+
+
+def _coerce_str_list(value: object) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    return []
 
 
 def iter_source_paths() -> Iterable[Path]:

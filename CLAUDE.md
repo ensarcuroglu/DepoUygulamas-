@@ -110,6 +110,7 @@ cd BackendProje && pytest -m rabbitmq
 - AgvSimService tek süreç çalışır; asla replica / multiple worker. `World` in-memory singleton'dır.
 - Docker Compose çalışırken aynı servisleri ayrıca `uvicorn` ile başlatma — port çakışır.
 - Backend değişikliği sonrası `ruff check .` + `pytest -m unit`; frontend sonrası `npm run lint`.
+- `DOCS/rag/` altında doküman ekleme/değişimi sonrası **mutlaka** `cd WmsAiService && python ingest_docs.py --docs` çalıştırılmalı, ardından `pytest tests/test_rag_retrieval_quality.py` ile retrieval regresyonu doğrulanmalı. `verified: false` olarak işaretlenen dokümanlardaki belirsizlikler `DOCS/rag/_review/dogrulama-bekliyor.md` dosyasında toplanır; underscore prefix sayesinde indekslenmez.
 
 ## Important Notes
 

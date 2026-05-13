@@ -1,3 +1,20 @@
+---
+id: fefo-sureci
+audience: operator
+aliases:
+  - FEFO
+  - First Expired First Out
+  - son kullanma onceligi
+  - SKT onceligi
+  - SKT siralamasi
+related:
+  - glossary
+  - toplama-pick-sureci
+  - sevkiyat-sureci
+updated: 2026-05-13
+verified: true
+---
+
 # FEFO Sureci
 
 ## Amac
@@ -27,7 +44,7 @@ Kullanici FEFO mantigi, SKT onceligi, lot secimi veya sevkiyat sirasini sordugun
 - Blokeli, hasarli, rezerve edilmis veya kalite kontrol bekleyen stoklar secim disinda tutulur.
 - Ayni SKT tarihine sahip birden fazla stok varsa sistem lot, lokasyon, miktar veya operasyonel uygunluk gibi ek kriterlerle siralama yapabilir.
 - FEFO, FIFO ile ayni sey degildir. FIFO ilk giren stogu once cikarir; FEFO son kullanma tarihi en yakin stogu once cikarir.
-- Manuel kullanici mudahalesi varsa operasyon sorumlusu gerekceyi kontrol etmelidir.
+- Manuel kullanici mudahalesi varsa operasyon sorumlusu gerekceyi kontrol etmelidir (toplama gorevinde `fefo_override` bayragi ile isaretlenir).
 
 ## Adimlar
 
