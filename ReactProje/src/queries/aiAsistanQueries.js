@@ -1,7 +1,13 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { aiSorgula, aiOturumSifirla, getAiSema } from '../services/aiAsistanApi';
+import { aiChat, aiSorgula, aiOturumSifirla, getAiSema } from '../services/aiAsistanApi';
 import { queryKeys } from './queryKeys';
 import { responseData } from './queryUtils';
+
+export function useAiChatMutation() {
+  return useMutation({
+    mutationFn: (payload) => aiChat(payload).then(responseData),
+  });
+}
 
 export function useAiSorgulaMutation() {
   return useMutation({

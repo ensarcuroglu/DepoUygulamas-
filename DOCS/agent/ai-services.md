@@ -38,6 +38,19 @@ mysql -u root -p depo_yonetim < views.sql
 - `views.sql` — 9 read-only MySQL view + `depo_ai_reader` GRANT'ları.
 - `wms_chroma_db/` — Persistent ChromaDB (generated).
 
+### Birlesik Chat ve RAG
+
+- `POST /api/ai/chat` tek endpoint akisi slash command, semantic router ve SQL/RAG branch'i birlestirir.
+- Yeni WmsAiService modulleri: `vector_config.py`, `slash_commands.py`, `semantic_router.py`, `docs_rag.py`, `chat_orchestrator.py`, `ingest_docs.py`.
+- Duz metin sorularda semantic router calisir. `/sql <soru>` Text-to-SQL, `/docs <soru>` dokuman RAG rotasini zorlar.
+- RAG cevaplari sadece getirilen dokuman baglamina dayandirilir; baglam yoksa `Bu konuda bilgi bulamadim` doner.
+- Yeni Chroma koleksiyonlari: `wms_ai_router_intents`, `wms_ai_docs_chunks`.
+
+```bash
+cd WmsAiService
+python ingest_docs.py --all
+```
+
 ### Stratejik Notlar
 
 - **Template-first:** Çoğu cevap LLM çağrısı olmadan deterministik şablonla üretilir.

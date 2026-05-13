@@ -82,7 +82,10 @@ class ConversationStore:
         lines = []
         for i, t in enumerate(turns, 1):
             lines.append(f"{i}. Kullanıcı: {t.soru}")
-            lines.append(f"   Asistan SQL: {t.sql}")
+            if t.sql == "[DOCS]":
+                lines.append("   Asistan: Dokuman cevabi")
+            else:
+                lines.append(f"   Asistan SQL: {t.sql}")
         return "\n".join(lines)
 
 

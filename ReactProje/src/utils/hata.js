@@ -30,6 +30,11 @@ export function hataMetni(err, varsayilan = 'Beklenmeyen bir hata oluştu') {
                 return loc ? `${String(loc)}: ${msg}` : msg;
             }).join(', ');
         }
+        if (typeof detail === 'object') {
+            if (detail.message) return String(detail.message);
+            if (detail.error) return String(detail.error);
+            return JSON.stringify(detail);
+        }
         return String(detail);
     }
 

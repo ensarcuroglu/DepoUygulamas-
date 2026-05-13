@@ -56,6 +56,10 @@ Tüm servis env'leri. CLAUDE.md, bu dosyaya işaret eder.
 - `FEW_SHOT_K` (def `3`)
 - `CHROMA_PERSIST_DIR` (def `./wms_chroma_db`)
 - `EMBEDDING_MODEL` (def `sentence-transformers/all-MiniLM-L6-v2`)
+- `ROUTER_COLLECTION_NAME` (def `wms_ai_router_intents`)
+- `DOCS_COLLECTION_NAME` (def `wms_ai_docs_chunks`)
+- `ROUTER_TOP_K`, `ROUTER_CONFIDENCE_THRESHOLD`, `ROUTER_CONFIDENCE_MARGIN`
+- `RAG_TOP_K`, `RAG_MAX_DISTANCE`, `RAG_NUM_PREDICT`
 
 ## AgvSimService (`AgvSimService/.env`)
 

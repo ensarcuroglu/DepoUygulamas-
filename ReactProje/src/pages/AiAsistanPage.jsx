@@ -3,14 +3,22 @@ import { motion as Motion } from 'framer-motion';
 import { Sparkles, Plus, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
-  useAiSorgulaMutation,
+  useAiChatMutation,
   useAiOturumSifirlaMutation,
-  useAiSemaQuery,
 } from '../queries/aiAsistanQueries';
 import EmptyState from '../components/aiAsistan/EmptyState';
 import ChatMessage from '../components/aiAsistan/ChatMessage';
 import MessageInput from '../components/aiAsistan/MessageInput';
 import { hataMetni } from '../utils/hata';
+
+const CHAT_SAMPLES = [
+  'Aktif palet sayÄ±sÄ± kaÃ§?',
+  '/docs FEFO mantÄ±ÄŸÄ± nedir?',
+  'Son 7 gÃ¼nde gelen mal kabul sayÄ±sÄ±',
+  '/docs Docker compose ile proje nasÄ±l baÅŸlatÄ±lÄ±r?',
+  'SKT\'si 30 gÃ¼nden az kalan lotlar',
+  '/docs DocAiService hangi sÄ±nÄ±rlara sahip?',
+];
 
 export default function AiAsistanPage() {
   const [messages, setMessages] = useState([]);
@@ -18,10 +26,9 @@ export default function AiAsistanPage() {
   const [sessionId, setSessionId] = useState(null);
   const scrollRef = useRef(null);
 
-  const { data: sema } = useAiSemaQuery();
-  const sorgulaMutation = useAiSorgulaMutation();
+  const chatMutation = useAiChatMutation();
   const sifirlaMutation = useAiOturumSifirlaMutation();
-  const isLoading = sorgulaMutation.isPending;
+  const isLoading = chatMutation.isPending;
 
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current;
@@ -51,7 +58,7 @@ export default function AiAsistanPage() {
       setInput('');
 
       try {
-        const res = await sorgulaMutation.mutateAsync({
+        const res = await chatMutation.mutateAsync({
           soru,
           session_id: sessionId,
           debug: true,
@@ -67,6 +74,10 @@ export default function AiAsistanPage() {
                   pending: false,
                   uretilenSql: res?.uretilen_sql,
                   debug: res?.debug,
+                  route: res?.route,
+                  routeSource: res?.route_source,
+                  confidence: res?.confidence,
+                  sources: res?.sources ?? [],
                 }
               : m
           )
@@ -81,7 +92,7 @@ export default function AiAsistanPage() {
         toast.error(msg);
       }
     },
-    [isLoading, sessionId, sorgulaMutation]
+    [isLoading, sessionId, chatMutation]
   );
 
   const handleSubmit = () => sendQuestion(input);
@@ -100,7 +111,7 @@ export default function AiAsistanPage() {
     setInput('');
   };
 
-  const samples = sema?.ornek_sorular ?? [];
+  const samples = CHAT_SAMPLES;
   const hasMessages = messages.length > 0;
 
   return (

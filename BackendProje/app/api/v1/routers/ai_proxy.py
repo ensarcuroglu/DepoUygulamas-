@@ -90,6 +90,14 @@ def ai_sorgula(
     return _forward("POST", "/api/ai/sorgula", json_body=istek.model_dump())
 
 
+@router.post("/chat")
+def ai_chat(
+    istek: SorguIstegi,
+    _current_user: Kullanici = Depends(require_role("admin")),
+) -> Any:
+    return _forward("POST", "/api/ai/chat", json_body=istek.model_dump())
+
+
 @router.post("/oturum/sifirla")
 def ai_oturum_sifirla(
     istek: OturumIstegi,

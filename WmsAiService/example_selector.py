@@ -23,8 +23,9 @@ from __future__ import annotations
 
 import logging
 import os
-from pathlib import Path
 from typing import Any
+
+from vector_config import CHROMA_PERSIST_DIR, EMBEDDING_MODEL, get_embeddings
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +33,11 @@ logger = logging.getLogger(__name__)
 _DEFAULT_K = int(os.getenv("FEW_SHOT_K", "3"))
 _CHROMA_DIR = os.getenv(
     "CHROMA_PERSIST_DIR",
-    str(Path(__file__).parent / "wms_chroma_db"),
+    CHROMA_PERSIST_DIR,
 )
 _EMBEDDING_MODEL = os.getenv(
     "EMBEDDING_MODEL",
-    "sentence-transformers/all-MiniLM-L6-v2",
+    EMBEDDING_MODEL,
 )
 
 # Prompt'a enjekte edilecek key isimleri
@@ -84,7 +85,6 @@ class _ChromaExampleSelector:
 def _build_selector(k: int = _DEFAULT_K) -> _ChromaExampleSelector:
     """ChromaDB-backed example selector oluşturur."""
     from langchain_chroma import Chroma
-    from langchain_community.embeddings import HuggingFaceEmbeddings
 
     logger.info(
         "ChromaDB selector yükleniyor — persist_dir=%s, model=%s, k=%d",
@@ -93,15 +93,9 @@ def _build_selector(k: int = _DEFAULT_K) -> _ChromaExampleSelector:
         k,
     )
 
-    embeddings = HuggingFaceEmbeddings(
-        model_name=_EMBEDDING_MODEL,
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True},
-    )
-
     chroma = Chroma(
         persist_directory=_CHROMA_DIR,
-        embedding_function=embeddings,
+        embedding_function=get_embeddings(),
     )
 
     # Collection'daki kayıt sayısını logla

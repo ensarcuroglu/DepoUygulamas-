@@ -32,6 +32,7 @@ class ResultIntent(str, Enum):
     SCALAR = "scalar"
     EMPTY = "empty"
     LIST = "list"
+    DOC_ANSWER = "doc_answer"
 
 
 @dataclass
@@ -110,3 +111,23 @@ def _fmt(value: Any) -> str:
             return str(int(value))
         return f"{value:.2f}"
     return str(value)
+
+
+def render_doc_answer(answer: str, sources: list[dict[str, Any]]) -> str:
+    """Render a RAG answer as Markdown with optional source bullets."""
+    cleaned = answer.strip()
+    if not cleaned or not sources:
+        return cleaned
+
+    source_lines: list[str] = []
+    for source in sources[:5]:
+        path = source.get("source_path") or "bilinmeyen kaynak"
+        section = source.get("section")
+        label = f"`{path}`"
+        if section:
+            label += f" - {section}"
+        source_lines.append(f"- {label}")
+
+    if not source_lines:
+        return cleaned
+    return f"{cleaned}\n\n**Kaynaklar**\n" + "\n".join(source_lines)

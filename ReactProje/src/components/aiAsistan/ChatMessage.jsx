@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { motion as Motion } from 'framer-motion';
 import { Sparkles, User, Copy, Check, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import MarkdownContent from './MarkdownContent';
 import MessageDetailPanel from './MessageDetailPanel';
 import TypingIndicator from './TypingIndicator';
 
 export default function ChatMessage({ message }) {
-  const { role, content, pending, error, uretilenSql, debug } = message;
+  const { role, content, pending, error, uretilenSql, debug, route, sources } = message;
   const [copied, setCopied] = useState(false);
 
   const isUser = role === 'user';
@@ -74,6 +75,8 @@ export default function ChatMessage({ message }) {
               <AlertCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-rose-500 dark:text-rose-400" />
               <span className="whitespace-pre-wrap">{content}</span>
             </div>
+          ) : route === 'docs' ? (
+            <MarkdownContent content={content} />
           ) : (
             <span className="whitespace-pre-wrap">{content}</span>
           )}
@@ -97,9 +100,14 @@ export default function ChatMessage({ message }) {
         </div>
 
         {/* Opsiyonel: Üretilen SQL Paneli */}
-        {isAssistant && !pending && !error && (uretilenSql || debug?.rows?.length > 0) && (
+        {isAssistant && !pending && !error && (uretilenSql || debug?.rows?.length > 0 || sources?.length > 0) && (
           <div className="mt-2 w-full pl-1">
-            <MessageDetailPanel uretilenSql={uretilenSql} debug={debug} />
+            <MessageDetailPanel
+              uretilenSql={uretilenSql}
+              debug={debug}
+              route={route}
+              sources={sources}
+            />
           </div>
         )}
       </div>
