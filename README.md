@@ -1,8 +1,8 @@
 # Depo Yönetim Sistemi (WMS)
 
-Lot ve palet takibi, putaway/pick görev akışları, üretim paleti kabulü, mobil terminal PWA, AGV/AMR simülasyonu, belge AI ve operatör performansı (LMS) modülünü bir araya getiren full-stack depo yönetim sistemi.
+Lot ve palet takibi, putaway/pick görev akışları, üretim paleti kabulü, mobil terminal PWA, AGV/AMR simülasyonu, belge AI, Excel AI ve operatör performansı (LMS) modülünü bir araya getiren full-stack depo yönetim sistemi.
 
-Proje tek repoda çalışan bir geliştirme stack'i sunar: **FastAPI** ana backend, **React 19 + Vite 7** frontend, **MySQL 8.4**, **RabbitMQ**, **WmsAiService**, **DocAiService** ve **AgvSimService**. Yerel geliştirme için önerilen giriş noktası `compose.yml` içindeki **Docker Compose** stack'idir.
+Proje tek repoda çalışan bir geliştirme stack'i sunar: **FastAPI** ana backend, **React 19 + Vite 7** frontend, **MySQL 8.4**, **RabbitMQ**, **WmsAiService**, **DocAiService**, **ExcelAiService** ve **AgvSimService**. Yerel geliştirme için önerilen giriş noktası `compose.yml` içindeki **Docker Compose** stack'idir.
 
 ## İçindekiler
 
@@ -32,6 +32,7 @@ Proje tek repoda çalışan bir geliştirme stack'i sunar: **FastAPI** ana backe
 - **RabbitMQ event hattı:** `RABBITMQ_ENABLED=true` olduğunda relay + consumer worker akışı devreye girer.
 - **WMS AI:** Doğal dil soruları read-only SQL view'larına veya RAG dokümanlarına yönlendirilir.
 - **Doc AI:** İrsaliye PDF/görüntü belgelerinden taslak JSON çıkarır; veritabanına yazmaz.
+- **Excel AI:** Yüklenen Excel/CSV dosyalarını pandas + LangChain agent ile doğal dilde yorumlar ve sütunları WMS hedef şemalarına eşler; veritabanına yazmaz.
 - **AGV/AMR simülasyonu:** In-memory dünya, pathfinding, WebSocket snapshot/delta akışı ve 3D izleme UI'ı.
 - **Talep tahmin çalışma alanı:** `ml_models/` altında ürün bazlı 7/30/90 günlük talep tahmini deneyleri ve entegrasyon sözleşmeleri tutulur.
 
@@ -46,6 +47,7 @@ Proje tek repoda çalışan bir geliştirme stack'i sunar: **FastAPI** ana backe
 | AGV UI | Three.js, @react-three/fiber, @react-three/drei, Zustand |
 | AI/RAG | LangChain, Ollama, ChromaDB, sentence-transformers, LlamaIndex ingestion |
 | Belge işleme | pdfplumber, pypdfium2, Pillow, Ollama text/VLM modelleri |
+| Excel işleme | pandas, openpyxl, langchain-experimental pandas DataFrame agent |
 | ML deneyleri | pandas, scikit-learn, pydantic |
 | Mesajlaşma | RabbitMQ 3 Management, pika |
 | Test/Kalite | pytest, factory-boy, pytest-cov, ruff, pyright basic, ESLint 9 |
@@ -138,6 +140,7 @@ docker compose up -d
 | WMS AI | `wms-ai` | http://localhost:8001/health | Doğal dil, SQL, RAG |
 | AGV Sim | `agv-sim` | http://localhost:8002/healthz | In-memory simülasyon |
 | Doc AI | `doc-ai` | http://localhost:8003/healthz | İrsaliye çıkarımı |
+| Excel AI | `excel-ai` | http://localhost:8004/healthz | Excel yorumlama + şema eşleme |
 | RabbitMQ AMQP | `rabbitmq` | localhost:5672 | LMS event hattı |
 | RabbitMQ UI | `rabbitmq` | http://localhost:15672 | `guest` / `guest` |
 | MySQL | `mysql` | localhost:3307 | Container içinde 3306 |
@@ -151,6 +154,7 @@ docker compose up -d
 |-- ReactProje/          React 19 + Vite 7 frontend, PWA, AGV UI
 |-- WmsAiService/        Doğal dil -> SQL, doküman RAG, read-only MySQL view'ları
 |-- DocAiService/        İrsaliye PDF/görüntü çıkarımı, DB'ye yazmaz
+|-- ExcelAiService/      Excel/CSV yorumlama + WMS şema eşleme, DB'ye yazmaz
 |-- AgvSimService/       AGV/AMR simülasyonu, WebSocket snapshot/delta
 |-- ml_models/           Talep tahmin modeli ve ML deney alanı
 |-- DOCS/agent/          Geliştirici ve AI ajan dokümantasyonu
@@ -180,15 +184,18 @@ Bu dosya sadece geliştirme kolaylığı içindir. Production veya paylaşılan 
 |---|---|---|
 | Backend | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | MySQL bağlantısı |
 | Backend | `JWT_SECRET_KEY` | Access/refresh token imzalama anahtarı |
-| Backend/servisler | `INTERNAL_API_KEY` | Backend, Doc AI ve AGV arasındaki shared secret |
+| Backend/servisler | `INTERNAL_API_KEY` | Backend, Doc AI, Excel AI ve AGV arasındaki shared secret |
 | Backend/LMS | `RABBITMQ_ENABLED` | `false`: DB polling aggregator, `true`: RabbitMQ relay + worker |
 | Backend/LMS | `RABBITMQ_URL`, `RABBITMQ_EXCHANGE`, `RABBITMQ_QUEUE` | RabbitMQ topolojisi |
 | Frontend | `VITE_BACKEND_PROXY_TARGET` | Vite `/api` proxy hedefi |
 | Frontend | `VITE_FEATURE_AGV_ENABLED` | AGV izleme route/sidebar özelliği |
 | Frontend | `VITE_FEATURE_DOC_AI_ENABLED` | Doc AI UI özellikleri |
+| Frontend | `VITE_FEATURE_EXCEL_AI_ENABLED` | Excel AI UI özelliği (AI Asistan → Excel Analizi) |
+| Backend/Excel AI | `EXCEL_AI_SERVICE_URL`, `FEATURE_EXCEL_AI_ENABLED` | Proxy hedefi ve özellik anahtarı |
 | WMS AI | `OLLAMA_MODEL`, `OLLAMA_BASE_URL` | Text-to-SQL ve RAG model bağlantısı |
 | WMS AI | `RAG_TOP_K`, `RAG_STRICT_DISTANCE` | RAG retrieval davranışı |
 | Doc AI | `OLLAMA_TEXT_MODEL`, `OLLAMA_VLM_MODEL` | Text PDF ve VLM modeli |
+| Excel AI | `OLLAMA_TEXT_MODEL`, `MAX_FILE_SIZE_MB`, `MAX_ROWS`, `MAX_SHEETS` | Pandas agent modeli ve dosya/satır limitleri |
 | AGV | `WMS_BASE_URL`, `TICK_HZ`, `GRID_JSON_PATH` | Simülasyon ve WMS callback ayarları |
 
 Tam referans için [DOCS/agent/env-reference.md](DOCS/agent/env-reference.md) dosyasını kullanın.
@@ -291,6 +298,21 @@ cd AgvSimService
 pip install -r requirements.txt
 pip install -r requirements-test.txt
 uvicorn main:app --reload --host 127.0.0.1 --port 8002
+```
+
+### ExcelAiService
+
+```bash
+cd ExcelAiService
+pip install -r requirements.txt
+pip install -r requirements-test.txt
+uvicorn main:app --reload --host 127.0.0.1 --port 8004
+```
+
+Health check:
+
+```bash
+curl -H "X-Internal-Api-Key: <key>" http://127.0.0.1:8004/healthz
 ```
 
 ## Mimari Özet
@@ -406,6 +428,14 @@ DocAiService text PDF veya görüntü tabanlı irsaliyelerden taslak JSON çıka
 
 Tüm non-OPTIONS isteklerde `X-Internal-Api-Key` zorunludur. Key eksik, yanlış veya yapılandırılmamışsa servis bilinçli olarak `503` dönebilir.
 
+### ExcelAiService
+
+ExcelAiService yüklenen Excel/CSV dosyasını pandas DataFrame'e çevirir ve iki akış sunar: doğal dilde soru-cevap + deterministik özet (LangChain `create_pandas_dataframe_agent` + Ollama), ve sütunların WMS hedef şemalarına (`siparis_kalemleri`, `stok_sayim_kalemleri`, `urun`) deterministik eşleme önerisi. DB'ye yazmaz; öneriler `BackendProje` tarafında değerlendirilir.
+
+Tüm non-OPTIONS isteklerde `X-Internal-Api-Key` zorunludur. Backend proxy `FEATURE_EXCEL_AI_ENABLED=true` ile aktiflesir; flag kapalıyken `/api/excel-ai/*` 404 döner.
+
+Detaylı plan ve mimari kararlar: [DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md](DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md).
+
 ### AgvSimService
 
 AgvSimService tek süreç çalışan in-memory bir simülasyon servisidir. Replica veya multiple worker kullanılmamalıdır. Backend görevleri HTTP push ile gönderir; AGV servis tamamlanma bilgisini backend callback endpoint'lerine döner. Frontend canlı izleme için `/ws/agv` WebSocket akışını kullanır.
@@ -429,6 +459,7 @@ Bu alan FastAPI backend'i doğrudan değiştirmez. Üretime alınacak mantık ne
 | Frontend lint | `cd ReactProje && npm run lint` | ESLint 9 flat config |
 | Frontend build | `cd ReactProje && npm run build` | Production build kontrolü |
 | Doc AI test | `cd DocAiService && pytest` | Extraction ve confidence testleri |
+| Excel AI test | `cd ExcelAiService && pytest` | Loader, sema matcher, idempotency, router (Ollama mocked) |
 | AGV test | `cd AgvSimService && pytest` | DB gerekmez |
 | RAG kalite | `cd WmsAiService && pytest tests/test_rag_retrieval_quality.py -v -s` | Doküman değişikliği sonrası |
 
@@ -579,6 +610,15 @@ docker compose exec rabbitmq rabbitmqctl list_queues name messages
 - `X-Internal-Api-Key` header'ı eksik veya yanlış.
 - Ollama modeli veya endpoint'i erişilemiyor.
 
+### Excel AI menüde görünmüyor veya 404 dönüyor
+
+**Kontrol edin:**
+
+- Frontend için `VITE_FEATURE_EXCEL_AI_ENABLED=true` ve frontend yeniden başlatıldı mı.
+- Backend için `FEATURE_EXCEL_AI_ENABLED=true` (`infra/env/dev.env`) ve backend recreate edildi mi.
+- `docker compose ps excel-ai` ile servis ayakta ve `curl -H "X-Internal-Api-Key: <key>" http://localhost:8004/healthz` 200 dönüyor mu.
+- Excel AI agent için Ollama'da `qwen2.5-coder:7b` modeli mevcut mu (`ollama list`).
+
 ### WMS AI cevap vermiyor veya model timeout alıyor
 
 **Kontrol edin:**
@@ -618,7 +658,8 @@ docker compose up -d frontend
 | [DOCS/agent/docker-compose.md](DOCS/agent/docker-compose.md) | Compose komutları, sağlık URL'leri, Vite/proxy ve gotcha'lar |
 | [DOCS/agent/backend-notes.md](DOCS/agent/backend-notes.md) | Backend komutları, migration, test ve Clean Architecture kuralları |
 | [DOCS/agent/frontend-notes.md](DOCS/agent/frontend-notes.md) | Frontend kuralları, PWA, Vite ve AGV UI notları |
-| [DOCS/agent/ai-services.md](DOCS/agent/ai-services.md) | WmsAiService, DocAiService, AgvSimService ve RAG süreçleri |
+| [DOCS/agent/ai-services.md](DOCS/agent/ai-services.md) | WmsAiService, DocAiService, ExcelAiService, AgvSimService ve RAG süreçleri |
+| [DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md](DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md) | ExcelAiService entegrasyon planı ve mimari kararlar |
 | [DOCS/agent/env-reference.md](DOCS/agent/env-reference.md) | Tüm servis ortam değişkenleri |
 | [DOCS/agent/rabbitmq-operations.md](DOCS/agent/rabbitmq-operations.md) | RabbitMQ event hattı, DLQ ve rollback runbook'u |
 
@@ -626,6 +667,7 @@ docker compose up -d frontend
 
 - [ReactProje/README.md](ReactProje/README.md)
 - [DocAiService/README.md](DocAiService/README.md)
+- [ExcelAiService/README.md](ExcelAiService/README.md)
 - [AgvSimService/README.md](AgvSimService/README.md)
 - [ml_models/README.md](ml_models/README.md)
 - [ml_models/talep_tahmin/README.md](ml_models/talep_tahmin/README.md)
