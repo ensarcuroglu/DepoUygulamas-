@@ -134,6 +134,19 @@ class Settings(BaseSettings):
         alias="DOC_AI_SERVICE_TIMEOUT",
         ge=1.0,
     )
+    excel_ai_service_url: str = Field(
+        "http://127.0.0.1:8004",
+        alias="EXCEL_AI_SERVICE_URL",
+    )
+    excel_ai_service_timeout: float = Field(
+        180.0,
+        alias="EXCEL_AI_SERVICE_TIMEOUT",
+        ge=1.0,
+    )
+    feature_excel_ai_enabled: bool = Field(
+        False,
+        alias="FEATURE_EXCEL_AI_ENABLED",
+    )
 
     internal_api_key: Optional[str] = Field(None, alias="INTERNAL_API_KEY")
 
