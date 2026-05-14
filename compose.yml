@@ -191,6 +191,30 @@ services:
       --reload-exclude .venv --reload-exclude .venv/*
       --host 0.0.0.0 --port 8003
 
+  excel-ai:
+    <<: *python-service
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+      args:
+        SERVICE_DIR: ExcelAiService
+    working_dir: /workspace/ExcelAiService
+    environment:
+      # DocAi qwen3-vl:4b kullanir; ExcelAi pandas agent icin code-tuned model gerekir.
+      OLLAMA_TEXT_MODEL: qwen2.5-coder:7b
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "8004:8004"
+    command: >
+      uvicorn main:app --reload
+      --reload-exclude .pytest_cache --reload-exclude .pytest_cache/*
+      --reload-exclude __pycache__ --reload-exclude __pycache__/*
+      --reload-exclude venv --reload-exclude venv/*
+      --reload-exclude .venv --reload-exclude .venv/*
+      --host 0.0.0.0 --port 8004
+
   frontend:
     build:
       context: .

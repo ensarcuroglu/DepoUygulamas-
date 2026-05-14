@@ -23,4 +23,4 @@ RUN pip install --upgrade pip \
 
 COPY ${SERVICE_DIR} /workspace/${SERVICE_DIR}
 
-EXPOSE 8000 8001 8002 8003
+EXPOSE 8000 8001 8002 8003 8004
