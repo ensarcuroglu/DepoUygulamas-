@@ -34,6 +34,7 @@ import {
     Sparkles,
     Trophy,
     Bot,
+    FileSpreadsheet,
 } from 'lucide-react';
 
 /* ───────────────────────────────────────────
@@ -46,6 +47,9 @@ const menuGroups = [
         items: [
             { path: '/dashboard', label: 'İş Zekası & Özet', icon: LayoutDashboard, roles: ['admin'], badge: null },
             { path: '/ai-asistan', label: 'AI Asistan', icon: Sparkles, roles: ['admin'], badge: 'Yeni' },
+            ...(import.meta.env.VITE_FEATURE_EXCEL_AI_ENABLED === 'true' ? [
+                { path: '/ai-asistan/excel', label: 'Excel Analizi', icon: FileSpreadsheet, roles: ['admin'], badge: 'AI' },
+            ] : []),
         ],
     },
     {

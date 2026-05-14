@@ -56,6 +56,7 @@ const UretimPaletleriPage = lazy(() => import('./pages/UretimPaletleriPage'));
 const UretimPaletiKabulPage = lazy(() => import('./pages/UretimPaletiKabulPage'));
 const EtiketSablonlariPage = lazy(() => import('./pages/EtiketSablonlariPage'));
 const AiAsistanPage = lazy(() => import('./pages/AiAsistanPage'));
+const ExcelAiPage = lazy(() => import('./pages/ExcelAiPage'));
 const OperatorPerformansPage = lazy(() => import('./pages/OperatorPerformansPage'));
 const PerformansimPage = lazy(() => import('./pages/depocu/PerformansimPage'));
 const AgvIzlemePage = lazy(() => import('./pages/agv/AgvIzlemePage'));
@@ -144,6 +145,7 @@ function App() {
                     <Route path="/sistem-loglari" element={<SistemLoglariPage />} />
                     <Route path="/etiket-sablonlari" element={<EtiketSablonlariPage />} />
                     <Route path="/ai-asistan" element={<AiAsistanPage />} />
+                    <Route path="/ai-asistan/excel" element={<ExcelAiPage />} />
                   </Route>
 
                   {/* Depo Yönetimi (Admin + Lojistik) */}

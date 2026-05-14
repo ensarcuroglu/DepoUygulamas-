@@ -99,6 +99,10 @@ export const queryKeys = {
         all: ['yerlestirme'],
         oneri: (paletId) => ['yerlestirme', 'oneri', paletId],
     },
+    excelAi: {
+        all: ['excelAi'],
+        hedefSemalar: () => ['excelAi', 'hedefSemalar'],
+    },
     aiAsistan: {
         all: ['aiAsistan'],
         sema: () => ['aiAsistan', 'sema'],
