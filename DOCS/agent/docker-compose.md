@@ -30,6 +30,10 @@ docker compose -f compose.yml -f compose.ollama.yml exec ollama ollama pull qwen
 docker compose -f compose.yml -f compose.ollama.yml exec ollama ollama pull qwen3-vl:4b
 ```
 
+Disk notu: Varsayilan dev akisi host Ollama kullanir; temiz build icin `compose.ollama.yml`
+ekleme. Container icindeki Ollama modelleri `ollama_data` volume'unde tutulur ve Docker
+VHDX boyutunu hizla buyutebilir.
+
 ## Sağlık Kontrol Adresleri
 
 - Frontend: `http://localhost:5173`

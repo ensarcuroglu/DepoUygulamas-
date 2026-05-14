@@ -1,4 +1,6 @@
 services:
+  # Optional local override. Models pulled here are stored in the Docker
+  # ollama_data volume, so this file can grow the Docker VHDX quickly.
   ollama:
     image: ollama/ollama:latest
     ports:

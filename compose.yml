@@ -1,15 +1,16 @@
 name: depo-dev
 
-x-python-service: &python-service
-  build:
-    context: .
-    dockerfile: infra/docker/python-service.Dockerfile
+x-python-common: &python-common
   env_file:
     - ./infra/env/dev.env
   extra_hosts:
     - "host.docker.internal:host-gateway"
   volumes:
     - .:/workspace
+
+x-python-build: &python-build
+  context: .
+  dockerfile: infra/docker/python-service.Dockerfile
 
 services:
   mysql:
@@ -48,12 +49,8 @@ services:
       start_period: 30s
 
   backend-init:
-    <<: *python-service
-    build:
-      context: .
-      dockerfile: infra/docker/python-service.Dockerfile
-      args:
-        SERVICE_DIR: BackendProje
+    <<: *python-common
+    image: depo-dev-backend:dev
     working_dir: /workspace/BackendProje
     depends_on:
       mysql:
@@ -78,10 +75,10 @@ services:
     restart: "no"
 
   backend:
-    <<: *python-service
+    <<: *python-common
+    image: depo-dev-backend:dev
     build:
-      context: .
-      dockerfile: infra/docker/python-service.Dockerfile
+      <<: *python-build
       args:
         SERVICE_DIR: BackendProje
     working_dir: /workspace/BackendProje
@@ -105,12 +102,8 @@ services:
       --host 0.0.0.0 --port 8000
 
   backend-worker:
-    <<: *python-service
-    build:
-      context: .
-      dockerfile: infra/docker/python-service.Dockerfile
-      args:
-        SERVICE_DIR: BackendProje
+    <<: *python-common
+    image: depo-dev-backend:dev
     working_dir: /workspace/BackendProje
     depends_on:
       mysql:
@@ -124,16 +117,24 @@ services:
     restart: unless-stopped
 
   wms-ai:
-    <<: *python-service
+    <<: *python-common
+    image: depo-dev-wms-ai:dev
     build:
-      context: .
-      dockerfile: infra/docker/python-service.Dockerfile
+      <<: *python-build
       args:
         SERVICE_DIR: WmsAiService
+        INSTALL_CPU_TORCH: "true"
     working_dir: /workspace/WmsAiService
     environment:
       DB_USER: depo_ai_reader
       DB_PASSWORD: depo_ai_reader_dev
+      HF_HOME: /cache/huggingface
+      HF_HUB_CACHE: /cache/huggingface/hub
+      SENTENCE_TRANSFORMERS_HOME: /cache/sentence-transformers
+    volumes:
+      - .:/workspace
+      - hf_cache:/cache/huggingface
+      - sentence_transformers_cache:/cache/sentence-transformers
     depends_on:
       mysql:
         condition: service_healthy
@@ -150,10 +151,10 @@ services:
       --host 0.0.0.0 --port 8001
 
   agv-sim:
-    <<: *python-service
+    <<: *python-common
+    image: depo-dev-agv-sim:dev
     build:
-      context: .
-      dockerfile: infra/docker/python-service.Dockerfile
+      <<: *python-build
       args:
         SERVICE_DIR: AgvSimService
     working_dir: /workspace/AgvSimService
@@ -171,10 +172,10 @@ services:
       --host 0.0.0.0 --port 8002
 
   doc-ai:
-    <<: *python-service
+    <<: *python-common
+    image: depo-dev-doc-ai:dev
     build:
-      context: .
-      dockerfile: infra/docker/python-service.Dockerfile
+      <<: *python-build
       args:
         SERVICE_DIR: DocAiService
     working_dir: /workspace/DocAiService
@@ -192,10 +193,10 @@ services:
       --host 0.0.0.0 --port 8003
 
   excel-ai:
-    <<: *python-service
+    <<: *python-common
+    image: depo-dev-excel-ai:dev
     build:
-      context: .
-      dockerfile: infra/docker/python-service.Dockerfile
+      <<: *python-build
       args:
         SERVICE_DIR: ExcelAiService
     working_dir: /workspace/ExcelAiService
@@ -216,6 +217,7 @@ services:
       --host 0.0.0.0 --port 8004
 
   frontend:
+    image: depo-dev-frontend:dev
     build:
       context: .
       dockerfile: infra/docker/frontend-dev.Dockerfile
@@ -232,9 +234,21 @@ services:
     volumes:
       - ./ReactProje:/workspace/ReactProje
       - react_node_modules:/workspace/ReactProje/node_modules
-    command: npm run dev -- --host 0.0.0.0
+    command: >
+      sh -c "set -eu;
+             LOCK_HASH_FILE=node_modules/.package-lock.sha256;
+             CURRENT_HASH=$$(sha256sum package-lock.json | cut -d ' ' -f 1);
+             INSTALLED_HASH='';
+             if [ -f \"$$LOCK_HASH_FILE\" ]; then INSTALLED_HASH=$$(cat \"$$LOCK_HASH_FILE\"); fi;
+             if [ ! -d node_modules/.bin ] || [ \"$$INSTALLED_HASH\" != \"$$CURRENT_HASH\" ]; then
+               npm ci --no-audit --no-fund --cache node_modules/.npm-cache;
+               printf '%s' \"$$CURRENT_HASH\" > \"$$LOCK_HASH_FILE\";
+             fi;
+             exec npm run dev -- --host 0.0.0.0"
 
 volumes:
   mysql_data:
   rabbitmq_data:
   react_node_modules:
+  hf_cache:
+  sentence_transformers_cache:

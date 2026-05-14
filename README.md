@@ -225,6 +225,10 @@ docker compose -f compose.yml -f compose.ollama.yml exec ollama ollama pull qwen
 docker compose -f compose.yml -f compose.ollama.yml exec ollama ollama pull qwen3-vl:4b
 ```
 
+Disk notu: Varsayilan local gelistirme akisi host Ollama kullanir (`docker compose up -d --build`).
+`compose.ollama.yml` sadece bilincli secildiginde eklenmelidir; bu override ile cekilen modeller
+Docker volume icinde tutulur ve Docker VHDX boyutunu hizla buyutebilir.
+
 ## Yerel Geliştirme
 
 Compose açıkken aynı servisleri aynı portlarda ayrıca `uvicorn` veya `npm run dev` ile başlatmayın. Port çakışması yaşarsınız.
