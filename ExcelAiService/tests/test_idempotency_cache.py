@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import time
-
 import pytest
 
 from app.core.services.idempotency_cache import IdempotencyCache

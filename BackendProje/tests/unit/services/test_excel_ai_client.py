@@ -143,7 +143,7 @@ def test_upstream_error_propagates_status_and_detail(monkeypatch):
             hedef_sema="yok",
         )
     assert ei.value.status_code == 422
-    assert "gecersiz sema" in str(ei.value.detail)
+    assert "gecersiz sema" in ei.value.message
 
 
 def test_invalid_json_response_raises(monkeypatch):

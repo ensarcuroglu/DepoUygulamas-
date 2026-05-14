@@ -23,6 +23,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
 import pandas as pd
 from langchain_core.language_models import BaseLanguageModel
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
@@ -65,11 +66,12 @@ class AgentAnswer:
 
 def summarize_dataframe(df: pd.DataFrame, *, head_rows: int = 5) -> DataFrameSummary:
     """Pandas DataFrame icin LLM cagrisi olmadan deterministik ozet uret."""
-    head_records: list[dict[str, Any]] = (
-        df.head(head_rows).fillna("").to_dict(orient="records")
-    )
+    raw_head = df.head(head_rows).fillna("").to_dict(orient="records")
+    head_records: list[dict[str, Any]] = [
+        {str(k): _coerce(v) for k, v in row.items()} for row in raw_head
+    ]
 
-    describe_df = df.describe(include="all", datetime_is_numeric=False).fillna("")
+    describe_df = df.describe(include="all").fillna("")
     describe: dict[str, dict[str, Any]] = {
         str(col): {str(idx): _coerce(val) for idx, val in describe_df[col].items()}
         for col in describe_df.columns
@@ -87,15 +89,23 @@ def summarize_dataframe(df: pd.DataFrame, *, head_rows: int = 5) -> DataFrameSum
 
 
 def _coerce(value: Any) -> Any:
-    """JSON-serileştirilebilir hale getir."""
-    if pd.isna(value):
-        return None
+    """numpy / pandas tiplerini JSON-serileştirilebilir Python primitive'lerine çevir."""
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
     if hasattr(value, "isoformat"):
         return value.isoformat()
-    try:
-        return float(value) if isinstance(value, (int, float)) else value
-    except (TypeError, ValueError):
-        return str(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, (int, float, bool, str)):
+        return value
+    return str(value)
 
 
 class PandasQaAgent:

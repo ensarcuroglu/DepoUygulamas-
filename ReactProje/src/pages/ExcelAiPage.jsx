@@ -80,19 +80,15 @@ export default function ExcelAiPage() {
   const workbook = yorumResult?.workbook ?? semaResult?.workbook ?? null;
   const summary = yorumResult?.summary ?? null;
 
-  const semas = semasQuery.data?.schemas ?? [];
-
-  const semaOptions = useMemo(
-    () =>
-      semas.length > 0
-        ? semas
-        : [
-            { name: 'siparis_kalemleri', label: 'Siparis Kalemleri' },
-            { name: 'stok_sayim_kalemleri', label: 'Stok Sayim Kalemleri' },
-            { name: 'urun', label: 'Urun Karti' },
-          ],
-    [semas]
-  );
+  const semaOptions = useMemo(() => {
+    const semas = semasQuery.data?.schemas ?? [];
+    if (semas.length > 0) return semas;
+    return [
+      { name: 'siparis_kalemleri', label: 'Siparis Kalemleri' },
+      { name: 'stok_sayim_kalemleri', label: 'Stok Sayim Kalemleri' },
+      { name: 'urun', label: 'Urun Karti' },
+    ];
+  }, [semasQuery.data]);
 
   return (
     <div className="relative min-h-[calc(100vh-72px)] overflow-hidden bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
