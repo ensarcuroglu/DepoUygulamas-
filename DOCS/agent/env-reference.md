@@ -28,7 +28,9 @@ Tüm servis env'leri. CLAUDE.md, bu dosyaya işaret eder.
 **Entegrasyonlar:**
 - `AGV_SIM_SERVICE_URL` (def `http://127.0.0.1:8002`), `AGV_SIM_SERVICE_TIMEOUT` (def `2.0`).
 - `DOC_AI_SERVICE_URL` (local def `http://127.0.0.1:8003`), `DOC_AI_SERVICE_TIMEOUT`.
-- `INTERNAL_API_KEY` — AGV ve DocAi ile **paylaşılan** shared secret.
+- `EXCEL_AI_SERVICE_URL` (local def `http://127.0.0.1:8004`), `EXCEL_AI_SERVICE_TIMEOUT` (def `180`).
+- `FEATURE_EXCEL_AI_ENABLED` (def `false`) — bool; `true` ile `/api/excel-ai/*` proxy router aktiflesir, aksi halde 404.
+- `INTERNAL_API_KEY` — AGV, DocAi ve ExcelAi ile **paylaşılan** shared secret.
 
 **RabbitMQ (LMS event hattı):**
 - `RABBITMQ_ENABLED` (def `false`) — `true` ile relay + consumer worker akışı, `false` ile eski 5dk APScheduler aggregator.
@@ -87,6 +89,23 @@ Tüm servis env'leri. CLAUDE.md, bu dosyaya işaret eder.
 - `MAX_FILE_SIZE_MB`
 - `CORS_ALLOW_ORIGINS`
 
+## ExcelAiService (`ExcelAiService/.env`)
+
+**Zorunlu:**
+- `INTERNAL_API_KEY` (BackendProje ile aynı).
+
+**Opsiyonel:**
+- `WMS_BASE_URL` (def `http://127.0.0.1:8000`)
+- `OLLAMA_BASE_URL` (def `http://127.0.0.1:11434`)
+- `OLLAMA_TEXT_MODEL` (def `qwen2.5-coder:7b`; pandas agent için code-tuned model önerilir)
+- `LLM_TIMEOUT` (def `120`)
+- `MAX_FILE_SIZE_MB` (def `10`)
+- `MAX_ROWS` (def `10000`) — tek sayfada okunan maksimum satır
+- `MAX_SHEETS` (def `10`) — kabul edilen maksimum sayfa sayısı
+- `IDEMPOTENCY_TTL_SECONDS` (def `3600`) — in-memory LRU cevap cache TTL
+- `IDEMPOTENCY_MAX_ENTRIES` (def `256`)
+- `CORS_ALLOW_ORIGINS` (def `https://localhost:5173`)
+
 ## ReactProje (`ReactProje/.env.local`)
 
 İsteğe bağlı.
@@ -95,6 +114,7 @@ Tüm servis env'leri. CLAUDE.md, bu dosyaya işaret eder.
 - `VITE_BACKEND_PROXY_TARGET` — Compose: `http://backend:8000`, local: `http://127.0.0.1:8000`.
 - `VITE_FEATURE_AGV_ENABLED=true` — `/agv-izleme` route + sidebar item açar.
 - `VITE_FEATURE_DOC_AI_ENABLED=true` — DocAI UI özelliklerini açar.
+- `VITE_FEATURE_EXCEL_AI_ENABLED=true` — AI Asistan → Excel Analizi (`/ai-asistan/excel`) sidebar girişini açar.
 
 ## Docker Compose
 

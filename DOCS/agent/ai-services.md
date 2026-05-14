@@ -1,6 +1,6 @@
 # AI ve Yardımcı Servisler
 
-Üç bağımsız mikroservis: WmsAiService (doğal dil → SQL), DocAiService (belge AI), AgvSimService (AGV/AMR simülasyon).
+Dört bağımsız mikroservis: WmsAiService (doğal dil → SQL), DocAiService (belge AI), ExcelAiService (Excel yorumlama + WMS şema eşleme), AgvSimService (AGV/AMR simülasyon).
 
 ---
 
@@ -140,6 +140,79 @@ curl -H "X-Internal-Api-Key: <key>" http://127.0.0.1:8003/healthz
 - Yeni irsaliye şema alanı: `prompts.py` + `irsaliye_taslagi.py` + few-shot/fixture testleri + `confidence_calculator.py` senkron.
 - Extraction değişikliğinde `tests/test_text_pdf_extraction.py`, `tests/test_vlm_extraction.py`, `tests/test_hibrit_dispatcher.py`, `tests/test_confidence_scoring.py` birlikte çalıştır.
 - `INTERNAL_API_KEY` / `X-Internal-Api-Key` / `Idempotency-Key` sözleşmesini bozma.
+
+---
+
+## ExcelAiService (Excel Yorumlama + Şema Eşleme Mikroservisi)
+
+Excel/CSV yükle → pandas DataFrame → LangChain `create_pandas_dataframe_agent` (Ollama) ile doğal dil soru/cevap, **veya** sütunları WMS hedef şemalarına (`siparis_kalemleri`, `stok_sayim_kalemleri`, `urun`) eşleme önerisi. Port: `8004`. **DB yazmaz; BackendProje authoritative.**
+
+### Komutlar
+
+```bash
+cd ExcelAiService
+
+pip install -r requirements.txt
+pip install -r requirements-test.txt
+copy .env.example .env
+
+# Mevcut WMS model'i kullanir (code-tuned tercih edilir)
+ollama pull qwen2.5-coder:7b
+
+uvicorn main:app --reload --host 127.0.0.1 --port 8004
+
+pytest
+pytest -m unit
+
+curl -H "X-Internal-Api-Key: <key>" http://127.0.0.1:8004/healthz
+```
+
+### Yapı
+
+- `app/api/middleware/auth.py` — `InternalApiKeyMiddleware` (DocAi sözleşmesinin aynısı).
+- `app/api/v1/routers/{healthz.py, excel.py}` — public HTTP yüzeyi.
+- `app/application/use_cases/{excel_yorumla_uc.py, excel_sema_esle_uc.py}` — orchestration.
+- `app/application/agents/pandas_qa_agent.py` — `create_pandas_dataframe_agent` + `summarize_dataframe` (LLM-siz template-first özet).
+- `app/core/entities/wms_target_schemas.py` — Sütun eşleme için hedef şema sabitleri (faz 1: 3 şema, ~27 alan).
+- `app/core/services/sema_matcher.py` — Deterministik (LLM-siz) sütun eşleme. Türkçe diakritik normalize + token Jaccard + substring.
+- `app/core/services/idempotency_cache.py` — In-memory LRU+TTL.
+- `app/infrastructure/parsing/excel_loader.py` — pandas + openpyxl yükleyici, MAX_ROWS/MAX_SHEETS/MAX_FILE_SIZE limit kontrolü, sha256 hash.
+- `app/infrastructure/llm/ollama_client.py` — `ChatOllama` factory.
+
+### Endpoint'ler
+
+- `GET /healthz` — internal key + Ollama erişimi + text model varlığı.
+- `GET /api/excel/hedef-semalar` — desteklenen WMS şemaları + alan listesi + alias'lar.
+- `POST /api/excel/yorumla` — multipart `file` + opsiyonel form `soru`, `sheet_name` → özet + (varsa) agent cevabı.
+- `POST /api/excel/sema-esle` — multipart `file` + form `hedef_sema`, opsiyonel `sheet_name` → sütun eşleme + eksik zorunlu alanlar.
+- Tüm non-OPTIONS isteklerde `X-Internal-Api-Key` **zorunlu**.
+
+### Auth, Idempotency ve Sınırlar
+
+- Plan: `DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md`.
+- `Idempotency-Key` formatı: `sha256(dosya):<islem>:sha256(parametreler)`. Client header göndermezse server kendi hesaplar; LRU+TTL cache (TTL `IDEMPOTENCY_TTL_SECONDS`) ile cevap tekrar verilir.
+- Limitler: `MAX_FILE_SIZE_MB=10`, `MAX_ROWS=10000`, `MAX_SHEETS=10`.
+- LangChain ≥0.3 `create_pandas_dataframe_agent` için `allow_dangerous_code=True` zorunludur (`PythonAstREPLTool`). Risk azaltma: `INTERNAL_API_KEY` + container izolasyonu + dosya/satır limitleri + `max_iterations=8` + DB/dosya yazma yok.
+
+### Hedef Şemalar (Faz 1)
+
+- `siparis_kalemleri` — zorunlu: `siparis_no`, `urun_kodu`, `miktar` (+ 6 opsiyonel: `urun_adi`, `birim`, `birim_fiyat`, `toplam_fiyat`, `musteri`, `teslim_tarihi`).
+- `stok_sayim_kalemleri` — zorunlu: `sayim_no`, `urun_kodu`, `sayim_miktari` (+ `urun_adi`, `lokasyon`, `lot_no`, `sistem_miktari`, `fark`, `sayim_tarihi`).
+- `urun` — zorunlu: `urun_kodu`, `urun_adi` (+ `barkod`, `birim`, `agirlik`, `hacim`, `kategori`, `marka`, `aciklama`).
+- Yeni şema eklerken: `wms_target_schemas.py` (entity) + `tests/test_sema_matcher.py` (alias coverage testi) + bu doküman birlikte güncellenir.
+
+### Backend Entegrasyonu
+
+- BackendProje proxy: `app/api/v1/routers/excel_ai.py` + `app/infrastructure/services/excel_ai_client.py`. Yalnızca admin guard (`require_role("admin")`) + `FEATURE_EXCEL_AI_ENABLED` flag + `INTERNAL_API_KEY` enjeksiyonu. **Authoritative aksiyon yok**; UI sadece öneri görür.
+- Flag kapalıyken `/api/excel-ai/*` 404 döner; flag açıkken `Idempotency-Key` header'ı uçtan uca taşınır.
+- Frontend giriş: `/ai-asistan/excel` (AI Asistan menüsü altında "Excel Analizi"), `VITE_FEATURE_EXCEL_AI_ENABLED=true` ile gösterilir.
+
+### Stratejik Notlar
+
+- **Template-first güven:** `summarize_dataframe()` her durumda LLM-siz çalışır (describe + dtypes + head). Soru yoksa agent çağrılmaz.
+- **Deterministik şema eşleme:** `sema_matcher` LLM kullanmaz; aynı dosya için tekrarlı çağrı garanti aynı yanıtı döner (test ile doğrulanır).
+- **Türkçe normalize:** ı→i, ş→s, ğ→g, ü→u, ö→o, ç→c. Embedding modeli yok — basit deterministik eşleme yeterli.
+- Yeni `MAX_*` limit değişikliği: `core/config.py` + healthz response payload + dokümantasyon üçlüsü birlikte.
 
 ---
 

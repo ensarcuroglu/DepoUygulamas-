@@ -15,6 +15,7 @@ docker compose up --build
 docker compose ps
 docker compose logs -f backend
 docker compose logs -f doc-ai
+docker compose logs -f excel-ai
 
 # Stack durdur
 docker compose down
@@ -36,6 +37,7 @@ docker compose -f compose.yml -f compose.ollama.yml exec ollama ollama pull qwen
 - WMS AI: `http://localhost:8001/health`
 - AGV: `http://localhost:8002/healthz`
 - Doc AI: `http://localhost:8003/healthz`
+- Excel AI: `http://localhost:8004/healthz`
 - RabbitMQ Management: `http://localhost:15672` (`guest`/`guest`)
 
 ## RabbitMQ + Backend-Worker
