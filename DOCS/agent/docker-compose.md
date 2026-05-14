@@ -17,6 +17,9 @@ docker compose logs -f backend
 docker compose logs -f doc-ai
 docker compose logs -f excel-ai
 
+# Dockerfile lint (Hadolint)
+powershell -ExecutionPolicy Bypass -File scripts/lint-docker.ps1
+
 # Stack durdur
 docker compose down
 
@@ -29,6 +32,9 @@ docker compose -f compose.yml -f compose.ollama.yml up -d
 docker compose -f compose.yml -f compose.ollama.yml exec ollama ollama pull qwen2.5-coder:7b
 docker compose -f compose.yml -f compose.ollama.yml exec ollama ollama pull qwen3-vl:4b
 ```
+
+Hadolint warning'leri gorunur kalir; `.hadolint.yaml` sadece error seviyesinde basarisiz
+doner. CI eklenirse ayni `scripts/lint-docker.ps1` komutu kullanilmalidir.
 
 Disk notu: Varsayilan dev akisi host Ollama kullanir; temiz build icin `compose.ollama.yml`
 ekleme. Container icindeki Ollama modelleri `ollama_data` volume'unde tutulur ve Docker

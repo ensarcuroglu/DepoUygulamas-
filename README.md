@@ -462,6 +462,7 @@ Bu alan FastAPI backend'i doğrudan değiştirmez. Üretime alınacak mantık ne
 | RabbitMQ testleri | `cd BackendProje && pytest -m rabbitmq` | Broker bilinçli açılmalı |
 | Frontend lint | `cd ReactProje && npm run lint` | ESLint 9 flat config |
 | Frontend build | `cd ReactProje && npm run build` | Production build kontrolü |
+| Dockerfile lint | `powershell -ExecutionPolicy Bypass -File scripts/lint-docker.ps1` | Hadolint warning'leri raporlar; sadece error seviyesi komutu basarisiz yapar |
 | Doc AI test | `cd DocAiService && pytest` | Extraction ve confidence testleri |
 | Excel AI test | `cd ExcelAiService && pytest` | Loader, sema matcher, idempotency, router (Ollama mocked) |
 | AGV test | `cd AgvSimService && pytest` | DB gerekmez |
