@@ -298,15 +298,35 @@ Config'e eklenen alanlar (Faz 1'de):
 
 ---
 
-### Faz 6 — `agv_traffic`
+### Faz 6 — `agv_traffic` ✅
 
-**Hedef:** Backend yerleştirme/toplama uçlarına yoğun trafik; AgvSimService'e doğrudan dokunmaz.
+**Hedef:** Backend yerleştirme uçlarına yoğun trafik; AgvSimService'e doğrudan dokunmaz.
 
-- [ ] `app/scenarios/agv_traffic.py` — yalnız `target=rest`; mevcut `rest_emitter` üzerinden.
-- [ ] Target izin matrisinde `agv_traffic` × {`rabbit`, `file`} → `422`.
-- [ ] `tests/test_target_matrix.py::test_agv_only_rest`.
+- [x] `app/scenarios/agv_traffic.py` — `AgvTrafficParams` (frozen, `target='rest'` zorla `validate_target`'la garantili). Akış: ID range'inden `palet_pool` + `raf_pool` üret → `YerlestirmeGorevFactory` → `RestEmitter("/api/yerlestirme-gorevleri/")`.
+- [x] **Öncelik dağılımı:** deterministik weighted hash (`%20 acil / %60 normal / %20 düşük` — saha profili). Seed + index'ten türetilir, replay-safe.
+- [x] **ID havuz stratejisi:** `palet_id_min..palet_id_max` + `raf_id_min..raf_id_max` (default 1..1000 / 1..300). MVP'de range yeterli; ileride `GET /api/paletler/` fetch'i eklenebilir.
+- [x] Target izin matrisi: `agv_traffic × {rabbit, file}` → `TargetNotAllowedError` (Faz 4'te tanımlı `target_matrix.py` üzerinden).
+- [x] `tests/test_agv_traffic.py` — 7 test:
+  - **AgvSim'e dokunmama kuralı kanıtı:** her istekte `request.url.port != 8002` ve `agv-callbacks` path'i yok assertion'ları (hata akışında bile geçerli).
+  - Endpoint çağrı sayımı (`Counter` ile sadece `/api/auth/login` + N × `/api/yerlestirme-gorevleri/`).
+  - Payload doğruluğu: `palet_id` ve `onerilen_raf_id` belirtilen range'de, `tip="yerlestirme"`.
+  - **1.000 örneklemde öncelik dağılımı** (`%20/60/20 ±%5` tolerans).
+  - Backend %100 fail → AgvSim'e yine çağrı yok + summary.failed=100%.
+  - `target='rabbit'`/`'file'` reddi (matriste).
+  - ID range + count + batch_size + concurrency validasyonu.
 
-**Doğrulama:** `agv_traffic --target=rest --count=500` → Backend görev sayısı 500 artar; `docker compose logs agv-sim` Backend tarafından tetiklenen aktiviteyi gösterir (DataGen → AgvSim direkt çağrı **yok**, network trace'te `:8002` görünmez).
+**Doğrulama (Yapıldı):**
+- ✅ `pytest -m unit` → **87 passed** (Faz 1+2+3+4+5+6 toplam, 5.22 s).
+- ✅ `ruff check .` → **All checks passed**.
+- ✅ Test-zaman assertion'ları ile **DataGen → AgvSim doğrudan çağrı yok** kuralı kaynak-kod düzeyinde garantili (network trace gerekmez).
+- ⏸️ Canlı backend smoke (`docker compose up backend agv-sim` + `agv_traffic --count=500`) Faz 7'de CLI bağlanınca yapılacak. `agv-sim` log'unda backend kaynaklı aktivite olmalı; DataGen direct call yok.
+
+**Notlar (tasarım kararları):**
+- **AgvSim port assertion'ı (8002) test'lerde inline** — bir geliştirici ileride yanlışlıkla `/api/agv-callbacks/*` veya AgvSim'e doğrudan istek eklemeye kalkarsa testler bunu yakalar; envanter §3 kararı kod düzeyinde tetikleyiciyle korunur.
+- **Weighted öncelik deterministik hash** — `(i*2654435761 + seed) % 100` Fibonacci hashing; seed yeniden ayarlanmasa bile aynı index aynı bucket'a düşer (replay edilebilir trafik profili).
+- **Range bazlı pool** seçimi — gerçek backend seed durumunu CLI çağıranı bilir; otomatik fetch eklemek MVP kapsamı dışı tutuldu (Faz 7+ refinement).
+- **Idempotency-Key kapalı** — `/api/yerlestirme-gorevleri/` envanter §1.4'e göre Idempotency-Key desteklemez; re-run sırasında 4xx duplicate palet hataları beklenir, `failed` sayar, AgvSim'e gitmediği test ile sabit.
+- **Senaryo `target` kısıtı iki yerde:** `AgvTrafficParams.__post_init__` (`validate_target`) **+** test'te explicit reddetme. İki kapı = sapmayı erken yakalama.
 
 ---
 

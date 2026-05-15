@@ -1,3 +1,4 @@
+from .agv_traffic import AgvTrafficParams, run_agv_traffic
 from .seed_baseline import SeedBaselineParams, run_seed_baseline
 from .target_matrix import (
     ALLOWED_TARGETS,
@@ -20,6 +21,8 @@ __all__ = [
     "run_seed_baseline",
     "TaskLoadParams",
     "run_task_load",
+    "AgvTrafficParams",
+    "run_agv_traffic",
     "ALLOWED_TARGETS",
     "DEFAULT_TARGET",
     "TargetNotAllowedError",
