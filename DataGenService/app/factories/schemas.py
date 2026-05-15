@@ -7,7 +7,7 @@ Emitter katmanı bu DTO'ları JSON payload'a çevirip backend uçlarına yayar.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -18,6 +18,9 @@ SiparisDurumu = Literal[
     "TASLAK", "ONAYLANDI", "HAZIRLANIYOR", "SEVKEDILDI", "TESLIM_EDILDI"
 ]
 GorevTipi = Literal["yerlestirme", "toplama"]
+PerformansEventTipi = Literal[
+    "GOREV_BASLATILDI", "GOREV_TAMAMLANDI", "GOREV_IPTAL"
+]
 
 
 class _DataGenBase(BaseModel):
@@ -129,6 +132,27 @@ class ToplamaGoreviDTO(_DataGenBase):
     sevkiyat_id: int = Field(..., gt=0)
 
 
+class PerformansEventDTO(_DataGenBase):
+    """`GorevPerformansEvent` ile uyumlu — RabbitMQ payload.
+
+    Routing key dışarıdan üretilir: ``lms.gorev_performans.<event_tipi>``.
+    Consumer mesajdaki ``event_uuid`` üzerinden idempotent — saf yük
+    testinde DB'de karşılık olmadığı için DLQ'ya düşmesi beklenir
+    (envanter §2 notu).
+    """
+
+    event_uuid: str = Field(..., min_length=8, max_length=64)
+    event_tipi: PerformansEventTipi = "GOREV_TAMAMLANDI"
+    gorev_tipi: GorevTipi = "yerlestirme"
+    gorev_id: int = Field(..., gt=0)
+    kullanici_id: int = Field(..., gt=0)
+    depo_id: int | None = Field(None, gt=0)
+    sure_saniye: int | None = Field(None, ge=0)
+    iptal_nedeni: str | None = Field(None, max_length=500)
+    payload: dict[str, object] | None = None
+    olusturma_tarihi: datetime
+
+
 class TalepGecmisKaydiDTO(_DataGenBase):
     """ML eğitim verisi (file emitter çıktısı).
 
@@ -149,6 +173,7 @@ __all__ = [
     "Birim",
     "SiparisDurumu",
     "GorevTipi",
+    "PerformansEventTipi",
     "UrunDTO",
     "RafDTO",
     "LotDTO",
@@ -157,5 +182,6 @@ __all__ = [
     "SiparisKalemDTO",
     "YerlestirmeGoreviDTO",
     "ToplamaGoreviDTO",
+    "PerformansEventDTO",
     "TalepGecmisKaydiDTO",
 ]

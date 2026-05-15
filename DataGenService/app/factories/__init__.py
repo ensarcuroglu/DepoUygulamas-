@@ -7,10 +7,12 @@ girdisiyle iki ayrı koşum byte-by-byte aynı çıktıyı verir.
 from .base import BaseFactory, ReferenceTable
 from .lot_factory import LotFactory
 from .palet_factory import PaletFactory
+from .performans_event_factory import PerformansEventFactory
 from .raf_factory import RafFactory
 from .schemas import (
     LotDTO,
     PaletDTO,
+    PerformansEventDTO,
     RafDTO,
     SiparisDTO,
     SiparisKalemDTO,
@@ -38,6 +40,7 @@ __all__ = [
     "SiparisKalemDTO",
     "YerlestirmeGoreviDTO",
     "ToplamaGoreviDTO",
+    "PerformansEventDTO",
     "TalepGecmisKaydiDTO",
     # Factories
     "UrunFactory",
@@ -47,5 +50,6 @@ __all__ = [
     "SiparisFactory",
     "YerlestirmeGorevFactory",
     "ToplamaGorevFactory",
+    "PerformansEventFactory",
     "TalepZamanSerisiFactory",
 ]

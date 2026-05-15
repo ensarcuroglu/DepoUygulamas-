@@ -5,6 +5,7 @@ from .target_matrix import (
     TargetNotAllowedError,
     validate_target,
 )
+from .task_load import TaskLoadParams, run_task_load
 from .timeseries_history import (
     ScenarioResult,
     TimeseriesHistoryParams,
@@ -17,6 +18,8 @@ __all__ = [
     "run_timeseries_history",
     "SeedBaselineParams",
     "run_seed_baseline",
+    "TaskLoadParams",
+    "run_task_load",
     "ALLOWED_TARGETS",
     "DEFAULT_TARGET",
     "TargetNotAllowedError",

@@ -262,15 +262,39 @@ Config'e eklenen alanlar (Faz 1'de):
 
 ---
 
-### Faz 5 — `rabbit_emitter` + `task_load`
+### Faz 5 — `rabbit_emitter` + `task_load` ✅
 
 **Hedef:** LMS event hattını sentetik yükle stres et.
 
-- [ ] `app/infrastructure/emitters/rabbit_emitter.py` — `aio-pika` confirm + persistent + mandatory; routing key `lms.gorev_performans.<event_tipi>`; `depo.events` exchange.
-- [ ] `app/scenarios/task_load.py` — `target=rest` (use case → outbox doğal akışı) **veya** `target=rabbit` (doğrudan event yayını).
-- [ ] `tests/test_emitters.py::test_rabbit_emitter` (aio-pika fake/in-memory).
+- [x] `app/factories/schemas.py` — `PerformansEventDTO` (backend `GorevPerformansEvent` ile uyumlu): `event_uuid`, `event_tipi`, `gorev_tipi`, `gorev_id`, `kullanici_id`, `depo_id`, `sure_saniye`, `iptal_nedeni`, `payload`, `olusturma_tarihi`. `PerformansEventTipi` literal eklendi.
+- [x] `app/factories/performans_event_factory.py` — `PerformansEventFactory`: weighted dağılım (~%30 BASLATILDI / %55 TAMAMLANDI / %15 IPTAL), 128-bit deterministik UUID4, baz_zaman ±5 saat offset, event tipine göre `sure_saniye`/`iptal_nedeni` doldurma.
+- [x] `app/infrastructure/emitters/rabbit_emitter.py` — **İki katmanlı** tasarım:
+  - `RabbitPublisher` Protocol (uniform arayüz).
+  - `AioPikaPublisher.connect(url, exchange_name)` — production: `connect_robust` + `publisher_confirms=True` + topic durable exchange + `delivery_mode=PERSISTENT` + `mandatory=True` + `DeliveryError → RabbitPublishError`.
+  - `InMemoryRabbitPublisher` — test/dry-run; `fail_routing_keys` ile DLQ semantiği simülasyonu.
+  - `RabbitEmitter(IEmitter)` — DTO → JSON → publisher.publish; `asyncio.gather` ile `Semaphore`'lu paralel yayın.
+  - `lms_routing_key_for("event_tipi")` factory — `lms.gorev_performans.<event_tipi>` üretir.
+- [x] `app/scenarios/task_load.py` — `TaskLoadParams` (frozen, post-init `validate_target`). İki mod:
+  - `target='rabbit'` → `PerformansEventFactory` → `RabbitEmitter` (saf yük testi; consumer DLQ davranışı beklenir).
+  - `target='rest'` → `ToplamaGorevFactory` → `RestEmitter("/api/v1/toplama-gorevleri/uret")` + Idempotency-Key (envanter §1.4 destekli). Use case → outbox doğal akışı → aggregator.
+  - Cross-target parametre koruması: `target='rabbit'` ile `client` veya `target='rest'` ile `publisher` verilirse `ValueError`.
+- [x] `tests/test_performans_event_factory.py` — 7 test: determinism, DTO validation (event tipi → sure_saniye/iptal_nedeni tutarlılığı), 500 örnekte UUID benzersizliği, **5K örnekte dağılım toleransı** (%30±%5 / %55±%5 / %15±%5), constructor validasyonu, override, baz_zaman offset sınırı.
+- [x] `tests/test_rabbit_emitter.py` — 8 test: routing key suffix doğruluğu (event_tipi → rk eşleşmesi), UTF-8 JSON body, **DLQ semantiği** (`fail_routing_keys` ile IPTAL'lar fail sayılır), close idempotent, kapalı emitter'a yazım reddi, boş batch no-op, **Semaphore(3) → max_seen ≤ 3** gözlemli, routing_key_fn eksik alan hatası.
+- [x] `tests/test_task_load.py` — 5 test: rabbit modu 200 mesaj yayını + 3 event tipi dağılımı, DLQ simülasyonu (~%15 fail), rabbit + client param reddi, rest modu `/api/v1/toplama-gorevleri/uret` çağrı sayısı + UUID4 Idempotency-Key benzersizliği, rest + publisher param reddi.
 
-**Doğrulama:** `task_load --target=rabbit --count=200` → RabbitMQ Management UI'da `depo.lms.operator_metrikleri` queue 200 mesaj; consumer ardından işler; DLQ boş. `task_load --target=rest --count=50` → Backend log'unda görev oluşturma çağrıları; `gorev_performans_eventleri` tablosunda outbox satırları artar.
+**Doğrulama (Yapıldı):**
+- ✅ `pytest -m unit` → **80 passed** (Faz 1+2+3+4+5 toplam, 2.11 s).
+- ✅ `ruff check .` → **All checks passed**.
+- ✅ `aio-pika 9.6.2` host'a yüklendi; `AioPikaPublisher` import + `lms_routing_key_for` smoke geçti (`lms.gorev_performans.GOREV_TAMAMLANDI`).
+- ⏸️ Canlı RabbitMQ smoke (`docker compose up rabbitmq backend backend-worker` + `task_load --target=rabbit --count=200` → Management UI'da queue artışı + DLQ semantiği) Faz 7'de CLI bağlanınca yapılacak.
+
+**Notlar (tasarım kararları):**
+- **İki katmanlı publisher** ayrımı — `RabbitPublisher` Protocol'ü hem `aio_pika` runtime'ını hem in-memory test publisher'ını uniform tutar. Testlerin tamamı `InMemoryRabbitPublisher` ile koşar; gerçek RabbitMQ runtime'a hiç bağımlılık yok.
+- **DLQ semantiği test** — `fail_routing_keys` ile bir routing key suffix'i "unroutable" simüle edilir; bu, gerçek backend consumer'ının "DB'de event yok → DLQ" davranışını test ortamında temsil eder (envanter §2 notu).
+- **Routing key factory pattern** — `lms_routing_key_for(attr_name)` farklı DTO tipleri için tekrar kullanılabilir; ileride başka event türleri eklenirse genişletilir.
+- **`task_load --target=rabbit` "saf yük testi"** — anlamlı LMS aggregator yükü için **`--target=rest`** tercih edilir (envanter §2 + plan açıklaması).
+- **`Idempotency-Key` rest modunda aktif** — `gorev_uret` uç envanter §1.4'e göre destekli; replay safe.
+- **Aşağı kapı:** `_run_rabbit` içinde `publisher` dışarıdan geldiğinde emitter `_summary.mark_finished()` çağırır ama publisher'ı kapatmaz (caller'a bırakır); test fixture'ları publisher'ı kendi temizler.
 
 ---
 
