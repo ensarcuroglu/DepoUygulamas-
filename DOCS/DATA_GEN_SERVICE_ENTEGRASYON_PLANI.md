@@ -202,16 +202,33 @@ Config'e eklenen alanlar (Faz 1'de):
 
 ---
 
-### Faz 3 — `file_emitter` + `timeseries_history`
+### Faz 3 — `file_emitter` + `timeseries_history` ✅
 
 **Hedef:** ML eğitim verisi varsayılan akışı (DB'ye dokunmaz, en düşük risk).
 
-- [ ] `app/infrastructure/emitters/base.py` — `IEmitter` Protocol (`emit_batch`, `summary`).
-- [ ] `app/infrastructure/emitters/file_emitter.py` — `pyarrow` ile CSV + Parquet; `OUTPUT_DIR` altına yazar.
-- [ ] `app/scenarios/timeseries_history.py` — `TalepZamanSerisiFactory` ile T gün × P ürün satış geçmişi üretir, parquet'e yazar.
-- [ ] `tests/test_emitters.py::test_file_emitter` + `tests/test_scenarios.py::test_timeseries_history_file`.
+- [x] `app/infrastructure/emitters/base.py` — `IEmitter` Protocol + `EmitSummary` dataclass (`total`, `success`, `failed`, `duration_sec`, `p95_latency_ms`, `errors[]`).
+- [x] `app/infrastructure/emitters/file_emitter.py` — `FileEmitter` async context manager. **Streaming** `pyarrow.parquet.ParquetWriter` (her batch tek RowGroup), CSV alternatifi. Şema drift'i ikinci batch'te `cast()` ile yakalanır (silent corruption engellenir). `snappy` compression default.
+- [x] `app/scenarios/timeseries_history.py` — `TimeseriesHistoryParams` (frozen dataclass, post-init validation: `gun_sayisi≥1`, `urun_count≥1`, `batch_size≥1`, `target='rest'` → `NotImplementedError("Faz 4")`). Akış: `UrunFactory(seed)` → `ReferenceTable` → `TalepZamanSerisiFactory.build_series` generator → `_chunk_iter` (sabit boyut) → `FileEmitter`. Dosya adı `talep_gecmis_{baslangic:%Y%m%d}_seed{seed}_u{urun_count}_g{gun_sayisi}.{ext}` (tekrarlanabilir).
+- [x] `ScenarioResult` ortak özet (scenario adı + dosya yolu + metrikler) + `to_dict()` JSON özet için.
+- [x] `tests/test_emitters.py` — 6 test: parquet roundtrip, csv roundtrip, boş batch no-op, summary metrikleri, kapalı emitter'a yazım reddi, şema drift yakalama.
+- [x] `tests/test_scenarios.py` — 8 test: parquet yazımı, deterministik içerik (iki ayrı run aynı), CSV target, default_output_dir akışı, eksik output_dir reddi, `target='rest'` ⇒ NotImplementedError, geçersiz parametreler, dosya adı kodlaması.
 
-**Doğrulama:** `python -m datagen run timeseries_history --count 100 --target file` → `ml_models/talep_tahmin/data/raw/talep_gecmis_*.parquet` üretildi; `pyarrow` ile okunabilir; şema (`tarih`, `urun_kodu`, `miktar`, ...) doğru.
+**Doğrulama (Yapıldı):**
+- ✅ `pytest -m unit` → **34 passed** (Faz 1 + 2 + 3 toplamı).
+- ✅ `ruff check .` → **All checks passed**.
+- ✅ MVP ölçek smoke (CLI yerine doğrudan `asyncio.run`):
+  - `gun_sayisi=30, urun_count=1000, seed=42` → **30.000 satır parquet** üretildi.
+  - **Süre:** 0.38 s. **Dosya:** 67 KB (snappy). **p95 batch latency:** 18.9 ms.
+- ✅ `pyarrow.parquet.read_table` ile dosya geri okundu, 30.000 satır + 7 sütun şema doğrulandı.
+- ✅ Aynı seed iki ayrı koşumda parquet `to_pylist()` byte-by-byte eşit (`test_timeseries_history_deterministic_file_content`).
+
+**Notlar:**
+- `pyarrow 17.0` + `pytest-asyncio 1.3` ortama eklendi (requirements.txt'te zaten tanımlı).
+- `FileEmitter` `async __aenter__/__aexit__` destekli; `close()` writer'ı kapatır, idempotent.
+- Boş batch yazıldığında parquet writer açılmaz; dosya da oluşturulmaz (gereksiz I/O yok).
+- `_chunk_iter` generator boş kuyrukta artık batch yaymaz; bellek O(batch_size) sabit kalır.
+- `target='rest'` şu an explicit `NotImplementedError` (Faz 4 placeholder); test bunu doğrular.
+- `pytest.ini` mevcut `asyncio_mode = auto` direktifi pytest-asyncio yüklü olduktan sonra aktif oldu; async testler doğal sözdiziminde çalışıyor.
 
 ---
 
