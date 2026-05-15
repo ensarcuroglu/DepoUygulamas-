@@ -44,6 +44,7 @@ const MalKabulIrsaliyeleriPage = lazy(() => import('./pages/MalKabulIrsaliyeleri
 const BelgeYuklePage = lazy(() => import('./pages/MalKabul/BelgeYuklePage'));
 const BelgeTaslagiOnizlemePage = lazy(() => import('./pages/MalKabul/BelgeTaslagiOnizlemePage'));
 const BelgeIncelemeKuyruguPage = lazy(() => import('./pages/admin/BelgeIncelemeKuyruguPage'));
+const SentetikVeriPage = lazy(() => import('./pages/admin/SentetikVeriPage'));
 const InboundDashboardPage = lazy(() => import('./pages/InboundDashboardPage'));
 const KpiDashboardPage = lazy(() => import('./pages/KpiDashboardPage'));
 const ZonlarPage = lazy(() => import('./pages/ZonlarPage'));
@@ -146,6 +147,9 @@ function App() {
                     <Route path="/etiket-sablonlari" element={<EtiketSablonlariPage />} />
                     <Route path="/ai-asistan" element={<AiAsistanPage />} />
                     <Route path="/ai-asistan/excel" element={<ExcelAiPage />} />
+                    {import.meta.env.VITE_FEATURE_DATA_GEN_ENABLED === 'true' && (
+                      <Route path="/admin/sentetik-veri" element={<SentetikVeriPage />} />
+                    )}
                   </Route>
 
                   {/* Depo Yönetimi (Admin + Lojistik) */}

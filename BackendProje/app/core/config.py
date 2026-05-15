@@ -147,6 +147,19 @@ class Settings(BaseSettings):
         False,
         alias="FEATURE_EXCEL_AI_ENABLED",
     )
+    data_gen_service_url: str = Field(
+        "http://127.0.0.1:8005",
+        alias="DATA_GEN_SERVICE_URL",
+    )
+    data_gen_service_timeout: float = Field(
+        300.0,
+        alias="DATA_GEN_SERVICE_TIMEOUT",
+        ge=1.0,
+    )
+    feature_data_gen_enabled: bool = Field(
+        False,
+        alias="FEATURE_DATA_GEN_ENABLED",
+    )
 
     internal_api_key: Optional[str] = Field(None, alias="INTERNAL_API_KEY")
 

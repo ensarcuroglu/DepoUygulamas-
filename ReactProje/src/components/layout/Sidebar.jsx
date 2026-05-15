@@ -35,6 +35,7 @@ import {
     Trophy,
     Bot,
     FileSpreadsheet,
+    DatabaseZap,
 } from 'lucide-react';
 
 /* ───────────────────────────────────────────
@@ -131,6 +132,9 @@ const menuGroups = [
             { path: '/depolar', label: 'Depo & Raf', icon: Warehouse, roles: ['admin', 'lojistik'], badge: null },
             { path: '/depo-kroki', label: 'Depo Kroki', icon: LayoutDashboard, roles: ['admin', 'lojistik'], badge: null },
             { path: '/etiket-sablonlari', label: 'Etiket Şablonları', icon: Tag, roles: ['admin'], badge: null },
+            ...(import.meta.env.VITE_FEATURE_DATA_GEN_ENABLED === 'true' ? [
+                { path: '/admin/sentetik-veri', label: 'Sentetik Veri', icon: DatabaseZap, roles: ['admin'], badge: 'Dev' },
+            ] : []),
         ],
     },
 ];

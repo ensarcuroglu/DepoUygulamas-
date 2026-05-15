@@ -103,6 +103,11 @@ export const queryKeys = {
         all: ['excelAi'],
         hedefSemalar: () => ['excelAi', 'hedefSemalar'],
     },
+    dataGen: {
+        all: ['dataGen'],
+        health: () => ['dataGen', 'health'],
+        metadata: () => ['dataGen', 'metadata'],
+    },
     aiAsistan: {
         all: ['aiAsistan'],
         sema: () => ['aiAsistan', 'sema'],

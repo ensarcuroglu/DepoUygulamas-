@@ -63,6 +63,7 @@ from app.api.v1.routers import ( # noqa: E402
     talep_tahmini_router as v1_talep_tahmini_router,
     ai_proxy_router as v1_ai_proxy_router,
     excel_ai_router as v1_excel_ai_router,
+    data_gen_router as v1_data_gen_router,
     operator_performans_router as v1_operator_performans_router,
     agv_callbacks_router as v1_agv_callbacks_router,
 )
@@ -233,6 +234,7 @@ app.include_router(v1_auth_router)
 app.include_router(v1_dashboard_router)
 app.include_router(v1_ai_proxy_router)
 app.include_router(v1_excel_ai_router)
+app.include_router(v1_data_gen_router)
 
 # LMS Faz 2 — Operatör Performans (KPI okuma uçları)
 app.include_router(v1_operator_performans_router)
