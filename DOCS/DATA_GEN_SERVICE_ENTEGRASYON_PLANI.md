@@ -171,16 +171,34 @@ Config'e eklenen alanlar (Faz 1'de):
 
 ---
 
-### Faz 2 — Factory Katmanı
+### Faz 2 — Factory Katmanı ✅
 
 **Hedef:** Pydantic DTO döndüren, deterministik (seed'li), ilişkisel bütünlüklü factory havuzu.
 
-- [ ] `app/factories/base.py` — `BaseFactory` (Faker locale `tr_TR`, seed parametresi).
-- [ ] Referans havuz factory'leri: `UrunFactory`, `RafFactory`.
-- [ ] Bağımlı factory'ler: `PaletFactory`, `LotFactory`, `SiparisFactory`, `YerlestirmeGorevFactory`, `ToplamaGorevFactory`, `TalepZamanSerisiFactory`.
-- [ ] `tests/test_factories.py`: aynı seed → aynı çıktı; Pydantic validasyon; referans bütünlüğü (palet → ürün; lot → palet).
+- [x] `app/factories/base.py` — `BaseFactory[DTO]` jeneriği (Python 3.12+ `Generic[TypeVar]`), `ReferenceTable` (slots'lu, deterministik `pick(rng)`). Factory başına izole `Faker(locale)` + `random.Random(seed)` instance'ı; `build_many` her çağrıda reseed eder.
+- [x] Referans havuz factory'leri: `UrunFactory` (EAN-13 checksum üretimi dahil), `RafFactory` (depo grid'i: `DPO{id}-{koridor}-{kat}-{goz}`).
+- [x] Bağımlı factory'ler: `LotFactory` (urun_pool), `PaletFactory` (lot_pool + raf_pool), `SiparisFactory` (urun_pool, kalem tekrarı engelli), `YerlestirmeGorevFactory` (palet_pool + raf_pool), `ToplamaGorevFactory` (sevkiyat_pool, boşsa deterministik fallback), `TalepZamanSerisiFactory` (mevsimsellik + trend + gürültü + ~%5 promosyon).
+- [x] `app/factories/schemas.py` — Pydantic v2 DTO'lar (`UrunDTO`, `RafDTO`, `LotDTO`, `PaletDTO`, `SiparisDTO`, `SiparisKalemDTO`, `YerlestirmeGoreviDTO`, `ToplamaGoreviDTO`, `TalepGecmisKaydiDTO`). Ortak `_DataGenBase` config: `str_strip_whitespace=True`, `extra="forbid"`. Backend DTO'larıyla alan uyumlu, bağımsız evrim.
+- [x] `tests/test_factories.py` — 18 test, üç eksende kapsam:
+  - **Determinism (5):** aynı seed → aynı çıktı, farklı seed → ayrışma, `build_one(k)` == `build_many(>k)[k]`, ardışık `build_many` çağrılarında state reset, negatif count reddi.
+  - **Pydantic validasyon (3):** geçerli DTO + kısıt kontrolü, geçersiz override (`fiyat<0`) reddi, bilinmeyen alan reddi (`extra="forbid"`).
+  - **Referans bütünlüğü (8):** lot → ürün, palet → lot+raf, sipariş kalemleri unique + havuz içi, yerleştirme görev → palet+raf, toplama görev fallback, talep zaman serisi sayım + determinism + haftanın günü tutarlılığı.
+  - **Soyutlama (1):** `BaseFactory` doğrudan instantiate edilemez.
 
-**Doğrulama:** `pytest -m unit tests/test_factories.py` yeşil; iki ayrı `seed=42` koşusu byte-by-byte aynı.
+**Doğrulama (Yapıldı):**
+- ✅ `pytest -m unit` → **20 passed** (Faz 1 + Faz 2).
+- ✅ `ruff check .` → **All checks passed**.
+- ✅ MVP ölçek smoke (Python REPL):
+  - 1.000 ürün + 300 raf + 2.000 lot + 10.000 palet **deterministik** üretildi.
+  - 30 günlük × 1.000 ürün = 30.000 satır talep zaman serisi **0.34 s** içinde üretildi.
+- ✅ Aynı seed ile iki ayrı koşum `model_dump()` karşılaştırmasında **byte-by-byte aynı**.
+
+**Notlar (tasarım kararları):**
+- `factory-boy` `requirements.txt`'te kaldı (Faz 5+ task_load senaryosunda batch üretimi için kullanılabilir) ama bu fazda dependency-free, type-safe kendi `BaseFactory[DTO]` jeneriğimiz tercih edildi. Global Faker state yok; her factory izole.
+- `build_one(k)` reseed + (k-1) atıldıktan sonra k'ıncı kaydı döndürür → çağrı sırasından bağımsız tutarlılık. `build_many` ise tek seferlik sıralı üretim için optimize.
+- `TalepZamanSerisiFactory.build_series` generator (lazy) — büyük ürün × gün kombinasyonları parquet emitter'a streamlenebilir (Faz 3).
+- `ReferenceTable` `__slots__` ile bellek dostu; FK havuzu olarak `{id: int, **dto_alan}` dict'leri tutar.
+- `extra="forbid"` Pydantic config'i ile şema sapması (typo) test ortamında erkenden yakalanır.
 
 ---
 
