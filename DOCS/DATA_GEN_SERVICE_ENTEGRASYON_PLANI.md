@@ -232,16 +232,33 @@ Config'e eklenen alanlar (Faz 1'de):
 
 ---
 
-### Faz 4 — `rest_emitter` + `seed_baseline`
+### Faz 4 — `rest_emitter` + `seed_baseline` ✅
 
-**Hedef:** Backend'e idempotent, throttle'lı seed verisi basma.
+**Hedef:** Backend'e JWT'li, throttle'lı, retry'lı seed verisi basma.
 
-- [ ] `app/infrastructure/emitters/rest_emitter.py` — HTTPX `AsyncClient`, `Semaphore(CONCURRENCY)`, `BATCH_SIZE` paketleri, `X-Internal-Api-Key`, `Idempotency-Key`, exponential backoff (`0.5s → 1s → 2s → 4s`, max 3 retry).
-- [ ] `app/scenarios/seed_baseline.py` — ürün → raf → palet → lot sırasında REST yayını.
-- [ ] `tests/test_emitters.py::test_rest_emitter_mock` (HTTPX mock transport ile retry + idempotency-key davranışı).
-- [ ] `tests/test_target_matrix.py` — `seed_baseline` yalnız `rest` kabul eder.
+- [x] `app/infrastructure/auth/jwt_client.py` — `JwtAuthClient`: `/api/auth/login` → cache → `exp` claim decode → buffer sürmeden `/api/auth/refresh` rotation. `asyncio.Lock` ile eşzamanlı caller'larda tek login. Refresh fail olursa login fallback.
+- [x] `app/infrastructure/emitters/rest_emitter.py` — `RestEmitter`: endpoint başına instance, paylaşımlı `httpx.AsyncClient` + `asyncio.Semaphore(concurrency)`. Retry politikası: 5xx + network → exponential backoff (`0.5s × 2^n`, ±%20 jitter, max 3), 4xx → tek deneme, 409 + Idempotency-Key → success. Opsiyonel UUID4 `Idempotency-Key` header. `emit_batch_with_responses` extra metodu sıralı response listesi döner.
+- [x] `app/scenarios/seed_baseline.py` — `SeedBaselineParams` (frozen, target zorla `'rest'`). Akış: Raf → Ürün → Lot → Palet (FK sırası). Her aşamada response `id` → `ReferenceTable` → bir sonraki factory bunu kullanır. Önemli FK aşaması boş olursa erken `RuntimeError`.
+- [x] `app/scenarios/target_matrix.py` — Senaryo × target tek doğruluk kaynağı. `validate_target`, `TargetNotAllowedError`, `ALLOWED_TARGETS`, `DEFAULT_TARGET`. Endpoint envanteri §4 ile eşleşir.
+- [x] `tests/test_auth.py` — 6 test (`MockTransport`): cache, refresh trigger, refresh fail → login fallback, login 401, eşzamanlı 10 caller → tek login, eksik credential reddi.
+- [x] `tests/test_rest_emitter.py` — 8 test: happy path + ID dönüşü, 5xx retry success, 4xx tek deneme, retry tükenmesi, Idempotency-Key benzersiz UUID, **concurrency limiti gözlemli (max_seen ≤ 3)**, boş batch no-op, 409+idempotency success.
+- [x] `tests/test_target_matrix.py` — 7 test: 4 senaryonun izin matrisi tek tek doğrulanır + `SeedBaselineParams(target='file')` reddi + default target izinli küme kontrolü.
+- [x] `tests/test_seed_baseline.py` — 3 test: orkestrasyon doğruluğu (4 endpoint × doğru sayı), erken iptal (ürün %100 fail → palet aşaması çağrılmaz, handler assert), kısmi hata akışı (urun_count=6, 2 fail → success=13/15).
 
-**Doğrulama:** `seed_baseline --count=50 --target=rest` → `docker compose logs backend` 50 başarılı insert; aynı seed ile tekrar koş → backend Idempotency-Key sayesinde duplicate üretmez; DB'de sayım eşleşir.
+**Doğrulama (Yapıldı):**
+- ✅ `pytest -m unit` → **58 passed** (Faz 1+2+3+4 toplam).
+- ✅ `ruff check .` → **All checks passed**.
+- ✅ HTTPX `MockTransport` ile JWT login/refresh, retry, idempotency, concurrency, end-to-end orkestrasyon doğrulandı.
+- ⏸️ Canlı backend smoke (`docker compose up backend` + `seed_baseline --count=50 --target=rest`) **Faz 7'de CLI bağlanınca** yapılacak (envanter §0 kararı gereği önce CLI bağlantısı netleşmeli).
+
+**Notlar (tasarım kararları):**
+- **JWT yolu (Faz 0 kararı A):** `INTERNAL_API_KEY` config'ten kaldırılmıştı; auth artık `DATAGEN_ADMIN_USERNAME` + `DATAGEN_ADMIN_PASSWORD` üzerinden.
+- **Tek emitter / tek endpoint** deseni — `RestEmitter("/api/raflar/")`, `RestEmitter("/api/urunler/")` ayrı instance'lar; ortak `Semaphore` ile global concurrency limiti.
+- **ID akışı** — `emit_batch_with_responses` Protocol dışı extra metot (Protocol'ün uniform arayüzünü kirletmemek için). Senaryo response'lardan `id` alanını okuyup `ReferenceTable`'a aktarır; sıralı boş slot'lar (hatalı istekler) atlanır.
+- **Idempotency-Key**: Faz 0 envanteri §1.1'e göre `/api/raflar/`, `/api/urunler/`, `/api/lotlar/`, `/api/paletler/` CRUD uçları backend tarafında bu header'ı **desteklemez**. `seed_baseline` re-run senaryosunda duplicate barkod/kod 422'leri beklenir → `failed` sayar, akış devam eder. Header desteği eklenirse (`SeedBaselineParams.idempotency=True`) doğal olarak çalışacak.
+- **Backend seed ön koşulu:** `seed_baseline` çalışırken backend'de zaten kategori/marka/tedarikçi/depo/zon mevcut olduğu varsayılır (`BackendProje/seed.py` veya `dev_seed_minimal.sql`). MVP kapsamında DataGen bu beş tabloyu basmaz.
+- **Jitter (±%20):** Thundering herd'i azaltır; aynı saniyede yüzlerce istek bir 503 alırsa hep birlikte aynı backoff'a takılmaz.
+- **Concurrency limit testi:** `inflight` sayacı handler içinde tutuluyor; gerçek concurrency 3'ü aşmıyor — `Semaphore(3)` doğrulandı.
 
 ---
 
