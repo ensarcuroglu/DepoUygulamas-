@@ -167,7 +167,7 @@ Config'e eklenen alanlar (Faz 1'de):
 **Notlar:**
 - `DataGenService/__init__.py`, `app/__init__.py`, `app/core/__init__.py`, `app/api/__init__.py`, `app/api/routers/__init__.py`, `tests/__init__.py` boş paket dosyaları eklendi.
 - `tests/conftest.py` her testte `DATA_GEN_ENV_FILE=/dev/null` ayarı ile `.env` etkisini izole eder ve `get_settings.cache_clear()` çağırır.
-- `requirements.txt`: FastAPI 0.115, pydantic 2.9, typer 0.12, httpx 0.27, aio-pika 9.4, faker 30.1, mimesis 18.0, factory-boy 3.3, pandas 2.2, pyarrow 17.0. `requirements-test.txt` ek olarak pytest + pytest-asyncio + respx.
+- `requirements.txt`: FastAPI 0.115, pydantic 2.9, typer 0.12, click 8.1, httpx 0.27, aio-pika 9.4, faker 30.1, mimesis 18.0, factory-boy 3.3, pandas 2.2, pyarrow 17.0. `requirements-test.txt` ek olarak pytest + pytest-asyncio + respx.
 
 ---
 
@@ -330,17 +330,26 @@ Config'e eklenen alanlar (Faz 1'de):
 
 ---
 
-### Faz 7 — API + CLI Konsolidasyonu
+### Faz 7 — API + CLI Konsolidasyonu ✅
 
 **Hedef:** Tüm senaryoları tek arayüzden çağırılabilir hale getir.
 
-- [ ] `main.py`'a `POST /scenarios/{name}/run` body `{count, seed, target, batch_size, concurrency}`.
-- [ ] İzinsiz target → `422 Unprocessable Entity` (matrise göre).
-- [ ] Typer: `python -m datagen run <scenario> --count … --seed … --target … --batch-size … --concurrency …`.
-- [ ] Çalışma sonunda JSON özet (toplam, başarı, hata, süre, p95 latency).
-- [ ] `tests/test_api.py` + `tests/test_cli.py`.
+- [x] `main.py`'a `POST /scenarios/{name}/run` body `{count, seed, target, batch_size, concurrency}`.
+- [x] İzinsiz target → `422 Unprocessable Entity` (matrise göre).
+- [x] Typer: `python -m datagen run <scenario> --count … --seed … --target … --batch-size … --concurrency …`.
+- [x] Çalışma sonunda JSON özet (toplam, başarı, hata, süre, p95 latency).
+- [x] `tests/test_api.py` + `tests/test_cli.py`.
 
-**Doğrulama:** Her 4 senaryo hem API hem CLI üzerinden çalışır; izinsiz target reddedilir; özet JSON şemasına uygun.
+**Doğrulama (Yapıldı):**
+- ✅ `pytest -m unit` → **93 passed**.
+- ✅ `ruff check .` → **All checks passed**.
+- ✅ API route testleri: 4 senaryo ortak runner üzerinden çağrılır, izinsiz target `422` döner, `timeseries_history` küçük parquet çıktısı üretir.
+- ✅ CLI testleri: 4 senaryo `run` komutu üzerinden JSON özet döndürür, izinsiz target exit code `2` ile reddedilir, `python -m datagen` entrypoint'i çalışır.
+
+**Notlar:**
+- `app/scenarios/runner.py` API ve CLI için tek parametre normalizasyon katmanı oldu.
+- `count` semantiği: `task_load` / `agv_traffic` doğrudan kayıt sayısı, `timeseries_history` ürün sayısı, `seed_baseline` toplam seed ölçeği (raf/ürün/lot/palet default oranlarına bölünür).
+- Typer 0.12.5 için Click 8.3 uyumsuzluğu görüldü; `requirements.txt` içine `click==8.1.7` pin'i eklendi.
 
 ---
 

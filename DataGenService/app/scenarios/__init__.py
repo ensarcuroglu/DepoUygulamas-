@@ -6,6 +6,7 @@ from .target_matrix import (
     TargetNotAllowedError,
     validate_target,
 )
+from .runner import ScenarioRunRequest, run_scenario, run_scenario_sync
 from .task_load import TaskLoadParams, run_task_load
 from .timeseries_history import (
     ScenarioResult,
@@ -27,4 +28,7 @@ __all__ = [
     "DEFAULT_TARGET",
     "TargetNotAllowedError",
     "validate_target",
+    "ScenarioRunRequest",
+    "run_scenario",
+    "run_scenario_sync",
 ]

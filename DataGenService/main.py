@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api.routers import healthz_router
+from app.api.routers import healthz_router, scenarios_router
 from app.core.config import get_settings
 
 logging.basicConfig(
@@ -46,3 +46,4 @@ app = FastAPI(
 )
 
 app.include_router(healthz_router)
+app.include_router(scenarios_router)

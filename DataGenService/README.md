@@ -15,7 +15,7 @@ pip install -r requirements-test.txt
 uvicorn main:app --reload --host 127.0.0.1 --port 8005
 
 # CLI
-python -m cli --help
+python -m datagen --help
 
 # Testler
 pytest -m unit
@@ -53,10 +53,10 @@ curl http://localhost:8005/healthz
 
 - [x] Faz 0 — Discovery
 - [x] Faz 1 — Servis iskeleti
-- [ ] Faz 2 — Factory katmanı
-- [ ] Faz 3 — file_emitter + timeseries_history
-- [ ] Faz 4 — rest_emitter + seed_baseline
-- [ ] Faz 5 — rabbit_emitter + task_load
-- [ ] Faz 6 — agv_traffic
-- [ ] Faz 7 — API + CLI konsolidasyonu
+- [x] Faz 2 — Factory katmanı
+- [x] Faz 3 — file_emitter + timeseries_history
+- [x] Faz 4 — rest_emitter + seed_baseline
+- [x] Faz 5 — rabbit_emitter + task_load
+- [x] Faz 6 — agv_traffic
+- [x] Faz 7 — API + CLI konsolidasyonu
 - [ ] Faz 8 — Compose + docs + commit
