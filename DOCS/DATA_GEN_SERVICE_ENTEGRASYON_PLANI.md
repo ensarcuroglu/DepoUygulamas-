@@ -353,17 +353,26 @@ Config'e eklenen alanlar (Faz 1'de):
 
 ---
 
-### Faz 8 — Compose Entegrasyonu & Docs
+### Faz 8 — Compose Entegrasyonu & Docs ✅
 
 **Hedef:** Servisin dev stack'e dahil edilmesi ve dokümantasyon.
 
-- [ ] `compose.yml`'a `data-gen` servisi (port 8005, `depends_on: [backend, rabbitmq]`, `INTERNAL_API_KEY` paylaşımı).
-- [ ] `infra/env/dev.env`'e `DATA_GEN_*` değişkenleri.
-- [ ] `CLAUDE.md`: Main Directories, Common Commands, Important Notes (port 8005) güncelle.
-- [ ] `docs/agent/data-gen-service.md` runbook: senaryo katalogu, target matrisi, hacim/throttle ayarları, AGV-Backend-only kuralı, ML dosya çıktı şeması, sorun giderme.
-- [ ] Dar bir commit; PR'de "Test plan" Faz başına smoke listesi.
+- [x] `compose.yml`'a `data-gen` servisi eklendi (port 8005, `depends_on: backend + rabbitmq`). Faz 0 kararı gereği CRUD akışı `INTERNAL_API_KEY` değil JWT (`DATAGEN_ADMIN_USERNAME` / `DATAGEN_ADMIN_PASSWORD`) kullanır.
+- [x] `infra/env/dev.env`'e DataGenService değişkenleri eklendi (`BACKEND_BASE_URL`, `DATAGEN_ADMIN_USERNAME`, `DATAGEN_ADMIN_PASSWORD`, throttle/file/RabbitMQ ayarları).
+- [x] `CLAUDE.md`: Main Directories, Common Commands, Important Notes (port 8005) güncellendi.
+- [x] `DOCS/agent/data-gen-service.md` runbook: senaryo katalogu, target matrisi, hacim/throttle ayarları, AGV-Backend-only kuralı, ML dosya çıktı şeması, sorun giderme.
+- [x] Genel `README.md`, `DOCS/agent/env-reference.md`, `DOCS/agent/docker-compose.md` ve `DOCS/agent/ai-services.md` güncellendi.
+- [ ] Dar commit kullanıcıya bırakıldı (bu oturumda commit istenmedi).
 
-**Doğrulama:** `docker compose up -d data-gen` ayakta; `curl -H "X-Internal-Api-Key: …" :8005/healthz` 200; `CLAUDE.md` ve `docs/agent/data-gen-service.md` güncel; commit dar, alakasız refactor yok.
+**Doğrulama (Yapıldı):**
+- ✅ `docker compose config --quiet`
+- ✅ `cd DataGenService && pytest -m unit` → **93 passed**
+- ✅ `cd DataGenService && ruff check .` → **All checks passed**
+
+**Canlı smoke (opsiyonel):**
+- `docker compose up -d data-gen`
+- `curl http://localhost:8005/healthz` → `{"status":"ok","service":"data-gen"}`
+- `docker compose exec data-gen python -m datagen run timeseries_history --count 5 --target file`
 
 ## Doğrulama Özeti
 

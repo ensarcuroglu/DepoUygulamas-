@@ -16,6 +16,7 @@ docker compose ps
 docker compose logs -f backend
 docker compose logs -f doc-ai
 docker compose logs -f excel-ai
+docker compose logs -f data-gen
 
 # Dockerfile lint (Hadolint)
 powershell -ExecutionPolicy Bypass -File scripts/lint-docker.ps1
@@ -48,6 +49,7 @@ VHDX boyutunu hizla buyutebilir.
 - AGV: `http://localhost:8002/healthz`
 - Doc AI: `http://localhost:8003/healthz`
 - Excel AI: `http://localhost:8004/healthz`
+- DataGenService: `http://localhost:8005/healthz`
 - RabbitMQ Management: `http://localhost:15672` (`guest`/`guest`)
 
 ## RabbitMQ + Backend-Worker
@@ -55,6 +57,13 @@ VHDX boyutunu hizla buyutebilir.
 - `rabbitmq` servisi `rabbitmq:3-management` imajını kullanır; AMQP 5672, Mgmt UI 15672. Volume: `rabbitmq_data`.
 - `backend-worker` servisi backend ile aynı image'ı kullanır; entry: `python -m app.infrastructure.messaging.operator_performans_consumer`. `RABBITMQ_ENABLED=false` iken boş döngüde bekler (`restart: unless-stopped` ile container ayakta kalır).
 - Runtime mode değişikliği: `infra/env/dev.env` içindeki `RABBITMQ_ENABLED` güncelle, ardından `docker compose up -d backend backend-worker` ile recreate. Detay: `docs/agent/rabbitmq-operations.md`.
+
+## DataGenService
+
+- `data-gen` servisi `DataGenService/` klasorunu port `8005` uzerinden calistirir.
+- REST senaryolari Backend'e JWT ile login olur (`DATAGEN_ADMIN_USERNAME`, `DATAGEN_ADMIN_PASSWORD`); CRUD uclarinda `X-Internal-Api-Key` kullanilmaz.
+- `timeseries_history --target=file` ciktilari bind mount sayesinde `ml_models/talep_tahmin/data/raw/` altina yazilir.
+- Runbook: `DOCS/agent/data-gen-service.md`.
 
 ## Kurallar ve Gotchas
 

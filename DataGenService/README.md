@@ -21,6 +21,13 @@ python -m datagen --help
 pytest -m unit
 ```
 
+Compose içinden:
+
+```bash
+docker compose up -d data-gen
+docker compose exec data-gen python -m datagen run timeseries_history --count 10 --target file
+```
+
 ## Sağlık Kontrolü
 
 ```bash
@@ -44,6 +51,8 @@ curl http://localhost:8005/healthz
 | `OUTPUT_DIR` | `../ml_models/talep_tahmin/data/raw` | Dosya çıktı dizini |
 | `BATCH_SIZE` | `500` | REST batch boyutu |
 | `CONCURRENCY` | `10` | `asyncio.Semaphore` limiti |
+
+Detaylı runbook: `DOCS/agent/data-gen-service.md`.
 
 ## Port
 

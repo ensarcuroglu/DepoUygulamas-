@@ -1,6 +1,8 @@
 # AI ve Yardımcı Servisler
 
-Dört bağımsız mikroservis: WmsAiService (doğal dil → SQL), DocAiService (belge AI), ExcelAiService (Excel yorumlama + WMS şema eşleme), AgvSimService (AGV/AMR simülasyon).
+Bağımsız yardımcı servisler: WmsAiService (doğal dil → SQL), DocAiService (belge AI), ExcelAiService (Excel yorumlama + WMS şema eşleme), AgvSimService (AGV/AMR simülasyon) ve DataGenService (sentetik veri üretimi).
+
+DataGenService ayrıntıları ayrı runbook'tadır: `DOCS/agent/data-gen-service.md`.
 
 ---
 

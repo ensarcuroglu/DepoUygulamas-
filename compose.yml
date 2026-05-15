@@ -216,6 +216,29 @@ services:
       --reload-exclude .venv --reload-exclude .venv/*
       --host 0.0.0.0 --port 8004
 
+  data-gen:
+    <<: *python-common
+    image: depo-dev-data-gen:dev
+    build:
+      <<: *python-build
+      args:
+        SERVICE_DIR: DataGenService
+    working_dir: /workspace/DataGenService
+    depends_on:
+      backend:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8005:8005"
+    command: >
+      uvicorn main:app --reload
+      --reload-exclude .pytest_cache --reload-exclude .pytest_cache/*
+      --reload-exclude __pycache__ --reload-exclude __pycache__/*
+      --reload-exclude venv --reload-exclude venv/*
+      --reload-exclude .venv --reload-exclude .venv/*
+      --host 0.0.0.0 --port 8005
+
   frontend:
     image: depo-dev-frontend:dev
     build:

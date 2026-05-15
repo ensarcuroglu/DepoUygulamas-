@@ -106,6 +106,27 @@ Tüm servis env'leri. CLAUDE.md, bu dosyaya işaret eder.
 - `IDEMPOTENCY_MAX_ENTRIES` (def `256`)
 - `CORS_ALLOW_ORIGINS` (def `https://localhost:5173`)
 
+## DataGenService (`DataGenService/.env`)
+
+Sentetik veri uretici servisidir; DB'ye dogrudan yazmaz.
+
+**REST hedefleri icin zorunlu:**
+- `BACKEND_BASE_URL` — Backend FastAPI tabani (compose: `http://backend:8000`, local: `http://127.0.0.1:8000`).
+- `DATAGEN_ADMIN_USERNAME` — Backend login kullanicisi (dev seed: `admin`).
+- `DATAGEN_ADMIN_PASSWORD` — Backend login sifresi (dev seed: `admin123`).
+
+**Opsiyonel:**
+- `JWT_REFRESH_BUFFER_SEC` (def `60`) — token bitmeden refresh tamponu.
+- `RABBITMQ_URL` (compose: `amqp://guest:guest@rabbitmq:5672/`) — `task_load --target=rabbit` icin.
+- `RABBITMQ_EXCHANGE` (def `depo.events`).
+- `DEFAULT_SEED` (def `42`).
+- `LOCALE` (def `tr_TR`).
+- `OUTPUT_DIR` (compose: `/workspace/ml_models/talep_tahmin/data/raw`) — `timeseries_history --target=file` cikti dizini.
+- `BATCH_SIZE` (def `500`).
+- `CONCURRENCY` (def `10`).
+- `HTTP_TIMEOUT_SEC` (def `30`).
+- `HTTP_MAX_RETRIES` (def `3`).
+
 ## ReactProje (`ReactProje/.env.local`)
 
 İsteğe bağlı.

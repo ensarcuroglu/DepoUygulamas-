@@ -1,8 +1,8 @@
 # Depo Yönetim Sistemi (WMS)
 
-Lot ve palet takibi, putaway/pick görev akışları, üretim paleti kabulü, mobil terminal PWA, AGV/AMR simülasyonu, belge AI, Excel AI ve operatör performansı (LMS) modülünü bir araya getiren full-stack depo yönetim sistemi.
+Lot ve palet takibi, putaway/pick görev akışları, üretim paleti kabulü, mobil terminal PWA, AGV/AMR simülasyonu, belge AI, Excel AI, sentetik veri üretimi ve operatör performansı (LMS) modülünü bir araya getiren full-stack depo yönetim sistemi.
 
-Proje tek repoda çalışan bir geliştirme stack'i sunar: **FastAPI** ana backend, **React 19 + Vite 7** frontend, **MySQL 8.4**, **RabbitMQ**, **WmsAiService**, **DocAiService**, **ExcelAiService** ve **AgvSimService**. Yerel geliştirme için önerilen giriş noktası `compose.yml` içindeki **Docker Compose** stack'idir.
+Proje tek repoda çalışan bir geliştirme stack'i sunar: **FastAPI** ana backend, **React 19 + Vite 7** frontend, **MySQL 8.4**, **RabbitMQ**, **WmsAiService**, **DocAiService**, **ExcelAiService**, **AgvSimService** ve **DataGenService**. Yerel geliştirme için önerilen giriş noktası `compose.yml` içindeki **Docker Compose** stack'idir.
 
 ## İçindekiler
 
@@ -34,6 +34,7 @@ Proje tek repoda çalışan bir geliştirme stack'i sunar: **FastAPI** ana backe
 - **Doc AI:** İrsaliye PDF/görüntü belgelerinden taslak JSON çıkarır; veritabanına yazmaz.
 - **Excel AI:** Yüklenen Excel/CSV dosyalarını pandas + LangChain agent ile doğal dilde yorumlar ve sütunları WMS hedef şemalarına eşler; veritabanına yazmaz.
 - **AGV/AMR simülasyonu:** In-memory dünya, pathfinding, WebSocket snapshot/delta akışı ve 3D izleme UI'ı.
+- **Sentetik veri üretimi:** DataGenService; Backend REST, RabbitMQ veya ML dosya çıktısı üzerinden deterministik test verisi üretir.
 - **Talep tahmin çalışma alanı:** `ml_models/` altında ürün bazlı 7/30/90 günlük talep tahmini deneyleri ve entegrasyon sözleşmeleri tutulur.
 
 ## Teknoloji Stack'i
@@ -50,6 +51,7 @@ Proje tek repoda çalışan bir geliştirme stack'i sunar: **FastAPI** ana backe
 | Excel işleme | pandas, openpyxl, langchain-experimental pandas DataFrame agent |
 | ML deneyleri | pandas, scikit-learn, pydantic |
 | Mesajlaşma | RabbitMQ 3 Management, pika |
+| Sentetik veri | FastAPI, Typer, Faker, Pydantic, HTTPX, aio-pika, pyarrow |
 | Test/Kalite | pytest, factory-boy, pytest-cov, ruff, pyright basic, ESLint 9 |
 | Yerel çalışma | Docker Compose, Python service image, frontend dev image |
 
@@ -141,6 +143,7 @@ docker compose up -d
 | AGV Sim | `agv-sim` | http://localhost:8002/healthz | In-memory simülasyon |
 | Doc AI | `doc-ai` | http://localhost:8003/healthz | İrsaliye çıkarımı |
 | Excel AI | `excel-ai` | http://localhost:8004/healthz | Excel yorumlama + şema eşleme |
+| DataGenService | `data-gen` | http://localhost:8005/healthz | Sentetik veri üretici + CLI |
 | RabbitMQ AMQP | `rabbitmq` | localhost:5672 | LMS event hattı |
 | RabbitMQ UI | `rabbitmq` | http://localhost:15672 | `guest` / `guest` |
 | MySQL | `mysql` | localhost:3307 | Container içinde 3306 |
@@ -156,6 +159,7 @@ docker compose up -d
 |-- DocAiService/        İrsaliye PDF/görüntü çıkarımı, DB'ye yazmaz
 |-- ExcelAiService/      Excel/CSV yorumlama + WMS şema eşleme, DB'ye yazmaz
 |-- AgvSimService/       AGV/AMR simülasyonu, WebSocket snapshot/delta
+|-- DataGenService/      Sentetik WMS veri üretici servis + CLI
 |-- ml_models/           Talep tahmin modeli ve ML deney alanı
 |-- DOCS/agent/          Geliştirici ve AI ajan dokümantasyonu
 |-- DOCS/rag/            Operatöre dönen RAG bilgi tabanı
@@ -197,6 +201,7 @@ Bu dosya sadece geliştirme kolaylığı içindir. Production veya paylaşılan 
 | Doc AI | `OLLAMA_TEXT_MODEL`, `OLLAMA_VLM_MODEL` | Text PDF ve VLM modeli |
 | Excel AI | `OLLAMA_TEXT_MODEL`, `MAX_FILE_SIZE_MB`, `MAX_ROWS`, `MAX_SHEETS` | Pandas agent modeli ve dosya/satır limitleri |
 | AGV | `WMS_BASE_URL`, `TICK_HZ`, `GRID_JSON_PATH` | Simülasyon ve WMS callback ayarları |
+| DataGenService | `BACKEND_BASE_URL`, `DATAGEN_ADMIN_USERNAME`, `DATAGEN_ADMIN_PASSWORD`, `OUTPUT_DIR` | JWT login, REST/Rabbit/file hedefleri ve ML dosya çıktısı |
 
 Tam referans için [DOCS/agent/env-reference.md](DOCS/agent/env-reference.md) dosyasını kullanın.
 
@@ -317,6 +322,22 @@ Health check:
 
 ```bash
 curl -H "X-Internal-Api-Key: <key>" http://127.0.0.1:8004/healthz
+```
+
+### DataGenService
+
+```bash
+cd DataGenService
+pip install -r requirements.txt
+pip install -r requirements-test.txt
+uvicorn main:app --reload --host 127.0.0.1 --port 8005
+python -m datagen run timeseries_history --count 10 --target file
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8005/healthz
 ```
 
 ## Mimari Özet
@@ -444,6 +465,14 @@ Detaylı plan ve mimari kararlar: [DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md](D
 
 AgvSimService tek süreç çalışan in-memory bir simülasyon servisidir. Replica veya multiple worker kullanılmamalıdır. Backend görevleri HTTP push ile gönderir; AGV servis tamamlanma bilgisini backend callback endpoint'lerine döner. Frontend canlı izleme için `/ws/agv` WebSocket akışını kullanır.
 
+### DataGenService
+
+DataGenService WMS testleri, yük denemeleri ve talep tahmin modeli eğitim verisi için sentetik veri üretir. DB'ye doğrudan yazmaz; REST hedeflerinde Backend'e JWT ile login olur, RabbitMQ hedefinde `depo.events` exchange'ine yayın yapar, file hedefinde `ml_models/talep_tahmin/data/raw/` altına parquet/CSV üretir.
+
+Ana senaryolar: `seed_baseline`, `task_load`, `timeseries_history`, `agv_traffic`. AGV trafik senaryosu yalnız Backend yerleştirme uçlarına çağrı yapar; AgvSimService'e doğrudan istek atmaz.
+
+Runbook: [DOCS/agent/data-gen-service.md](DOCS/agent/data-gen-service.md).
+
 ### ml_models
 
 `ml_models/` klasörü backend akışını bozmadan ML denemeleri yapmak için ayrılmıştır. Şu an ana çalışma alanı `ml_models/talep_tahmin/` dizinidir. Hedef, ürün bazlı günlük talep serilerinden 7/30/90 günlük tahmin, stok riski, önerilen ikmal miktarı, veri yeterliliği ve güven skoru üretebilen bağımsız bir altyapı hazırlamaktır.
@@ -466,6 +495,7 @@ Bu alan FastAPI backend'i doğrudan değiştirmez. Üretime alınacak mantık ne
 | Doc AI test | `cd DocAiService && pytest` | Extraction ve confidence testleri |
 | Excel AI test | `cd ExcelAiService && pytest` | Loader, sema matcher, idempotency, router (Ollama mocked) |
 | AGV test | `cd AgvSimService && pytest` | DB gerekmez |
+| DataGenService test | `cd DataGenService && pytest -m unit` | Factory, emitter, API ve CLI testleri |
 | RAG kalite | `cd WmsAiService && pytest tests/test_rag_retrieval_quality.py -v -s` | Doküman değişikliği sonrası |
 
 Backend testlerinde test veritabanı adı `depo_db_test` olmalıdır. Güvenlik kontrolü `test` içermeyen DB adlarında hata verir.
@@ -624,6 +654,15 @@ docker compose exec rabbitmq rabbitmqctl list_queues name messages
 - `docker compose ps excel-ai` ile servis ayakta ve `curl -H "X-Internal-Api-Key: <key>" http://localhost:8004/healthz` 200 dönüyor mu.
 - Excel AI agent için Ollama'da `qwen2.5-coder:7b` modeli mevcut mu (`ollama list`).
 
+### DataGenService senaryosu çalışmıyor
+
+**Kontrol edin:**
+
+- `docker compose ps data-gen backend rabbitmq` ile servisler ayakta mı.
+- REST senaryoları için dev admin kullanıcısı mevcut mu (`admin/admin123`, `backend-init` logları).
+- İzinsiz target kullanıldıysa API `422`, CLI exit code `2` döner; target matrisi için [DOCS/agent/data-gen-service.md](DOCS/agent/data-gen-service.md).
+- Dosya çıktısı bekleniyorsa JSON `output_path` alanını ve `ml_models/talep_tahmin/data/raw/` klasörünü kontrol edin.
+
 ### WMS AI cevap vermiyor veya model timeout alıyor
 
 **Kontrol edin:**
@@ -664,6 +703,7 @@ docker compose up -d frontend
 | [DOCS/agent/backend-notes.md](DOCS/agent/backend-notes.md) | Backend komutları, migration, test ve Clean Architecture kuralları |
 | [DOCS/agent/frontend-notes.md](DOCS/agent/frontend-notes.md) | Frontend kuralları, PWA, Vite ve AGV UI notları |
 | [DOCS/agent/ai-services.md](DOCS/agent/ai-services.md) | WmsAiService, DocAiService, ExcelAiService, AgvSimService ve RAG süreçleri |
+| [DOCS/agent/data-gen-service.md](DOCS/agent/data-gen-service.md) | DataGenService senaryo katalogu, target matrisi, compose ve sorun giderme |
 | [DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md](DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md) | ExcelAiService entegrasyon planı ve mimari kararlar |
 | [DOCS/agent/env-reference.md](DOCS/agent/env-reference.md) | Tüm servis ortam değişkenleri |
 | [DOCS/agent/rabbitmq-operations.md](DOCS/agent/rabbitmq-operations.md) | RabbitMQ event hattı, DLQ ve rollback runbook'u |
@@ -674,6 +714,7 @@ docker compose up -d frontend
 - [DocAiService/README.md](DocAiService/README.md)
 - [ExcelAiService/README.md](ExcelAiService/README.md)
 - [AgvSimService/README.md](AgvSimService/README.md)
+- [DataGenService/README.md](DataGenService/README.md)
 - [ml_models/README.md](ml_models/README.md)
 - [ml_models/talep_tahmin/README.md](ml_models/talep_tahmin/README.md)
 

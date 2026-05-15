@@ -4,7 +4,7 @@ AI coding agent için operasyonel referans. Detaylı dokümanlar `docs/agent/` a
 
 ## Project Summary
 
-**Depo Yönetim Sistemi (WMS)** — Lot/palet takibi, putaway/pick görev akışları, üretim paleti kabul, mobil terminal PWA ve operatör performans (LMS) modülü içeren full-stack uygulama. FastAPI backend (Clean Architecture) + React/Vite frontend + Docker Compose dev stack + MySQL + üç bağımsız mikroservis (WmsAiService, DocAiService, AgvSimService).
+**Depo Yönetim Sistemi (WMS)** — Lot/palet takibi, putaway/pick görev akışları, üretim paleti kabul, mobil terminal PWA ve operatör performans (LMS) modülü içeren full-stack uygulama. FastAPI backend (Clean Architecture) + React/Vite frontend + Docker Compose dev stack + MySQL + bağımsız mikroservisler (WmsAiService, DocAiService, ExcelAiService, AgvSimService, DataGenService).
 
 ## Main Directories
 
@@ -14,6 +14,7 @@ AI coding agent için operasyonel referans. Detaylı dokümanlar `docs/agent/` a
 - `DocAiService/` — Belge AI mikroservisi (text PDF + VLM); irsaliye taslağı çıkarır, DB yazmaz.
 - `ExcelAiService/` — AI destekli Excel yorumlama mikroservisi; pandas + LangChain `create_pandas_dataframe_agent` + Ollama, WMS hedef şemalarına sütun eşleme önerisi üretir. DB yazmaz.
 - `AgvSimService/` — AGV/AMR simülasyonu (in-memory world, asyncio tick loop, A*/CA*).
+- `DataGenService/` — Sentetik WMS veri üretici mikroservisi + Typer CLI; Backend REST API, RabbitMQ veya ML dosya çıktısına veri üretir. DB'ye doğrudan yazmaz.
 - `backend-worker` (compose servisi) — `python -m app.infrastructure.messaging.operator_performans_consumer`; `RABBITMQ_ENABLED=true` iken LMS event'lerini queue'dan tüketir. `false` iken boş döngüde bekler.
 
 ## Common Commands
@@ -83,6 +84,16 @@ pytest
 pytest -m unit
 ```
 
+### DataGenService
+
+```bash
+cd DataGenService
+uvicorn main:app --reload --host 127.0.0.1 --port 8005
+python -m datagen --help
+python -m datagen run timeseries_history --count 10 --target file
+pytest -m unit
+```
+
 ### RabbitMQ (LMS event hatti)
 
 ```bash
@@ -132,6 +143,7 @@ cd BackendProje && pytest -m rabbitmq
 - AgvSimService port: **8002**
 - DocAiService port: **8003**
 - ExcelAiService port: **8004**
+- DataGenService port: **8005**
 - RabbitMQ AMQP: **5672** / Management UI: `http://localhost:15672` (`guest`/`guest`)
 - Docker Compose project name: `depo-dev`
 - Proje yolu ASCII olmalı: `D:\Ensar Dosya\DepoUygulamasi`
@@ -154,6 +166,7 @@ cd BackendProje && pytest -m rabbitmq
 - Backend detayları: `docs/agent/backend-notes.md`
 - Frontend detayları: `docs/agent/frontend-notes.md`
 - AI servis detayları: `docs/agent/ai-services.md`
+- DataGenService runbook: `DOCS/agent/data-gen-service.md`
 - Excel AI entegrasyon planı: `DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md`
 - Ortam değişkenleri: `docs/agent/env-reference.md`
 - RabbitMQ operasyon ve runbook: `docs/agent/rabbitmq-operations.md`
