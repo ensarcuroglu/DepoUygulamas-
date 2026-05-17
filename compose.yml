@@ -3,6 +3,8 @@ name: depo-dev
 x-python-common: &python-common
   env_file:
     - ./infra/env/dev.env
+    - path: ./infra/env/langfuse.local
+      required: false
   extra_hosts:
     - "host.docker.internal:host-gateway"
   volumes:

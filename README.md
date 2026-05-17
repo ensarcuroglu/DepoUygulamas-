@@ -200,10 +200,33 @@ Bu dosya sadece geliştirme kolaylığı içindir. Production veya paylaşılan 
 | WMS AI | `RAG_TOP_K`, `RAG_STRICT_DISTANCE` | RAG retrieval davranışı |
 | Doc AI | `OLLAMA_TEXT_MODEL`, `OLLAMA_VLM_MODEL` | Text PDF ve VLM modeli |
 | Excel AI | `OLLAMA_TEXT_MODEL`, `MAX_FILE_SIZE_MB`, `MAX_ROWS`, `MAX_SHEETS` | Pandas agent modeli ve dosya/satır limitleri |
+| AI servisleri | `LANGFUSE_TRACING_ENABLED`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL` | Opsiyonel Langfuse Cloud tracing |
 | AGV | `WMS_BASE_URL`, `TICK_HZ`, `GRID_JSON_PATH` | Simülasyon ve WMS callback ayarları |
 | DataGenService | `BACKEND_BASE_URL`, `DATAGEN_ADMIN_USERNAME`, `DATAGEN_ADMIN_PASSWORD`, `OUTPUT_DIR` | JWT login, REST/Rabbit/file hedefleri ve ML dosya çıktısı |
 
 Tam referans için [DOCS/agent/env-reference.md](DOCS/agent/env-reference.md) dosyasını kullanın.
+
+### Langfuse Cloud (opsiyonel)
+
+WmsAiService, DocAiService ve ExcelAiService icin Langfuse Cloud tracing entegre edilmistir. Secret degerleri tracked `infra/env/dev.env` icine yazilmaz; local kullanimda `infra/env/langfuse.local.example` dosyasini `infra/env/langfuse.local` olarak kopyalayin.
+
+```text
+LANGFUSE_TRACING_ENABLED=true
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_TRACING_ENVIRONMENT=development
+LANGFUSE_SAMPLE_RATE=1.0
+LANGFUSE_CAPTURE_PAYLOADS=false
+```
+
+US region projesi icin `LANGFUSE_BASE_URL=https://us.cloud.langfuse.com` kullanin. Degisiklikten sonra AI servislerini yenileyin:
+
+```bash
+docker compose up -d --build wms-ai doc-ai excel-ai
+```
+
+Ayrintili plan: [DOCS/LANGFUSE_AI_OBSERVABILITY_PLANI.md](DOCS/LANGFUSE_AI_OBSERVABILITY_PLANI.md).
 
 ### Ollama
 
@@ -705,6 +728,7 @@ docker compose up -d frontend
 | [DOCS/agent/ai-services.md](DOCS/agent/ai-services.md) | WmsAiService, DocAiService, ExcelAiService, AgvSimService ve RAG süreçleri |
 | [DOCS/agent/data-gen-service.md](DOCS/agent/data-gen-service.md) | DataGenService senaryo katalogu, target matrisi, compose ve sorun giderme |
 | [DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md](DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md) | ExcelAiService entegrasyon planı ve mimari kararlar |
+| [DOCS/LANGFUSE_AI_OBSERVABILITY_PLANI.md](DOCS/LANGFUSE_AI_OBSERVABILITY_PLANI.md) | Langfuse Cloud observability entegrasyon plani |
 | [DOCS/agent/env-reference.md](DOCS/agent/env-reference.md) | Tüm servis ortam değişkenleri |
 | [DOCS/agent/rabbitmq-operations.md](DOCS/agent/rabbitmq-operations.md) | RabbitMQ event hattı, DLQ ve rollback runbook'u |
 

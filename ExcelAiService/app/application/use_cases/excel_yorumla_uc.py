@@ -16,6 +16,12 @@ from app.core.entities.responses import (
     SheetInfo,
     WorkbookInfo,
 )
+from app.infrastructure.observability.langfuse_tracing import (
+    langchain_config,
+    safe_metadata,
+    summarize_text,
+    trace_span,
+)
 from app.infrastructure.parsing.excel_loader import ExcelLoader, LoadedWorkbook
 
 log = logging.getLogger(__name__)
@@ -57,8 +63,54 @@ class ExcelYorumlaUseCase:
                     "Soru ile cagrildi ancak agent yapilandirilmamis. "
                     "Ollama erisimini ve PandasQaAgent DI'sini kontrol edin."
                 )
-            agent_result = self._agent.ask(sheet.dataframe, normalized_q)
-            answer = agent_result.answer
+            with trace_span(
+                "excel-ai.yorumla",
+                input_data={
+                    "question": summarize_text(normalized_q),
+                    "filename": workbook.filename,
+                    "sheet": sheet.name,
+                    "rows": sheet.rows,
+                    "columns": sheet.columns,
+                    "size_bytes": workbook.size_bytes,
+                },
+                metadata=safe_metadata(
+                    endpoint="/api/excel/yorumla",
+                    operation="dataframe_qa",
+                    file_hash=workbook.file_hash,
+                    sheet=sheet.name,
+                    rows=sheet.rows,
+                    column_count=len(sheet.columns),
+                ),
+                tags=["excel", "qa"],
+            ) as span:
+                try:
+                    agent_result = self._agent.ask(
+                        sheet.dataframe,
+                        normalized_q,
+                        config=langchain_config(
+                            run_name="excel-ai.pandas-agent",
+                            tags=["excel", "qa"],
+                            metadata=safe_metadata(
+                                operation="pandas_agent",
+                                sheet=sheet.name,
+                                rows=sheet.rows,
+                                column_count=len(sheet.columns),
+                            ),
+                        ),
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    span.update(
+                        metadata=safe_metadata(
+                            status="error",
+                            error_type=type(exc).__name__,
+                        )
+                    )
+                    raise
+                answer = agent_result.answer
+                span.update(
+                    output={"answer": summarize_text(answer)},
+                    metadata=safe_metadata(status="ok", answer_chars=len(answer)),
+                )
 
         idem = _idempotency_key(
             file_hash=workbook.file_hash,

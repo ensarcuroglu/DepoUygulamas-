@@ -1,0 +1,21 @@
+# Langfuse Cloud local override.
+# Copy this file to infra/env/langfuse.local and fill the keys from your
+# Langfuse Cloud project settings. The real .local file is ignored by git.
+
+LANGFUSE_TRACING_ENABLED=false
+
+# EU region default:
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+
+# Use this instead if your Langfuse Cloud project is in the US region:
+# LANGFUSE_BASE_URL=https://us.cloud.langfuse.com
+
+LANGFUSE_PUBLIC_KEY=pk-lf-replace-me
+LANGFUSE_SECRET_KEY=sk-lf-replace-me
+
+LANGFUSE_TRACING_ENVIRONMENT=development
+LANGFUSE_SAMPLE_RATE=1.0
+LANGFUSE_CAPTURE_PAYLOADS=false
+
+# Optional release/version label for trace filtering.
+# LANGFUSE_RELEASE=local-dev

@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.middleware.auth import InternalApiKeyMiddleware
 from app.api.v1.routers import excel_router, healthz_router
 from app.core.config import get_settings
+from app.infrastructure.observability.langfuse_tracing import flush as flush_langfuse
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("excel-ai")
@@ -30,6 +31,7 @@ async def lifespan(app_: FastAPI):
     try:
         yield
     finally:
+        flush_langfuse()
         log.info("ExcelAiService kapandi")
 
 

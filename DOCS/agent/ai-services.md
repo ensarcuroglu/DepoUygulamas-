@@ -6,6 +6,28 @@ DataGenService ayrıntıları ayrı runbook'tadır: `DOCS/agent/data-gen-service
 
 ---
 
+## Langfuse Cloud Observability
+
+WmsAiService, DocAiService ve ExcelAiService icin Langfuse entegrasyonu Cloud hedefiyle uygulanmistir. Ayrintili uygulama plani: `DOCS/LANGFUSE_AI_OBSERVABILITY_PLANI.md`.
+
+Kurulum ozeti:
+
+- Langfuse Cloud account ve project olustur.
+- Project settings altindan `LANGFUSE_PUBLIC_KEY` ve `LANGFUSE_SECRET_KEY` al.
+- `infra/env/langfuse.local.example` dosyasini `infra/env/langfuse.local` olarak kopyala.
+- EU region icin `LANGFUSE_BASE_URL=https://cloud.langfuse.com`, US region icin `LANGFUSE_BASE_URL=https://us.cloud.langfuse.com` kullan.
+- Tracing'i acmak icin `LANGFUSE_TRACING_ENABLED=true` yap ve `docker compose up -d --build wms-ai doc-ai excel-ai` calistir.
+
+Guvenlik varsayilanlari:
+
+- `LANGFUSE_CAPTURE_PAYLOADS=false` default kalir.
+- WmsAiService ve ExcelAiService LangChain `CallbackHandler`; DocAiService manuel `generation/span` gozlemleri kullanir.
+- Raw belge, base64 image, dosya icerigi ve PII Langfuse Cloud'a gonderilmeden maskelenir.
+- Langfuse erisilemezse AI servis request'i basarisiz olmaz; hata sadece loglanir.
+- Self-host bu planin kapsami disindadir; gerekirse ayri operasyon plani gerekir.
+
+---
+
 ## WmsAiService (LangChain + Ollama)
 
 Doğal dil → SQL → read-only execute → cevap. Port: `8001`.

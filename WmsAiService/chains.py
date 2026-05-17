@@ -29,6 +29,7 @@ from langchain_ollama import ChatOllama
 
 from answerer import Answerer, ListAnswerLLM
 from example_selector import select_and_format
+from langfuse_tracing import langchain_config, safe_metadata
 from prompts import (
     SCHEMA_DESCRIPTION,
     SQL_CORRECTION_PROMPT,
@@ -179,14 +180,24 @@ class WmsAiPipeline:
             logger.debug("Dinamik örnek seçimi boş, statik fallback kullanılıyor.")
 
         raw = self.sql_chain.invoke(
-            {"soru": soru, "history": history, "examples": examples}
+            {"soru": soru, "history": history, "examples": examples},
+            config=langchain_config(
+                run_name="wms-ai.sql.generate",
+                tags=["sql"],
+                metadata=safe_metadata(operation="sql_generate", model=OLLAMA_MODEL),
+            ),
         )
         logger.debug("LLM raw SQL output: %s", raw)
         return clean_and_validate(raw)
 
     def _correct_sql(self, soru: str, hatalı_sql: str, hata: str) -> str:
         raw = self.correction_chain.invoke(
-            {"soru": soru, "sql": hatalı_sql, "hata": hata}
+            {"soru": soru, "sql": hatalı_sql, "hata": hata},
+            config=langchain_config(
+                run_name="wms-ai.sql.correct",
+                tags=["sql", "correction"],
+                metadata=safe_metadata(operation="sql_correction", model=OLLAMA_MODEL),
+            ),
         )
         logger.debug("LLM correction output: %s", raw)
         return clean_and_validate(raw)

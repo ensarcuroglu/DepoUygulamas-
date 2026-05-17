@@ -106,6 +106,32 @@ Tüm servis env'leri. CLAUDE.md, bu dosyaya işaret eder.
 - `IDEMPOTENCY_MAX_ENTRIES` (def `256`)
 - `CORS_ALLOW_ORIGINS` (def `https://localhost:5173`)
 
+## Langfuse Cloud (`WmsAiService`, `DocAiService`, `ExcelAiService`)
+
+Langfuse bu projede Cloud hedefiyle kullanilir. Self-host bu planin kapsami disindadir; gerekirse ayri operasyon plani gerekir.
+
+**Kurulum:**
+- Langfuse Cloud account ve project olustur.
+- Project settings altindan public/secret key al.
+- `infra/env/langfuse.local.example` dosyasini `infra/env/langfuse.local` olarak kopyala.
+- EU region icin `LANGFUSE_BASE_URL=https://cloud.langfuse.com`, US region icin `LANGFUSE_BASE_URL=https://us.cloud.langfuse.com` kullan.
+- AI servislerini yenile: `docker compose up -d --build wms-ai doc-ai excel-ai`.
+
+**Opsiyonel:**
+- `LANGFUSE_TRACING_ENABLED` (def `false`) — tracing ac/kapat.
+- `LANGFUSE_PUBLIC_KEY` — Langfuse Cloud project public key.
+- `LANGFUSE_SECRET_KEY` — Langfuse Cloud project secret key; `infra/env/dev.env` icine yazma.
+- `LANGFUSE_BASE_URL` — Cloud region endpoint'i.
+- `LANGFUSE_TRACING_ENVIRONMENT` (def `development`) — trace environment etiketi.
+- `LANGFUSE_SAMPLE_RATE` (def `1.0`) — trace sampling orani.
+- `LANGFUSE_CAPTURE_PAYLOADS` (def `false`) — raw prompt/output yerine sanitize edilmis ozet politikasi.
+- `LANGFUSE_RELEASE` — opsiyonel release/version etiketi.
+
+**Guvenlik:**
+- Gercek key'ler sadece git tarafindan ignore edilen `infra/env/langfuse.local` icinde tutulur.
+- Base64 image, belge icerigi, dosya ham verisi, e-posta, telefon ve vergi/kimlik benzeri numaralar maskelenir.
+- Langfuse erisilemezse servis request'i basarisiz olmaz; hata sadece loglanir.
+
 ## DataGenService (`DataGenService/.env`)
 
 Sentetik veri uretici servisidir; DB'ye dogrudan yazmaz.
@@ -140,5 +166,6 @@ Sentetik veri uretici servisidir; DB'ye dogrudan yazmaz.
 ## Docker Compose
 
 - Tracked dev env: `infra/env/dev.env`.
+- Optional Langfuse Cloud env: `infra/env/langfuse.local` (`infra/env/langfuse.local.example` dosyasindan turetilir, git'e alinmaz).
 - Kişisel override / secret: `infra/env/*.local` veya `infra/env/*.secret` (git'e alınmaz).
 - Compose project name: `depo-dev`.

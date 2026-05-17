@@ -24,6 +24,11 @@ from app.infrastructure.extraction.text_pdf_extractor import (
 from app.infrastructure.extraction.vlm_extractor import VlmExtractionError, VlmExtractor
 from app.infrastructure.llm.ollama_text_client import OllamaTextClient, OllamaTextClientError
 from app.infrastructure.llm.ollama_vlm_client import OllamaVlmClient, OllamaVlmClientError
+from app.infrastructure.observability.langfuse_tracing import (
+    safe_metadata,
+    summarize_text,
+    trace_span,
+)
 
 router = APIRouter(prefix="/api/extract", tags=["Extraction"])
 
@@ -66,37 +71,73 @@ async def extract_irsaliye(
         return _IDEMPOTENCY_CACHE[idempotency_key]
 
     content = await file.read()
-    try:
-        result = await uc.execute(
-            filename=file.filename or "upload.pdf",
+    filename = file.filename or "upload.pdf"
+    with trace_span(
+        "doc-ai.extract-irsaliye",
+        input_data={
+            "filename": summarize_text(filename),
+            "content_type": file.content_type,
+            "size_bytes": len(content),
+            "idempotency_key_present": bool(idempotency_key),
+        },
+        metadata=safe_metadata(
+            endpoint="/api/extract/irsaliye",
+            operation="irsaliye_extraction",
             content_type=file.content_type,
-            content=content,
-        )
-    except FileTooLargeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=str(exc),
-        ) from exc
-    except UnsupportedDocumentTypeError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except BelgeTipiAlgilamaError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except OllamaTextClientError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
-        ) from exc
-    except OllamaVlmClientError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
-        ) from exc
-    except TextPdfExtractionError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-    except ImageRenderingError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except VlmExtractionError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+            size_bytes=len(content),
+        ),
+        tags=["doc", "extraction"],
+    ) as span:
+        try:
+            result = await uc.execute(
+                filename=filename,
+                content_type=file.content_type,
+                content=content,
+            )
+            span.update(
+                output={
+                    "belge_tipi": result.belge_tipi.value,
+                    "model": result.model,
+                },
+                metadata=safe_metadata(
+                    status="ok",
+                    belge_tipi=result.belge_tipi.value,
+                    model=result.model,
+                ),
+            )
+        except FileTooLargeError as exc:
+            span.update(metadata=safe_metadata(status="error", error_type=type(exc).__name__))
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=str(exc),
+            ) from exc
+        except UnsupportedDocumentTypeError as exc:
+            span.update(metadata=safe_metadata(status="error", error_type=type(exc).__name__))
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except BelgeTipiAlgilamaError as exc:
+            span.update(metadata=safe_metadata(status="error", error_type=type(exc).__name__))
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except OllamaTextClientError as exc:
+            span.update(metadata=safe_metadata(status="error", error_type=type(exc).__name__))
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc),
+            ) from exc
+        except OllamaVlmClientError as exc:
+            span.update(metadata=safe_metadata(status="error", error_type=type(exc).__name__))
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc),
+            ) from exc
+        except TextPdfExtractionError as exc:
+            span.update(metadata=safe_metadata(status="error", error_type=type(exc).__name__))
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+        except ImageRenderingError as exc:
+            span.update(metadata=safe_metadata(status="error", error_type=type(exc).__name__))
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except VlmExtractionError as exc:
+            span.update(metadata=safe_metadata(status="error", error_type=type(exc).__name__))
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     response = ExtractionResponseDTO(
         status="ok",

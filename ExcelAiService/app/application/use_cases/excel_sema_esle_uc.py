@@ -12,6 +12,7 @@ from app.core.entities.responses import (
 )
 from app.core.entities.wms_target_schemas import get_target_schema
 from app.core.services.sema_matcher import match_columns
+from app.infrastructure.observability.langfuse_tracing import safe_metadata, trace_span
 from app.infrastructure.parsing.excel_loader import ExcelLoader, LoadedWorkbook
 
 log = logging.getLogger(__name__)
@@ -35,16 +36,45 @@ class ExcelSemaEsleUseCase:
         workbook = self._loader.load(filename=filename, content=content)
         sheet = _pick_sheet(workbook, sheet_name)
 
-        mappings = match_columns(
-            source_columns=sheet.columns,
-            schema=schema,
-        )
+        with trace_span(
+            "excel-ai.sema-esle",
+            input_data={
+                "filename": workbook.filename,
+                "sheet": sheet.name,
+                "target_schema": schema.name,
+                "rows": sheet.rows,
+                "columns": sheet.columns,
+                "size_bytes": workbook.size_bytes,
+            },
+            metadata=safe_metadata(
+                endpoint="/api/excel/sema-esle",
+                operation="schema_match",
+                file_hash=workbook.file_hash,
+                target_schema=schema.name,
+                sheet=sheet.name,
+                rows=sheet.rows,
+                column_count=len(sheet.columns),
+            ),
+            tags=["excel", "schema-match"],
+        ) as span:
+            mappings = match_columns(
+                source_columns=sheet.columns,
+                schema=schema,
+            )
 
-        matched = sorted({m.target_field for m in mappings if m.target_field})
-        unmatched_sources = [m.source_column for m in mappings if m.target_field is None]
-        missing_required = sorted(
-            f for f in schema.required_field_names if f not in matched
-        )
+            matched = sorted({m.target_field for m in mappings if m.target_field})
+            unmatched_sources = [m.source_column for m in mappings if m.target_field is None]
+            missing_required = sorted(
+                f for f in schema.required_field_names if f not in matched
+            )
+            span.update(
+                output={
+                    "matched_count": len(matched),
+                    "missing_required_count": len(missing_required),
+                    "unmatched_source_count": len(unmatched_sources),
+                },
+                metadata=safe_metadata(status="ok"),
+            )
 
         idem = _idempotency_key(
             file_hash=workbook.file_hash,

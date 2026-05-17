@@ -8,6 +8,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from langfuse_tracing import langchain_config, safe_metadata
 from result_formatter import render_doc_answer
 from vector_config import DOCS_COLLECTION_NAME, build_chroma, collection_count
 
@@ -150,7 +151,19 @@ class RagPipeline:
             )
 
         context = self._render_context(filtered)
-        raw_answer = self._chain.invoke({"context": context, "question": question})
+        raw_answer = self._chain.invoke(
+            {"context": context, "question": question},
+            config=langchain_config(
+                run_name="wms-ai.rag.answer",
+                tags=["rag"],
+                metadata=safe_metadata(
+                    operation="rag_answer",
+                    model=OLLAMA_MODEL,
+                    used_chunks=len(filtered),
+                    best_distance=round(best_distance, 4) if best_distance is not None else None,
+                ),
+            ),
+        )
         answer = _clean_answer(raw_answer)
         if _is_no_info(answer):
             return RagResult(

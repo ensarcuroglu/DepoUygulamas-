@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -26,6 +27,8 @@ load_dotenv()
 # Pipeline import .env yüklendikten sonra olmalı (DB URI ve OLLAMA_* okunuyor)
 from chat_orchestrator import get_chat_orchestrator  # noqa: E402
 from chains import get_pipeline  # noqa: E402
+from langfuse_tracing import flush as flush_langfuse  # noqa: E402
+from langfuse_tracing import safe_metadata, summarize_text, trace_span  # noqa: E402
 from memory import Turn, store  # noqa: E402
 from prompts import SCHEMA_DESCRIPTION  # noqa: E402
 from route_examples import ROUTE_DOCS  # noqa: E402
@@ -34,7 +37,16 @@ from slash_commands import SlashCommandError  # noqa: E402
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("wms-ai")
 
-app = FastAPI(title="WMS AI Sorgu Servisi", version="2.0")
+
+@asynccontextmanager
+async def lifespan(app_: FastAPI):
+    try:
+        yield
+    finally:
+        flush_langfuse()
+
+
+app = FastAPI(title="WMS AI Sorgu Servisi", version="2.0", lifespan=lifespan)
 
 
 # ----------------------------------------------------------------------------
@@ -87,11 +99,37 @@ def ai_sorgula(istek: SorguIstegi) -> SorguYaniti:
     pipeline = get_pipeline()
     history = store.render_history(session_id)
 
-    try:
-        sonuc = pipeline.run(istek.soru, history=history, verbose=istek.verbose)
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("Pipeline hatası")
-        raise HTTPException(status_code=500, detail=f"AI sorgulama başarısız: {exc}") from exc
+    with trace_span(
+        "wms-ai.sorgula",
+        input_data={
+            "soru": summarize_text(istek.soru),
+            "debug": istek.debug,
+            "verbose": istek.verbose,
+        },
+        metadata=safe_metadata(endpoint="/api/ai/sorgula", route="sql"),
+        session_id=session_id,
+        tags=["sql"],
+    ) as span:
+        try:
+            sonuc = pipeline.run(istek.soru, history=history, verbose=istek.verbose)
+        except Exception as exc:  # noqa: BLE001
+            span.update(metadata=safe_metadata(status="error", error_type=type(exc).__name__))
+            logger.exception("Pipeline hatası")
+            raise HTTPException(status_code=500, detail=f"AI sorgulama başarısız: {exc}") from exc
+
+        span.update(
+            output={
+                "answer": summarize_text(sonuc.cevap),
+                "attempts": sonuc.deneme_sayisi,
+            },
+            metadata=safe_metadata(
+                status="ok",
+                route="sql",
+                attempts=sonuc.deneme_sayisi,
+                intent=sonuc.structured.intent.value,
+                row_count=sonuc.structured.row_count,
+            ),
+        )
 
     store.append(
         session_id,
@@ -124,20 +162,50 @@ def ai_chat(istek: SorguIstegi) -> ChatYaniti:
     orchestrator = get_chat_orchestrator()
     history = store.render_history(session_id)
 
-    try:
-        sonuc = orchestrator.run(
-            istek.soru,
-            history=history,
-            verbose=istek.verbose,
+    with trace_span(
+        "wms-ai.chat",
+        input_data={
+            "soru": summarize_text(istek.soru),
+            "debug": istek.debug,
+            "verbose": istek.verbose,
+        },
+        metadata=safe_metadata(endpoint="/api/ai/chat"),
+        session_id=session_id,
+        tags=["chat"],
+    ) as span:
+        try:
+            sonuc = orchestrator.run(
+                istek.soru,
+                history=history,
+                verbose=istek.verbose,
+            )
+        except SlashCommandError as exc:
+            span.update(metadata=safe_metadata(status="bad_request", error_type=type(exc).__name__))
+            raise HTTPException(
+                status_code=400,
+                detail={"message": str(exc), "allowed_commands": exc.allowed_commands},
+            ) from exc
+        except Exception as exc:  # noqa: BLE001
+            span.update(metadata=safe_metadata(status="error", error_type=type(exc).__name__))
+            logger.exception("Chat pipeline hatası")
+            raise HTTPException(status_code=500, detail=f"AI chat başarısız: {exc}") from exc
+
+        span.update(
+            output={
+                "answer": summarize_text(sonuc.cevap),
+                "route": sonuc.route,
+                "attempts": sonuc.deneme_sayisi,
+                "source_count": len(sonuc.sources),
+            },
+            metadata=safe_metadata(
+                status="ok",
+                route=sonuc.route,
+                route_source=sonuc.route_source,
+                confidence=sonuc.confidence,
+                attempts=sonuc.deneme_sayisi,
+                source_count=len(sonuc.sources),
+            ),
         )
-    except SlashCommandError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail={"message": str(exc), "allowed_commands": exc.allowed_commands},
-        ) from exc
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("Chat pipeline hatasÄ±")
-        raise HTTPException(status_code=500, detail=f"AI chat baÅŸarÄ±sÄ±z: {exc}") from exc
 
     store.append(
         session_id,

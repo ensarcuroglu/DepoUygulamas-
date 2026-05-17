@@ -12,3 +12,4 @@ chromadb
 sentence-transformers
 langchain-chroma
 llama-index-core
+langfuse>=3.3.1

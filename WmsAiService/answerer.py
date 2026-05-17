@@ -24,6 +24,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
+from langfuse_tracing import langchain_config, safe_metadata
 from list_renderer import render_list
 from prompts import (
     ANSWER_SYSTEM_PROMPT,
@@ -154,6 +155,7 @@ class ListAnswerLLM:
         repeat_penalty: float = 1.2,
         top_k: int = 1,
     ) -> None:
+        self.model = model
         self.llm = ChatOllama(
             model=model,
             base_url=base_url,
@@ -185,7 +187,14 @@ class ListAnswerLLM:
         self.chain = self.prompt | self.llm | StrOutputParser()
 
     def invoke(self, soru: str, sonuc_metni: str) -> str:
-        raw = self.chain.invoke({"soru": soru, "sonuc": sonuc_metni})
+        raw = self.chain.invoke(
+            {"soru": soru, "sonuc": sonuc_metni},
+            config=langchain_config(
+                run_name="wms-ai.answer.verbose",
+                tags=["sql", "answer"],
+                metadata=safe_metadata(operation="verbose_answer", model=self.model),
+            ),
+        )
         return _post_process(raw)
 
 

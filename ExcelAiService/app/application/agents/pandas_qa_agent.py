@@ -122,7 +122,7 @@ class PandasQaAgent:
         self._max_iterations = max_iterations
         self._verbose = verbose
 
-    def ask(self, df: pd.DataFrame, question: str) -> AgentAnswer:
+    def ask(self, df: pd.DataFrame, question: str, *, config: dict | None = None) -> AgentAnswer:
         question = (question or "").strip()
         if not question:
             raise ValueError("Bos soru ile agent cagrilamaz.")
@@ -140,6 +140,6 @@ class PandasQaAgent:
         )
 
         log.info("PandasQaAgent.ask: soru='%s' satir=%d", question, len(df))
-        result = agent.invoke({"input": question})
+        result = agent.invoke({"input": question}, config=config)
         raw = str(result.get("output", "")).strip()
         return AgentAnswer(answer=raw or "Bu bilgi tabloda yok", raw_output=raw)
