@@ -112,6 +112,12 @@ export const queryKeys = {
         all: ['aiAsistan'],
         sema: () => ['aiAsistan', 'sema'],
     },
+    depoAsistani: {
+        all: ['depoAsistani'],
+        taslaklar: () => ['depoAsistani', 'taslaklar'],
+        taslaklarList: (params = {}) => ['depoAsistani', 'taslaklar', 'list', params],
+        tools: () => ['depoAsistani', 'tools'],
+    },
     operatorPerformans: {
         all: ['operatorPerformans'],
         ozet: (params = {}) => ['operatorPerformans', 'ozet', params],

@@ -58,6 +58,7 @@ const UretimPaletiKabulPage = lazy(() => import('./pages/UretimPaletiKabulPage')
 const EtiketSablonlariPage = lazy(() => import('./pages/EtiketSablonlariPage'));
 const AiAsistanPage = lazy(() => import('./pages/AiAsistanPage'));
 const ExcelAiPage = lazy(() => import('./pages/ExcelAiPage'));
+const DepoAsistaniPage = lazy(() => import('./pages/DepoAsistaniPage'));
 const OperatorPerformansPage = lazy(() => import('./pages/OperatorPerformansPage'));
 const PerformansimPage = lazy(() => import('./pages/depocu/PerformansimPage'));
 const AgvIzlemePage = lazy(() => import('./pages/agv/AgvIzlemePage'));
@@ -175,6 +176,9 @@ function App() {
                   <Route element={<RoleRoute allowedRoles={['admin', 'lojistik', 'depocu']} />}>
                     <Route path="/mal-kabul/belge-yukle" element={<BelgeYuklePage />} />
                     <Route path="/mal-kabul/taslak/:id" element={<BelgeTaslagiOnizlemePage />} />
+                    {import.meta.env.VITE_FEATURE_DEPO_ASISTANI_ENABLED === 'true' && (
+                      <Route path="/depo-asistani" element={<DepoAsistaniPage />} />
+                    )}
                   </Route>
 
                   <Route element={<RoleRoute allowedRoles={['admin', 'lojistik']} />}>

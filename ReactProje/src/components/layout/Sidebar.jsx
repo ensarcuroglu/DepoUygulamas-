@@ -51,6 +51,9 @@ const menuGroups = [
             ...(import.meta.env.VITE_FEATURE_EXCEL_AI_ENABLED === 'true' ? [
                 { path: '/ai-asistan/excel', label: 'Excel Analizi', icon: FileSpreadsheet, roles: ['admin'], badge: 'AI' },
             ] : []),
+            ...(import.meta.env.VITE_FEATURE_DEPO_ASISTANI_ENABLED === 'true' ? [
+                { path: '/depo-asistani', label: 'Depo Asistanı', icon: Bot, roles: ['admin', 'lojistik', 'depocu'], badge: 'HITL' },
+            ] : []),
         ],
     },
     {
