@@ -1,6 +1,6 @@
 # AssistantAiService Entegrasyon Planı
 
-> **Durum:** Onay bekliyor — uygulamaya başlamadan önce CLAUDE.md'deki port, mimari ve isimlendirme kurallarına uyum doğrulanacak.
+> **Durum:** Faz 0-4 tamamlandı — servis canlı, BackendProje + Frontend entegrasyonu hazır, dokümantasyon hizalı.
 > **Hedef:** Kullanıcı/rol bağlamı taşıyan, insan onaylı aksiyon (Human-in-the-Loop) yapabilen depo asistanı mikroservisini WMS ekosistemine eklemek.
 > **Sorumluluk sınırı:** `AssistantAiService` **DB'ye dokunmaz**; authoritative tüm yazımlar `BackendProje` üzerinden gerçekleşir (DocAi / ExcelAi felsefesiyle uyumlu).
 
@@ -31,7 +31,26 @@
 
 ---
 
-## 2. Uygulama Planı (Aşamalı)
+## 2. Uygulama Planı (Aşamalı) — Durum
+
+| Faz | Açıklama | Durum |
+|---|---|---|
+| 0 | Iskelet (paket, config, healthz, middleware, compose, env) | ✅ Tamam |
+| 1 | Backend authoritative katman (migration, tool registry framework, taslak endpoint'leri, AssistantAiClient) | ✅ Tamam — 26 birim test geçti |
+| 2 | AssistantAiService çekirdek (LangGraph + ChatOllama + AsyncSqliteSaver, v1 PoC tools, ChatUseCase) | ✅ Tamam — 25 birim test geçti |
+| 3 | Frontend `/depo-asistani` sayfası (chat UI + HITL TaslakKart + sidebar entry) | ✅ Tamam — production build başarılı |
+| 4 | Dokümantasyon hizalama + smoke test (CLAUDE.md, README, ai-services, env-reference, docker-compose) | ✅ Tamam (bu PR) |
+
+**Yol haritası — sonraki PR'lar:**
+- Production tool wiring: `stok_sorgula`, `gorevlerim_listele`, `vardiya_metriklerim` (read-only) ile başla; Backend'de read-only tool exec endpoint'i veya AssistantAi → Backend httpx çağrısı tasarımı.
+- HITL tool genişletmesi: `siparis_oncelik_degistir`, `siparis_iptal` (registry'de RBAC'i `admin`, `lojistik` kalsın).
+- APScheduler "expired draft cleanup" job'ı (nightly).
+- Frontend "Bekleyen Onaylarım" ayrı sayfa (taslak liste + filtreleme).
+- Streaming response (`graph.astream_events`) — UX için.
+
+---
+
+## 3. Uygulama Detayı (Faz Sırasıyla)
 
 ### Faz 0 — Iskelet (yarım gün)
 

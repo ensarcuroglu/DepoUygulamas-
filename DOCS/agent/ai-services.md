@@ -240,6 +240,147 @@ curl -H "X-Internal-Api-Key: <key>" http://127.0.0.1:8004/healthz
 
 ---
 
+## AssistantAiService (LangGraph HITL Depo Asistanı)
+
+Kullanıcı/rol bağlamı taşıyan, LangGraph tabanlı bir depo asistanı. LLM bir mutasyon önerdiğinde **executor'i çağırmaz**; bunun yerine `ProposedAction` döner. Authoritative DB yazımı yalnız kullanıcı onayından sonra BackendProje tarafında gerçekleşir. Port: `8006`, tek replica zorunlu (AsyncSqliteSaver dosya kilidi).
+
+### Komutlar
+
+```bash
+cd AssistantAiService
+
+pip install -r requirements.txt
+pip install -r requirements-test.txt
+
+uvicorn main:app --reload --host 127.0.0.1 --port 8006
+
+pytest                    # graph topology + tool registry + HITL kestirimi
+ruff check .
+curl -H "X-Internal-Api-Key: <key>" http://127.0.0.1:8006/healthz
+```
+
+### Yapı
+
+```
+AssistantAiService/
+|-- main.py                                    Lifespan: ChatOllama + AsyncSqliteSaver + graph compile
+|-- app/
+|   |-- api/v1/
+|   |   |-- routers/{asistan,healthz}.py       /api/asistan/chat, /healthz
+|   |   |-- middleware/auth.py                 X-Internal-Api-Key dogrulamasi
+|   |   `-- schemas.py                         ChatRequest/Response, UserContext, ProposedAction
+|   |-- application/
+|   |   |-- agent/
+|   |   |   |-- state.py                       AssistantState TypedDict (add_messages reducer)
+|   |   |   |-- prompts.py                     Turkce sistem promptu (kati, HITL disiplini)
+|   |   |   |-- tools.py                       LocalToolRegistry + ToolSpec + v1 PoC araclar
+|   |   |   |-- nodes.py                       prepare_context, llm, tool_dispatcher node'lari
+|   |   |   `-- graph.py                       StateGraph compile
+|   |   `-- use_cases/chat_use_case.py         graph.ainvoke wrapper
+|   |-- core/config.py                         pydantic-settings
+|   `-- infrastructure/
+|       |-- llm/ollama_factory.py              ChatOllama factory
+|       |-- checkpointer/sqlite.py             AsyncSqliteSaver open_sqlite_checkpointer()
+|       `-- observability/langfuse_tracing.py  No-op fallback'li tracing
+`-- tests/                                     FakeChatModel ile tamamen Ollama'siz
+```
+
+### Auth, Tek Replica ve State
+
+- **`X-Internal-Api-Key` zorunlu** — JWT bu serviste doğrulanmaz; auth BackendProje'de yapılır.
+- **Tek replica zorunlu** — AsyncSqliteSaver dosya kilidi; horizontal scale yok (AgvSimService kuralıyla aynı).
+- **DB'ye yazmaz** — tüm authoritative yazımlar BackendProje'deki `asistan_aksiyon_taslaklari` tablosuna ve `asistan_tool_registry` executor'larına gider.
+- **State persistence:** LangGraph `AsyncSqliteSaver` (`/data/assistant_state.sqlite`, volume `assistant_ai_state`). Thread ID = `f"{kullanici_id}:{session_id}"` — multi-user / multi-session yalıtımı.
+- Test'lerde `SQLITE_CHECKPOINT_PATH=:memory:` ile in-memory SQLite kullanılır; FakeChatModel ile Ollama gerekmeden tüm graph senaryoları doğrulanır.
+
+### LangGraph Topolojisi
+
+```text
+START -> prepare_context -> llm -> dispatcher (conditional)
+                              |        |
+                              |        +-- HITL -> END (proposed_action set)
+                              |        +-- read-only -> llm  (max 3 iter)
+                              +-- tool_calls yok -> END
+```
+
+- `prepare_context_node`: ilk turde sistem promptunu rol + izinli alet listesiyle enjekte eder; checkpointer restore'unda tekrarlamaz.
+- `llm_node`: rol + `izinli_tool_idleri` allowlist'ine göre tool'lari filtreleyip `bind_tools` eder.
+- `tool_dispatcher_node`: AIMessage.tool_calls'lari yakalayip HITL ise `ProposedAction` uretip END'e gider; read-only ise executor'i cagirip ToolMessage ile LLM'e doner.
+- `MAX_TOOL_ITERATIONS=3` — sonsuz LLM tool dongusu koruyucusu.
+
+### HITL Akışı (Uçtan Uca)
+
+```text
+Frontend                  BackendProje                            AssistantAiService
+
+POST /api/asistan/chat -> /api/asistan/chat
+   {soru, session_id,      require_role(admin/loj/depocu)
+    aktif_gorev_id,        AsistanChatProxyUseCase:
+    aktif_ekran}             - UserContext olustur
+                             - AssistantAiClient.chat(req) ---->  /api/asistan/chat
+                                                                     (X-Internal-Api-Key)
+                                                                  LangGraph.ainvoke
+                                                                  llm_node -> bind_tools
+                                                                  LLM HITL tool secti
+                                                                  dispatcher:
+                                                                    proposed_action set, END
+                                                            <----  ChatResponse {cevap, proposed_action}
+                             if proposed_action:
+                                registry.authorize(tool_id, rol)
+                                taslak yarat (BEKLEMEDE, idem_key=uuid)
+                                db.commit()
+                             return {cevap, session_id, taslak}
+                   <-- 200 OK
+
+TaslakKart render
+  [ ONAYLA ] [ Reddet ]
+
+POST /api/asistan/taslaklar/{id}/onayla
+                   -->     AsistanTaslakOnaylaUseCase:
+                             taslak getir (with_for_update)
+                             durum BEKLEMEDE? expires_at gecmedi?
+                             registry.execute(context, tool_id)
+                                -> ilgili use case -> MySQL
+                             durum=ONAYLANDI, sonuc_json kaydet
+                   <--     {durum, sonuc_json}
+```
+
+### Tool Registry (İki Taraflı Sözleşme)
+
+| Taraf | Dosya | Sorumluluk |
+|---|---|---|
+| AssistantAi | `app/application/agent/tools.py` (`LocalToolRegistry`) | LLM'in cağırabileceği tool'ların `ToolSpec`'i (description, args_schema, hitl, rbac_roles). HITL ise `executor=None`. |
+| BackendProje | `app/application/services/asistan_tool_registry.py` | Authoritative `ToolSpec` (RBAC + executor → use case). `/onayla` endpoint'i bu registry üzerinden çalıştırır. |
+
+**Yeni tool eklerken iki tarafta da `tool_id`, `args_schema` ve `rbac_roles` birebir aynı olmalı.** AssistantAi tarafında executor opsiyonel (read-only ise dolu, HITL ise None); Backend tarafında executor zorunlu (taslak onaylandığında çalıştırılır).
+
+#### v1 PoC Araç Seti (Faz 2'de yazıldı)
+
+| tool_id | Tür | RBAC | Açıklama |
+|---|---|---|---|
+| `tarih_saat_simdi` | read-only | admin, lojistik, depocu | Türkiye saatiyle anlık ISO datetime + gün adı |
+| `yerlestirme_konum_degistir` | **HITL** | admin, lojistik, depocu | Bekleyen yerleştirme görevinin hedef konumunu değiştirme önerisi |
+
+Production tool wiring (`stok_sorgula`, `gorevlerim_listele`, `vardiya_metriklerim`, `siparis_oncelik_degistir`, `siparis_iptal`) sonraki PR'larda eklenir — registry API'si hazır.
+
+### Backend Entegrasyonu
+
+- BackendProje proxy: `app/api/v1/routers/asistan.py` + `app/infrastructure/services/assistant_ai_client.py`. RoleRoute(admin, lojistik, depocu) + `FEATURE_DEPO_ASISTANI_ENABLED` flag + `INTERNAL_API_KEY` enjeksiyonu.
+- Migration: `alembic/versions/b5c6d7e8f9a0_asistan_aksiyon_taslaklari.py` — `asistan_aksiyon_taslaklari` tablosu (UUID-benzeri `idempotency_key`, `durum` enum, `expires_at`, `executed_at`, `sonuc_json`, `hata_mesaji`).
+- Use case'ler: `AsistanChatProxyUseCase`, `AsistanTaslakOlustur/Listele/Onayla/Reddet`. Onay endpoint'i pessimistic locking (`getir_id_ile(taslak_id, kilitli_mi=True)` → `SELECT ... FOR UPDATE`) kullanır.
+- Frontend: `/depo-asistani` route (admin + lojistik + depocu), `pages/DepoAsistaniPage.jsx` + `components/depoAsistani/{ChatMesaj,TaslakKart,BaglamRozeti,MesajInput,BosDurum}.jsx`. `VITE_FEATURE_DEPO_ASISTANI_ENABLED=true` ile sidebar girişi açılır.
+
+### Stratejik Notlar
+
+- **HITL guardrail iki katmanlı:** (a) `ToolSpec.__post_init__` HITL+executor kombinasyonunu reddeder, (b) dispatcher route'u HITL'i fiziksel olarak yakalar — yanlışlıkla çağrılırsa `StructuredTool` coroutine'i `RuntimeError` atar.
+- **Defansif RBAC:** registry rol filtresi + Backend'den gelen `izinli_tool_idleri` allowlist'i aynı anda uygulanır.
+- **7B tool calling kararsızlığı:** Sistem promptu Türkçe katı yazılmıştır; `qwen2.5-coder:7b` sapma yapıyorsa `ASSISTANT_LLM_MODEL` env'iyle `qwen2.5:7b-instruct` veya `llama3.1:8b-instruct`'a geçilebilir (kod değişikliği gerekmez).
+- **Cost koruyucu:** `MAX_TOOL_ITERATIONS=3` sonsuz LLM↔tool döngüsünü keser.
+- **Testler tamamen Ollama'sız:** `FakeChatModel` (LangChain `FakeMessagesListChatModel` + `bind_tools` no-op override) ile graph her path'i deterministik doğrulanır.
+- **TTL temizlik:** Süresi dolan taslaklar `/onayla` endpoint'inde lazy olarak `SURESI_DOLDU` durumuna çekilir. Nightly cleanup APScheduler job'ı sonraki sprint'te.
+
+---
+
 ## AgvSimService (AGV/AMR Simülasyon)
 
 In-memory world singleton + asyncio tick loop. Port: `8002`. **DB yok**, restart'ta WMS'ten yeniden senkron.

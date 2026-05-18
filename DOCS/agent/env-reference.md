@@ -30,7 +30,10 @@ Tüm servis env'leri. CLAUDE.md, bu dosyaya işaret eder.
 - `DOC_AI_SERVICE_URL` (local def `http://127.0.0.1:8003`), `DOC_AI_SERVICE_TIMEOUT`.
 - `EXCEL_AI_SERVICE_URL` (local def `http://127.0.0.1:8004`), `EXCEL_AI_SERVICE_TIMEOUT` (def `180`).
 - `FEATURE_EXCEL_AI_ENABLED` (def `false`) — bool; `true` ile `/api/excel-ai/*` proxy router aktiflesir, aksi halde 404.
-- `INTERNAL_API_KEY` — AGV, DocAi ve ExcelAi ile **paylaşılan** shared secret.
+- `ASSISTANT_AI_SERVICE_URL` (local def `http://127.0.0.1:8006`), `ASSISTANT_AI_SERVICE_TIMEOUT` (def `180`).
+- `FEATURE_DEPO_ASISTANI_ENABLED` (def `false`) — bool; `true` ile `/api/asistan/*` router aktiflesir, aksi halde 404.
+- `ASISTAN_DRAFT_TTL_SECONDS` (def `900`) — HITL taslak yaşam süresi (saniye).
+- `INTERNAL_API_KEY` — AGV, DocAi, ExcelAi **ve AssistantAi** ile paylaşılan shared secret.
 
 **RabbitMQ (LMS event hattı):**
 - `RABBITMQ_ENABLED` (def `false`) — `true` ile relay + consumer worker akışı, `false` ile eski 5dk APScheduler aggregator.
@@ -153,6 +156,22 @@ Sentetik veri uretici servisidir; DB'ye dogrudan yazmaz.
 - `HTTP_TIMEOUT_SEC` (def `30`).
 - `HTTP_MAX_RETRIES` (def `3`).
 
+## AssistantAiService (`AssistantAiService/.env`)
+
+LangGraph + ChatOllama tabanlı HITL depo asistanı; DB'ye yazmaz, tek replica çalışır.
+
+**Zorunlu:**
+- `INTERNAL_API_KEY` (BackendProje ile aynı).
+
+**Opsiyonel:**
+- `OLLAMA_BASE_URL` (def `http://127.0.0.1:11434`).
+- `ASSISTANT_LLM_MODEL` (def `qwen2.5-coder:7b`) — tool calling kararsızlığında `qwen2.5:7b-instruct` veya `llama3.1:8b-instruct` ile değiştirilebilir.
+- `LLM_TIMEOUT` (def `120`).
+- `BACKEND_BASE_URL` (def `http://127.0.0.1:8000`) — read-only tool wiring için Faz 3+ hazırlığı.
+- `SQLITE_CHECKPOINT_PATH` (def `/data/assistant_state.sqlite`; compose volume `assistant_ai_state`) — LangGraph `AsyncSqliteSaver` dosya yolu; tek replica zorunlu.
+- `CORS_ALLOW_ORIGINS` (def `https://localhost:5173`).
+- Langfuse env'leri (opsiyonel, no-op fallback): `LANGFUSE_TRACING_ENABLED`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`.
+
 ## ReactProje (`ReactProje/.env.local`)
 
 İsteğe bağlı.
@@ -162,6 +181,7 @@ Sentetik veri uretici servisidir; DB'ye dogrudan yazmaz.
 - `VITE_FEATURE_AGV_ENABLED=true` — `/agv-izleme` route + sidebar item açar.
 - `VITE_FEATURE_DOC_AI_ENABLED=true` — DocAI UI özelliklerini açar.
 - `VITE_FEATURE_EXCEL_AI_ENABLED=true` — AI Asistan → Excel Analizi (`/ai-asistan/excel`) sidebar girişini açar.
+- `VITE_FEATURE_DEPO_ASISTANI_ENABLED=true` — Depo Asistanı (`/depo-asistani`) sidebar girişini açar; flag kapalıyken hem route hem sidebar gizli.
 
 ## Docker Compose
 

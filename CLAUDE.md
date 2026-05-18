@@ -4,7 +4,7 @@ AI coding agent için operasyonel referans. Detaylı dokümanlar `docs/agent/` a
 
 ## Project Summary
 
-**Depo Yönetim Sistemi (WMS)** — Lot/palet takibi, putaway/pick görev akışları, üretim paleti kabul, mobil terminal PWA ve operatör performans (LMS) modülü içeren full-stack uygulama. FastAPI backend (Clean Architecture) + React/Vite frontend + Docker Compose dev stack + MySQL + bağımsız mikroservisler (WmsAiService, DocAiService, ExcelAiService, AgvSimService, DataGenService).
+**Depo Yönetim Sistemi (WMS)** — Lot/palet takibi, putaway/pick görev akışları, üretim paleti kabul, mobil terminal PWA ve operatör performans (LMS) modülü içeren full-stack uygulama. FastAPI backend (Clean Architecture) + React/Vite frontend + Docker Compose dev stack + MySQL + bağımsız mikroservisler (WmsAiService, DocAiService, ExcelAiService, AgvSimService, DataGenService, AssistantAiService).
 
 ## Main Directories
 
@@ -15,6 +15,7 @@ AI coding agent için operasyonel referans. Detaylı dokümanlar `docs/agent/` a
 - `ExcelAiService/` — AI destekli Excel yorumlama mikroservisi; pandas + LangChain `create_pandas_dataframe_agent` + Ollama, WMS hedef şemalarına sütun eşleme önerisi üretir. DB yazmaz.
 - `AgvSimService/` — AGV/AMR simülasyonu (in-memory world, asyncio tick loop, A*/CA*).
 - `DataGenService/` — Sentetik WMS veri üretici mikroservisi + Typer CLI; Backend REST API, RabbitMQ veya ML dosya çıktısına veri üretir. DB'ye doğrudan yazmaz.
+- `AssistantAiService/` — Kullanıcı/rol bağlamlı, Human-in-the-Loop (HITL) depo asistanı; LangGraph + ChatOllama + AsyncSqliteSaver. LLM HITL aleti seçince `ProposedAction` döner, BackendProje `asistan_aksiyon_taslaklari` tablosuna yazar ve kullanıcı onayından sonra authoritative use case'i tetikler. DB'ye yazmaz; tek replica çalışır (SqliteSaver dosya kilidi).
 - `backend-worker` (compose servisi) — `python -m app.infrastructure.messaging.operator_performans_consumer`; `RABBITMQ_ENABLED=true` iken LMS event'lerini queue'dan tüketir. `false` iken boş döngüde bekler.
 
 ## Common Commands
@@ -94,6 +95,18 @@ python -m datagen run timeseries_history --count 10 --target file
 pytest -m unit
 ```
 
+### AssistantAiService
+
+```bash
+cd AssistantAiService
+pip install -r requirements-test.txt
+uvicorn main:app --reload --host 127.0.0.1 --port 8006
+pytest                              # tum testler (FakeChatModel ile, Ollama gerekmez)
+ruff check .
+# Health (INTERNAL_API_KEY gerekli — host Ollama'nin ASSISTANT_LLM_MODEL'i cekili olmali)
+curl -H "X-Internal-Api-Key: <key>" http://127.0.0.1:8006/healthz
+```
+
 ### RabbitMQ (LMS event hatti)
 
 ```bash
@@ -130,6 +143,8 @@ cd BackendProje && pytest -m rabbitmq
 - İsimlendirme Türkçe (snake_case fonksiyon, PascalCase sınıf/entity).
 - DocAiService DB'ye yazmaz; BackendProje authoritative kalır. `INTERNAL_API_KEY` / `X-Internal-Api-Key` / `Idempotency-Key` sözleşmesini bozma.
 - AgvSimService tek süreç çalışır; asla replica / multiple worker. `World` in-memory singleton'dır.
+- AssistantAiService de tek replica çalışır (AsyncSqliteSaver dosya kilidi); horizontal scale yok. DB'ye dokunmaz — tüm yazımlar BackendProje `/api/asistan/*` üzerinden gider.
+- AssistantAiService'e yeni bir tool eklerken: (a) AssistantAiService `app/application/agent/tools.py`'a `ToolSpec` (HITL ise executor=None), (b) BackendProje `app/application/services/asistan_tool_registry.py`'a authoritative executor — iki tarafta `tool_id`, `rbac_roles`, `args_schema` birebir aynı kalsın.
 - Docker Compose çalışırken aynı servisleri ayrıca `uvicorn` ile başlatma — port çakışır.
 - Backend değişikliği sonrası `ruff check .` + `pytest -m unit`; frontend sonrası `npm run lint`.
 - `DOCS/rag/` altında doküman ekleme/değişimi sonrası **mutlaka** `cd WmsAiService && python ingest_docs.py --docs` çalıştırılmalı, ardından `pytest tests/test_rag_retrieval_quality.py` ile retrieval regresyonu doğrulanmalı. `verified: false` olarak işaretlenen dokümanlardaki belirsizlikler `DOCS/rag/_review/dogrulama-bekliyor.md` dosyasında toplanır; underscore prefix sayesinde indekslenmez.
@@ -144,11 +159,14 @@ cd BackendProje && pytest -m rabbitmq
 - DocAiService port: **8003**
 - ExcelAiService port: **8004**
 - DataGenService port: **8005**
+- AssistantAiService port: **8006**
 - RabbitMQ AMQP: **5672** / Management UI: `http://localhost:15672` (`guest`/`guest`)
 - Docker Compose project name: `depo-dev`
 - Proje yolu ASCII olmalı: `D:\Ensar Dosya\DepoUygulamasi`
 - Varsayılan VLM model (DocAi): `qwen3-vl:4b`
 - Varsayılan WMS AI model: `qwen2.5-coder:7b`
+- Varsayılan Asistan LLM (AssistantAi tool-calling): `qwen2.5-coder:7b` — kararsızlıkta `qwen2.5:7b-instruct` veya `llama3.1:8b-instruct` ile `ASSISTANT_LLM_MODEL` üzerinden swappable
+- AssistantAiService taslak TTL: **15 dk** (`ASISTAN_DRAFT_TTL_SECONDS=900`); süresi dolan taslak onay endpoint'inde lazy şekilde `SURESI_DOLDU` durumuna çekilir
 - `RABBITMQ_ENABLED=false` default — LMS event'leri için eski APScheduler 5dk polling aggregator çalışır. `true` yapıldığında relay + consumer worker akışı devreye girer; bkz. `docs/agent/rabbitmq-operations.md`.
 
 ## Do Not Touch
@@ -157,6 +175,7 @@ cd BackendProje && pytest -m rabbitmq
 - `__pycache__/`, `.venv/`, `venv/`, `.coverage`
 - `BackendProje/alembic/versions/` — sadece Alembic ile oluştur, elle düzenleme.
 - `WmsAiService/wms_chroma_db/` — ChromaDB persistent store (generated).
+- `assistant_ai_state` Docker volume'u — AssistantAiService SqliteSaver dosyası; sadece compose ile yönet, elle silme/düzenleme yapma.
 - Standalone `migrate_*.py` scriptleri idempotent değil; tekrar çalıştırma.
 
 ## More Detailed Documentation
@@ -167,6 +186,7 @@ cd BackendProje && pytest -m rabbitmq
 - Frontend detayları: `docs/agent/frontend-notes.md`
 - AI servis detayları: `docs/agent/ai-services.md`
 - DataGenService runbook: `DOCS/agent/data-gen-service.md`
+- AssistantAiService entegrasyon planı: `DOCS/ASSISTANT_AI_SERVICE_ENTEGRASYON_PLANI.md`
 - Excel AI entegrasyon planı: `DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md`
 - Ortam değişkenleri: `docs/agent/env-reference.md`
 - RabbitMQ operasyon ve runbook: `docs/agent/rabbitmq-operations.md`

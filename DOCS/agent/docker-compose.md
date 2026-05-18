@@ -50,6 +50,7 @@ VHDX boyutunu hizla buyutebilir.
 - Doc AI: `http://localhost:8003/healthz`
 - Excel AI: `http://localhost:8004/healthz`
 - DataGenService: `http://localhost:8005/healthz`
+- Assistant AI: `http://localhost:8006/healthz` (X-Internal-Api-Key zorunlu)
 - RabbitMQ Management: `http://localhost:15672` (`guest`/`guest`)
 
 ## RabbitMQ + Backend-Worker
@@ -64,6 +65,15 @@ VHDX boyutunu hizla buyutebilir.
 - REST senaryolari Backend'e JWT ile login olur (`DATAGEN_ADMIN_USERNAME`, `DATAGEN_ADMIN_PASSWORD`); CRUD uclarinda `X-Internal-Api-Key` kullanilmaz.
 - `timeseries_history --target=file` ciktilari bind mount sayesinde `ml_models/talep_tahmin/data/raw/` altina yazilir.
 - Runbook: `DOCS/agent/data-gen-service.md`.
+
+## AssistantAiService
+
+- `assistant-ai` servisi `AssistantAiService/` klasörünü port `8006` üzerinden çalıştırır.
+- LangGraph state'i `assistant_ai_state` named volume'unda (`/data/assistant_state.sqlite`) tutulur — tek replica çalışmalı, asla `deploy.replicas: 2`.
+- Tüm istekler `X-Internal-Api-Key` ile authenticate olur; servis JWT doğrulamaz. Authoritative auth BackendProje'de yapılır.
+- LLM model adı `ASSISTANT_LLM_MODEL` (def `qwen2.5-coder:7b`); host Ollama'sında bu model çekili olmalı (`ollama pull <model>`).
+- E2E akışın doğrulanması: `docker compose up -d backend assistant-ai`, ardından `curl -H "X-Internal-Api-Key: <key>" http://localhost:8006/healthz` 200 dönmeli. Backend feature flag (`FEATURE_DEPO_ASISTANI_ENABLED=true`) açık olduğunda `/api/asistan/chat` proxy çalışır.
+- Detaylı plan, mimari ve HITL akışı: `DOCS/ASSISTANT_AI_SERVICE_ENTEGRASYON_PLANI.md`.
 
 ## Kurallar ve Gotchas
 

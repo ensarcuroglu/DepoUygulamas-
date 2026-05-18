@@ -2,7 +2,7 @@
 
 Lot ve palet takibi, putaway/pick görev akışları, üretim paleti kabulü, mobil terminal PWA, AGV/AMR simülasyonu, belge AI, Excel AI, sentetik veri üretimi ve operatör performansı (LMS) modülünü bir araya getiren full-stack depo yönetim sistemi.
 
-Proje tek repoda çalışan bir geliştirme stack'i sunar: **FastAPI** ana backend, **React 19 + Vite 7** frontend, **MySQL 8.4**, **RabbitMQ**, **WmsAiService**, **DocAiService**, **ExcelAiService**, **AgvSimService** ve **DataGenService**. Yerel geliştirme için önerilen giriş noktası `compose.yml` içindeki **Docker Compose** stack'idir.
+Proje tek repoda çalışan bir geliştirme stack'i sunar: **FastAPI** ana backend, **React 19 + Vite 7** frontend, **MySQL 8.4**, **RabbitMQ**, **WmsAiService**, **DocAiService**, **ExcelAiService**, **AgvSimService**, **DataGenService** ve **AssistantAiService** (LangGraph + HITL depo asistanı). Yerel geliştirme için önerilen giriş noktası `compose.yml` içindeki **Docker Compose** stack'idir.
 
 ## İçindekiler
 
@@ -35,6 +35,7 @@ Proje tek repoda çalışan bir geliştirme stack'i sunar: **FastAPI** ana backe
 - **Excel AI:** Yüklenen Excel/CSV dosyalarını pandas + LangChain agent ile doğal dilde yorumlar ve sütunları WMS hedef şemalarına eşler; veritabanına yazmaz.
 - **AGV/AMR simülasyonu:** In-memory dünya, pathfinding, WebSocket snapshot/delta akışı ve 3D izleme UI'ı.
 - **Sentetik veri üretimi:** DataGenService; Backend REST, RabbitMQ veya ML dosya çıktısı üzerinden deterministik test verisi üretir.
+- **Depo Asistanı (HITL):** AssistantAiService; LangGraph + ChatOllama tabanlı, kullanıcı/rol bağlamı taşıyan bir asistan. LLM bir mutasyon önerdiğinde aksiyon `asistan_aksiyon_taslaklari` tablosuna `BEKLEMEDE` olarak yazılır; ancak kullanıcı onayından sonra BackendProje tarafındaki authoritative use case tetiklenir.
 - **Talep tahmin çalışma alanı:** `ml_models/` altında ürün bazlı 7/30/90 günlük talep tahmini deneyleri ve entegrasyon sözleşmeleri tutulur.
 
 ## Teknoloji Stack'i
@@ -144,6 +145,7 @@ docker compose up -d
 | Doc AI | `doc-ai` | http://localhost:8003/healthz | İrsaliye çıkarımı |
 | Excel AI | `excel-ai` | http://localhost:8004/healthz | Excel yorumlama + şema eşleme |
 | DataGenService | `data-gen` | http://localhost:8005/healthz | Sentetik veri üretici + CLI |
+| Assistant AI | `assistant-ai` | http://localhost:8006/healthz | LangGraph HITL depo asistanı (tek replica) |
 | RabbitMQ AMQP | `rabbitmq` | localhost:5672 | LMS event hattı |
 | RabbitMQ UI | `rabbitmq` | http://localhost:15672 | `guest` / `guest` |
 | MySQL | `mysql` | localhost:3307 | Container içinde 3306 |
@@ -160,6 +162,7 @@ docker compose up -d
 |-- ExcelAiService/      Excel/CSV yorumlama + WMS şema eşleme, DB'ye yazmaz
 |-- AgvSimService/       AGV/AMR simülasyonu, WebSocket snapshot/delta
 |-- DataGenService/      Sentetik WMS veri üretici servis + CLI
+|-- AssistantAiService/  LangGraph + ChatOllama HITL depo asistanı; DB'ye yazmaz
 |-- ml_models/           Talep tahmin modeli ve ML deney alanı
 |-- DOCS/agent/          Geliştirici ve AI ajan dokümantasyonu
 |-- DOCS/rag/            Operatöre dönen RAG bilgi tabanı
@@ -203,6 +206,8 @@ Bu dosya sadece geliştirme kolaylığı içindir. Production veya paylaşılan 
 | AI servisleri | `LANGFUSE_TRACING_ENABLED`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL` | Opsiyonel Langfuse Cloud tracing |
 | AGV | `WMS_BASE_URL`, `TICK_HZ`, `GRID_JSON_PATH` | Simülasyon ve WMS callback ayarları |
 | DataGenService | `BACKEND_BASE_URL`, `DATAGEN_ADMIN_USERNAME`, `DATAGEN_ADMIN_PASSWORD`, `OUTPUT_DIR` | JWT login, REST/Rabbit/file hedefleri ve ML dosya çıktısı |
+| AssistantAi | `ASSISTANT_AI_SERVICE_URL`, `ASSISTANT_AI_SERVICE_TIMEOUT`, `ASSISTANT_LLM_MODEL`, `SQLITE_CHECKPOINT_PATH`, `ASISTAN_DRAFT_TTL_SECONDS` | Backend → AssistantAi proxy hedefi, LangGraph model adı ve SqliteSaver yolu |
+| Backend/AssistantAi | `FEATURE_DEPO_ASISTANI_ENABLED`, `VITE_FEATURE_DEPO_ASISTANI_ENABLED` | `/api/asistan/*` ve Depo Asistanı UI özellik anahtarı (flag kapalıyken 404) |
 
 Tam referans için [DOCS/agent/env-reference.md](DOCS/agent/env-reference.md) dosyasını kullanın.
 
@@ -363,6 +368,22 @@ Health check:
 curl http://127.0.0.1:8005/healthz
 ```
 
+### AssistantAiService
+
+```bash
+cd AssistantAiService
+pip install -r requirements.txt
+pip install -r requirements-test.txt
+uvicorn main:app --reload --host 127.0.0.1 --port 8006
+pytest
+```
+
+Health check (Ollama host'unda `ASSISTANT_LLM_MODEL` çekili olmalı):
+
+```bash
+curl -H "X-Internal-Api-Key: <key>" http://127.0.0.1:8006/healthz
+```
+
 ## Mimari Özet
 
 ### Backend katmanları
@@ -496,6 +517,16 @@ Ana senaryolar: `seed_baseline`, `task_load`, `timeseries_history`, `agv_traffic
 
 Runbook: [DOCS/agent/data-gen-service.md](DOCS/agent/data-gen-service.md).
 
+### AssistantAiService
+
+AssistantAiService LangGraph + ChatOllama (`AsyncSqliteSaver` ile per-thread state) kullanan bir HITL depo asistanıdır. Frontend `/depo-asistani` sayfası `/api/asistan/chat`'i çağırır; BackendProje gelen isteği doğrular, kullanıcı bağlamını (`UserContext`) ekleyip `assistant-ai:8006`'ya proxy yapar. LLM bir HITL aleti seçtiğinde AssistantAiService **executor'i çağırmaz**; bunun yerine `ProposedAction` döner. BackendProje bu öneriyi `asistan_aksiyon_taslaklari` tablosuna `BEKLEMEDE` olarak yazar; kullanıcı `/onayla` veya `/reddet` endpoint'ini tetikleyince authoritative use case `app/application/services/asistan_tool_registry.py` üzerinden çağrılır.
+
+- **Tek replica:** AsyncSqliteSaver dosya kilidi yüzünden horizontal scale yasak (AgvSimService ile aynı kural).
+- **DB'ye yazmaz:** Tüm yazımlar BackendProje üzerinden gider; `INTERNAL_API_KEY` shared secret.
+- **Faz 2 PoC tool seti:** `tarih_saat_simdi` (read-only, herkese) ve `yerlestirme_konum_degistir` (HITL, admin/lojistik/depocu). Production tool wiring (`stok_sorgula`, `gorevlerim_listele`, `siparis_iptal` vb.) sonraki PR'larda.
+
+Detaylı plan, mimari kararlar ve dizin ağacı: [DOCS/ASSISTANT_AI_SERVICE_ENTEGRASYON_PLANI.md](DOCS/ASSISTANT_AI_SERVICE_ENTEGRASYON_PLANI.md).
+
 ### ml_models
 
 `ml_models/` klasörü backend akışını bozmadan ML denemeleri yapmak için ayrılmıştır. Şu an ana çalışma alanı `ml_models/talep_tahmin/` dizinidir. Hedef, ürün bazlı günlük talep serilerinden 7/30/90 günlük tahmin, stok riski, önerilen ikmal miktarı, veri yeterliliği ve güven skoru üretebilen bağımsız bir altyapı hazırlamaktır.
@@ -519,6 +550,7 @@ Bu alan FastAPI backend'i doğrudan değiştirmez. Üretime alınacak mantık ne
 | Excel AI test | `cd ExcelAiService && pytest` | Loader, sema matcher, idempotency, router (Ollama mocked) |
 | AGV test | `cd AgvSimService && pytest` | DB gerekmez |
 | DataGenService test | `cd DataGenService && pytest -m unit` | Factory, emitter, API ve CLI testleri |
+| Assistant AI test | `cd AssistantAiService && pytest` | Graph topology, tool registry, HITL kestirimi (FakeChatModel ile) |
 | RAG kalite | `cd WmsAiService && pytest tests/test_rag_retrieval_quality.py -v -s` | Doküman değişikliği sonrası |
 
 Backend testlerinde test veritabanı adı `depo_db_test` olmalıdır. Güvenlik kontrolü `test` içermeyen DB adlarında hata verir.
@@ -725,8 +757,9 @@ docker compose up -d frontend
 | [DOCS/agent/docker-compose.md](DOCS/agent/docker-compose.md) | Compose komutları, sağlık URL'leri, Vite/proxy ve gotcha'lar |
 | [DOCS/agent/backend-notes.md](DOCS/agent/backend-notes.md) | Backend komutları, migration, test ve Clean Architecture kuralları |
 | [DOCS/agent/frontend-notes.md](DOCS/agent/frontend-notes.md) | Frontend kuralları, PWA, Vite ve AGV UI notları |
-| [DOCS/agent/ai-services.md](DOCS/agent/ai-services.md) | WmsAiService, DocAiService, ExcelAiService, AgvSimService ve RAG süreçleri |
+| [DOCS/agent/ai-services.md](DOCS/agent/ai-services.md) | WmsAiService, DocAiService, ExcelAiService, AssistantAiService, AgvSimService ve RAG süreçleri |
 | [DOCS/agent/data-gen-service.md](DOCS/agent/data-gen-service.md) | DataGenService senaryo katalogu, target matrisi, compose ve sorun giderme |
+| [DOCS/ASSISTANT_AI_SERVICE_ENTEGRASYON_PLANI.md](DOCS/ASSISTANT_AI_SERVICE_ENTEGRASYON_PLANI.md) | AssistantAiService faz planı, mimari kararlar, HITL akışı |
 | [DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md](DOCS/EXCEL_AI_SERVICE_ENTEGRASYON_PLANI.md) | ExcelAiService entegrasyon planı ve mimari kararlar |
 | [DOCS/LANGFUSE_AI_OBSERVABILITY_PLANI.md](DOCS/LANGFUSE_AI_OBSERVABILITY_PLANI.md) | Langfuse Cloud observability entegrasyon plani |
 | [DOCS/agent/env-reference.md](DOCS/agent/env-reference.md) | Tüm servis ortam değişkenleri |
@@ -739,6 +772,7 @@ docker compose up -d frontend
 - [ExcelAiService/README.md](ExcelAiService/README.md)
 - [AgvSimService/README.md](AgvSimService/README.md)
 - [DataGenService/README.md](DataGenService/README.md)
+- [AssistantAiService/README.md](AssistantAiService/README.md)
 - [ml_models/README.md](ml_models/README.md)
 - [ml_models/talep_tahmin/README.md](ml_models/talep_tahmin/README.md)
 
