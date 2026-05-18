@@ -94,6 +94,7 @@ def _gorev_hedef_raf_degistir(
     depo_id = _gorev_depo_id_belirle(db, gorev)
     _depo_erisim_dogrula(db, context.kullanici_id, context.rol, depo_id)
     hedef_raf = _raf_kod_ile_getir(db, yeni_konum_kodu, depo_id=depo_id)
+    eski_raf = db.query(RafORM).filter(RafORM.id == gorev.onerilen_raf_id).first()
 
     eski_raf_id = gorev.onerilen_raf_id
     gorev.onerilen_raf_id = hedef_raf.id
@@ -106,6 +107,7 @@ def _gorev_hedef_raf_degistir(
         "tip": "gorev_hedef_raf_degisti",
         "gorev_id": gorev.id,
         "eski_raf_id": eski_raf_id,
+        "eski_raf_kodu": eski_raf.kod if eski_raf is not None else None,
         "yeni_raf_id": hedef_raf.id,
         "yeni_raf_kodu": hedef_raf.kod,
     }
@@ -145,6 +147,7 @@ def _palet_raf_degistir(
         "tip": "palet_raf_degisti",
         "palet_no": palet.palet_no,
         "eski_raf_id": eski_raf_id,
+        "eski_raf_kodu": mevcut_raf.kod if mevcut_raf is not None else None,
         "yeni_raf_id": hedef_raf.id,
         "yeni_raf_kodu": hedef_raf.kod,
     }

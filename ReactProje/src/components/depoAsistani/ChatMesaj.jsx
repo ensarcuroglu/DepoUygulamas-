@@ -7,7 +7,7 @@ import TaslakKart from './TaslakKart';
  * mono-caps role label dilini takip eder. Asistan mesajinda taslak
  * varsa bunu mesaj govdesinin altina TaslakKart olarak gomer.
  */
-export default function ChatMesaj({ message }) {
+export default function ChatMesaj({ message, onTaslakUndo }) {
   const { role, content, pending, taslak, debug } = message;
   const isUser = role === 'user';
   const isAssistant = role === 'assistant';
@@ -65,7 +65,7 @@ export default function ChatMesaj({ message }) {
       {!pending && taslak && (
         <div className="mt-1 flex w-full justify-start">
           <div className="w-full max-w-[85%]">
-            <TaslakKart taslak={taslak} />
+            <TaslakKart taslak={taslak} onUndo={onTaslakUndo} />
           </div>
         </div>
       )}

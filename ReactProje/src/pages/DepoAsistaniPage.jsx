@@ -48,7 +48,7 @@ export default function DepoAsistaniPage() {
   const sendQuestion = useCallback(
     async (rawSoru) => {
       const soru = rawSoru.trim();
-      if (!soru || isLoading) return;
+      if (!soru || isLoading) return false;
 
       const userId = `u-${Date.now()}`;
       const assistantId = `a-${Date.now()}`;
@@ -81,6 +81,7 @@ export default function DepoAsistaniPage() {
               : m,
           ),
         );
+        return true;
       } catch (err) {
         const mesaj = hataMetni(err) || 'Asistan cevap veremedi.';
         setMessages((prev) =>
@@ -91,9 +92,17 @@ export default function DepoAsistaniPage() {
           ),
         );
         toast.error(mesaj);
+        return false;
       }
     },
     [chatMutation, isLoading, sessionId],
+  );
+
+  const handleTaslakUndo = useCallback(
+    async (soru) => {
+      return sendQuestion(soru);
+    },
+    [sendQuestion],
   );
 
   const handleYeniSohbet = () => {
@@ -152,7 +161,11 @@ export default function DepoAsistaniPage() {
           ) : (
             <Motion.div layout className="flex flex-col gap-6">
               {messages.map((m) => (
-                <ChatMesaj key={m.id} message={m} />
+                <ChatMesaj
+                  key={m.id}
+                  message={m}
+                  onTaslakUndo={handleTaslakUndo}
+                />
               ))}
             </Motion.div>
           )}
