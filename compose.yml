@@ -218,6 +218,32 @@ services:
       --reload-exclude .venv --reload-exclude .venv/*
       --host 0.0.0.0 --port 8004
 
+  # AssistantAiService: tek replica (LangGraph SqliteSaver dosya kilidi).
+  # AgvSimService ile ayni kural; replica veya horizontal scale uygulanmamali.
+  assistant-ai:
+    <<: *python-common
+    image: depo-dev-assistant-ai:dev
+    build:
+      <<: *python-build
+      args:
+        SERVICE_DIR: AssistantAiService
+    working_dir: /workspace/AssistantAiService
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "8006:8006"
+    volumes:
+      - .:/workspace
+      - assistant_ai_state:/data
+    command: >
+      uvicorn main:app --reload
+      --reload-exclude .pytest_cache --reload-exclude .pytest_cache/*
+      --reload-exclude __pycache__ --reload-exclude __pycache__/*
+      --reload-exclude venv --reload-exclude venv/*
+      --reload-exclude .venv --reload-exclude .venv/*
+      --host 0.0.0.0 --port 8006
+
   data-gen:
     <<: *python-common
     image: depo-dev-data-gen:dev
@@ -277,3 +303,4 @@ volumes:
   react_node_modules:
   hf_cache:
   sentence_transformers_cache:
+  assistant_ai_state:
