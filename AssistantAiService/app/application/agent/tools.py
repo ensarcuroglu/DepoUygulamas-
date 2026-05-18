@@ -23,7 +23,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Awaitable, Callable, Iterable
 
 from langchain_core.tools import StructuredTool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 log = logging.getLogger(__name__)
 
@@ -178,13 +178,29 @@ async def _tarih_saat_simdi_executor(zone_offset_saat: int = 3) -> dict[str, Any
 
 
 class _YerlestirmeKonumDegistirArgs(BaseModel):
-    gorev_id: int = Field(..., ge=1, description="Bekleyen yerlestirme gorev kimligi.")
+    gorev_id: int | None = Field(
+        None,
+        ge=1,
+        description="Bekleyen yerlestirme gorev kimligi. Palet no biliniyorsa bos birak.",
+    )
+    palet_no: str | None = Field(
+        None,
+        min_length=1,
+        max_length=30,
+        description="Raf bilgisi duzeltilecek palet numarasi, ornek: PRD-20260519-0001.",
+    )
     yeni_konum_kodu: str = Field(
         ...,
         min_length=1,
         max_length=40,
         description="Hedef raf/lokasyon kodu, ornek: 'B-12-3'.",
     )
+
+    @model_validator(mode="after")
+    def _target_required(self):
+        if self.gorev_id is None and not self.palet_no:
+            raise ValueError("gorev_id veya palet_no alanlarindan biri zorunludur.")
+        return self
 
 
 def _builtin_specs() -> list[ToolSpec]:
@@ -205,9 +221,11 @@ def _builtin_specs() -> list[ToolSpec]:
         ToolSpec(
             tool_id="yerlestirme_konum_degistir",
             description=(
-                "Bekleyen bir yerlestirme gorevinin hedef konumunu degistirmek "
-                "icin **onay teklifi** uretir. Calistirma kullanici onayindan "
-                "sonra Backend tarafinda yapilir; sen sadece niyetini ifade et."
+                "Bir paletin mevcut raf bilgisini duzeltmek veya bekleyen bir "
+                "yerlestirme gorevinin hedef konumunu degistirmek icin **onay "
+                "teklifi** uretir. Kullanici palet numarasi verdiyse palet_no, "
+                "gorev numarasi verdiyse gorev_id kullan. Calistirma kullanici "
+                "onayindan sonra Backend tarafinda yapilir; sonucu uydurma."
             ),
             hitl=True,
             rbac_roles=_ALL_ROLLER,
@@ -224,8 +242,11 @@ def _builtin_specs() -> list[ToolSpec]:
 def compose_proposed_action_ozet(tool_id: str, params: dict[str, Any]) -> str:
     """HITL aksiyonu kullaniciya gosterilirken seven gozler icin kisa ozet."""
     if tool_id == "yerlestirme_konum_degistir":
+        palet_no = params.get("palet_no")
         gorev = params.get("gorev_id")
         konum = params.get("yeni_konum_kodu")
+        if palet_no:
+            return f"Palet {palet_no} icin yeni raf/konum: {konum}"
         return f"Gorev #{gorev} icin yeni hedef konum: {konum}"
     # Geri donus: tool_id + key=value listesi
     pieces = ", ".join(f"{k}={v}" for k, v in params.items())

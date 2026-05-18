@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     internal_api_key: str | None = Field(None, alias="INTERNAL_API_KEY")
 
     ollama_base_url: str = Field("http://127.0.0.1:11434", alias="OLLAMA_BASE_URL")
-    assistant_llm_model: str = Field("qwen2.5-coder:7b", alias="ASSISTANT_LLM_MODEL")
+    assistant_llm_model: str = Field("qwen2.5:7b-instruct", alias="ASSISTANT_LLM_MODEL")
     llm_timeout: float = Field(120.0, alias="LLM_TIMEOUT", ge=1.0)
 
     backend_base_url: str = Field("http://127.0.0.1:8000", alias="BACKEND_BASE_URL")

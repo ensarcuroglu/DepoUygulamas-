@@ -55,7 +55,7 @@ doner.
 |---|---|---|
 | `INTERNAL_API_KEY` | Backend ile paylasilan shared secret (zorunlu) | yok |
 | `OLLAMA_BASE_URL` | Ollama API endpoint'i | `http://127.0.0.1:11434` |
-| `ASSISTANT_LLM_MODEL` | LangChain ChatOllama icin model adi | `qwen2.5-coder:7b` |
+| `ASSISTANT_LLM_MODEL` | LangChain ChatOllama icin model adi | `qwen2.5:7b-instruct` |
 | `LLM_TIMEOUT` | Ollama HTTP timeout (saniye) | `120` |
 | `BACKEND_BASE_URL` | BackendProje base URL'i (read-only tool'lar icin Faz 2) | `http://127.0.0.1:8000` |
 | `SQLITE_CHECKPOINT_PATH` | LangGraph SqliteSaver dosya yolu (Faz 2) | `/data/assistant_state.sqlite` |

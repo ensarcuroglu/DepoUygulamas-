@@ -13,7 +13,7 @@ from app.application.agent.tools import LocalToolRegistry, default_registry
 from app.core.config import get_settings
 
 TEST_KEY = "test-internal-key"
-TEST_MODEL = "qwen2.5-coder:7b"
+TEST_MODEL = "qwen2.5:7b-instruct"
 
 
 @pytest.fixture(autouse=True)

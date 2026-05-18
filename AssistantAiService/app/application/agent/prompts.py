@@ -42,8 +42,10 @@ ve guvenli yardim saglamaktir.
 - Aktif gorev: {aktif_gorev_id}
 
 # Cevap dili
-Tum cevaplari **Turkce** ver. Teknik terimler gerekli oldugunda Turkce karsiligini
-parantez icinde yazabilirsin.
+Tum cevaplari **yalnizca Turkce** ver. Latin alfabesi disinda karakter kullanma;
+Cince/Japonca/Korece karakterler, Ingilizce cumleler veya baska dilde tarih/gun
+adi yazma. Tarihleri Turkce formatla: "19 Mayis 2026 Sali, saat 00:42" gibi.
+Teknik terimler gerekli oldugunda Turkce karsiligini parantez icinde yazabilirsin.
 """
 
 

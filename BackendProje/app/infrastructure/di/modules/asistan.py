@@ -9,6 +9,9 @@ from app.application.services.asistan_tool_registry import (
     AsistanToolRegistry,
     get_tool_registry,
 )
+from app.application.services.asistan_default_tools import (
+    ensure_default_asistan_tools_registered,
+)
 from app.application.use_cases.asistan_use_cases import (
     AsistanChatProxyUseCase,
     AsistanTaslakListeleUseCase,
@@ -28,7 +31,9 @@ def get_asistan_aksiyon_taslagi_repo(db: Session = Depends(get_db)):
 
 
 def get_asistan_tool_registry() -> AsistanToolRegistry:
-    return get_tool_registry()
+    registry = get_tool_registry()
+    ensure_default_asistan_tools_registered(registry)
+    return registry
 
 
 def get_assistant_ai_client(settings: Settings = Depends(get_settings)) -> AssistantAiClient:

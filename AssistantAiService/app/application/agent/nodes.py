@@ -62,7 +62,11 @@ def make_llm_node(
     async def llm_node(state: AssistantState) -> dict[str, Any]:
         user_context = state.get("user_context") or {}
         rol = user_context.get("rol", "")
-        izinli = user_context.get("izinli_tool_idleri") or None
+        izinli = (
+            user_context["izinli_tool_idleri"]
+            if "izinli_tool_idleri" in user_context
+            else None
+        )
 
         tools = registry.to_langchain_tools(rol=rol, izinli_tool_idleri=izinli)
         bound_llm = llm.bind_tools(tools) if tools else llm
