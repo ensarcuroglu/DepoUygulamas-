@@ -144,7 +144,7 @@ HANGİ VIEW'I SEÇ?
 9. Limit belirtilmediyse listeleme için `LIMIT 50` ekle. Sayım/toplam için LIMIT EKLEME.
 10. Türkçe karakterleri (ç,ş,ğ,ü,ö,ı) olduğu gibi kullan.
 11. Cevap SADECE SQL olsun, açıklama veya markdown KULLANMA.
-12. Eğer soru yukarıdaki view'larla yanıtlanamıyorsa, en yakın view üzerinden BOŞ sonuç dönecek bir SELECT yaz (örn. `SELECT 1 WHERE 1=0`).
+12. Eğer soru yukarıdaki view'larla yanıtlanamıyorsa, en yakın view üzerinden BOŞ sonuç dönecek bir SELECT yaz (örn. `SELECT urun_id FROM ai_stok_durumu_view WHERE 1=0 LIMIT 50;`).
 """
 
 
@@ -331,6 +331,10 @@ KRİTİK KURALLAR:
 - 'yeterli'/'bol'/'çok'/'dolu' = stok_durumu='Yeterli'.
 - hareket_tipi değerleri: 'GIRIS' veya 'CIKIS' (büyük harf).
 - palet_durumu değerleri: 'OLUSTURULDU','KABUL_BEKLIYOR','KABUL_EDILDI','YERLESTIRME_BEKLIYOR','YERLESTIRILDI','KARANTINA','IPTAL_EDILDI'.
+- Sadece listelenen `ai_*_view` view'larını kullan; `information_schema`, `performance_schema`, `mysql`, `sys` veya sistem tablolarını sorgulama.
+- `SLEEP`, `BENCHMARK`, `LOAD_FILE`, `VERSION`, `DATABASE`, `USER`, `CURRENT_USER`, `RAND`, `UUID`, `CONNECTION_ID` gibi sistem fonksiyonlarını kullanma.
+- Liste dönen sorgularda LIMIT kullan; LIMIT belirtilmediyse 50, üst sınır 200 olmalıdır.
+- Boş sonuç gerektiğinde bile izinli bir view kullan; `SELECT 1`, `SELECT @@version` veya view içermeyen sorgu yazma.
 """
 
 
