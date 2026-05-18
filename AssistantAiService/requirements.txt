@@ -4,3 +4,13 @@ pydantic>=2.7.0
 pydantic-settings>=2.4.0
 httpx>=0.27.0
 python-dotenv>=1.0.0
+
+# LangChain / LangGraph stack (Faz 2 agent core)
+langchain-core>=0.3.0
+langchain-ollama>=0.2.0
+langgraph>=0.2.0
+langgraph-checkpoint-sqlite>=2.0.0
+aiosqlite>=0.20.0
+
+# Opsiyonel observability (no-op fallback)
+langfuse>=2.0.0
