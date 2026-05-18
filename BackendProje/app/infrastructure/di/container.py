@@ -282,6 +282,15 @@ from app.infrastructure.di.modules.belge_taslagi import (  # noqa: F401
     get_belge_taslagi_reddet_uc,
     get_doc_ai_client,
 )
+from app.infrastructure.di.modules.asistan import (  # noqa: F401
+    get_asistan_aksiyon_taslagi_repo,
+    get_asistan_chat_proxy_uc,
+    get_asistan_taslak_listele_uc,
+    get_asistan_taslak_onayla_uc,
+    get_asistan_taslak_reddet_uc,
+    get_asistan_tool_registry,
+    get_assistant_ai_client,
+)
 from app.infrastructure.di.modules.agv_di import (  # noqa: F401
     AGV_KULLANICI_ADI,
     get_agv_dispatcher,

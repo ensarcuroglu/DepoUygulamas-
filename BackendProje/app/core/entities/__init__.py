@@ -18,6 +18,7 @@ from .rapor import RaporSablonu, RaporLogu, RaporSchedule
 from .stok_sayim import StokSayim, StokSayimKalemi
 from .mal_kabul_irsaliye import MalKabulIrsaliye, MalKabulKalemi
 from .belge_taslagi import BelgeTaslagi, BelgeTaslagiDurum
+from .asistan_aksiyon_taslagi import AsistanAksiyonTaslagi, AsistanTaslakDurum
 from .toplama_gorevi import ToplamaGorevi, ToplamaGoreviDurum
 from .palet_rezervasyonu import PaletRezervasyonu, RezervasyonDurum
 from .palet_durum_log import PaletDurumLog
@@ -39,6 +40,7 @@ __all__ = [
     "StokSayim", "StokSayimKalemi",
     "MalKabulIrsaliye", "MalKabulKalemi",
     "BelgeTaslagi", "BelgeTaslagiDurum",
+    "AsistanAksiyonTaslagi", "AsistanTaslakDurum",
     "ToplamaGorevi", "ToplamaGoreviDurum",
     "PaletRezervasyonu", "RezervasyonDurum",
     "PaletDurumLog",

@@ -30,6 +30,7 @@ from .uretim_paletleri import router as uretim_paletleri_router
 from .etiket_sablonlari import router as etiket_sablonlari_router
 from .talep_tahmini import router as talep_tahmini_router
 from .ai_proxy import router as ai_proxy_router
+from .asistan import router as asistan_router
 from .excel_ai import router as excel_ai_router
 from .data_gen import router as data_gen_router
 from .operator_performans import router as operator_performans_router
@@ -68,6 +69,7 @@ __all__ = [
     "etiket_sablonlari_router",
     "talep_tahmini_router",
     "ai_proxy_router",
+    "asistan_router",
     "excel_ai_router",
     "data_gen_router",
     "operator_performans_router",

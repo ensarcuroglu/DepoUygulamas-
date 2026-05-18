@@ -112,6 +112,19 @@ from .belge_taslagi_dto import (
     BelgeTaslagiReddetRequestDTO,
     BelgeTaslagiResponseDTO,
 )
+from .asistan_dto import (
+    AsistanChatRequestDTO,
+    AsistanChatResponseDTO,
+    AsistanTaslakOnaylaRequestDTO,
+    AsistanTaslakReddetRequestDTO,
+    AsistanTaslakResponseDTO,
+    AsistanToolListResponseDTO,
+    AsistanToolMetaDTO,
+    AsistanUpstreamChatRequestDTO,
+    AsistanUpstreamChatResponseDTO,
+    AsistanUserContextDTO,
+    ProposedActionDTO,
+)
 from .talep_tahmini_dto import (
     BacktestOzetDTO,
     GunlukTahminDTO,
@@ -182,6 +195,13 @@ __all__ = [
     "BelgeTaslagiKalemOnayDTO", "BelgeTaslagiOlusturRequestDTO",
     "BelgeTaslagiOnaylaRequestDTO", "BelgeTaslagiReddetRequestDTO",
     "BelgeTaslagiResponseDTO",
+    # Asistan
+    "AsistanChatRequestDTO", "AsistanChatResponseDTO",
+    "AsistanTaslakOnaylaRequestDTO", "AsistanTaslakReddetRequestDTO",
+    "AsistanTaslakResponseDTO",
+    "AsistanToolListResponseDTO", "AsistanToolMetaDTO",
+    "AsistanUpstreamChatRequestDTO", "AsistanUpstreamChatResponseDTO",
+    "AsistanUserContextDTO", "ProposedActionDTO",
     # Talep Tahmini
     "GunlukTahminDTO", "GunlukTalepDTO", "TalepTahminResponseDTO",
     "TalepTahminUrunOzetDTO", "TalepTrendDTO",

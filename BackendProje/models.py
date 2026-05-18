@@ -1162,6 +1162,34 @@ class OperatorVardiyaMetrikleri(Base):
     kullanici: Mapped["Kullanici"] = relationship("Kullanici", foreign_keys=[kullanici_id])
 
 
+class AsistanAksiyonTaslagi(Base):
+    __tablename__ = "asistan_aksiyon_taslaklari"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    kullanici_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("kullanicilar.id"), nullable=False, index=True
+    )
+    rol: Mapped[str] = mapped_column(String(32), nullable=False)
+    tool_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    payload_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    durum: Mapped[str] = mapped_column(
+        String(30), default="BEKLEMEDE", nullable=False, index=True
+    )
+    ozet: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    idempotency_key: Mapped[str] = mapped_column(
+        String(128), nullable=False, unique=True
+    )
+    sonuc_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    hata_mesaji: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, server_default=func.now(), index=True
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    executed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    kullanici: Mapped["Kullanici"] = relationship("Kullanici", foreign_keys=[kullanici_id])
+
+
 from sqlalchemy.orm import column_property  # noqa: E402
 
 # N+1 Problemini çözmek için column_property ile veritabanı seviyesinde toplama yapıyoruz.

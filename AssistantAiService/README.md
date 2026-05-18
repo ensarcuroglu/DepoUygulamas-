@@ -42,7 +42,14 @@ Health check:
 curl -H "X-Internal-Api-Key: <key>" http://localhost:8006/healthz
 ```
 
-## Env Degiskenleri (Faz 0)
+## Chat sozlesmesi
+
+BackendProje, `POST /api/asistan/chat` endpoint'ini internal API key ile
+cagirir. Bu endpoint su anda sozlesmeyi ve session davranisini garanti eder;
+LangGraph/tool orkestrasyonu devreye girene kadar `proposed_action=null`
+doner.
+
+## Env Degiskenleri
 
 | Degisken | Aciklama | Varsayilan |
 |---|---|---|
@@ -58,8 +65,8 @@ curl -H "X-Internal-Api-Key: <key>" http://localhost:8006/healthz
 
 | Faz | Icerik | Durum |
 |---|---|---|
-| 0 | Iskelet (paket, config, healthz, middleware, compose, env) | **bu PR** |
-| 1 | Backend authoritative katman (Alembic migration, tool registry, taslak endpoint'leri) | sonraki |
+| 0 | Iskelet (paket, config, healthz, middleware, compose, env) | tamam |
+| 1 | Backend authoritative katman + AssistantAiService chat sozlesmesi | **bu PR** |
 | 2 | AssistantAiService cekirdek (LangGraph, tools, chat endpoint, SqliteSaver) | sonraki |
 | 3 | Frontend `/depo-asistani` sayfasi | sonraki |
 | 4 | Dokumantasyon + smoke test | sonraki |

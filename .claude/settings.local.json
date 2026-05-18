@@ -58,7 +58,9 @@
       "Bash(./.venv/Scripts/python.exe -m ruff check app/ alembic/versions/a1b2c3d4e5f6_rabbitmq_outbox_alanlari.py tests/factories/operator_performans_factory.py)",
       "Bash(./.venv/Scripts/python.exe -m pytest tests/unit/use_cases/test_metrikler_aggregasyon_eventleri_isle.py -v --no-header)",
       "Bash(./.venv/Scripts/python.exe -m pytest -m unit -q --no-header)",
-      "Bash(/tmp/exai-venv/bin/python -m pytest --tb=short)"
+      "Bash(/tmp/exai-venv/bin/python -m pytest --tb=short)",
+      "Bash(pytest tests/unit/services/test_asistan_tool_registry.py tests/unit/use_cases/test_asistan_use_cases.py -v)",
+      "Bash(echo \"---pytest exit: $?---\")"
     ]
   }
 }

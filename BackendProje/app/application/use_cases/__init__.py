@@ -152,6 +152,12 @@ from .belge_taslagi_use_cases import (
     BelgeTaslagiOnaylaUseCase,
     BelgeTaslagiReddetUseCase,
 )
+from .asistan_use_cases import (
+    AsistanChatProxyUseCase,
+    AsistanTaslakListeleUseCase,
+    AsistanTaslakOnaylaUseCase,
+    AsistanTaslakReddetUseCase,
+)
 
 from .inbound_kpi_use_cases import InboundKpiUseCase
 
@@ -272,6 +278,11 @@ __all__ = [
     "BelgeTaslagiListeleUseCase",
     "BelgeTaslagiOlusturUseCase", "BelgeTaslagiOnaylaUseCase",
     "BelgeTaslagiReddetUseCase",
+    # Asistan
+    "AsistanChatProxyUseCase",
+    "AsistanTaslakListeleUseCase",
+    "AsistanTaslakOnaylaUseCase",
+    "AsistanTaslakReddetUseCase",
     # Yerleştirme Görevi
     "YerlestirmeGoreviListeleUseCase", "YerlestirmeGoreviGetirUseCase",
     "YerlestirmeGoreviOlusturUseCase", "SonrakiGorevisiniAlUseCase",

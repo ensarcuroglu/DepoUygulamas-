@@ -19,6 +19,7 @@ from .stok_sayim_repository import IStokSayimRepository
 from .dashboard_repository import IDashboardRepository
 from .mal_kabul_irsaliye_repository import IMalKabulIrsaliyeRepository
 from .belge_taslagi_repository import IBelgeTaslagiRepository
+from .asistan_aksiyon_taslagi_repository import IAsistanAksiyonTaslagiRepository
 from .toplama_gorevi_repository import IToplamaGoreviRepository
 from .palet_rezervasyonu_repository import IPaletRezervasyonuRepository
 from .uretim_seri_sayac_repository import IUretimSeriSayacRepository
@@ -36,6 +37,7 @@ __all__ = [
     "IDashboardRepository",
     "IMalKabulIrsaliyeRepository",
     "IBelgeTaslagiRepository",
+    "IAsistanAksiyonTaslagiRepository",
     "IToplamaGoreviRepository",
     "IPaletRezervasyonuRepository",
     "IUretimSeriSayacRepository",

@@ -182,6 +182,24 @@ class Settings(BaseSettings):
         alias="WMS_AI_SERVICE_TIMEOUT",
         ge=1.0,
     )
+    assistant_ai_service_url: str = Field(
+        "http://localhost:8006",
+        alias="ASSISTANT_AI_SERVICE_URL",
+    )
+    assistant_ai_service_timeout: float = Field(
+        180.0,
+        alias="ASSISTANT_AI_SERVICE_TIMEOUT",
+        ge=1.0,
+    )
+    feature_depo_asistani_enabled: bool = Field(
+        False,
+        alias="FEATURE_DEPO_ASISTANI_ENABLED",
+    )
+    asistan_draft_ttl_seconds: int = Field(
+        900,
+        alias="ASISTAN_DRAFT_TTL_SECONDS",
+        ge=60,
+    )
 
     rabbitmq_enabled: bool = Field(False, alias="RABBITMQ_ENABLED")
     rabbitmq_url: str = Field(
