@@ -109,6 +109,7 @@ export default defineConfig({
         enabled: enablePwaInDev,
         type: 'module',
         navigateFallback: '/index.html',
+        disableRuntimeConfig: true,
         suppressWarnings: enablePwaInDev,
       },
     }),

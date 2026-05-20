@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 // Context ve İskelet (Layout) bileşenleri uygulama ilk açıldığında 
 // hemen lazım olacağı için statik (normal) import olarak bırakıyoruz.
@@ -11,6 +11,7 @@ import RoleRoute from './components/RoleRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
 import TerminalLayout from './components/layout/TerminalLayout';
 import DepocuLayout from './components/layout/DepocuLayout';
+import RouteErrorBoundary from './components/RouteErrorBoundary';
 
 // Sayfaları lazy ile dinamik import'a çeviriyoruz. 
 // Vite bu sayede her sayfayı (ve içindeki ağır kütüphaneleri) ayrı bir dosyaya bölecek.
@@ -95,14 +96,24 @@ const LoadingSpinner = () => (
   </div>
 );
 
+function RouteErrorBoundaryWithLocation({ children }) {
+  const location = useLocation();
+  return (
+    <RouteErrorBoundary resetKey={location.pathname}>
+      {children}
+    </RouteErrorBoundary>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <BrowserRouter>
           {/* Suspense: Lazy load edilen sayfalar indirilirken ekranda ne görüneceğini belirler */}
-          <Suspense fallback={<LoadingSpinner />}>
-            <Routes>
+          <RouteErrorBoundaryWithLocation>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Routes>
               {/* Herkese açık: Giriş sayfası */}
               <Route path="/login" element={<LoginPage />} />
 
@@ -264,8 +275,9 @@ function App() {
 
               {/* Bilinmeyen rotalar → Role göre yönlendir */}
               <Route path="*" element={<DefaultRedirect />} />
-            </Routes>
-          </Suspense>
+              </Routes>
+            </Suspense>
+          </RouteErrorBoundaryWithLocation>
         </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>

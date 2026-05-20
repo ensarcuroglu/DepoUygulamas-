@@ -3,9 +3,46 @@ import toast from 'react-hot-toast';
 
 let updateSW;
 
+const shouldCleanDevPwa =
+    import.meta.env.DEV && import.meta.env.VITE_PWA_DEV !== 'true';
+const devCleanupReloadKey = 'depo:pwa-dev-cleanup-reloaded';
+
+async function cleanupDevelopmentPwa() {
+    try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+
+        if ('caches' in window) {
+            const cacheNames = await window.caches.keys();
+            await Promise.all(
+                cacheNames
+                    .filter((name) => name.startsWith('workbox-') || name.startsWith('depo-'))
+                    .map((name) => window.caches.delete(name)),
+            );
+        }
+
+        if (navigator.serviceWorker.controller && sessionStorage.getItem(devCleanupReloadKey) !== 'true') {
+            sessionStorage.setItem(devCleanupReloadKey, 'true');
+            window.location.reload();
+            return;
+        }
+
+        if (!navigator.serviceWorker.controller) {
+            sessionStorage.removeItem(devCleanupReloadKey);
+        }
+    } catch (error) {
+        console.warn('[PWA] Development service worker cleanup failed:', error);
+    }
+}
+
 export function setupPwa() {
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator)) return;
+
+    if (shouldCleanDevPwa) {
+        void cleanupDevelopmentPwa();
+        return;
+    }
 
     updateSW = registerSW({
         immediate: true,
