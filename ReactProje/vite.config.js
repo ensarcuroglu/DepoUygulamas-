@@ -7,6 +7,7 @@ import { visualizer } from "rollup-plugin-visualizer"
 import { VitePWA } from 'vite-plugin-pwa'
 
 const devHttps = env.VITE_DEV_HTTPS !== 'false'
+const enablePwaInDev = env.VITE_PWA_DEV === 'true'
 const backendProxyTarget = env.VITE_BACKEND_PROXY_TARGET || 'http://127.0.0.1:8000'
 const agvProxyTarget = env.VITE_AGV_PROXY_TARGET || 'http://127.0.0.1:8002'
 const agvWsProxyTarget = env.VITE_AGV_WS_PROXY_TARGET || 'ws://127.0.0.1:8002'
@@ -105,9 +106,10 @@ export default defineConfig({
         ],
       },
       devOptions: {
-        enabled: true,
+        enabled: enablePwaInDev,
         type: 'module',
         navigateFallback: '/index.html',
+        suppressWarnings: enablePwaInDev,
       },
     }),
     visualizer({
