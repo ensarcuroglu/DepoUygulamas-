@@ -36,6 +36,8 @@ const initialState = {
     paletler: {},          // { [palet_key]: { palet_key, palet_id, durum, x, y, kaynak_raf_id, hedef_raf_id, robot_id, gorev_id } }
     paletKeys: [],         // Stable iter array — paletler dict'in key listesi
 
+    duraklatildi: false,   // Test paneli / operatör duraklatma bayrağı
+
     selectedRobotId: null, // Faz 4: kullanıcı 3D'de bir robotu tıkladığında
 };
 
@@ -96,6 +98,10 @@ export const useAgvStore = create((set) => ({
             aktifGorevler: msg.aktif_gorevler ?? state.aktifGorevler,
             paletler,
             paletKeys,
+            duraklatildi:
+                typeof msg.duraklatildi === 'boolean'
+                    ? msg.duraklatildi
+                    : state.duraklatildi,
         };
     }),
 

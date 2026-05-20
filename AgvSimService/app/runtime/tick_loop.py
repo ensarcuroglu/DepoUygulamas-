@@ -81,6 +81,12 @@ class TickLoop:
 
     async def _bir_tick(self) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         async with self.world.lock:
+            if self.world.duraklatildi:
+                # Test paneli / operatör duraklatması — sim ilerlemez,
+                # ama delta yine yayılır (frontend "duraklatıldı" göstergesi
+                # ve bağlantı sağlığı için).
+                delta = self.world.snapshot_delta()
+                return [], delta
             events = self._tick_uc.execute(self.world)
             events.extend(self._atama_uc.execute(self.world))
             delta = self.world.snapshot_delta()

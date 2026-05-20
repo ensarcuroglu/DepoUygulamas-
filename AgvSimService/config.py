@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     # WS broadcast yavaş client koruması — kuyruk bu sınırı aşarsa bağlantı kapatılır
     WS_MAX_QUEUE: int = 32
 
+    # AGV test/demo paneli endpoint'lerini açar (/api/agv/test/*).
+    # Frontend AGV İzleme sayfasından senaryo tetikleme için. Üretim:
+    # genellikle false. INTERNAL_API_KEY istemez; gateway/proxy seviyesinde
+    # kısıtla.
+    AGV_TEST_PANEL_ENABLED: bool = True
+
     @property
     def cors_allow_origins_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ALLOW_ORIGINS.split(",") if o.strip()]

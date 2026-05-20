@@ -32,6 +32,7 @@ export default function DepoZemini({ grid }) {
     const { genislik, yukseklik } = grid;
     const raflar = grid.raflar ?? [];
     const sarjlar = grid.sarj_konumlari ?? [];
+    const beklemeler = grid.bekleme_konumlari ?? [];
     const engeller = grid.engeller ?? [];
 
     const merkezX = genislik / 2 - 0.5;
@@ -111,6 +112,19 @@ export default function DepoZemini({ grid }) {
                         ))}
                     </Instances>
                 ))}
+
+            {/* Bekleme/park noktaları — yer üstünde mavi yarı saydam disk. */}
+            {beklemeler.map((b, i) => (
+                <mesh
+                    key={`bekleme-${i}`}
+                    position={[b.x, 0.015, b.y]}
+                    rotation={[-Math.PI / 2, 0, 0]}
+                    receiveShadow
+                >
+                    <ringGeometry args={[0.32, 0.42, 32]} />
+                    <meshBasicMaterial color="#38bdf8" transparent opacity={0.55} />
+                </mesh>
+            ))}
 
             {/* Şarj noktaları — küçültülüp cell'in arka yarısına ofsetlenir;
                 AGV cell'in ön yarısına dock olur, görsel çakışma yaşanmaz. */}

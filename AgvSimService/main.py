@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.routers import gorevler as gorevler_router
 from app.api.v1.routers import robotlar as robotlar_router
+from app.api.v1.routers import test_paneli as test_paneli_router
 from app.api.v1.routers import ws as ws_router
 from app.core.entities.grid import Cell
 from app.core.entities.robot import Robot, RobotDurum, Yon
@@ -125,6 +126,9 @@ app.add_middleware(
 app.include_router(gorevler_router.router)
 app.include_router(robotlar_router.router)
 app.include_router(ws_router.router)
+if settings.AGV_TEST_PANEL_ENABLED:
+    app.include_router(test_paneli_router.router)
+    log.info("AGV test paneli endpoint'leri etkin (/api/agv/test/*)")
 
 
 @app.get("/healthz", tags=["Sistem"])

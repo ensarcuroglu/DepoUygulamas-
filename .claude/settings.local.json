@@ -60,7 +60,9 @@
       "Bash(./.venv/Scripts/python.exe -m pytest -m unit -q --no-header)",
       "Bash(/tmp/exai-venv/bin/python -m pytest --tb=short)",
       "Bash(pytest tests/unit/services/test_asistan_tool_registry.py tests/unit/use_cases/test_asistan_use_cases.py -v)",
-      "Bash(echo \"---pytest exit: $?---\")"
+      "Bash(echo \"---pytest exit: $?---\")",
+      "Bash(PYTHONPATH=. python3 -m pytest tests/integration/test_test_paneli_endpoint.py --tb=short)",
+      "Bash(PYTHONPATH=. python3 -m pytest --ignore=tests/integration/test_gorev_kabul_endpoint.py)"
     ]
   }
 }

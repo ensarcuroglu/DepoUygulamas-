@@ -34,6 +34,10 @@ class World:
         # Palet kayıtları — görsel runtime state (DB değil).
         # Görev kuyruğa girince eklenir, hedefe bırakıldıktan sonra orada kalır.
         self.paletler: dict[str, Palet] = {}
+        # Test paneli / operatör duraklatması. True iken TickLoop bir tick atlar
+        # (snapshot delta yine yayılır ki frontend "duraklatıldı" gösterimini
+        # canlı tutsun).
+        self.duraklatildi: bool = False
 
     def robot_ekle(self, robot: Robot) -> None:
         if robot.id in self.robotlar:
@@ -222,6 +226,7 @@ class World:
             "aktif_gorev_sayisi": len(self.aktif_gorevler),
             "aktif_gorevler": self.aktif_gorev_listesi(),
             "paletler": self.palet_listesi(),
+            "duraklatildi": self.duraklatildi,
         }
 
 
