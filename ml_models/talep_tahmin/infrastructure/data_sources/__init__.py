@@ -7,6 +7,7 @@ from ml_models.talep_tahmin.infrastructure.data_sources.synthetic_data_source im
 
 __all__ = [
     "CsvDemandDataSource",
+    "ParquetDemandDataSource",
     "PublicDatasetAdapter",
     "PublicDatasetColumnMap",
     "SyntheticDemandDataSource",
@@ -23,6 +24,12 @@ def __getattr__(name: str):
         )
 
         return CsvDemandDataSource
+    if name == "ParquetDemandDataSource":
+        from ml_models.talep_tahmin.infrastructure.data_sources.parquet_data_source import (
+            ParquetDemandDataSource,
+        )
+
+        return ParquetDemandDataSource
     if name in {"PublicDatasetAdapter", "PublicDatasetColumnMap"}:
         from ml_models.talep_tahmin.infrastructure.data_sources.public_dataset_adapter import (
             PublicDatasetAdapter,
