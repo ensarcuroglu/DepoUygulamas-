@@ -33,6 +33,9 @@ const initialState = {
     aktifGorevSayisi: 0,
     aktifGorevler: [],     // Faz 5: aktif görev listesi (delta'dan, gorev_id, robot_id, ...)
 
+    paletler: {},          // { [palet_key]: { palet_key, palet_id, durum, x, y, kaynak_raf_id, hedef_raf_id, robot_id, gorev_id } }
+    paletKeys: [],         // Stable iter array — paletler dict'in key listesi
+
     selectedRobotId: null, // Faz 4: kullanıcı 3D'de bir robotu tıkladığında
 };
 
@@ -52,11 +55,19 @@ export const useAgvStore = create((set) => ({
             robots[r.id] = r;
             robotIds.push(r.id);
         }
+        const paletler = {};
+        const paletKeys = [];
+        for (const p of msg.paletler ?? []) {
+            paletler[p.palet_key] = p;
+            paletKeys.push(p.palet_key);
+        }
         set({
             grid: msg.grid ?? null,
             tickNo: msg.tick_no ?? 0,
             robots,
             robotIds,
+            paletler,
+            paletKeys,
             rotalar: {},
             sonOlaylar: [],
         });
@@ -67,12 +78,24 @@ export const useAgvStore = create((set) => ({
         for (const r of msg.robotlar ?? []) {
             robots[r.id] = r;
         }
+        let paletler = state.paletler;
+        let paletKeys = state.paletKeys;
+        if (Array.isArray(msg.paletler)) {
+            paletler = {};
+            paletKeys = [];
+            for (const p of msg.paletler) {
+                paletler[p.palet_key] = p;
+                paletKeys.push(p.palet_key);
+            }
+        }
         return {
             tickNo: msg.tick_no ?? state.tickNo,
             robots,
             kuyrukUzunlugu: msg.kuyruk_uzunlugu ?? state.kuyrukUzunlugu,
             aktifGorevSayisi: msg.aktif_gorev_sayisi ?? state.aktifGorevSayisi,
             aktifGorevler: msg.aktif_gorevler ?? state.aktifGorevler,
+            paletler,
+            paletKeys,
         };
     }),
 

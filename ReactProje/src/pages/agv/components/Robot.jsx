@@ -42,7 +42,6 @@ export default function RobotMesh({ robotId }) {
     const renk = DURUM_RENK[durum] ?? '#9ca3af';
 
     const { scene: amrScene } = useGLTF('/models/AMR.glb');
-    const { scene: paletScene } = useGLTF('/models/Palet.glb');
 
     useFrame(() => {
         const group = groupRef.current;
@@ -119,11 +118,7 @@ export default function RobotMesh({ robotId }) {
                 />
             </mesh>
 
-            {/* Yük Modeli (Sadece taşıyor veya bırakıyor iken) */}
-            {(durum === 'Tasiyor' || durum === 'Birakiyor') && (
-                // Palet robotun boyutuna ve platform yüksekliğine göre ayarlandı
-                <Clone object={paletScene} scale={0.6} position={[0, 0.28, 0]} castShadow />
-            )}
+            {/* Palet render Paletler.jsx içinde — tek source of truth. */}
 
             {/* Kullanıcı Etkileşim Balonu (Glassmorphism Tooltip) */}
             {hovered && (

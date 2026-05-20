@@ -9,7 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.api.v1.auth import internal_api_key_verify
 from app.application.dto.gorev_dto import GorevPushRequestDTO, GorevPushResponseDTO
 from app.core.entities.agv_gorev import AgvGorev
-from app.core.services.world import get_world
+from app.core.entities.palet import Palet, PaletDurum
+from app.core.services.world import World, get_world
 
 router = APIRouter(prefix="/api/agv", tags=["AGV Görev"])
 
@@ -44,6 +45,19 @@ async def gorev_kabul(req: GorevPushRequestDTO) -> GorevPushResponseDTO:
     )
     async with world.lock:
         world.gorev_kuyrugu.append(gorev)
+        # Palet kaydı — kaynak rafta bekliyor (görsel temsil).
+        kaynak_raf = world.grid.raflar[gorev.kaynak_raf_id]
+        palet_key = World.palet_anahtari(gorev)
+        world.paletler[palet_key] = Palet(
+            palet_key=palet_key,
+            palet_id=gorev.palet_id,
+            durum=PaletDurum.KAYNAKTA_BEKLIYOR,
+            x=kaynak_raf.x,
+            y=kaynak_raf.y,
+            kaynak_raf_id=gorev.kaynak_raf_id,
+            hedef_raf_id=gorev.hedef_raf_id,
+            gorev_id=gorev.gorev_id,
+        )
         kuyruk_uzunlugu = len(world.gorev_kuyrugu)
 
     return GorevPushResponseDTO(

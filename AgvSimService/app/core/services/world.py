@@ -8,6 +8,7 @@ from typing import Optional
 
 from app.core.entities.agv_gorev import AgvGorev
 from app.core.entities.grid import Grid
+from app.core.entities.palet import Palet, PaletDurum
 from app.core.entities.robot import Robot, RobotDurum
 from app.core.services.reservation_table import ReservationTable
 
@@ -30,6 +31,9 @@ class World:
         # Robot bazlı deadlock takibi: stuck_tick_count, son_konum
         self.robot_stuck: dict[str, int] = {}
         self.robot_son_konum: dict[str, tuple[int, int]] = {}
+        # Palet kayıtları — görsel runtime state (DB değil).
+        # Görev kuyruğa girince eklenir, hedefe bırakıldıktan sonra orada kalır.
+        self.paletler: dict[str, Palet] = {}
 
     def robot_ekle(self, robot: Robot) -> None:
         if robot.id in self.robotlar:
@@ -116,6 +120,41 @@ class World:
             for r in self.robotlar.values()
         ]
 
+    @staticmethod
+    def palet_anahtari(gorev: AgvGorev) -> str:
+        """Görevden palet için stabil anahtar üretir (palet_id varsa onu kullan)."""
+        if gorev.palet_id is not None:
+            return f"palet:{gorev.palet_id}"
+        return f"gorev:{gorev.gorev_id}"
+
+    def palet_listesi(self) -> list[dict]:
+        """WS payload için palet özetleri.
+
+        ROBOT_UZERINDE palet için x/y robotun anlık konumuyla doldurulur ki
+        frontend her tick'te doğru konumu görsün (lerp kendisi yapar).
+        """
+        sonuc: list[dict] = []
+        for p in self.paletler.values():
+            x, y = p.x, p.y
+            if p.durum == PaletDurum.ROBOT_UZERINDE and p.robot_id is not None:
+                r = self.robotlar.get(p.robot_id)
+                if r is not None:
+                    x, y = r.x, r.y
+            sonuc.append(
+                {
+                    "palet_key": p.palet_key,
+                    "palet_id": p.palet_id,
+                    "durum": p.durum.value,
+                    "x": x,
+                    "y": y,
+                    "kaynak_raf_id": p.kaynak_raf_id,
+                    "hedef_raf_id": p.hedef_raf_id,
+                    "robot_id": p.robot_id,
+                    "gorev_id": p.gorev_id,
+                }
+            )
+        return sonuc
+
     def aktif_gorev_listesi(self) -> list[dict]:
         """WS delta için özet — frontend görev paneli kullanır."""
         # robot_id'yi bulmak için ters arama
@@ -170,6 +209,7 @@ class World:
                 "engeller": engeller,
             },
             "robotlar": self.robot_dict_listesi(),
+            "paletler": self.palet_listesi(),
         }
 
     def snapshot_delta(self) -> dict:
@@ -181,6 +221,7 @@ class World:
             "kuyruk_uzunlugu": len(self.gorev_kuyrugu),
             "aktif_gorev_sayisi": len(self.aktif_gorevler),
             "aktif_gorevler": self.aktif_gorev_listesi(),
+            "paletler": self.palet_listesi(),
         }
 
 

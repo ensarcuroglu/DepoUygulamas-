@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.core.entities.palet import Palet, PaletDurum
 from app.core.entities.path import Path
 from app.core.entities.robot import RobotDurum
 from app.core.services.rota_planlayici import planla_ve_rezerve_et
@@ -40,6 +41,24 @@ class GorevAtamaUseCase:
         bos_robot.durum_gecisi(RobotDurum.KAYNAGA_GIDIYOR)
         gorev.baslama_tick = world.tick_no
         world.aktif_gorevler[gorev.gorev_id] = gorev
+
+        # Görev router yerine doğrudan kuyruğa eklendiyse palet kaydı eksik
+        # olabilir — lazy oluştur (idempotent). Router zaten palet'i eklemişse
+        # bu blok hiçbir şey yapmaz.
+        palet_key = World.palet_anahtari(gorev)
+        if palet_key not in world.paletler:
+            kaynak_raf = world.grid.raflar.get(gorev.kaynak_raf_id)
+            if kaynak_raf is not None:
+                world.paletler[palet_key] = Palet(
+                    palet_key=palet_key,
+                    palet_id=gorev.palet_id,
+                    durum=PaletDurum.KAYNAKTA_BEKLIYOR,
+                    x=kaynak_raf.x,
+                    y=kaynak_raf.y,
+                    kaynak_raf_id=gorev.kaynak_raf_id,
+                    hedef_raf_id=gorev.hedef_raf_id,
+                    gorev_id=gorev.gorev_id,
+                )
 
         events.append(
             {

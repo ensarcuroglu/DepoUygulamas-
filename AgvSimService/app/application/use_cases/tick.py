@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.core.entities.grid import Cell
+from app.core.entities.palet import PaletDurum
 from app.core.entities.path import Path
 from app.core.entities.robot import (
     BIRAKMA_TICK,
@@ -114,11 +115,29 @@ class TickUseCase:
             if robot.bekleme_kalani > 0:
                 return
             robot.durum_gecisi(RobotDurum.TAMAMLANDI_BILDIRIM)
+            # Palet hedefe bırakıldı — runtime kayıt güncellemesi.
+            gorev = (
+                world.aktif_gorevler.get(robot.aktif_gorev_id)
+                if robot.aktif_gorev_id
+                else None
+            )
+            palet_key: str | None = None
+            if gorev is not None:
+                palet_key = World.palet_anahtari(gorev)
+                palet = world.paletler.get(palet_key)
+                if palet is not None:
+                    hedef_raf = world.grid.raflar.get(gorev.hedef_raf_id)
+                    palet.durum = PaletDurum.HEDEFTE_BIRAKILDI
+                    palet.robot_id = None
+                    if hedef_raf is not None:
+                        palet.x = hedef_raf.x
+                        palet.y = hedef_raf.y
             events.append(
                 {
                     "olay": "palet_birakildi",
                     "robot_id": robot.id,
                     "gorev_id": robot.aktif_gorev_id,
+                    "palet_key": palet_key,
                 }
             )
             return
@@ -482,7 +501,19 @@ class TickUseCase:
 
         robot.rota = Path(cells=rota_cells)
         robot.durum_gecisi(RobotDurum.TASIYOR)
-        events.append({"olay": "palet_alindi", "robot_id": robot.id})
+        # Palet artık robotun üzerinde — runtime kayıt güncellemesi.
+        palet_key = World.palet_anahtari(gorev)
+        palet = world.paletler.get(palet_key)
+        if palet is not None:
+            palet.durum = PaletDurum.ROBOT_UZERINDE
+            palet.robot_id = robot.id
+        events.append(
+            {
+                "olay": "palet_alindi",
+                "robot_id": robot.id,
+                "palet_key": palet_key,
+            }
+        )
         events.append(
             {
                 "olay": "rota_hesaplandi",

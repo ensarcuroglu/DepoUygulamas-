@@ -11,6 +11,7 @@ import { OrbitControls, Stats, Environment, Html } from '@react-three/drei';
 
 import { useAgvStore } from '../../../stores/agvStore';
 import DepoZemini from './DepoZemini';
+import Paletler from './Paletler';
 import RobotMesh from './Robot';
 import RobotYollari from './RobotYollari';
 
@@ -106,6 +107,7 @@ export default function DepoSahnesi() {
                     <Environment preset="warehouse" />
                     <DepoZemini grid={grid} />
                     <RobotYollari />
+                    <Paletler />
 
                     {robotIds.map((id) => (
                         <RobotMesh key={id} robotId={id} />
