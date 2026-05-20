@@ -3,9 +3,13 @@ import {
   Activity,
   AlertTriangle,
   BarChart3,
+  Database,
   Download,
+  FlaskConical,
+  LineChart,
   Loader2,
   Package,
+  PlayCircle,
   RefreshCw,
   Search,
   ShieldAlert,
@@ -24,6 +28,8 @@ import {
 } from 'recharts';
 import {
   useBacktestOzetQuery,
+  useParquetBacktestMutation,
+  useParquetVeriSetleriQuery,
   useTalepTahminUrunleriQuery,
   useTalepTahminiQuery,
 } from '../queries/talepTahminiQueries';
@@ -119,7 +125,53 @@ function downloadForecastCsv(data) {
   URL.revokeObjectURL(url);
 }
 
+const TABS = [
+  { id: 'tahmin', label: 'Tahmin Al', icon: LineChart },
+  { id: 'backtest', label: 'Model Testi / Backtest', icon: FlaskConical },
+];
+
 export default function TalepTahminiPage() {
+  const [activeTab, setActiveTab] = useState('tahmin');
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-5 pb-10">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          Talep Tahmini
+        </h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Urun bazli stok riski, ikmal projeksiyonu ve model dogrulama
+        </p>
+      </div>
+
+      <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-bold transition ${
+                isActive
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {activeTab === 'tahmin' && <TahminAlPanel />}
+      {activeTab === 'backtest' && <BacktestPanel />}
+    </div>
+  );
+}
+
+function TahminAlPanel() {
   const [search, setSearch] = useState('');
   const [manualProductId, setManualProductId] = useState('');
   const [horizon, setHorizon] = useState(7);
@@ -151,18 +203,9 @@ export default function TalepTahminiPage() {
   const errorMessage = productsQuery.error?.message || forecastQuery.error?.message;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-5 pb-10">
+    <div className="space-y-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Talep Tahmini
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Urun bazli stok riski ve ikmal projeksiyonu
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 lg:ml-auto">
           <div className="relative min-w-[240px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -187,6 +230,7 @@ export default function TalepTahminiPage() {
           </select>
         </div>
       </div>
+      {/* TahminAlPanel body */}
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
@@ -413,6 +457,308 @@ export default function TalepTahminiPage() {
         </>
       )}
     </div>
+  );
+}
+
+const HORIZON_OPTIONS = HORIZONS;
+
+function formatBytes(bytes) {
+  if (!bytes && bytes !== 0) return '-';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function BacktestPanel() {
+  const [selectedDataset, setSelectedDataset] = useState('');
+  const [horizon, setHorizon] = useState(7);
+  const [scope, setScope] = useState('all'); // 'all' | 'single'
+  const [singleUrunId, setSingleUrunId] = useState('');
+  const [lastRunParams, setLastRunParams] = useState(null);
+
+  const datasetsQuery = useParquetVeriSetleriQuery();
+  const datasets = useMemo(() => datasetsQuery.data ?? [], [datasetsQuery.data]);
+  const mutation = useParquetBacktestMutation();
+
+  // Auto-select first dataset when list loads
+  const effectiveDataset = useMemo(() => {
+    if (datasets.length === 0) return '';
+    return datasets.some((d) => d.dosya === selectedDataset)
+      ? selectedDataset
+      : datasets[0].dosya;
+  }, [datasets, selectedDataset]);
+
+  const result = mutation.data;
+  const errorMessage = datasetsQuery.error?.message || mutation.error?.message;
+  const canRun =
+    Boolean(effectiveDataset) &&
+    !mutation.isPending &&
+    (scope === 'all' || (singleUrunId.trim() && /^\d+$/.test(singleUrunId.trim())));
+
+  const handleRun = () => {
+    if (!effectiveDataset) return;
+    const params = {
+      dosya: effectiveDataset,
+      tahmin_gun: horizon,
+      ...(scope === 'single' ? { urun_id: Number(singleUrunId) } : {}),
+    };
+    setLastRunParams(params);
+    mutation.mutate(params);
+  };
+
+  return (
+    <div className="space-y-5">
+      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center gap-2">
+          <FlaskConical className="w-5 h-5 text-blue-600" />
+          <h2 className="text-base font-extrabold text-slate-800">Backtest Konfigurasyonu</h2>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+          <div>
+            <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 mb-1">
+              Parquet Veri Seti
+            </label>
+            <select
+              value={effectiveDataset}
+              onChange={(event) => setSelectedDataset(event.target.value)}
+              disabled={datasetsQuery.isLoading || datasets.length === 0}
+              className="w-full h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+            >
+              {datasetsQuery.isLoading && <option>Yukleniyor...</option>}
+              {!datasetsQuery.isLoading && datasets.length === 0 && (
+                <option value="">Veri seti yok</option>
+              )}
+              {datasets.map((d) => (
+                <option key={d.dosya} value={d.dosya}>
+                  {d.dosya} ({d.urun_sayisi} urun, {d.satir_sayisi} satir, {formatBytes(d.boyut_bytes)})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 mb-1">
+              Tahmin Gunu
+            </label>
+            <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+              {HORIZON_OPTIONS.map((value) => (
+                <button
+                  key={value}
+                  onClick={() => setHorizon(value)}
+                  className={`h-9 min-w-14 rounded-md px-3 text-sm font-bold transition ${
+                    horizon === value
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                  }`}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 mb-1">
+              Kapsam
+            </label>
+            <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+              <button
+                onClick={() => setScope('all')}
+                className={`h-9 px-3 rounded-md text-sm font-bold transition ${
+                  scope === 'all' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                Tum Urunler
+              </button>
+              <button
+                onClick={() => setScope('single')}
+                className={`h-9 px-3 rounded-md text-sm font-bold transition ${
+                  scope === 'single' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                Tek Urun
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col">
+            <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 mb-1">
+              &nbsp;
+            </label>
+            <button
+              onClick={handleRun}
+              disabled={!canRun}
+              className="inline-flex h-11 items-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
+            >
+              {mutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <PlayCircle className="w-4 h-4" />
+              )}
+              Backtest Calistir
+            </button>
+          </div>
+        </div>
+
+        {scope === 'single' && (
+          <div className="mt-3 max-w-xs">
+            <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 mb-1">
+              Urun ID
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={singleUrunId}
+              onChange={(event) => setSingleUrunId(event.target.value)}
+              placeholder="orn. 1"
+              className="w-full h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+        )}
+      </section>
+
+      {errorMessage && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+          {errorMessage}
+        </div>
+      )}
+
+      {mutation.isPending && (
+        <div className="min-h-[28vh] flex flex-col items-center justify-center gap-3 text-slate-400">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+          <p className="text-sm font-semibold">Backtest calistiriliyor...</p>
+        </div>
+      )}
+
+      {!mutation.isPending && !result && !errorMessage && datasets.length > 0 && (
+        <div className="rounded-lg border border-dashed border-slate-200 bg-white py-14 text-center">
+          <FlaskConical className="w-10 h-10 mx-auto text-slate-300" />
+          <p className="mt-3 text-sm font-semibold text-slate-500">
+            Veri setini sec ve "Backtest Calistir" butonuna bas.
+          </p>
+        </div>
+      )}
+
+      {!datasetsQuery.isLoading && datasets.length === 0 && (
+        <div className="rounded-lg border border-slate-200 bg-white py-14 text-center shadow-sm">
+          <Database className="w-10 h-10 mx-auto text-slate-300" />
+          <p className="mt-3 text-sm font-semibold text-slate-500">
+            ml_models/talep_tahmin/data/raw altinda parquet dosyasi bulunamadi.
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            DataGenService timeseries_history senaryosuyla veri uretebilirsiniz.
+          </p>
+        </div>
+      )}
+
+      {result && !mutation.isPending && (
+        <BacktestSonucGorunumu result={result} lastRunParams={lastRunParams} />
+      )}
+    </div>
+  );
+}
+
+function BacktestSonucGorunumu({ result, lastRunParams }) {
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+        <MetricCard
+          icon={Activity}
+          label="Ortalama MAE"
+          value={formatDecimal(result.mae)}
+          detail="Mean Absolute Error"
+          tone="blue"
+        />
+        <MetricCard
+          icon={TrendingUp}
+          label="Ortalama MAPE"
+          value={`%${formatDecimal(result.mape)}`}
+          detail="Mean Absolute Percentage Error"
+          tone="indigo"
+        />
+        <MetricCard
+          icon={Package}
+          label="Urun Sayisi"
+          value={formatNumber(result.urun_sayisi)}
+          detail={lastRunParams?.urun_id ? `Tek urun (#${lastRunParams.urun_id})` : 'Tum urunler'}
+          tone="emerald"
+        />
+        <MetricCard
+          icon={BarChart3}
+          label="Tahmin Gunu"
+          value={`${result.tahmin_gun} gun`}
+          detail={result.model_versiyonu}
+          tone="amber"
+        />
+        <MetricCard
+          icon={Database}
+          label="Veri Kaynagi"
+          value={result.veri_kaynagi.replace('.parquet', '')}
+          detail="ml_models/.../data/raw"
+          tone="slate"
+        />
+      </div>
+
+      <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 px-4 py-3">
+          <h2 className="text-sm font-extrabold text-slate-800">
+            Per-Urun Sonuclar ({result.sonuclar.length})
+          </h2>
+        </div>
+        {result.sonuclar.length === 0 ? (
+          <div className="py-10 text-center text-sm font-semibold text-slate-500">
+            Yeterli geçmis serisi olan urun bulunamadi (tahmin_gun {result.tahmin_gun} gunden buyuk seri gerekir).
+          </div>
+        ) : (
+          <div className="max-h-[480px] overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-slate-50 text-xs font-extrabold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 text-left">Urun ID</th>
+                  <th className="px-4 py-3 text-right">Gercek Talep</th>
+                  <th className="px-4 py-3 text-right">Tahmin</th>
+                  <th className="px-4 py-3 text-right">MAE</th>
+                  <th className="px-4 py-3 text-right">MAPE</th>
+                  <th className="px-4 py-3 text-right">Guven</th>
+                  <th className="px-4 py-3 text-left">Stok Riski</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {result.sonuclar.map((row) => {
+                  const riskClass = riskStyles[row.stok_riski] ?? riskStyles.yok;
+                  return (
+                    <tr key={row.urun_id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-extrabold text-slate-900">#{row.urun_id}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-700">
+                        {formatDecimal(row.gercek_talep)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-700">
+                        {formatDecimal(row.tahmini_talep)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-extrabold text-slate-900">
+                        {formatDecimal(row.mae)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-700">
+                        %{formatDecimal(row.mape)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-600">
+                        %{formatNumber(row.veri_guven_skoru * 100)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full border px-2.5 py-0.5 text-xs font-extrabold uppercase ${riskClass}`}>
+                          {row.stok_riski}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </>
   );
 }
 

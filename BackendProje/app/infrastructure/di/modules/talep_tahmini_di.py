@@ -4,12 +4,15 @@ Algoritma `ml_models.talep_tahmin` paketinden gelir; bu modul predictor
 ve use case factory'lerini FastAPI Depends() zincirine baglar.
 """
 
+from pathlib import Path
+
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from database import get_db
 from app.application.use_cases import (
     BacktestOzetGetirUseCase,
+    ParquetBacktestUseCase,
     RiskliUrunlerListeleUseCase,
     TalepTahminUrunleriListeleUseCase,
     TalepTahminiGetirUseCase,
@@ -96,3 +99,25 @@ def get_backtest_ozet_getir_uc(
     predict_uc: PredictDemandUseCase = Depends(get_talep_tahmin_predict_uc),
 ):
     return BacktestOzetGetirUseCase(repo, predict_uc)
+
+
+# ml_models/talep_tahmin/data/raw — proje kokunden relative
+# parents: [0]=modules [1]=di [2]=infrastructure [3]=app [4]=BackendProje [5]=root
+_PARQUET_DIR = (
+    Path(__file__).resolve().parents[5]
+    / "ml_models"
+    / "talep_tahmin"
+    / "data"
+    / "raw"
+)
+
+
+def get_talep_tahmin_parquet_dir() -> Path:
+    return _PARQUET_DIR
+
+
+def get_parquet_backtest_uc(
+    predict_uc: PredictDemandUseCase = Depends(get_talep_tahmin_predict_uc),
+    parquet_dir: Path = Depends(get_talep_tahmin_parquet_dir),
+) -> ParquetBacktestUseCase:
+    return ParquetBacktestUseCase(predict_uc=predict_uc, parquet_dir=parquet_dir)

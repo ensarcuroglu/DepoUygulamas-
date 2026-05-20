@@ -1,9 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   getBacktestOzet,
+  getParquetVeriSetleri,
   getRiskliUrunler,
   getTalepTahminUrunleri,
   getTalepTahmini,
+  runParquetBacktest,
 } from '../services/api';
 import { queryKeys } from './queryKeys';
 import { responseData } from './queryUtils';
@@ -36,6 +38,21 @@ export function useBacktestOzetQuery(tahminGun = 7) {
     queryKey: queryKeys.talepTahmini.backtest(tahminGun),
     queryFn: () => getBacktestOzet(tahminGun).then(responseData),
     staleTime: 60 * 60 * 1000,
+  });
+}
+
+export function useParquetVeriSetleriQuery({ enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.talepTahmini.parquetVeriSetleri(),
+    queryFn: () => getParquetVeriSetleri().then(responseData),
+    staleTime: 5 * 60 * 1000,
+    enabled,
+  });
+}
+
+export function useParquetBacktestMutation() {
+  return useMutation({
+    mutationFn: (params) => runParquetBacktest(params).then(responseData),
   });
 }
 

@@ -24,6 +24,7 @@ export const queryKeys = {
         detail: (urunId, tahminGun) => ['talepTahmini', 'detail', urunId, tahminGun],
         riskli: (params = {}) => ['talepTahmini', 'riskli', params],
         backtest: (tahminGun) => ['talepTahmini', 'backtest', tahminGun],
+        parquetVeriSetleri: () => ['talepTahmini', 'parquet-veri-setleri'],
     },
     kategoriler: {
         all: ['kategoriler'],

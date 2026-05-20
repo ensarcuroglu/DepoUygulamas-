@@ -196,6 +196,7 @@ from .toplama_gorevi_use_cases import (
 )
 from .talep_tahmini_use_cases import (
     BacktestOzetGetirUseCase,
+    ParquetBacktestUseCase,
     RiskliUrunlerListeleUseCase,
     TalepTahminiGetirUseCase,
     TalepTahminUrunleriListeleUseCase,
@@ -303,6 +304,7 @@ __all__ = [
     # Talep Tahmini
     "TalepTahminiGetirUseCase", "TalepTahminUrunleriListeleUseCase",
     "RiskliUrunlerListeleUseCase", "BacktestOzetGetirUseCase",
+    "ParquetBacktestUseCase",
     # Operatör Performans (LMS)
     "MetriklerAggregasyonUseCase", "AggregasyonSonucDTO",
     "OperatorPerformansSorguUseCase",

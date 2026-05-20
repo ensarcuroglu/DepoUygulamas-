@@ -1,18 +1,22 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Optional
 
 from app.application.dto.talep_tahmini_dto import (
     BacktestOzetDTO,
     GunlukTahminDTO,
     GunlukTalepDTO,
+    ParquetBacktestSonucDTO,
+    ParquetBacktestUrunSonucDTO,
+    ParquetVeriSetiDTO,
     RiskliUrunDTO,
     TalepTahminResponseDTO,
     TalepTahminUrunOzetDTO,
     TalepTrendDTO,
 )
-from app.core.exceptions import KayitBulunamadiError
+from app.core.exceptions import GecersizIslemError, KayitBulunamadiError
 from app.core.repositories.talep_tahmini_repository import (
     CacheKaydi,
     ITalepTahminCacheRepository,
@@ -339,3 +343,150 @@ class BacktestOzetGetirUseCase:
                 self._predict_uc._predictor, "MODEL_VERSION", "baseline"
             ),
         )
+
+
+class ParquetBacktestUseCase:
+    """ml_models/talep_tahmin/data/raw altindaki parquet veri setleri uzerinde
+    backtest calistirir.
+
+    Veri akisi:
+        DataGenService -> parquet -> ParquetDemandDataSource -> InputFeatures
+        -> PredictDemandUseCase -> per-urun MAE/MAPE.
+
+    Train/test bolumu: serinin son `tahmin_gun` gunu holdout; geri kalan
+    train olarak predictor'a verilir.
+    """
+
+    GECERLI_UFUKLAR = (7, 14, 30, 90)
+
+    def __init__(
+        self,
+        predict_uc: PredictDemandUseCase,
+        parquet_dir: Path,
+    ) -> None:
+        self._predict_uc = predict_uc
+        self._parquet_dir = parquet_dir
+
+    def veri_setlerini_listele(self) -> list[ParquetVeriSetiDTO]:
+        if not self._parquet_dir.exists():
+            return []
+
+        # Lazy import: pandas/pyarrow ml_models tarafinda zaten kurulu, ama
+        # bu modul daha sik import edildigi icin ust seviyede tutmuyoruz.
+        import pandas as pd
+
+        sonuc: list[ParquetVeriSetiDTO] = []
+        for path in sorted(self._parquet_dir.glob("*.parquet")):
+            try:
+                df = pd.read_parquet(path, columns=["urun_id"])
+            except Exception:
+                continue
+            sonuc.append(
+                ParquetVeriSetiDTO(
+                    dosya=path.name,
+                    boyut_bytes=path.stat().st_size,
+                    satir_sayisi=int(len(df)),
+                    urun_sayisi=int(df["urun_id"].nunique()) if "urun_id" in df.columns else 0,
+                )
+            )
+        return sonuc
+
+    def calistir(
+        self,
+        dosya: str,
+        tahmin_gun: int = 7,
+        urun_id: Optional[int] = None,
+    ) -> ParquetBacktestSonucDTO:
+        if tahmin_gun not in self.GECERLI_UFUKLAR:
+            raise GecersizIslemError(
+                f"tahmin_gun {self.GECERLI_UFUKLAR} icinde olmalidir."
+            )
+
+        parquet_path = self._guvenli_dosya_yolu(dosya)
+        if not parquet_path.exists():
+            raise KayitBulunamadiError("Parquet dosyasi", dosya)
+
+        # Lazy import — modul yuklenirken pandas/pyarrow zorunlu olmasin.
+        from ml_models.talep_tahmin.infrastructure.data_sources import (
+            ParquetDemandDataSource,
+        )
+
+        data_source = ParquetDemandDataSource(parquet_path, max_gun=730)
+        urun_idleri = (
+            [urun_id] if urun_id is not None else data_source.available_urun_ids()
+        )
+        if urun_id is not None and urun_id not in data_source.available_urun_ids():
+            raise KayitBulunamadiError("Urun (parquet)", urun_id)
+
+        per_urun: list[ParquetBacktestUrunSonucDTO] = []
+        mae_toplam = 0.0
+        mape_toplam = 0.0
+
+        for current_id in urun_idleri:
+            full_features = data_source.build_features(current_id)
+            seri = full_features.stok_cikis_gecmisi
+            if len(seri) <= tahmin_gun:
+                continue
+
+            train_series = seri[:-tahmin_gun]
+            test_series = seri[-tahmin_gun:]
+            gercek = float(sum(item.miktar for item in test_series))
+
+            train_features = InputFeatures(
+                urun_id=full_features.urun_id,
+                tenant_id=full_features.tenant_id,
+                stok_cikis_gecmisi=train_series,
+                mevcut_stok=full_features.mevcut_stok,
+                min_stok=full_features.min_stok,
+            )
+            prediction: PredictionResult = self._predict_uc.execute(
+                train_features, tahmin_gun=tahmin_gun
+            )
+
+            mae = abs(gercek - prediction.tahmini_talep)
+            payda = max(gercek, 1.0)
+            mape = (mae / payda) * 100
+
+            mae_toplam += mae
+            mape_toplam += mape
+            per_urun.append(
+                ParquetBacktestUrunSonucDTO(
+                    urun_id=current_id,
+                    gercek_talep=round(gercek, 2),
+                    tahmini_talep=round(prediction.tahmini_talep, 2),
+                    mae=round(mae, 2),
+                    mape=round(mape, 2),
+                    veri_guven_skoru=prediction.veri_guven_skoru,
+                    stok_riski=prediction.stok_riski,
+                    talep_sinyali=prediction.talep_sinyali,
+                )
+            )
+
+        urun_sayisi = len(per_urun)
+        ortalama_mae = round(mae_toplam / urun_sayisi, 2) if urun_sayisi else 0.0
+        ortalama_mape = round(mape_toplam / urun_sayisi, 2) if urun_sayisi else 0.0
+
+        return ParquetBacktestSonucDTO(
+            veri_kaynagi=dosya,
+            tahmin_gun=tahmin_gun,
+            urun_sayisi=urun_sayisi,
+            mae=ortalama_mae,
+            mape=ortalama_mape,
+            model_versiyonu=getattr(
+                self._predict_uc._predictor, "MODEL_VERSION", "baseline"
+            ),
+            sonuclar=per_urun,
+        )
+
+    def _guvenli_dosya_yolu(self, dosya: str) -> Path:
+        """Path traversal koruma: yalniz parquet_dir altindaki .parquet dosyalari."""
+        if not dosya.endswith(".parquet"):
+            raise GecersizIslemError("Sadece .parquet uzantili dosyalar kabul edilir.")
+        if "/" in dosya or "\\" in dosya or dosya.startswith("."):
+            raise GecersizIslemError("Gecersiz dosya adi.")
+        candidate = (self._parquet_dir / dosya).resolve()
+        try:
+            candidate.relative_to(self._parquet_dir.resolve())
+        except ValueError as exc:
+            raise GecersizIslemError("Dosya yolu izin verilen dizin disinda.") from exc
+        return candidate

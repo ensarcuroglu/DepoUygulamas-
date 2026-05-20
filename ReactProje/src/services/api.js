@@ -272,6 +272,14 @@ export const getRiskliUrunler = (params = {}) =>
   api.get('/talep-tahmini/riskli-urunler', { params });
 export const getBacktestOzet = (tahminGun = 7) =>
   api.get('/talep-tahmini/backtest-ozet', { params: { tahmin_gun: tahminGun } });
+export const getParquetVeriSetleri = () =>
+  api.get('/talep-tahmini/backtest/veri-setleri');
+export const runParquetBacktest = ({ dosya, tahmin_gun = 7, urun_id = null }) =>
+  api.post('/talep-tahmini/backtest/parquet', {
+    dosya,
+    tahmin_gun,
+    ...(urun_id != null ? { urun_id } : {}),
+  });
 
 // ========================
 // STOK İŞLEMLERİ (Palet Bazlı)
