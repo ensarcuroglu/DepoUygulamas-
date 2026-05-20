@@ -29,6 +29,17 @@ const DURUM_RENK = {
     HataDuruyor: '#ef4444',
 };
 
+const DURUM_ETIKET = {
+    Bos: 'Boşta',
+    KaynagaGidiyor: 'Kaynağa Gidiyor',
+    Yukluyor: 'Yüklüyor',
+    Tasiyor: 'Taşıyor',
+    Birakiyor: 'Bırakıyor',
+    TamamlandiBildirim: 'Tamamlandı',
+    BeklemeYerineDonuyor: 'Şarja Dönüyor',
+    HataDuruyor: 'Hata',
+};
+
 export default function RobotMesh({ robotId }) {
     const groupRef = useRef(null);
     const baslatildiRef = useRef(false);
@@ -79,6 +90,8 @@ export default function RobotMesh({ robotId }) {
 
     if (durum === undefined) return null;
 
+    const bataryaRenk = batarya < 20 ? 'bg-red-500' : batarya < 50 ? 'bg-amber-500' : 'bg-emerald-500';
+
     return (
         <group
             ref={groupRef}
@@ -102,8 +115,8 @@ export default function RobotMesh({ robotId }) {
             {/* Seçim halkası — yere yakın yatay daire (sadece seçiliyken) */}
             {isSelected && (
                 <mesh position={[-1.75, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                    <ringGeometry args={[0.55, 0.7, 32]} />
-                    <meshBasicMaterial color="#60a5fa" transparent opacity={0.85} />
+                    <ringGeometry args={[0.55, 0.65, 32]} />
+                    <meshBasicMaterial color="#06b6d4" transparent opacity={0.9} />
                 </mesh>
             )}
 
@@ -123,17 +136,17 @@ export default function RobotMesh({ robotId }) {
             {/* Kullanıcı Etkileşim Balonu (Glassmorphism Tooltip) */}
             {hovered && (
                 <Html position={[0, 1.2, 0]} center className="pointer-events-none">
-                    <div className="flex w-32 flex-col items-center justify-center rounded-lg border border-white/10 bg-slate-900/80 p-2 text-[11px] text-white shadow-xl backdrop-blur-md transition-all">
+                    <div className="flex w-32 flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-950/90 p-2.5 text-[10px] text-slate-100 shadow-xl backdrop-blur-md transition-all">
                         <span className="font-bold text-blue-400">AGV-{robotId}</span>
-                        <span className="mt-1 font-medium">{durum}</span>
-                        <div className="mt-1 flex w-full items-center gap-2">
-                            <div className="h-1.5 flex-1 rounded-full bg-slate-700 overflow-hidden">
+                        <span className="mt-1 font-semibold text-slate-300">{DURUM_ETIKET[durum] ?? durum}</span>
+                        <div className="mt-2.5 flex w-full items-center gap-2">
+                            <div className="h-1.5 flex-1 rounded-full bg-slate-800 overflow-hidden border border-slate-700/20">
                                 <div
-                                    className="h-full bg-green-500"
+                                    className={`h-full ${bataryaRenk}`}
                                     style={{ width: `${batarya}%` }}
                                 />
                             </div>
-                            <span className="text-[10px] text-gray-300">%{batarya}</span>
+                            <span className="text-[9px] font-bold text-slate-400 font-mono">%{batarya}</span>
                         </div>
                     </div>
                 </Html>

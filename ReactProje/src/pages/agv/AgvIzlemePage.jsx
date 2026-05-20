@@ -32,13 +32,13 @@ export default function AgvIzlemePage() {
         <div className="flex h-full w-full flex-col bg-slate-950">
             <UstBilgiCubugu />
 
-            <div className="flex flex-1 overflow-hidden">
-                <main className="relative flex-1 bg-slate-900">
+            <div className="flex flex-1 overflow-hidden relative">
+                <main className="relative flex-1 bg-slate-950">
                     <DepoSahnesi />
                     <DuraklatildiBindiri />
                     {/* Sol overlay: yalnız bir robot seçildiğinde göster */}
                     {selectedRobotId && (
-                        <div className="pointer-events-auto absolute left-3 top-3 w-72 max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-lg bg-white/95 shadow-xl ring-1 ring-gray-200 backdrop-blur">
+                        <div className="pointer-events-auto absolute left-4 top-4 w-80 max-h-[calc(100%-2rem)] overflow-y-auto rounded-xl bg-slate-950/60 border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-500 ease-out animate-in fade-in slide-in-from-left-4">
                             <SeciliRobotPaneli />
                         </div>
                     )}

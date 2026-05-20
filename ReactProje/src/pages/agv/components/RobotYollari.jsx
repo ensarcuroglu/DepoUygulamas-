@@ -9,7 +9,7 @@ import { Line } from '@react-three/drei';
 
 import { useAgvStore } from '../../../stores/agvStore';
 
-const ROTA_RENGI = '#fbbf24';
+const ROTA_RENGI = '#38bdf8';
 const ROTA_Y = 0.06;
 
 export default function RobotYollari() {

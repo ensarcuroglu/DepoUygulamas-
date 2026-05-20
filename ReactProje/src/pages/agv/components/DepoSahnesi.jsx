@@ -8,6 +8,7 @@
 import { Canvas } from '@react-three/fiber';
 import React, { Suspense, Component } from 'react';
 import { OrbitControls, Stats, Environment, Html } from '@react-three/drei';
+import { Loader2 } from 'lucide-react';
 
 import { useAgvStore } from '../../../stores/agvStore';
 import DepoZemini from './DepoZemini';
@@ -18,8 +19,9 @@ import RobotYollari from './RobotYollari';
 function SahneFallback() {
     return (
         <Html center>
-            <div className="rounded-lg bg-slate-900/80 px-3 py-2 text-xs text-slate-200 shadow-lg backdrop-blur">
-                3D modeller yükleniyor…
+            <div className="flex items-center gap-2.5 rounded-xl bg-slate-950/80 border border-blue-500/30 px-4 py-3 text-xs text-blue-400 font-bold shadow-[0_0_15px_rgba(59,130,246,0.15)] backdrop-blur whitespace-nowrap">
+                <Loader2 size={14} className="animate-spin text-blue-400" />
+                <span>3D Depo Ortamı Yükleniyor…</span>
             </div>
         </Html>
     );
@@ -56,7 +58,7 @@ export default function DepoSahnesi() {
 
     if (!grid) {
         return (
-            <div className="flex h-full w-full items-center justify-center text-gray-400">
+            <div className="flex h-full w-full items-center justify-center text-slate-500 font-semibold">
                 Sahne verisi bekleniyor…
             </div>
         );
@@ -81,14 +83,14 @@ export default function DepoSahnesi() {
                 shadows
                 onPointerMissed={() => setSelectedRobotId(null)}
             >
-                <color attach="background" args={['#0f172a']} />
+                <color attach="background" args={['#020617']} />
                 
-                <fog attach="fog" args={['#0f172a', buyukKenar * 0.8, buyukKenar * 2.5]} />
+                <fog attach="fog" args={['#020617', buyukKenar * 0.8, buyukKenar * 2.5]} />
                 
-                <ambientLight intensity={0.6} />
+                <ambientLight intensity={0.45} />
                 <directionalLight
                     position={[buyukKenar, buyukKenar * 1.5, buyukKenar]}
-                    intensity={1.2}
+                    intensity={1.1}
                     castShadow
                     shadow-mapSize={[1024, 1024]}
                     shadow-camera-near={1}
@@ -98,12 +100,15 @@ export default function DepoSahnesi() {
                     shadow-camera-top={buyukKenar}
                     shadow-camera-bottom={-buyukKenar}
                 />
+                
+                <pointLight
+                    position={[merkezX, 12, merkezZ]}
+                    intensity={0.5}
+                    color="#06b6d4"
+                    distance={buyukKenar * 2.2}
+                />
+
                 <Suspense fallback={<SahneFallback />}>
-                    {/*
-                     * Environment HDR'ı drei CDN'inden async yüklüyor — Suspense İÇİNDE
-                     * olmalı. Aksi halde app-level Suspense devreye girer ve sayfa
-                     * tamamen LoadingSpinner'a (beyaz) düşer.
-                     */}
                     <Environment preset="warehouse" />
                     <DepoZemini grid={grid} />
                     <RobotYollari />

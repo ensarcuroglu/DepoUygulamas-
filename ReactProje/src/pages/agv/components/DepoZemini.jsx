@@ -18,8 +18,8 @@
 import { Instance, Instances, useGLTF, Clone } from '@react-three/drei';
 import { useMemo } from 'react';
 
-const ZEMIN_RENGI = '#1e293b';
-const DUVAR_RENGI = '#475569';
+const ZEMIN_RENGI = '#090d16';
+const DUVAR_RENGI = '#1e293b';
 
 // 3D ölçek/ofset sabitleri (cell birimi)
 const RAF_SCALE = 0.9;
@@ -61,14 +61,14 @@ export default function DepoZemini({ grid }) {
                 receiveShadow
             >
                 <planeGeometry args={[genislik, yukseklik]} />
-                <meshStandardMaterial color={ZEMIN_RENGI} roughness={0.2} metalness={0.8} />
+                <meshStandardMaterial color={ZEMIN_RENGI} roughness={0.15} metalness={0.95} />
             </mesh>
 
             <Clone object={zeminScene} position={[merkezX, -0.04, merkezZ]} receiveShadow />
 
             {/* Grid çizgileri */}
             <gridHelper
-                args={[buyukKenar, buyukKenar, '#334155', '#0f172a']}
+                args={[buyukKenar, buyukKenar, '#1e293b', '#090d16']}
                 position={[merkezX, 0.01, merkezZ]}
             />
 
@@ -121,8 +121,8 @@ export default function DepoZemini({ grid }) {
                     rotation={[-Math.PI / 2, 0, 0]}
                     receiveShadow
                 >
-                    <ringGeometry args={[0.32, 0.42, 32]} />
-                    <meshBasicMaterial color="#38bdf8" transparent opacity={0.55} />
+                    <ringGeometry args={[0.35, 0.45, 32]} />
+                    <meshBasicMaterial color="#06b6d4" transparent opacity={0.7} />
                 </mesh>
             ))}
 
