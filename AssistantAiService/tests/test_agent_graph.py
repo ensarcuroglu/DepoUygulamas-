@@ -12,6 +12,7 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
+from app.core.config import get_settings
 from tests.conftest import make_ai, make_fake_model
 
 pytestmark = pytest.mark.asyncio
@@ -32,7 +33,12 @@ def _input_state(
             "aktif_ekran": "terminal",
             "izinli_tool_idleri": izinli
             if izinli is not None
-            else ["tarih_saat_simdi", "yerlestirme_konum_degistir"],
+            else [
+                "tarih_saat_simdi",
+                "palet_sorgula",
+                "palet_raf_degistir",
+                "yerlestirme_konum_degistir",
+            ],
         },
         "proposed_action": None,
         "debug": {},
@@ -136,7 +142,6 @@ async def test_graph_unknown_tool_returns_friendly_tool_message(make_graph):
                     {"name": "yok_olan_alet", "id": "c1", "args": {}}
                 ],
             ),
-            make_ai(content="Maalesef sorulan aleti bulamadim."),
         ]
     )
     graph = make_graph(fake)
@@ -144,9 +149,111 @@ async def test_graph_unknown_tool_returns_friendly_tool_message(make_graph):
     state = await graph.ainvoke(_input_state())
 
     tool_msgs = [m for m in state["messages"] if isinstance(m, ToolMessage)]
-    assert any("bulunamadi" in t.content for t in tool_msgs)
+    assert any("reddedildi" in t.content for t in tool_msgs)
     last_ai = [m for m in state["messages"] if isinstance(m, AIMessage)][-1]
-    assert last_ai.content.startswith("Maalesef")
+    assert "kullanamiyorum" in last_ai.content
+    assert state["debug"]["fallback_reason"] == "unknown_tool"
+
+
+async def test_graph_missing_tool_args_asks_for_clarification(make_graph):
+    fake = make_fake_model(
+        [
+            make_ai(
+                content="",
+                tool_calls=[{"name": "palet_sorgula", "id": "c1", "args": {}}],
+            ),
+        ]
+    )
+    graph = make_graph(fake)
+
+    state = await graph.ainvoke(_input_state("palete bak"))
+
+    assert state["proposed_action"] is None
+    last_ai = [m for m in state["messages"] if isinstance(m, AIMessage)][-1]
+    assert "palet_no" in last_ai.content
+    assert state["debug"]["fallback_reason"] == "validation_error"
+
+
+async def test_graph_unauthorized_tool_is_blocked(make_graph):
+    fake = make_fake_model(
+        [
+            make_ai(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "karantinaya_al",
+                        "id": "c1",
+                        "args": {"palet_no": "P-1", "neden": "hasarli"},
+                    }
+                ],
+            ),
+        ]
+    )
+    graph = make_graph(fake)
+
+    state = await graph.ainvoke(
+        _input_state(rol="depocu", izinli=["karantinaya_al"])
+    )
+
+    assert state["proposed_action"] is None
+    last_ai = [m for m in state["messages"] if isinstance(m, AIMessage)][-1]
+    assert "Bu rol ile" in last_ai.content
+    assert state["debug"]["fallback_reason"] == "unauthorized_tool"
+
+
+async def test_graph_hitl_args_are_repaired_before_proposed_action(make_graph):
+    fake = make_fake_model(
+        [
+            make_ai(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "palet_raf_degistir",
+                        "id": "c1",
+                        "args": {"palet_barkodu": "P-1", "yeni_konum": "R-2"},
+                    }
+                ],
+            ),
+        ]
+    )
+    graph = make_graph(fake)
+
+    state = await graph.ainvoke(
+        _input_state(
+            "P-1 paletini R-2 rafina al",
+            izinli=["palet_raf_degistir"],
+        )
+    )
+
+    assert state["proposed_action"] == {
+        "tool_id": "palet_raf_degistir",
+        "params": {"palet_no": "P-1", "yeni_raf_kodu": "R-2"},
+        "ozet": "Palet P-1 icin yeni raf: R-2",
+    }
+
+
+async def test_graph_max_tool_iterations_stops_loop(make_graph, monkeypatch):
+    monkeypatch.setenv("MAX_TOOL_ITERATIONS", "1")
+    get_settings.cache_clear()
+    fake = make_fake_model(
+        [
+            make_ai(
+                content="",
+                tool_calls=[{"name": "tarih_saat_simdi", "id": "c1", "args": {}}],
+            ),
+            make_ai(
+                content="",
+                tool_calls=[{"name": "tarih_saat_simdi", "id": "c2", "args": {}}],
+            ),
+        ]
+    )
+    graph = make_graph(fake)
+
+    state = await graph.ainvoke(_input_state("saat kac"))
+
+    last_ai = [m for m in state["messages"] if isinstance(m, AIMessage)][-1]
+    assert "dongusu sinirina" in last_ai.content
+    assert state["debug"]["fallback_reason"] == "max_tool_iterations"
 
 
 # ---------------------------------------------------------------------------

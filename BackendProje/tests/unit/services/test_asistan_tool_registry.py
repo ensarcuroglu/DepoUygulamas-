@@ -7,6 +7,7 @@ sozlesmesi: register, authorize, execute, RBAC.
 from __future__ import annotations
 
 import pytest
+from pydantic import BaseModel, ConfigDict
 
 from app.application.services.asistan_tool_registry import (
     AsistanToolRegistry,
@@ -16,9 +17,20 @@ from app.application.services.asistan_tool_registry import (
     ToolNotRegisteredError,
     ToolSpec,
 )
+from app.application.services.asistan_default_tools import (
+    TOOL_SIPARIS_ONCELIK_DEGISTIR,
+    ensure_default_asistan_tools_registered,
+)
+from app.application.dto import AsistanToolInternalExecuteRequestDTO
+from app.api.v1.routers.asistan import asistan_internal_tool_execute
 from core.api_exceptions import BadRequestError
+from models import Siparis as SiparisORM
 
 pytestmark = pytest.mark.unit
+
+
+class _AnyArgs(BaseModel):
+    model_config = ConfigDict(extra="allow")
 
 
 def _ctx(rol: str = "admin", payload: dict | None = None) -> ToolExecutionContext:
@@ -46,6 +58,7 @@ def _spec(
         aciklama=f"{tool_id} test",
         hitl=hitl,
         rbac_roles=frozenset(rbac_roles),
+        args_schema=_AnyArgs,
         executor=executor,
     )
 
@@ -138,6 +151,45 @@ def test_execute_propagates_api_exception_without_wrapping():
         registry.execute(_ctx(), "tool_x")
 
 
+def test_internal_readonly_endpoint_rejects_hitl_tool():
+    registry = AsistanToolRegistry()
+    registry.register(_spec("mutasyon", hitl=True, rbac_roles=("admin",)))
+
+    with pytest.raises(BadRequestError):
+        asistan_internal_tool_execute(
+            "mutasyon",
+            AsistanToolInternalExecuteRequestDTO(
+                kullanici_id=1,
+                rol="admin",
+                params={},
+            ),
+            registry=registry,
+            db=None,
+        )
+
+
+def test_siparis_oncelik_degistir_executor_updates_priority_after_approval():
+    registry = AsistanToolRegistry()
+    ensure_default_asistan_tools_registered(registry)
+    siparis = _FakeSiparis(id=10, siparis_no="SIP-1", oncelik=5)
+    db = _FakeDb(siparis)
+
+    sonuc = registry.execute(
+        ToolExecutionContext(
+            kullanici_id=1,
+            rol="lojistik",
+            payload={"siparis_no": "SIP-1", "yeni_oncelik": 1},
+            db=db,
+        ),
+        TOOL_SIPARIS_ONCELIK_DEGISTIR,
+    )
+
+    assert siparis.oncelik == 1
+    assert db.flushed is True
+    assert sonuc["eski_oncelik"] == 5
+    assert sonuc["yeni_oncelik"] == 1
+
+
 def test_temizle_clears_all_tools():
     registry = AsistanToolRegistry()
     registry.register(_spec("a"))
@@ -145,3 +197,37 @@ def test_temizle_clears_all_tools():
     registry.temizle()
     assert registry.get("a") is None
     assert registry.get("b") is None
+
+
+class _FakeSiparis:
+    def __init__(self, id: int, siparis_no: str, oncelik: int) -> None:
+        self.id = id
+        self.siparis_no = siparis_no
+        self.oncelik = oncelik
+
+
+class _FakeQuery:
+    def __init__(self, item) -> None:
+        self._item = item
+
+    def filter(self, *_args):
+        return self
+
+    def with_for_update(self):
+        return self
+
+    def first(self):
+        return self._item
+
+
+class _FakeDb:
+    def __init__(self, siparis: _FakeSiparis) -> None:
+        self._siparis = siparis
+        self.flushed = False
+
+    def query(self, model):
+        assert model is SiparisORM
+        return _FakeQuery(self._siparis)
+
+    def flush(self):
+        self.flushed = True

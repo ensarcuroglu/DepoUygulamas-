@@ -58,3 +58,22 @@ def flush() -> None:
         client.flush()
     except Exception as exc:  # pragma: no cover - defensive
         log.warning("Langfuse flush failed: %s", exc)
+
+
+def record_event(name: str, metadata: dict[str, Any] | None = None) -> None:
+    """Best-effort masked event hook for agent telemetry.
+
+    Callers must pass only non-sensitive, low-cardinality metadata. This helper
+    deliberately avoids raw prompts/tool payloads so it is safe as a no-op local
+    logger and as a Langfuse event bridge.
+    """
+    safe_metadata = metadata or {}
+    client = _get_client()
+    if client is None:
+        log.debug("assistant_trace_event name=%s metadata=%s", name, safe_metadata)
+        return
+    try:
+        if hasattr(client, "event"):
+            client.event(name=name, metadata=safe_metadata)
+    except Exception as exc:  # pragma: no cover - defensive
+        log.debug("Langfuse event failed; continuing without trace: %s", exc)

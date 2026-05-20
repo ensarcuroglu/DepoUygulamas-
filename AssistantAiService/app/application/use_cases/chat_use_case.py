@@ -51,6 +51,10 @@ class ChatUseCase:
         proposed_action = (
             ProposedAction.model_validate(proposed_raw) if proposed_raw else None
         )
+        if proposed_action is not None:
+            lower = cevap.lower()
+            if "onay bekliyor" not in lower and "islem yapilmadi" not in lower:
+                cevap = f"{cevap}\n\nIslem yapilmadi; onay bekliyor."
 
         return ChatResponse(
             cevap=cevap,

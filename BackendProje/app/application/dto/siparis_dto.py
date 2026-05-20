@@ -31,6 +31,7 @@ class SiparisOlusturRequestDTO(BaseModel):
     musteri_adi: str = Field(..., min_length=1, max_length=200)
     teslimat_adresi: str = Field(..., min_length=1, max_length=500)
     teslimat_tarihi: date = Field(..., description="Planlanan teslimat tarihi")
+    oncelik: int = Field(default=5, ge=1, le=5, description="1=Acil, 5=Normal")
     notlar: str = Field(default="", max_length=2000)
     kalemler: List[SiparisKalemiOlusturRequestDTO] = Field(
         ..., min_length=1, description="En az 1 kalem zorunludur"
@@ -72,6 +73,7 @@ class SiparisGuncelleRequestDTO(BaseModel):
         None,
         description="Bekleme | Hazirlaniyor | YolaCikti | TeslimEdildi | Iptal",
     )
+    oncelik: Optional[int] = Field(None, ge=1, le=5, description="1=Acil, 5=Normal")
     notlar: Optional[str] = Field(None, max_length=2000)
 
     @field_validator("durum")
@@ -124,6 +126,7 @@ class SiparisResponseDTO(BaseModel):
     teslimat_adresi: str
     teslimat_tarihi: date
     durum: str
+    oncelik: int
     top_miktar: int
     top_tutar: float
     notlar: str
@@ -143,6 +146,7 @@ class SiparisResponseDTO(BaseModel):
             teslimat_adresi=entity.teslimat_adresi,
             teslimat_tarihi=entity.teslimat_tarihi,
             durum=entity.durum,
+            oncelik=entity.oncelik,
             top_miktar=entity.top_miktar,
             top_tutar=entity.top_tutar,
             notlar=entity.notlar,

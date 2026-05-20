@@ -105,6 +105,7 @@ class SiparisOlusturUseCase:
             musteri_adi=dto.musteri_adi,
             teslimat_adresi=dto.teslimat_adresi,
             teslimat_tarihi=dto.teslimat_tarihi,
+            oncelik=dto.oncelik,
             notlar=dto.notlar,
             olusturan_kullanici_id=kullanici_id,
         )
@@ -217,6 +218,8 @@ class SiparisGuncelleUseCase:
             siparis.teslimat_adresi = dto.teslimat_adresi
         if dto.teslimat_tarihi is not None:
             siparis.teslimat_tarihi = dto.teslimat_tarihi
+        if dto.oncelik is not None:
+            siparis.oncelik = dto.oncelik
         if dto.notlar is not None:
             siparis.notlar = dto.notlar
 

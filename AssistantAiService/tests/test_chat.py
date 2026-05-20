@@ -103,5 +103,5 @@ def test_chat_hitl_tool_call_returns_proposed_action(make_graph):
     assert proposed["tool_id"] == "yerlestirme_konum_degistir"
     assert proposed["params"] == {"gorev_id": 42, "yeni_konum_kodu": "B-12-3"}
     assert "B-12-3" in (proposed["ozet"] or "")
-    # Cevap ici bos (LLM tool_call'da metin yazmadi); fallback metni doner.
-    assert "onerdim" in body["cevap"].lower() or body["cevap"].endswith("reddedin.")
+    assert "islem yapilmadi" in body["cevap"].lower()
+    assert "onay bekliyor" in body["cevap"].lower()

@@ -63,6 +63,8 @@ class Settings(BaseSettings):
     llm_timeout: float = Field(120.0, alias="LLM_TIMEOUT", ge=1.0)
 
     backend_base_url: str = Field("http://127.0.0.1:8000", alias="BACKEND_BASE_URL")
+    backend_tool_timeout: float = Field(30.0, alias="BACKEND_TOOL_TIMEOUT", ge=1.0)
+    max_tool_iterations: int = Field(3, alias="MAX_TOOL_ITERATIONS", ge=1, le=10)
     sqlite_checkpoint_path: str = Field(
         "/data/assistant_state.sqlite",
         alias="SQLITE_CHECKPOINT_PATH",

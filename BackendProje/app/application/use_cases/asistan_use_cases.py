@@ -139,14 +139,17 @@ class AsistanChatProxyUseCase:
     ) -> AsistanTaslakResponseDTO:
         # Tool registry'de yoksa veya rol yetkisi yoksa hemen 4xx don;
         # AssistantAi yanlis tool secmis demektir.
-        self._registry.authorize(proposed.tool_id, rol)
+        spec = self._registry.authorize(proposed.tool_id, rol)
+        if not spec.hitl:
+            raise BadRequestError("Read-only tool icin taslak olusturulamaz.")
+        validated_params = spec.validate_payload(proposed.params)
 
         simdi = datetime.utcnow()
         entity = AsistanAksiyonTaslagi(
             kullanici_id=kullanici_id,
             rol=rol,
             tool_id=proposed.tool_id,
-            payload_json=proposed.params,
+            payload_json=validated_params,
             durum=AsistanTaslakDurum.BEKLEMEDE,
             ozet=proposed.ozet,
             idempotency_key=uuid.uuid4().hex,

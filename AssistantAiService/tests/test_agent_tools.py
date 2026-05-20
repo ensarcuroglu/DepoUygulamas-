@@ -16,6 +16,7 @@ from app.application.agent.tools import (
     compose_proposed_action_ozet,
     default_registry,
     reset_default_registry,
+    validate_tool_args,
 )
 
 pytestmark = pytest.mark.unit
@@ -132,8 +133,21 @@ def test_default_registry_has_v1_tools():
     reset_default_registry()
     r = default_registry()
     ids = {s.tool_id for s in r.list_for_role("admin")}
-    assert "tarih_saat_simdi" in ids
-    assert "yerlestirme_konum_degistir" in ids
+    assert {
+        "tarih_saat_simdi",
+        "palet_sorgula",
+        "raf_listele",
+        "gorev_durumu_getir",
+        "stok_sorgula",
+        "gorevlerim_listele",
+        "palet_raf_degistir",
+        "karantinaya_al",
+        "siparis_oncelik_degistir",
+        "yerlestirme_konum_degistir",
+    }.issubset(ids)
+    depocu_ids = {s.tool_id for s in r.list_for_role("depocu")}
+    assert "karantinaya_al" not in depocu_ids
+    assert "siparis_oncelik_degistir" not in depocu_ids
 
 
 @pytest.mark.asyncio
@@ -165,3 +179,25 @@ def test_compose_proposed_action_ozet_fallback_for_unknown_tool():
     ozet = compose_proposed_action_ozet("yok_tool", {"k": "v"})
     assert "yok_tool" in ozet
     assert "k=v" in ozet
+
+
+def test_validate_tool_args_repairs_common_aliases():
+    reset_default_registry()
+    spec = default_registry().get("palet_raf_degistir")
+    assert spec is not None
+    validated, error = validate_tool_args(
+        spec,
+        {"palet_barkodu": "P-1", "yeni_konum": "R-2"},
+    )
+    assert error is None
+    assert validated == {"palet_no": "P-1", "yeni_raf_kodu": "R-2"}
+
+
+def test_validate_tool_args_returns_clear_error_for_missing_required_field():
+    reset_default_registry()
+    spec = default_registry().get("palet_sorgula")
+    assert spec is not None
+    validated, error = validate_tool_args(spec, {})
+    assert validated is None
+    assert error is not None
+    assert "palet_no" in error

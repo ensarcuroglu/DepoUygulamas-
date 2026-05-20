@@ -58,6 +58,8 @@ doner.
 | `ASSISTANT_LLM_MODEL` | LangChain ChatOllama icin model adi | `qwen2.5:7b-instruct` |
 | `LLM_TIMEOUT` | Ollama HTTP timeout (saniye) | `120` |
 | `BACKEND_BASE_URL` | BackendProje base URL'i (read-only tool'lar icin Faz 2) | `http://127.0.0.1:8000` |
+| `BACKEND_TOOL_TIMEOUT` | Backend internal read-only tool HTTP timeout (saniye) | `30` |
+| `MAX_TOOL_ITERATIONS` | Tek graph turunda izin verilen read-only tool roundtrip limiti | `3` |
 | `SQLITE_CHECKPOINT_PATH` | LangGraph SqliteSaver dosya yolu (Faz 2) | `/data/assistant_state.sqlite` |
 | `CORS_ALLOW_ORIGINS` | Virgulle ayrilmis izinli origin listesi | `https://localhost:5173` |
 

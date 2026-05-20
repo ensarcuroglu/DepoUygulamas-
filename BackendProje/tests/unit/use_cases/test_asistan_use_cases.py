@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import pytest
+from pydantic import BaseModel, ConfigDict
 
 from app.application.dto.asistan_dto import (
     AsistanChatRequestDTO,
@@ -37,6 +38,10 @@ from core.api_exceptions import (
 )
 
 pytestmark = pytest.mark.unit
+
+
+class _AnyArgs(BaseModel):
+    model_config = ConfigDict(extra="allow")
 
 
 # ---------------------------------------------------------------------------
@@ -122,6 +127,7 @@ def _spec(
         aciklama=f"{tool_id} test",
         hitl=hitl,
         rbac_roles=frozenset(rbac_roles),
+        args_schema=_AnyArgs,
         executor=executor,
     )
 

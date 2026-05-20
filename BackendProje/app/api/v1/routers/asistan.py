@@ -11,9 +11,11 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.api.v1.internal_auth import internal_api_key_verify
 from app.application.dto import (
     AsistanChatRequestDTO,
     AsistanChatResponseDTO,
+    AsistanToolInternalExecuteRequestDTO,
     AsistanTaslakOnaylaRequestDTO,
     AsistanTaslakReddetRequestDTO,
     AsistanTaslakResponseDTO,
@@ -21,6 +23,7 @@ from app.application.dto import (
     AsistanToolMetaDTO,
 )
 from app.application.services.asistan_tool_registry import AsistanToolRegistry
+from app.application.services.asistan_tool_registry import ToolExecutionContext
 from app.application.use_cases.asistan_use_cases import (
     AsistanChatProxyUseCase,
     AsistanTaslakListeleUseCase,
@@ -37,6 +40,9 @@ from app.infrastructure.di.container import (
     get_asistan_tool_registry,
 )
 from models import Kullanici
+from database import get_db
+from sqlalchemy.orm import Session
+from core.api_exceptions import BadRequestError
 
 
 router = APIRouter(prefix="/api/asistan", tags=["Depo Asistani"])
@@ -140,7 +146,34 @@ def asistan_tools_listele(
                 aciklama=spec.aciklama,
                 hitl=spec.hitl,
                 rbac_roles=sorted(spec.rbac_roles),
+                args_schema=spec.args_schema.model_json_schema(),
             )
             for spec in specs
         ],
     )
+
+
+@router.post(
+    "/internal/tools/{tool_id}/execute",
+    dependencies=[Depends(internal_api_key_verify)],
+)
+def asistan_internal_tool_execute(
+    tool_id: str,
+    istek: AsistanToolInternalExecuteRequestDTO,
+    registry: AsistanToolRegistry = Depends(get_asistan_tool_registry),
+    db: Session = Depends(get_db),
+) -> dict:
+    """AssistantAiService'in read-only tool executor girisi.
+
+    HITL tool'lar burada calistirilmaz; onlar yalniz taslak onayi ile calisir.
+    """
+    spec = registry.authorize(tool_id, istek.rol)
+    if spec.hitl:
+        raise BadRequestError("HITL tool internal read-only endpoint uzerinden calistirilamaz.")
+    context = ToolExecutionContext(
+        kullanici_id=istek.kullanici_id,
+        rol=istek.rol,
+        payload=istek.params,
+        db=db,
+    )
+    return registry.execute(context, tool_id)

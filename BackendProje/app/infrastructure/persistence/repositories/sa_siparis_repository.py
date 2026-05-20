@@ -56,6 +56,7 @@ class SqlAlchemySiparisRepository(ISiparisRepository):
             teslimat_adresi=siparis.teslimat_adresi,
             teslimat_tarihi=siparis.teslimat_tarihi,
             durum=siparis.durum,
+            oncelik=siparis.oncelik,
             top_miktar=siparis.top_miktar,
             top_tutar=siparis.top_tutar,
             notlar=siparis.notlar,
@@ -79,6 +80,7 @@ class SqlAlchemySiparisRepository(ISiparisRepository):
         orm.teslimat_adresi = siparis.teslimat_adresi
         orm.teslimat_tarihi = siparis.teslimat_tarihi
         orm.durum = siparis.durum
+        orm.oncelik = siparis.oncelik
         orm.top_miktar = siparis.top_miktar
         orm.top_tutar = siparis.top_tutar
         orm.notlar = siparis.notlar

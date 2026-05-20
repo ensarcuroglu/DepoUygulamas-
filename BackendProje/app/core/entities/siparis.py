@@ -53,6 +53,7 @@ class Siparis:
     teslimat_adresi: str = ""
     teslimat_tarihi: Optional[date] = None
     durum: str = SiparisDurum.BEKLEME
+    oncelik: int = 5  # 1=Acil, 5=Normal
     top_miktar: int = 0
     top_tutar: float = 0.0
     notlar: str = ""

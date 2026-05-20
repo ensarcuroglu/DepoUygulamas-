@@ -112,7 +112,16 @@ class AsistanToolMetaDTO(BaseModel):
     aciklama: str
     hitl: bool
     rbac_roles: list[str]
+    args_schema: dict[str, Any] = Field(default_factory=dict)
 
 
 class AsistanToolListResponseDTO(BaseModel):
     tools: list[AsistanToolMetaDTO]
+
+
+class AsistanToolInternalExecuteRequestDTO(BaseModel):
+    """AssistantAiService -> Backend internal read-only tool execution payload."""
+
+    kullanici_id: int
+    rol: str
+    params: dict[str, Any] = Field(default_factory=dict)

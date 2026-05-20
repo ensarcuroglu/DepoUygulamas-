@@ -12,9 +12,10 @@ tarafindan gerceklestirilir.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Callable, Optional
 
+from pydantic import BaseModel, ValidationError
 from sqlalchemy.orm import Session
 
 from core.api_exceptions import (
@@ -49,6 +50,12 @@ class ToolExecutionError(APIException):
         )
 
 
+class ToolPayloadValidationError(BadRequestError):
+    def __init__(self, tool_id: str, mesaj: str):
+        super().__init__(f"Asistan tool parametreleri gecersiz ({tool_id}): {mesaj}")
+        self.details = {"tool_id": tool_id, "reason": mesaj}
+
+
 # ---------------------------------------------------------------------------
 # Tool sozlesmesi
 # ---------------------------------------------------------------------------
@@ -74,10 +81,22 @@ class ToolSpec:
     aciklama: str
     hitl: bool
     rbac_roles: frozenset[str]
+    args_schema: type[BaseModel]
     executor: ToolExecutor
 
     def authorized_for(self, rol: str) -> bool:
         return rol in self.rbac_roles
+
+    def validate_payload(self, payload: dict[str, Any] | None) -> dict[str, Any]:
+        """Validate and normalize raw LLM/Assistant payload before any execution."""
+        try:
+            model = self.args_schema.model_validate(payload or {})
+        except ValidationError as exc:
+            ilk = exc.errors()[0] if exc.errors() else {}
+            loc = ".".join(str(p) for p in ilk.get("loc", ())) or "payload"
+            msg = ilk.get("msg", str(exc))
+            raise ToolPayloadValidationError(self.tool_id, f"{loc}: {msg}") from exc
+        return model.model_dump(exclude_none=True)
 
 
 # ---------------------------------------------------------------------------
@@ -124,6 +143,8 @@ class AsistanToolRegistry:
     def execute(self, context: ToolExecutionContext, tool_id: str) -> dict[str, Any]:
         """Tool'u rol kontrolu + executor cagrisi ile calistir."""
         spec = self.authorize(tool_id, context.rol)
+        validated_payload = spec.validate_payload(context.payload)
+        context = replace(context, payload=validated_payload)
         try:
             return spec.executor(context)
         except APIException:

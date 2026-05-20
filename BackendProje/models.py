@@ -440,6 +440,7 @@ class Siparis(Base):
     teslimat_adresi: Mapped[str] = mapped_column(Text, nullable=False)
     teslimat_tarihi: Mapped[date] = mapped_column(Date, nullable=False)
     durum: Mapped[str] = mapped_column(String(20), default="Bekleme")
+    oncelik: Mapped[int] = mapped_column(Integer, default=5, server_default="5", nullable=False, index=True)
     top_miktar: Mapped[int] = mapped_column(Integer, default=0)
     top_tutar: Mapped[float] = mapped_column(Float, default=0.0)
     notlar: Mapped[str] = mapped_column(Text, default="")

@@ -119,6 +119,7 @@ from .asistan_dto import (
     AsistanTaslakReddetRequestDTO,
     AsistanTaslakResponseDTO,
     AsistanToolListResponseDTO,
+    AsistanToolInternalExecuteRequestDTO,
     AsistanToolMetaDTO,
     AsistanUpstreamChatRequestDTO,
     AsistanUpstreamChatResponseDTO,
@@ -199,7 +200,7 @@ __all__ = [
     "AsistanChatRequestDTO", "AsistanChatResponseDTO",
     "AsistanTaslakOnaylaRequestDTO", "AsistanTaslakReddetRequestDTO",
     "AsistanTaslakResponseDTO",
-    "AsistanToolListResponseDTO", "AsistanToolMetaDTO",
+    "AsistanToolListResponseDTO", "AsistanToolInternalExecuteRequestDTO", "AsistanToolMetaDTO",
     "AsistanUpstreamChatRequestDTO", "AsistanUpstreamChatResponseDTO",
     "AsistanUserContextDTO", "ProposedActionDTO",
     # Talep Tahmini
