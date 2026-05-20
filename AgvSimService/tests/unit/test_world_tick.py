@@ -22,8 +22,13 @@ from app.core.services.world import World
 
 @pytest.fixture
 def world(basit_grid: Grid) -> World:
+    from app.core.entities.grid import Cell
+
     w = World(grid=basit_grid)
-    w.robot_ekle(Robot(id="AGV-01", x=0, y=4))  # şarj konumu
+    # Robot şarj/park konumunda başlar; bekleme_konumu da bu hücre.
+    w.robot_ekle(
+        Robot(id="AGV-01", x=0, y=4, bekleme_konumu=Cell(0, 4))
+    )
     return w
 
 
@@ -73,21 +78,57 @@ def test_atama_robot_yokken_gorev_kuyrukta_kalir(world: World):
 
 
 def test_full_lifecycle_gorev_tamamlanir(world: World):
-    """Robot kaynaktan al → taşı → bırak → tamamla lifecycle'ını koşturur."""
+    """Robot kaynaktan al → taşı → bırak → bildirim → parka dön → BOS."""
     world.gorev_kuyrugu.append(_gorev())
 
-    # Yeterince tick: kaynaga yol + yukleme + tasi yol + birakma + bildirim
-    # Konum (0,4) → kaynak yaklaşma (1,2) ≈ 3 tick + YUKLEME_TICK
-    # → hedef yaklaşma (3,2) ≈ 2 tick + BIRAKMA_TICK + 1 bildirim
-    toplam_tick = 3 + YUKLEME_TICK + 2 + BIRAKMA_TICK + 1 + 5  # +5 buffer
+    # iter 1: atama; 2-4: KAYNAGA_GIDIYOR; 5-6: YUKLUYOR; 7-8: TASIYOR;
+    # 9-10: BIRAKIYOR; 11: TAMAMLANDI_BILDIRIM (parka_yonlendir);
+    # 12-16: BEKLEME_YERINE_DONUYOR (5 tick (3,2)→(0,4)); +buffer.
+    toplam_tick = 1 + 3 + YUKLEME_TICK + 2 + BIRAKMA_TICK + 1 + 5 + 5
     _tum_tick_calistir(world, toplam_tick)
 
     robot = world.robotlar["AGV-01"]
     assert robot.durum == RobotDurum.BOS
     assert robot.aktif_gorev_id is None
-    assert robot.x == 3 and robot.y == 2
+    # Robot artık bırakma noktasında değil; park konumunda olmalı.
+    assert (robot.x, robot.y) == (0, 4)
     assert "g-1" not in world.aktif_gorevler
     assert world.gorev_kuyrugu == []
+
+
+def test_gorev_tamamlandi_event_park_donmeden_yayinlanir(world: World):
+    """`gorev_tamamlandi` event'i (WMS callback fire eden) park dönüşünden
+    önce yayınlanmalı; robot fiziksel hazırlık ise ancak park varışında BOS."""
+    world.gorev_kuyrugu.append(_gorev())
+
+    # iter 1: atama; 2-4: KAYNAGA_GIDIYOR; 5-6: YUKLUYOR; 7-8: TASIYOR;
+    # 9-10: BIRAKIYOR; iter 11: TAMAMLANDI_BILDIRIM → gorev_tamamlandi + parka_yonlendir
+    n = 1 + 3 + YUKLEME_TICK + 2 + BIRAKMA_TICK + 1
+    events = _tum_tick_calistir(world, n)
+
+    tipler = [e["olay"] for e in events]
+    assert "gorev_tamamlandi" in tipler
+    # gorev_tamamlandi event'i WMS callback için gerekli alanları taşımalı
+    ev = next(e for e in events if e["olay"] == "gorev_tamamlandi")
+    assert ev.get("wms_gorev_id") == 42
+
+    robot = world.robotlar["AGV-01"]
+    # Bildirim tick'inde park dönüşüne geçmiş olmalı (eğer park hücresinde
+    # değilse). (3,2) park konumu değil → BEKLEME_YERINE_DONUYOR beklenir.
+    assert robot.durum == RobotDurum.BEKLEME_YERINE_DONUYOR
+    assert robot.aktif_gorev_id is None
+
+
+def test_park_donus_sirasinda_yeni_gorev_alinmaz(world: World):
+    """Robot park dönüşündeyken (BOS değil) bos_robot_bul None döndürmeli."""
+    world.gorev_kuyrugu.append(_gorev())
+    # İlk görevin bırakma+bildirim tick'ine kadar koştur.
+    n = 1 + 3 + YUKLEME_TICK + 2 + BIRAKMA_TICK + 1
+    _tum_tick_calistir(world, n)
+    robot = world.robotlar["AGV-01"]
+    assert robot.durum == RobotDurum.BEKLEME_YERINE_DONUYOR
+    # Yeni görev kuyruğa eklense bile bos_robot_bul None olmalı
+    assert world.bos_robot_bul() is None
 
 
 def test_tick_no_artiyor(world: World):
@@ -112,3 +153,42 @@ def test_snapshot_tam_grid_iceriyor(world: World):
     assert "grid" in snap
     assert "raflar" in snap["grid"]
     assert len(snap["grid"]["raflar"]) == 2
+    # Park konumları snapshot'ta yer almalı (frontend görselleştirir)
+    assert "bekleme_konumlari" in snap["grid"]
+
+
+def test_snapshot_delta_bekleme_konumunu_yayinlar(world: World):
+    delta = world.snapshot_delta()
+    robotlar = delta["robotlar"]
+    assert robotlar[0]["bekleme_konumu"] == [0, 4]
+
+
+def test_bos_park_bul_baska_robot_uzerindeyse_alternatif_secer(
+    basit_grid: Grid,
+):
+    from app.core.entities.grid import Cell
+
+    # İki park konumu olan grid
+    basit_grid.bekleme_konumlari = [Cell(0, 4), Cell(4, 4)]
+    w = World(grid=basit_grid)
+    w.robot_ekle(Robot(id="A", x=0, y=4, bekleme_konumu=Cell(0, 4)))
+    w.robot_ekle(Robot(id="B", x=2, y=2, bekleme_konumu=Cell(0, 4)))
+
+    # B kendi atanmış park'ına dönmek isterse (0,4)'de A var → (4,4) seçilmeli
+    hedef = w.bos_park_bul(w.robotlar["B"])
+    assert hedef == Cell(4, 4)
+
+
+def test_parka_donus_event_yayinlanir_ve_robot_bos_olur(world: World):
+    """Tam yaşam döngüsü sonrası robot fiziksel olarak park konumunda BOS."""
+    world.gorev_kuyrugu.append(_gorev())
+    toplam = 1 + 3 + YUKLEME_TICK + 2 + BIRAKMA_TICK + 1 + 5 + 5
+    events = _tum_tick_calistir(world, toplam)
+
+    olaylar = [e["olay"] for e in events]
+    assert "parka_donuyor" in olaylar
+    assert "bekleme_yerine_vardi" in olaylar
+
+    robot = world.robotlar["AGV-01"]
+    assert robot.durum == RobotDurum.BOS
+    assert (robot.x, robot.y) == (0, 4)

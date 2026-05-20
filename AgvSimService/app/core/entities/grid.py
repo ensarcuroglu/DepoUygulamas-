@@ -52,6 +52,10 @@ class Grid:
     hucreler: list[list[CellTipi]]
     raflar: dict[int, RafKonumu] = field(default_factory=dict)
     sarj_konumlari: list[Cell] = field(default_factory=list)
+    # Park / bekleme hücreleri (BOS tipinde olmalı). Robotlar görev sonrası
+    # buralardan birine geri döner. SARJ konumları ile çakışabilir; çakışırsa
+    # ikisi de geçerli kabul edilir.
+    bekleme_konumlari: list[Cell] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if len(self.hucreler) != self.yukseklik:

@@ -53,6 +53,48 @@ class World:
         from app.core.entities.grid import Cell
         return {Cell(r.x, r.y) for r in self.robotlar.values() if r.id != kendisi.id}
 
+    def bos_park_bul(self, robot: Robot):
+        """Robot için en uygun boş bekleme hücresi.
+
+        Önce robotun atanmış `bekleme_konumu`'nu dener; üzerinde başka robot
+        yoksa onu döndürür. Aksi halde `grid.bekleme_konumlari` içinden,
+        başka robotun şu an üzerinde olmadığı ve başka robotun aktif park
+        hedefi olmadığı en yakın hücreyi seçer. Hiçbiri uygun değilse None.
+        """
+        from app.core.entities.grid import Cell
+
+        diger_konumlar = {
+            Cell(r.x, r.y) for r in self.robotlar.values() if r.id != robot.id
+        }
+        # Başka robotların park hedefi olarak rezerve ettikleri konumlar
+        diger_park_hedefleri = {
+            r.bekleme_konumu
+            for r in self.robotlar.values()
+            if r.id != robot.id
+            and r.bekleme_konumu is not None
+            and r.durum
+            in (RobotDurum.BEKLEME_YERINE_DONUYOR,)
+        }
+
+        adaylar: list[Cell] = []
+        if robot.bekleme_konumu is not None:
+            adaylar.append(robot.bekleme_konumu)
+        adaylar.extend(self.grid.bekleme_konumlari)
+
+        gorulen: set[Cell] = set()
+        for c in adaylar:
+            if c in gorulen:
+                continue
+            gorulen.add(c)
+            if c in diger_konumlar:
+                continue
+            if c in diger_park_hedefleri:
+                continue
+            if not self.grid.gecilebilir_mi(c):
+                continue
+            return c
+        return None
+
     def robot_dict_listesi(self) -> list[dict]:
         return [
             {
@@ -65,6 +107,11 @@ class World:
                 "rota_kalan": r.rota.kalan_uzunluk if r.rota else 0,
                 "batarya": round(r.batarya_yuzde, 1),
                 "sarja_donuyor": r.sarja_donuyor,
+                "bekleme_konumu": (
+                    [r.bekleme_konumu.x, r.bekleme_konumu.y]
+                    if r.bekleme_konumu is not None
+                    else None
+                ),
             }
             for r in self.robotlar.values()
         ]
@@ -116,6 +163,9 @@ class World:
                 ],
                 "sarj_konumlari": [
                     {"x": c.x, "y": c.y} for c in self.grid.sarj_konumlari
+                ],
+                "bekleme_konumlari": [
+                    {"x": c.x, "y": c.y} for c in self.grid.bekleme_konumlari
                 ],
                 "engeller": engeller,
             },

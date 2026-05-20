@@ -15,6 +15,7 @@ class RobotDTO(BaseModel):
     yon: str
     gorev_id: Optional[str] = None
     rota_kalan: int = 0
+    bekleme_konumu: Optional[list[int]] = None
 
 
 class RobotSnapshotResponseDTO(BaseModel):

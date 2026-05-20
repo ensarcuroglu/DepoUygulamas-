@@ -67,7 +67,11 @@ def test_4_robot_paralel_8_gorev_hicbir_robot_hata_dusmez(real_world: World):
     for _ in range(MAX_TICK):
         olaylar.extend(tick.execute(w))
         olaylar.extend(atama.execute(w))
-        if not w.gorev_kuyrugu and not w.aktif_gorevler:
+        if (
+            not w.gorev_kuyrugu
+            and not w.aktif_gorevler
+            and all(r.durum == RobotDurum.BOS for r in w.robotlar.values())
+        ):
             break
 
     # Tüm görevler tamam, kuyrukta hiçbir görev kalmadı
@@ -135,7 +139,11 @@ def test_3_robot_dar_kanal_swap_recovery_yapar(real_world: World):
     for _ in range(2000):
         tick.execute(w)
         atama.execute(w)
-        if not w.gorev_kuyrugu and not w.aktif_gorevler:
+        if (
+            not w.gorev_kuyrugu
+            and not w.aktif_gorevler
+            and all(r.durum == RobotDurum.BOS for r in w.robotlar.values())
+        ):
             break
 
     assert w.gorev_kuyrugu == []

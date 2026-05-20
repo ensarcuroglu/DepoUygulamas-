@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
+from app.core.entities.grid import Cell
 from app.core.entities.path import Path
 from app.core.exceptions import GecersizDurumGecisi
 
@@ -21,16 +22,25 @@ class RobotDurum(str, Enum):
     TASIYOR = "Tasiyor"
     BIRAKIYOR = "Birakiyor"
     TAMAMLANDI_BILDIRIM = "TamamlandiBildirim"
+    BEKLEME_YERINE_DONUYOR = "BeklemeYerineDonuyor"
     HATA_DURUYOR = "HataDuruyor"
 
 
+# Robot durum geçişleri. TAMAMLANDI_BILDIRIM doğrudan BOS'a çıkabilir (park
+# konumu zaten robotun altındaysa kullanılan kısa yol) ya da
+# BEKLEME_YERINE_DONUYOR'a düşer (gerçekçi park dönüşü).
 _GECISLER: dict[RobotDurum, set[RobotDurum]] = {
     RobotDurum.BOS: {RobotDurum.KAYNAGA_GIDIYOR, RobotDurum.HATA_DURUYOR},
     RobotDurum.KAYNAGA_GIDIYOR: {RobotDurum.YUKLUYOR, RobotDurum.HATA_DURUYOR},
     RobotDurum.YUKLUYOR: {RobotDurum.TASIYOR, RobotDurum.HATA_DURUYOR},
     RobotDurum.TASIYOR: {RobotDurum.BIRAKIYOR, RobotDurum.HATA_DURUYOR},
     RobotDurum.BIRAKIYOR: {RobotDurum.TAMAMLANDI_BILDIRIM, RobotDurum.HATA_DURUYOR},
-    RobotDurum.TAMAMLANDI_BILDIRIM: {RobotDurum.BOS, RobotDurum.HATA_DURUYOR},
+    RobotDurum.TAMAMLANDI_BILDIRIM: {
+        RobotDurum.BEKLEME_YERINE_DONUYOR,
+        RobotDurum.BOS,
+        RobotDurum.HATA_DURUYOR,
+    },
+    RobotDurum.BEKLEME_YERINE_DONUYOR: {RobotDurum.BOS, RobotDurum.HATA_DURUYOR},
     RobotDurum.HATA_DURUYOR: {RobotDurum.BOS},
 }
 
@@ -70,6 +80,9 @@ class Robot:
     # otomatik şarja dönüşü ifade eder (yeni durum açmamak için bayrak).
     batarya_yuzde: float = 100.0
     sarja_donuyor: bool = False
+    # Robotun atanmış bekleme/park konumu. Görev sonrası bu hücreye döner.
+    # None ise World park seçici en yakın boş park hücresini atar.
+    bekleme_konumu: Optional[Cell] = None
 
     def durum_gecisi(self, hedef: RobotDurum) -> None:
         if hedef not in _GECISLER.get(self.durum, set()):

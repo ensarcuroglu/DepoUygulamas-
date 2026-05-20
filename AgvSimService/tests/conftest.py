@@ -24,4 +24,5 @@ def basit_grid() -> Grid:
         hucreler=hucreler,
         raflar=raflar,
         sarj_konumlari=[Cell(0, 4)],
+        bekleme_konumlari=[Cell(0, 4)],
     )

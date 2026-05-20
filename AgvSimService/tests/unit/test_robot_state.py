@@ -22,12 +22,35 @@ def test_robot_default_durum_bos():
 
 
 def test_normal_akis_durum_gecisi_dogru():
+    """TAMAMLANDI_BILDIRIM doğrudan BOS'a kısa yol — park konumu altta."""
     r = _yeni_robot()
     r.durum_gecisi(RobotDurum.KAYNAGA_GIDIYOR)
     r.durum_gecisi(RobotDurum.YUKLUYOR)
     r.durum_gecisi(RobotDurum.TASIYOR)
     r.durum_gecisi(RobotDurum.BIRAKIYOR)
     r.durum_gecisi(RobotDurum.TAMAMLANDI_BILDIRIM)
+    r.durum_gecisi(RobotDurum.BOS)
+    assert r.durum == RobotDurum.BOS
+
+
+def test_parka_donus_durum_gecisi_dogru():
+    """TAMAMLANDI_BILDIRIM → BEKLEME_YERINE_DONUYOR → BOS."""
+    r = _yeni_robot()
+    r.durum_gecisi(RobotDurum.KAYNAGA_GIDIYOR)
+    r.durum_gecisi(RobotDurum.YUKLUYOR)
+    r.durum_gecisi(RobotDurum.TASIYOR)
+    r.durum_gecisi(RobotDurum.BIRAKIYOR)
+    r.durum_gecisi(RobotDurum.TAMAMLANDI_BILDIRIM)
+    r.durum_gecisi(RobotDurum.BEKLEME_YERINE_DONUYOR)
+    r.durum_gecisi(RobotDurum.BOS)
+    assert r.durum == RobotDurum.BOS
+
+
+def test_bekleme_yerine_donuyordan_yalniz_bos_veya_hata():
+    r = _yeni_robot()
+    r.durum = RobotDurum.BEKLEME_YERINE_DONUYOR
+    with pytest.raises(GecersizDurumGecisi):
+        r.durum_gecisi(RobotDurum.KAYNAGA_GIDIYOR)
     r.durum_gecisi(RobotDurum.BOS)
     assert r.durum == RobotDurum.BOS
 
@@ -49,6 +72,7 @@ def test_her_durumdan_hata_duruyora_gecilebilir():
         RobotDurum.TASIYOR,
         RobotDurum.BIRAKIYOR,
         RobotDurum.TAMAMLANDI_BILDIRIM,
+        RobotDurum.BEKLEME_YERINE_DONUYOR,
     ):
         r = _yeni_robot()
         r.durum = baslangic

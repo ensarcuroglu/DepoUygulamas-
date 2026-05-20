@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.routers import gorevler as gorevler_router
 from app.api.v1.routers import robotlar as robotlar_router
 from app.api.v1.routers import ws as ws_router
+from app.core.entities.grid import Cell
 from app.core.entities.robot import Robot, RobotDurum, Yon
 from app.core.services.wms_callback_port import (
     IWmsCallbackPort,
@@ -50,13 +51,15 @@ def _robotlari_olustur(world: World, grid_path: str) -> None:
             konumlar.append({"id": "AGV-01", "x": 0, "y": world.grid.yukseklik - 1})
 
     for k in konumlar:
+        x, y = int(k["x"]), int(k["y"])
         world.robot_ekle(
             Robot(
                 id=str(k["id"]),
-                x=int(k["x"]),
-                y=int(k["y"]),
+                x=x,
+                y=y,
                 durum=RobotDurum.BOS,
                 yon=Yon.KUZEY,
+                bekleme_konumu=Cell(x, y),
             )
         )
     log.info("AGV robotlari olusturuldu: %s", [r.id for r in world.robotlar.values()])

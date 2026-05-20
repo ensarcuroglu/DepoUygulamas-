@@ -62,10 +62,24 @@ def gridi_jsondan_yukle(path: str | FsPath) -> Grid:
             hucreler[sy][sx] = CellTipi.SARJ
             sarj_konumlari.append(Cell(sx, sy))
 
+    bekleme_konumlari: list[Cell] = []
+    raw_bekleme = veri.get("bekleme_konumlari")
+    if raw_bekleme is None:
+        # Geri uyum: park noktaları yoksa robot başlangıç konumlarını park
+        # noktası varsay (mevcut JSON dosyaları zaten şarj yakınındaki BOS
+        # hücreleri robot başlangıcı olarak verir).
+        raw_bekleme = veri.get("_baslangic_robot_konumlari", [])
+    for b in raw_bekleme:
+        bx, by = int(b["x"]), int(b["y"])
+        if 0 <= bx < genislik and 0 <= by < yukseklik:
+            # Park noktasının kendisini ENGEL'e çevirmiyoruz; BOS/SARJ kabul.
+            bekleme_konumlari.append(Cell(bx, by))
+
     return Grid(
         genislik=genislik,
         yukseklik=yukseklik,
         hucreler=hucreler,
         raflar=raflar,
         sarj_konumlari=sarj_konumlari,
+        bekleme_konumlari=bekleme_konumlari,
     )

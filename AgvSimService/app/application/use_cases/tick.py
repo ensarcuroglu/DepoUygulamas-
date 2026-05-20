@@ -35,6 +35,7 @@ DEADLOCK_HATA_ESIK = 16    # 16 tick hala hareketsiz → HATA_DURUYOR
 _HAREKET_HALI = {
     RobotDurum.KAYNAGA_GIDIYOR,
     RobotDurum.TASIYOR,
+    RobotDurum.BEKLEME_YERINE_DONUYOR,
 }
 
 
@@ -123,11 +124,12 @@ class TickUseCase:
             return
 
         if d == RobotDurum.TAMAMLANDI_BILDIRIM:
-            # Faz 3: TickLoop runtime bu event'i izliyor ve async olarak
-            # WMS callback'i tetikliyor. Robot LOKALDE BOS'a dönmesine
-            # rağmen WMS callback başarısız olursa görev WMS tarafında
+            # TickLoop runtime bu event'i izleyip async WMS callback'i
+            # tetikler. WMS callback başarısız olursa görev WMS tarafında
             # kapanmaz; runtime fırsatçı retry yapmaz, log'a yazar.
-            # (Eventual consistency tasarım kararı — bkz. plan §13.2.)
+            # Görev tamamlanma bildirimi ile robotun fiziksel olarak boşa
+            # düşmesi ayrı tutulur: robot önce bekleme/park konumuna döner,
+            # oraya varınca BOS olur (ancak o zaman yeni görev alır).
             gorev_id = robot.aktif_gorev_id
             gorev = world.aktif_gorevler.pop(gorev_id, None) if gorev_id else None
             if gorev is not None:
@@ -135,15 +137,12 @@ class TickUseCase:
             robot.aktif_gorev_id = None
             robot.rota = None
             rezervasyonu_birak(world, robot)
-            robot.durum_gecisi(RobotDurum.BOS)
-            event = {
+            event: dict[str, Any] = {
                 "olay": "gorev_tamamlandi",
                 "robot_id": robot.id,
                 "gorev_id": gorev_id,
             }
             if gorev is not None:
-                # WMS callback için gerekli alanlar (TickLoop runtime kullanır;
-                # WS frontend ekstra alanları ignore eder)
                 event.update(
                     {
                         "wms_gorev_id": gorev.wms_gorev_id,
@@ -154,6 +153,23 @@ class TickUseCase:
                     }
                 )
             events.append(event)
+            self._parka_yonlendir(world, robot, events)
+            return
+
+        if d == RobotDurum.BEKLEME_YERINE_DONUYOR:
+            self._ilerle(robot)
+            if robot.rota is None or robot.rota.tamamlandi_mi():
+                rezervasyonu_birak(world, robot)
+                robot.rota = None
+                robot.durum_gecisi(RobotDurum.BOS)
+                events.append(
+                    {
+                        "olay": "bekleme_yerine_vardi",
+                        "robot_id": robot.id,
+                        "x": robot.x,
+                        "y": robot.y,
+                    }
+                )
             return
 
     def _ilerle(self, robot: Robot) -> None:
@@ -270,6 +286,38 @@ class TickUseCase:
     def _replan_dene(
         self, world: World, robot: Robot, events: list[dict[str, Any]]
     ) -> None:
+        # Park dönüşünde aktif görev yok — park hedefine yeniden plan.
+        if robot.durum == RobotDurum.BEKLEME_YERINE_DONUYOR:
+            hedef = world.bos_park_bul(robot)
+            if hedef is None:
+                return
+            rezervasyonu_birak(world, robot)
+            rota = planla_ve_rezerve_et(world, robot, hedef)
+            if rota is None:
+                events.append(
+                    {
+                        "olay": "park_replan_basarisiz",
+                        "robot_id": robot.id,
+                    }
+                )
+                return
+            robot.rota = Path(cells=rota)
+            events.append(
+                {
+                    "olay": "park_replan",
+                    "robot_id": robot.id,
+                    "yeni_uzunluk": len(rota),
+                }
+            )
+            events.append(
+                {
+                    "olay": "rota_hesaplandi",
+                    "robot_id": robot.id,
+                    "rota": [[c.x, c.y] for c in rota],
+                }
+            )
+            return
+
         gorev_id = robot.aktif_gorev_id
         if gorev_id is None:
             return
@@ -304,6 +352,80 @@ class TickUseCase:
                 "robot_id": robot.id,
                 "gorev_id": gorev_id,
                 "yeni_uzunluk": len(rota),
+            }
+        )
+        events.append(
+            {
+                "olay": "rota_hesaplandi",
+                "robot_id": robot.id,
+                "rota": [[c.x, c.y] for c in rota],
+            }
+        )
+
+    def _parka_yonlendir(
+        self, world: World, robot: Robot, events: list[dict[str, Any]]
+    ) -> None:
+        """Görev tamamlandıktan sonra robotu bekleme/park konumuna döndürür.
+
+        - Robot zaten park hücresindeyse doğrudan BOS'a düşer (kısa yol).
+        - Aksi halde park hedefi seçilir, rota planlanır,
+          BEKLEME_YERINE_DONUYOR durumuna geçilir.
+        - Park hedefi yoksa veya rota planlanamıyorsa graceful fallback:
+          robot bulunduğu hücrede BOS olur (eski davranış). Bu durumda
+          `park_atlandi` event'i ile loglama yapılır ki frontend/operatör
+          anormaliyi görebilsin.
+        """
+        from app.core.entities.grid import Cell
+
+        suanki_hucre = Cell(robot.x, robot.y)
+        if (
+            robot.bekleme_konumu == suanki_hucre
+            or suanki_hucre in world.grid.bekleme_konumlari
+        ):
+            robot.durum_gecisi(RobotDurum.BOS)
+            events.append(
+                {
+                    "olay": "bekleme_yerine_vardi",
+                    "robot_id": robot.id,
+                    "x": robot.x,
+                    "y": robot.y,
+                }
+            )
+            return
+
+        hedef = world.bos_park_bul(robot)
+        if hedef is None:
+            # Park noktası tanımlı değil — eski davranışa düş
+            robot.durum_gecisi(RobotDurum.BOS)
+            events.append(
+                {
+                    "olay": "park_atlandi",
+                    "robot_id": robot.id,
+                    "neden": "park_konumu_yok",
+                }
+            )
+            return
+
+        rota = planla_ve_rezerve_et(world, robot, hedef)
+        if rota is None:
+            robot.durum_gecisi(RobotDurum.BOS)
+            events.append(
+                {
+                    "olay": "park_atlandi",
+                    "robot_id": robot.id,
+                    "neden": "rota_bulunamadi",
+                }
+            )
+            return
+
+        robot.bekleme_konumu = hedef
+        robot.rota = Path(cells=rota)
+        robot.durum_gecisi(RobotDurum.BEKLEME_YERINE_DONUYOR)
+        events.append(
+            {
+                "olay": "parka_donuyor",
+                "robot_id": robot.id,
+                "hedef": [hedef.x, hedef.y],
             }
         )
         events.append(

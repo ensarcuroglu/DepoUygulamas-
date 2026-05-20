@@ -25,6 +25,7 @@ const DURUM_RENK = {
     Tasiyor: '#10b981',
     Birakiyor: '#fb923c',
     TamamlandiBildirim: '#3b82f6',
+    BeklemeYerineDonuyor: '#60a5fa',
     HataDuruyor: '#ef4444',
 };
 
